@@ -3,6 +3,8 @@
 .env
 .env.backup
 .env.production
+.env.llm
+env.llm
 .phpactor.json
 .phpunit.result.cache
 /.fleet
@@ -23,3 +25,7 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# WhatsApp Session Files
+.wwebjs_auth/
+.wwebjs_cache/
