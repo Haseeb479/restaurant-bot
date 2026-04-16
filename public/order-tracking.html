@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Tracking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+<div class="container mx-auto p-6 max-w-2xl">
+    <h1 class="text-3xl font-bold mb-8 text-center">Order Tracking</h1>
+
+    <!-- Search Section -->
+    <div class="bg-white p-6 rounded-lg shadow mb-8">
+        <label class="block mb-2 font-semibold">Enter Your Phone Number:</label>
+        <div class="flex gap-2">
+            <input 
+                type="text" 
+                id="phone-input" 
+                placeholder="03001234567" 
+                class="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+            <button 
+                onclick="searchOrders()" 
+                class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            >
+                Track
+            </button>
+        </div>
+    </div>
+
+    <!-- Orders List -->
+    <div id="orders-container" class="hidden">
+        <h2 class="text-2xl font-bold mb-4">Your Orders</h2>
+        <div id="orders-list" class="space-y-4"></div>
+    </div>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="bg-white p-8 rounded-lg text-center">
+        <p class="text-gray-500">Enter your phone number to track your orders</p>
+    </div>
+
+    <!-- Order Detail Modal -->
+    <div id="detail-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg max-w-md w-full p-6 max-h-96 overflow-y-auto">
+            <h2 class="text-2xl font-bold mb-4">Order Details</h2>
+            
+            <div class="mb-6">
+                <p class="text-gray-600 mb-2">Order ID: <span id="modal-order-id" class="font-bold"></span></p>
+                <p class="text-xl mb-4">
+                    Status: <span id="modal-status" class="font-bold text-blue-600"></span>
+                </p>
+            </div>
+
+            <!-- Progress Bar -->
+            <div id="progress-bar" class="mb-6">
+                <!-- Will be filled by JavaScript -->
+            </div>
+
+            <!-- Items -->
+            <div class="mb-4">
+                <h3 class="font-bold mb-2">Items:</h3>
+                <ul id="modal-items" class="list-disc list-inside text-sm space-y-1"></ul>
+            </div>
+
+            <!-- Details -->
+            <div class="bg-gray-50 p-4 rounded mb-4 text-sm space-y-2">
+                <p><span class="font-semibold">Total:</span> Rs. <span id="modal-total"></span></p>
+                <p><span class="font-semibold">Estimated Time:</span> <span id="modal-time"></span></p>
+                <p><span class="font-semibold">Delivery Address:</span> <span id="modal-address"></span></p>
+                <p><span class="font-semibold">Ordered At:</span> <span id="modal-created"></span></p>
+            </div>
+
+            <button 
+                onclick="closeModal()" 
+                class="w-full px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
+            >
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .status-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    .status-pending { background-color: #fbbf24; color: #78350f; }
+    .status-confirmed { background-color: #60a5fa; color: white; }
+    .status-preparing { background-color: #a78bfa; color: white; }
+    .status-ready { background-color: #34d399; color: #065f46; }
+    .status-on_way { background-color: #f87171; color: white; }
+    .status-delivered { background-color: #10b981; color: white; }
+    
+    .progress-step {
+        display: flex;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+    .progress-circle {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: white;
+        margin-right: 12px;
+    }
+    .progress-circle.active { background-color: #10b981; }
+    .progress-circle.inactive { background-color: #d1d5db; }
+</style>
+
+<script>
+    const API_URL = '/api';
+
+    async function searchOrders() {
+        const phone = document.getElementById('phone-input').value.trim();
+        
+        if (!phone) {
+            alert('Please enter your phone number');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/orders/phone/${phone}`);
+            const data = await response.json();
+
+            if (!data.orders || data.orders.length === 0) {
+                document.getElementById('empty-state').classList.remove('hidden');
+                document.getElementById('orders-container').classList.add('hidden');
+                alert('No orders found for this phone number');
+                return;
+            }
+
+            displayOrders(data.orders);
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error fetching orders');
+        }
+    }
+
+    function displayOrders(orders) {
+        document.getElementById('empty-state').classList.add('hidden');
+        document.getElementById('orders-container').classList.remove('hidden');
+        
+        let html = '';
+        orders.forEach(order => {
+            const items = Array.isArray(order.items) ? order.items.join(', ') : JSON.stringify(order.items);
+            const time = new Date(order.created_at).toLocaleString();
+            
+            html += `
+                <div class="bg-white p-4 rounded-lg shadow hover:shadow-lg transition cursor-pointer" onclick="openModal(${order.id})">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <p class="font-bold">Order #${order.id}</p>
+                            <p class="text-sm text-gray-500">${time}</p>
+                        </div>
+                        <span class="status-badge status-${order.status}">${order.status.replace('_', ' ').toUpperCase()}</span>
+                    </div>
+                    <p class="text-sm mb-2">${items}</p>
+                    <p class="font-bold">Rs. ${order.total}</p>
+                </div>
+            `;
+        });
+
+        document.getElementById('orders-list').innerHTML = html;
+    }
+
+    async function openModal(orderId) {
+        try {
+            const response = await fetch(`${API_URL}/orders/track/${orderId}`);
+            const order = await response.json();
+
+            document.getElementById('modal-order-id').innerText = order.order_id;
+            document.getElementById('modal-status').innerText = order.status.replace('_', ' ').toUpperCase();
+            document.getElementById('modal-total').innerText = order.total;
+            document.getElementById('modal-time').innerText = order.estimated_time;
+            document.getElementById('modal-address').innerText = order.delivery_address || 'Address not provided';
+            document.getElementById('modal-created').innerText = new Date(order.created_at).toLocaleString();
+
+            // Items
+            const items = Array.isArray(order.items) ? order.items : Object.values(order.items || {});
+            let itemsHtml = items.map(item => `<li>${item}</li>`).join('');
+            document.getElementById('modal-items').innerHTML = itemsHtml;
+
+            // Progress bar
+            renderProgressBar(order.status);
+
+            document.getElementById('detail-modal').classList.remove('hidden');
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error loading order details');
+        }
+    }
+
+    function renderProgressBar(status) {
+        const steps = [
+            { key: 'pending', label: 'Order Placed' },
+            { key: 'confirmed', label: 'Confirmed' },
+            { key: 'preparing', label: 'Preparing' },
+            { key: 'ready', label: 'Ready' },
+            { key: 'on_way', label: 'On The Way' },
+            { key: 'delivered', label: 'Delivered' }
+        ];
+
+        const statusOrder = ['pending', 'confirmed', 'preparing', 'ready', 'on_way', 'delivered'];
+        const currentIndex = statusOrder.indexOf(status);
+
+        let html = '';
+        steps.forEach((step, index) => {
+            const isActive = index <= currentIndex;
+            html += `
+                <div class="progress-step">
+                    <div class="progress-circle ${isActive ? 'active' : 'inactive'}">✓</div>
+                    <span>${step.label}</span>
+                </div>
+            `;
+        });
+
+        document.getElementById('progress-bar').innerHTML = html;
+    }
+
+    function closeModal() {
+        document.getElementById('detail-modal').classList.add('hidden');
+    }
+
+    // Allow Enter key to search
+    document.getElementById('phone-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') searchOrders();
+    });
+</script>
+
+</body>
+</html>
