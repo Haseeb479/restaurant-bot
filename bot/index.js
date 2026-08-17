@@ -139,6 +139,9 @@ async function initBot(cleanSession = false) {
             console.log(`🤖 Session ID  : ${CLIENT_ID}`);
             console.log(`🌐 Internal API: http://localhost:${INTERNAL_PORT}`);
             console.log('');
+
+            // Preload restaurant & menu data immediately
+            await router.chat.restaurants.preload(botNumber);
         });
 
         client.on('message', (msg) => router.handle(msg));
