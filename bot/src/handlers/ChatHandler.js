@@ -10,12 +10,15 @@ import { PromptBuilder } from '../ai/PromptBuilder.js';
 
 const { MessageMedia } = whatsappWebPkg;
 
+// Image extensions that should be sent as images (not documents)
+const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.jfif', '.jpe']);
+
 /**
  * ChatHandler — AI-powered conversation handler.
  *
  * Flow for every message:
- *  1. Load restaurant + menu + deals
- *  2. Get/create in-memory session for this customer
+ *  1. Load restaurant + menu + deals (isolated per restaurant)
+ *  2. Get/create in-memory session for this customer (scoped to restaurantId)
  *  3. Build message array and call Groq AI
  *  4. Send AI reply to customer
  *  5. If AI reply contains order confirmation → save to DB + send tracking code
@@ -43,7 +46,6 @@ export class ChatHandler {
 
         if (!restaurant) {
             console.log(`❌ No restaurant found for bot number: ${botNumber}`);
-            console.log(`   Make sure the restaurant's WhatsApp number in the dashboard matches the phone that scanned the QR.`);
             await msg.reply(
                 "⚠️ This WhatsApp number is not yet linked to a restaurant.\n\n" +
                 "Please ask the restaurant admin to verify the registration."
@@ -60,7 +62,7 @@ export class ChatHandler {
             return;
         }
 
-        // ── Session ────────────────────────────────────────────────────────────
+        // ── Session — isolated per restaurant+customer ─────────────────────────
         const session = this.sessions.getOrCreate(customerPhone, restaurant);
 
         // ── Build AI messages ──────────────────────────────────────────────────
@@ -78,15 +80,15 @@ export class ChatHandler {
         if (!reply) {
             // AI unavailable — remove the user message we couldn't respond to
             session.history.pop();
-            reply = this.fallback(text);
+            reply = this.fallback(text, restaurant);
         } else {
             session.history.push({ role: 'assistant', content: reply });
-            this.sessions.trim(customerPhone);
+            this.sessions.trim(customerPhone, restaurant.id);
         }
 
-        // ── Check if customer asked for menu & document/image exists ───────────
+        // ── Check if customer asked for menu & image/document exists ───────────
         const isMenuRequest = /menu|dikhao|prices|kya hai|list|card|items|منو|مینو|pdf|sheet|flyer|photo|document/i.test(text);
-        let sentDocument = false;
+        let sentMedia = false;
 
         const menuFilePath = restaurant?.menu_file || restaurant?.menu_image;
         if (isMenuRequest && menuFilePath) {
@@ -97,19 +99,32 @@ export class ChatHandler {
                 }
 
                 if (fs.existsSync(resolvedPath)) {
+                    const ext = path.extname(resolvedPath).toLowerCase();
                     const media = MessageMedia.fromFilePath(resolvedPath);
-                    const fileTitle = restaurant?.menu_file_name || `${restaurant.name} Menu`;
-                    await msg.reply(media, undefined, { caption: `📋 *${fileTitle}*` });
-                    sentDocument = true;
-                    console.log(`📎 Sent menu document (${fileTitle}) to ${customerPhone}`);
+
+                    if (IMAGE_EXTS.has(ext)) {
+                        // Force correct MIME type so it shows as a proper image, not a document
+                        media.mimetype = 'image/jpeg';
+                        media.filename = undefined; // Remove filename so WA treats it as photo
+                        await this.client.sendMessage(`${customerPhone}@c.us`, media, {
+                            caption: `📋 *${restaurant.name} Menu*`
+                        });
+                    } else {
+                        // PDF / Excel / Doc — send as document with filename
+                        const fileTitle = restaurant?.menu_file_name || `${restaurant.name} Menu`;
+                        await msg.reply(media, undefined, { caption: `📋 *${fileTitle}*` });
+                    }
+
+                    sentMedia = true;
+                    console.log(`📎 Sent menu (${ext}) to ${customerPhone}`);
                 }
             } catch (err) {
-                console.log('⚠️ Could not send menu document/file:', err.message);
+                console.log('⚠️ Could not send menu file:', err.message);
             }
         }
 
-        // ── Send reply ─────────────────────────────────────────────────────────
-        if (!sentDocument || reply.length > 50) {
+        // ── Send text reply ────────────────────────────────────────────────────
+        if (!sentMedia || reply.length > 50) {
             await msg.reply(reply);
         }
         console.log(`✅ Replied to ${customerPhone}`);
@@ -120,7 +135,6 @@ export class ChatHandler {
             const trackingCode = await this.orders.save(customerPhone, session);
 
             if (trackingCode) {
-                // Send tracking code as a separate follow-up message
                 const trackingMsg =
                     `🎉 *Your tracking code is: ${trackingCode}*\n\n` +
                     `Send this code anytime to check your order status!`;
@@ -129,7 +143,6 @@ export class ChatHandler {
                     .sendMessage(`${customerPhone}@c.us`, trackingMsg)
                     .catch(() => {});
 
-                // Notify restaurant owner/manager
                 await this.notifier.notifyOwner(customerPhone, session, trackingCode);
             }
         }
@@ -147,17 +160,19 @@ export class ChatHandler {
         );
     }
 
-    // ── Fallback when AI is unavailable ───────────────────────────────────────
-    fallback(text) {
-        const m = text.toLowerCase();
+    // ── Fallback when AI is unavailable — uses THIS restaurant's name ──────────
+    fallback(text, restaurant) {
+        const name = restaurant?.name || 'our restaurant';
+        const m    = text.toLowerCase();
+
         if (/hi|hello|hey|salam|سلام|assalam/.test(m))
-            return "Hey! Welcome 👋 What can I get for you today?";
+            return `Hey! Welcome to *${name}* 👋 How can I help you today?`;
         if (/menu|kya hai|what.*have|منو|مینو/.test(m))
-            return "Here's our menu 📋\n🥤 Mango Juice – M:Rs.150 / L:Rs.250\n🥤 Orange Juice – M:Rs.150 / L:Rs.250\n💧 Water – Rs.50\n\nWhat would you like? 😊";
+            return `Please type *menu* to see today's available items at *${name}* 📋`;
         if (/order|chahiye|چاہیے|want/.test(m))
-            return "Sure! Tell me what you'd like and your delivery address 🙂";
+            return `Sure! Tell me what you'd like from *${name}* and your delivery address 🙂`;
         if (/track|tracking/.test(m))
-            return "Please send your tracking code and I'll check your order status!";
-        return "Hey! I'm here to help 😊 What would you like today?";
+            return `Please send your tracking code and I'll check your order status!`;
+        return `Hey! I'm here to help with *${name}* 😊 What would you like today?`;
     }
 }
