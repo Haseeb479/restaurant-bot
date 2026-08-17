@@ -31,17 +31,24 @@ export class ChatHandler {
     }
 
     async handle(msg, customerPhone, botNumber, text) {
-        // ── Load restaurant ────────────────────────────────────────────────────
+        // ── Load restaurant by bot's own WhatsApp number ───────────────────────
+        if (!botNumber) {
+            console.log('⚠️  botNumber not available yet — bot may still be initializing');
+            await msg.reply("I'm just starting up 🔄 Please send your message again in a few seconds!");
+            return;
+        }
+
+        console.log(`🔍 Looking up restaurant for bot number: ${botNumber}`);
         let restaurant = await this.restaurants.getByBotNumber(botNumber);
 
-        // Graceful default if no restaurant found in DB
         if (!restaurant) {
-            console.log('⚠️  No restaurant found — using defaults');
-            restaurant = {
-                id: 1, name: 'Our Restaurant', address: 'City Center',
-                delivery_charge: 50, minimum_order: 0,
-                hours: '10 AM – 11 PM', menu_items: [], active_deals: [],
-            };
+            console.log(`❌ No restaurant found for bot number: ${botNumber}`);
+            console.log(`   Make sure the restaurant's WhatsApp number in the dashboard matches the phone that scanned the QR.`);
+            await msg.reply(
+                "⚠️ This WhatsApp number is not yet linked to a restaurant.\n\n" +
+                "Please ask the restaurant admin to verify the registration."
+            );
+            return;
         }
 
         // Restaurant is closed

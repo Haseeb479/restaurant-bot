@@ -17,22 +17,57 @@ class RestaurantController extends Controller
      */
     public function getByBotNumber(string $botNumber)
     {
-        $normalized = preg_replace('/[^0-9]/', '', $botNumber);
+        // Strip all non-digits first
+        $digits = preg_replace('/[^0-9]/', '', $botNumber);
 
-        $restaurant = Restaurant::where('whatsapp_number', $normalized)
-            ->where('is_active', true)
-            ->with([
-                'menuItems' => fn($q) => $q
-                    ->where('is_available', true)
-                    ->orderBy('sort_order'),
-                'categories' => fn($q) => $q
-                    ->where('is_active', true)
-                    ->orderBy('sort_order'),
-            ])
-            ->first();
+        /**
+         * WhatsApp Web (wid.user) returns the number in international format
+         * WITHOUT leading + but WITH country code: e.g. 923293647476
+         * Restaurant owners may register as: 03293647476, +923293647476, 923293647476
+         *
+         * Build a list of all candidate forms to match any stored format.
+         */
+        $candidates = [$digits]; // raw form: e.g. 923293647476
+
+        if (strlen($digits) === 12 && str_starts_with($digits, '92')) {
+            // 923293647476 → 03293647476 (local Pakistani format)
+            $candidates[] = '0' . substr($digits, 2); // 03293647476
+            $candidates[] = '+92' . substr($digits, 2); // +923293647476
+            $candidates[] = substr($digits, 2); // 3293647476 (no leading 0)
+        } elseif (strlen($digits) === 11 && str_starts_with($digits, '0')) {
+            // 03293647476 → 923293647476 (international without +)
+            $candidates[] = '92' . substr($digits, 1); // 923293647476
+            $candidates[] = '+92' . substr($digits, 1); // +923293647476
+            $candidates[] = substr($digits, 1); // 3293647476
+        } elseif (strlen($digits) === 10) {
+            // 3293647476 → add leading 0 and country code
+            $candidates[] = '0' . $digits; // 03293647476
+            $candidates[] = '92' . $digits; // 923293647476
+            $candidates[] = '+92' . $digits; // +923293647476
+        }
+
+        $restaurant = null;
+        foreach ($candidates as $candidate) {
+            $restaurant = Restaurant::where('whatsapp_number', $candidate)
+                ->where('is_active', true)
+                ->with([
+                    'menuItems' => fn($q) => $q
+                        ->where('is_available', true)
+                        ->orderBy('sort_order'),
+                    'categories' => fn($q) => $q
+                        ->where('is_active', true)
+                        ->orderBy('sort_order'),
+                ])
+                ->first();
+
+            if ($restaurant) {
+                Log::info("Bot lookup matched: {$restaurant->name} via number candidate: {$candidate}");
+                break;
+            }
+        }
 
         if (!$restaurant) {
-            Log::info("Bot lookup: no restaurant for number {$normalized}");
+            Log::warning("Bot lookup: no restaurant found for botNumber={$botNumber}, tried: " . implode(', ', $candidates));
             return response()->json(['error' => 'Restaurant not found'], 404);
         }
 
