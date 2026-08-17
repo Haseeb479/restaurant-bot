@@ -323,19 +323,31 @@ class DashboardController extends Controller
         return back()->with('success', "🎉 Successfully imported {$imported} menu items from CSV!");
     }
 
-    // ── Upload Menu Poster / Flyer Image ───────────────────
-    public function uploadMenuImage(Request $request, string $id)
+    // ── Upload Menu File / Poster / Document (PDF, Excel, Images, Docs) ──
+    public function uploadMenuFile(Request $request, string $id)
     {
         $this->authCheck($id);
         $r = Restaurant::findOrFail($id);
 
         $request->validate([
-            'menu_image' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
+            'menu_file' => 'required|file|mimes:jpeg,png,jpg,webp,gif,pdf,xls,xlsx,csv,doc,docx|max:20480',
         ]);
 
-        $file = $request->file('menu_image');
-        $fileName = 'menu_' . $r->id . '_' . time() . '.' . $file->getClientOriginalExtension();
-        
+        $file         = $request->file('menu_file');
+        $extension    = strtolower($file->getClientOriginalExtension());
+        $originalName = $file->getClientOriginalName();
+        $fileName     = 'menu_' . $r->id . '_' . time() . '.' . $extension;
+
+        // Classify file type
+        $fileType = 'document';
+        if (in_array($extension, ['jpg', 'jpeg', 'png', 'webp', 'gif'])) {
+            $fileType = 'image';
+        } elseif ($extension === 'pdf') {
+            $fileType = 'pdf';
+        } elseif (in_array($extension, ['xls', 'xlsx', 'csv'])) {
+            $fileType = 'excel';
+        }
+
         $destPath = public_path('uploads/menus');
         if (!file_exists($destPath)) {
             mkdir($destPath, 0777, true);
@@ -344,10 +356,21 @@ class DashboardController extends Controller
         $file->move($destPath, $fileName);
         $relativePath = 'uploads/menus/' . $fileName;
 
-        $r->update(['menu_image' => $relativePath]);
+        $updateData = [
+            'menu_file'      => $relativePath,
+            'menu_file_name' => $originalName,
+            'menu_file_type' => $fileType,
+        ];
+
+        // If it's an image, also keep menu_image updated
+        if ($fileType === 'image') {
+            $updateData['menu_image'] = $relativePath;
+        }
+
+        $r->update($updateData);
         TenantResolver::clearCache($r);
 
-        return back()->with('success', 'Menu flyer image uploaded! Bot will now share it with customers when they ask for the menu.');
+        return back()->with('success', "🎉 Menu document ({$originalName}) uploaded! The bot will automatically share this file with customers when they ask for the menu.");
     }
 
     // ── Download Sample CSV Template ───────────────────────

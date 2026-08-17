@@ -285,37 +285,63 @@
     </div>
 </div>
 
-<!-- 4. Modal: Menu Poster / Flyer Image -->
+<!-- 4. Modal: Menu Document / Flyer / PDF / Excel -->
 <div id="modal-menu-flyer" class="modal-backdrop" style="display: none;">
-    <div class="modal-box" style="max-width: 440px;">
+    <div class="modal-box" style="max-width: 480px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <h3 style="font-size: 17px; font-weight: 700; color: #0f172a;">🖼️ Menu Poster / Flyer</h3>
+            <h3 style="font-size: 17px; font-weight: 700; color: #0f172a;">📎 Menu Flyer / Document / PDF</h3>
             <button onclick="closeModal('modal-menu-flyer')" class="modal-close">&times;</button>
         </div>
 
         <p style="font-size: 13px; color: #64748b; margin-bottom: 16px;">
-            Upload your restaurant's official menu picture. When customers ask for the menu on WhatsApp, the bot sends this photo directly!
+            Upload your official menu file in <strong>any format (PDF, Excel, Word, or JPG/PNG Picture)</strong>. When customers ask for the menu on WhatsApp, the bot automatically sends this document directly to their chat!
         </p>
 
-        @if($restaurant->menu_image)
-            <div style="margin-bottom: 16px; text-align: center; background: #f8fafc; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0;">
-                <img src="/{{ ltrim($restaurant->menu_image, '/') }}" alt="Menu Flyer" style="max-height: 160px; max-width: 100%; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 8px;">
-                <div>
-                    <span style="font-size: 12px; color: #166534; font-weight: 600; background: #dcfce7; padding: 2px 8px; border-radius: 6px;">✓ Active Menu Flyer</span>
+        @php
+            $activeFile = $restaurant->menu_file ?: $restaurant->menu_image;
+            $fileName   = $restaurant->menu_file_name ?: basename($activeFile);
+            $fileType   = $restaurant->menu_file_type ?: 'image';
+        @endphp
+
+        @if($activeFile)
+            <div style="margin-bottom: 16px; background: #f8fafc; padding: 14px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    @if($fileType === 'pdf')
+                        <div style="width: 44px; height: 44px; background: #fee2e2; color: #b91c1c; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px;">📄</div>
+                    @elseif($fileType === 'excel')
+                        <div style="width: 44px; height: 44px; background: #ecfdf5; color: #047857; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px;">📊</div>
+                    @elseif($fileType === 'image')
+                        <img src="/{{ ltrim($activeFile, '/') }}" alt="Menu Flyer" style="width: 44px; height: 44px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1;">
+                    @else
+                        <div style="width: 44px; height: 44px; background: #eff6ff; color: #1d4ed8; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px;">📝</div>
+                    @endif
+
+                    <div style="flex: 1; overflow: hidden;">
+                        <span style="font-size: 11px; color: #166534; font-weight: 700; background: #dcfce7; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">
+                            ✓ Active {{ ucfirst($fileType) }}
+                        </span>
+                        <div style="font-size: 13px; font-weight: 600; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;">
+                            {{ $fileName }}
+                        </div>
+                        <a href="/{{ ltrim($activeFile, '/') }}" target="_blank" style="font-size: 11px; color: #2563eb; text-decoration: underline;">
+                            Open / Download File ↗
+                        </a>
+                    </div>
                 </div>
             </div>
         @endif
 
-        <form method="POST" action="{{ route('dashboard.upload-menu-image', $restaurant->id) }}" enctype="multipart/form-data">
+        <form method="POST" action="{{ route('dashboard.upload-menu-file', $restaurant->id) }}" enctype="multipart/form-data">
             @csrf
             <div style="margin-bottom: 16px;">
-                <label class="form-label">Upload New Image (JPG / PNG)</label>
-                <input type="file" name="menu_image" accept="image/*" required class="form-input" style="padding: 8px;">
+                <label class="form-label">Select File (PDF, Excel, Word, or Image)</label>
+                <input type="file" name="menu_file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,image/jpeg,image/png,image/webp" required class="form-input" style="padding: 8px;">
+                <span style="font-size: 11px; color: #94a3b8; margin-top: 4px; display: block;">Supports: .pdf, .xlsx, .xls, .csv, .docx, .png, .jpg (Max 20MB)</span>
             </div>
 
             <div style="display: flex; justify-content: flex-end; gap: 10px;">
                 <button type="button" onclick="closeModal('modal-menu-flyer')" class="btn" style="border: 1px solid #cbd5e1;">Cancel</button>
-                <button type="submit" class="btn btn-success">Save Menu Flyer</button>
+                <button type="submit" class="btn btn-success">Upload & Activate</button>
             </div>
         </form>
     </div>

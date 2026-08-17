@@ -77,31 +77,32 @@ export class ChatHandler {
             this.sessions.trim(customerPhone);
         }
 
-        // ── Check if customer asked for menu & visual flyer exists ─────────────
-        const isMenuRequest = /menu|dikhao|prices|kya hai|list|card|items|منو|مینو/i.test(text);
-        let sentImage = false;
+        // ── Check if customer asked for menu & document/image exists ───────────
+        const isMenuRequest = /menu|dikhao|prices|kya hai|list|card|items|منو|مینو|pdf|sheet|flyer|photo|document/i.test(text);
+        let sentDocument = false;
 
-        if (isMenuRequest && restaurant?.menu_image) {
+        const menuFilePath = restaurant?.menu_file || restaurant?.menu_image;
+        if (isMenuRequest && menuFilePath) {
             try {
-                // If it's a relative path from public/
-                let imagePath = restaurant.menu_image;
-                if (!path.isAbsolute(imagePath) && !imagePath.startsWith('http')) {
-                    imagePath = path.resolve(process.cwd(), 'public', imagePath.replace(/^\//, ''));
+                let resolvedPath = menuFilePath;
+                if (!path.isAbsolute(resolvedPath) && !resolvedPath.startsWith('http')) {
+                    resolvedPath = path.resolve(process.cwd(), 'public', resolvedPath.replace(/^\//, ''));
                 }
 
-                if (fs.existsSync(imagePath)) {
-                    const media = MessageMedia.fromFilePath(imagePath);
-                    await msg.reply(media, undefined, { caption: `📋 *${restaurant.name} Menu*` });
-                    sentImage = true;
-                    console.log(`🖼️ Sent visual menu flyer to ${customerPhone}`);
+                if (fs.existsSync(resolvedPath)) {
+                    const media = MessageMedia.fromFilePath(resolvedPath);
+                    const fileTitle = restaurant?.menu_file_name || `${restaurant.name} Menu`;
+                    await msg.reply(media, undefined, { caption: `📋 *${fileTitle}*` });
+                    sentDocument = true;
+                    console.log(`📎 Sent menu document (${fileTitle}) to ${customerPhone}`);
                 }
             } catch (err) {
-                console.log('⚠️ Could not send menu flyer image:', err.message);
+                console.log('⚠️ Could not send menu document/file:', err.message);
             }
         }
 
         // ── Send reply ─────────────────────────────────────────────────────────
-        if (!sentImage || reply.length > 50) {
+        if (!sentDocument || reply.length > 50) {
             await msg.reply(reply);
         }
         console.log(`✅ Replied to ${customerPhone}`);

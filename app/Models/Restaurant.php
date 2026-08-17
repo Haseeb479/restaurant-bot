@@ -25,6 +25,9 @@ class Restaurant extends Model
         'plan_expires_at',
         'greeting_message',
         'menu_image',
+        'menu_file',
+        'menu_file_name',
+        'menu_file_type',
         'google_sheet_webhook',
         'manager_phone',
     ];
