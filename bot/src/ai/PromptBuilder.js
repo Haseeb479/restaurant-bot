@@ -83,12 +83,22 @@ You: [mention only currently active deals from the ACTIVE DEALS section above]`;
 
     // ── Build menu section ─────────────────────────────────────────────────────
     static buildMenuText(restaurant) {
+        const name = restaurant?.name || 'this restaurant';
+
         if (!restaurant?.menu_items?.length) {
+            // No items in DB — may be image/PDF-only menu
+            const hasMenuFile = !!(restaurant?.menu_file || restaurant?.menu_image);
+            if (hasMenuFile) {
+                return `MENU:
+- The menu is available as an image/document. When the customer asks for the menu, tell them: "I'm sending you our menu right away! 📋" — the system will automatically send the image.
+- Do NOT list or invent any specific food items or prices. Only mention items if the customer names them first.
+
+`;
+            }
             return `MENU:
-1. Mango Juice     — M: Rs.150 / L: Rs.250
-2. Orange Juice    — M: Rs.150 / L: Rs.250
-3. Mix Fruit Juice — M: Rs.200 / L: Rs.300
-4. Water Bottle    — Rs.50
+- No menu items have been set up yet for ${name}.
+- If the customer asks for the menu, say: "Our menu is being updated. Please contact us directly for today's items!"
+- Do NOT invent, guess, or fabricate any food items or prices.
 
 `;
         }
