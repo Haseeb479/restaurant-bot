@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import whatsappWebPkg from 'whatsapp-web.js';
 import { SessionManager } from '../services/SessionManager.js';
 import { RestaurantService } from '../services/RestaurantService.js';
@@ -9,6 +10,11 @@ import { GroqClient } from '../ai/GroqClient.js';
 import { PromptBuilder } from '../ai/PromptBuilder.js';
 
 const { MessageMedia } = whatsappWebPkg;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
+// Laravel public folder is two levels up from bot/src/handlers/
+const LARAVEL_PUBLIC = path.resolve(__dirname, '..', '..', '..', 'public');
 
 // Image extensions that should be sent as images (not documents)
 const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.jfif', '.jpe']);
@@ -93,33 +99,39 @@ export class ChatHandler {
         const menuFilePath = restaurant?.menu_file || restaurant?.menu_image;
         if (isMenuRequest && menuFilePath) {
             try {
+                // Resolve relative paths against Laravel's public/ folder
                 let resolvedPath = menuFilePath;
                 if (!path.isAbsolute(resolvedPath) && !resolvedPath.startsWith('http')) {
-                    resolvedPath = path.resolve(process.cwd(), 'public', resolvedPath.replace(/^\//, ''));
+                    resolvedPath = path.join(LARAVEL_PUBLIC, resolvedPath.replace(/^\//, ''));
                 }
+
+                console.log(`📂 Menu file path: ${resolvedPath}`);
+                console.log(`📂 File exists: ${fs.existsSync(resolvedPath)}`);
 
                 if (fs.existsSync(resolvedPath)) {
                     const ext = path.extname(resolvedPath).toLowerCase();
                     const media = MessageMedia.fromFilePath(resolvedPath);
 
                     if (IMAGE_EXTS.has(ext)) {
-                        // Force correct MIME type so it shows as a proper image, not a document
+                        // Force image/jpeg so WhatsApp renders it as a photo (not a document)
                         media.mimetype = 'image/jpeg';
-                        media.filename = undefined; // Remove filename so WA treats it as photo
+                        media.filename = undefined;
                         await this.client.sendMessage(`${customerPhone}@c.us`, media, {
                             caption: `📋 *${restaurant.name} Menu*`
                         });
                     } else {
-                        // PDF / Excel / Doc — send as document with filename
+                        // PDF / Excel — send as named document
                         const fileTitle = restaurant?.menu_file_name || `${restaurant.name} Menu`;
                         await msg.reply(media, undefined, { caption: `📋 *${fileTitle}*` });
                     }
 
                     sentMedia = true;
                     console.log(`📎 Sent menu (${ext}) to ${customerPhone}`);
+                } else {
+                    console.warn(`⚠️ Menu file not found on disk: ${resolvedPath}`);
                 }
             } catch (err) {
-                console.log('⚠️ Could not send menu file:', err.message);
+                console.error('❌ Could not send menu file:', err.message, err.stack);
             }
         }
 
