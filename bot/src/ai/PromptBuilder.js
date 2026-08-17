@@ -85,37 +85,52 @@ You: [mention only currently active deals from the ACTIVE DEALS section above]`;
     static buildMenuText(restaurant) {
         const name = restaurant?.name || 'this restaurant';
 
-        if (!restaurant?.menu_items?.length) {
-            // No items in DB — may be image/PDF-only menu
-            const hasMenuFile = !!(restaurant?.menu_file || restaurant?.menu_image);
-            if (hasMenuFile) {
-                return `MENU:
-- The menu is available as an image/document. When the customer asks for the menu, tell them: "I'm sending you our menu right away! 📋" — the system will automatically send the image.
-- Do NOT list or invent any specific food items or prices. Only mention items if the customer names them first.
+        // ── Priority 1: OCR-extracted text from menu image ─────────────────────
+        if (restaurant?.menu_ocr_text) {
+            return `MENU (extracted from uploaded menu image — these are the REAL items and prices):
+${restaurant.menu_ocr_text}
+
+IMPORTANT: Use ONLY these items and prices. Do NOT invent or guess anything not listed above.
+When a customer orders, calculate the exact total from prices listed here.
 
 `;
-            }
+        }
+
+        // ── Priority 2: Items saved individually in DB ─────────────────────────
+        if (restaurant?.menu_items?.length) {
+            let text = 'MENU:\n';
+            restaurant.menu_items.forEach((item, i) => {
+                text += `${i + 1}. ${item.name}`;
+                if (item.sizes?.length > 0) {
+                    const sizeParts = item.sizes.map(s => `${s.size}: Rs.${s.price}`).join(' / ');
+                    text += ` — ${sizeParts}`;
+                } else {
+                    text += ` — Rs.${item.price}`;
+                }
+                if (item.description) text += ` (${item.description})`;
+                text += '\n';
+            });
+            return text + '\n';
+        }
+
+        // ── Priority 3: Image-only, OCR not yet available ──────────────────────
+        const hasMenuFile = !!(restaurant?.menu_file || restaurant?.menu_image);
+        if (hasMenuFile) {
             return `MENU:
+- The menu is available as an image. The customer will receive it when they ask.
+- Do NOT list or invent any specific food items or prices.
+- If customer asks about a specific item or price, say: "Please check the menu image I just sent you!"
+
+`;
+        }
+
+        // ── Priority 4: No menu configured at all ─────────────────────────────
+        return `MENU:
 - No menu items have been set up yet for ${name}.
 - If the customer asks for the menu, say: "Our menu is being updated. Please contact us directly for today's items!"
 - Do NOT invent, guess, or fabricate any food items or prices.
 
 `;
-        }
-
-        let text = 'MENU:\n';
-        restaurant.menu_items.forEach((item, i) => {
-            text += `${i + 1}. ${item.name}`;
-            if (item.sizes?.length > 0) {
-                const sizeParts = item.sizes.map(s => `${s.size}: Rs.${s.price}`).join(' / ');
-                text += ` — ${sizeParts}`;
-            } else {
-                text += ` — Rs.${item.price}`;
-            }
-            if (item.description) text += ` (${item.description})`;
-            text += '\n';
-        });
-        return text + '\n';
     }
 
     // ── Build deals section (only injected if deals exist) ────────────────────

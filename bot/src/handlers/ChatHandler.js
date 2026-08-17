@@ -8,6 +8,7 @@ import { OrderService } from '../services/OrderService.js';
 import { NotifyService } from '../services/NotifyService.js';
 import { GroqClient } from '../ai/GroqClient.js';
 import { PromptBuilder } from '../ai/PromptBuilder.js';
+import { menuOcr } from '../ai/MenuOcrService.js';
 
 const { MessageMedia } = whatsappWebPkg;
 
@@ -68,6 +69,21 @@ export class ChatHandler {
             return;
         }
 
+        // ── Enrich restaurant with OCR'd menu if image-only ────────────────────
+        const menuFilePath = restaurant?.menu_file || restaurant?.menu_image;
+        if (menuFilePath && !restaurant?.menu_items?.length && !restaurant.menu_ocr_text) {
+            let imgPath = menuFilePath;
+            if (!path.isAbsolute(imgPath) && !imgPath.startsWith('http')) {
+                imgPath = path.join(LARAVEL_PUBLIC, imgPath.replace(/^\//, ''));
+            }
+            // Extract once — result cached in MenuOcrService per restaurantId
+            const ocrText = await menuOcr.extractMenu(restaurant.id, imgPath);
+            if (ocrText) {
+                restaurant.menu_ocr_text = ocrText;
+                console.log(`🧾 Menu OCR injected for ${restaurant.name}`);
+            }
+        }
+
         // ── Session — isolated per restaurant+customer ─────────────────────────
         const session = this.sessions.getOrCreate(customerPhone, restaurant);
 
@@ -96,11 +112,11 @@ export class ChatHandler {
         const isMenuRequest = /menu|dikhao|prices|kya hai|list|card|items|منو|مینو|pdf|sheet|flyer|photo|document/i.test(text);
         let sentMedia = false;
 
-        const menuFilePath = restaurant?.menu_file || restaurant?.menu_image;
-        if (isMenuRequest && menuFilePath) {
+        const menuFileForSending = restaurant?.menu_file || restaurant?.menu_image;
+        if (isMenuRequest && menuFileForSending) {
             try {
                 // Resolve relative paths against Laravel's public/ folder
-                let resolvedPath = menuFilePath;
+                let resolvedPath = menuFileForSending;
                 if (!path.isAbsolute(resolvedPath) && !resolvedPath.startsWith('http')) {
                     resolvedPath = path.join(LARAVEL_PUBLIC, resolvedPath.replace(/^\//, ''));
                 }
