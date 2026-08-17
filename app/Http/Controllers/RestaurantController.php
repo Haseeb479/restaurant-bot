@@ -93,6 +93,25 @@ class RestaurantController extends Controller
             }
         }
 
+        // 3. Smart auto-binding fallback: If only 1 active restaurant exists in DB, bind it automatically!
+        if (!$restaurant && Restaurant::where('is_active', true)->count() === 1) {
+            $restaurant = Restaurant::where('is_active', true)
+                ->with([
+                    'menuItems' => fn($q) => $q
+                        ->where('is_available', true)
+                        ->orderBy('sort_order'),
+                    'categories' => fn($q) => $q
+                        ->where('is_active', true)
+                        ->orderBy('sort_order'),
+                ])
+                ->first();
+
+            if ($restaurant) {
+                $restaurant->update(['whatsapp_number' => $digits]);
+                Log::info("Bot lookup auto-bound sole restaurant '{$restaurant->name}' to bot number {$digits}");
+            }
+        }
+
         if (!$restaurant) {
             Log::warning("Bot lookup: no restaurant found for botNumber={$botNumber}, tried: " . implode(', ', $candidates));
             return response()->json(['error' => 'Restaurant not found'], 404);
