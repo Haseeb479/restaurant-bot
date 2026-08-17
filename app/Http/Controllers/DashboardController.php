@@ -207,11 +207,9 @@ class DashboardController extends Controller
     public function updateSettings(Request $request, string $id)
     {
         $this->authCheck($id);
-        $r = Restaurant::findOrFail($id);
-
         $data = $request->only([
-            'name', 'address', 'delivery_areas', 'delivery_charge',
-            'minimum_order', 'greeting_message',
+            'name', 'whatsapp_number', 'owner_phone', 'manager_phone', 'address', 'city',
+            'delivery_areas', 'delivery_charge', 'minimum_order', 'greeting_message', 'google_sheet_webhook',
         ]);
         $data['is_open'] = $request->has('is_open');
 

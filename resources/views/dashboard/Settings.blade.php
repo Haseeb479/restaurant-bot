@@ -42,11 +42,36 @@
                                value="{{ old('name', $restaurant->name) }}" required>
                     </div>
 
+                    <div class="grid2">
+                        <div class="form-group">
+                            <label class="form-label">WhatsApp Bot Number</label>
+                            <input type="text" name="whatsapp_number" class="form-control"
+                                   value="{{ old('whatsapp_number', $restaurant->whatsapp_number) }}"
+                                   placeholder="03294647476" required>
+                            <div class="form-hint">Number used to scan the QR code</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Owner / Contact Phone</label>
+                            <input type="text" name="owner_phone" class="form-control"
+                                   value="{{ old('owner_phone', $restaurant->owner_phone) }}"
+                                   placeholder="03001234567">
+                        </div>
+                    </div>
+
                     <div class="form-group">
                         <label class="form-label">Address</label>
                         <input type="text" name="address" class="form-control"
                                value="{{ old('address', $restaurant->address) }}"
                                placeholder="Shop 5, Satellite Town, Bahawalpur">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Google Sheets Webhook (Optional)</label>
+                        <input type="url" name="google_sheet_webhook" class="form-control"
+                               value="{{ old('google_sheet_webhook', $restaurant->google_sheet_webhook) }}"
+                               placeholder="https://script.google.com/macros/s/.../exec">
+                        <div class="form-hint">Auto-syncs live incoming orders to your Google Sheet</div>
                     </div>
 
                     <div class="form-group">

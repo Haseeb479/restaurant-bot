@@ -30,10 +30,13 @@
                 </div>
                 <h3 style="font-size: 18px; font-weight: 700; color: #166534;">WhatsApp Connected!</h3>
                 <p style="font-size: 13px; color: #4b5563;" id="connected-number">Bot is actively receiving and processing orders</p>
-                <div style="margin-top: 12px;">
+                <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
                     <span style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 6px 14px; border-radius: 99px; font-size: 12px; font-weight: 600;">
                         ● Status: LIVE & READY
                     </span>
+                    <button type="button" onclick="requestNewQr()" style="background: #fff; border: 1px solid #cbd5e1; color: #475569; padding: 6px 12px; border-radius: 99px; font-size: 12px; font-weight: 600; cursor: pointer;">
+                        🔄 Re-link / New QR
+                    </button>
                 </div>
             </div>
 
@@ -49,8 +52,13 @@
             </div>
         </div>
 
-        <div style="margin-top: 16px; font-size: 11px; color: #9ca3af;" id="poll-indicator">
-            Auto-checking connection status every 3s...
+        <div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 11px; color: #9ca3af;" id="poll-indicator">
+                Auto-syncing status...
+            </div>
+            <button type="button" onclick="requestNewQr()" style="background: none; border: none; font-size: 12px; color: #2563eb; font-weight: 600; cursor: pointer; text-decoration: underline;">
+                🔄 Refresh / Reset QR Code
+            </button>
         </div>
     </div>
 
@@ -168,6 +176,25 @@
             if (imageEl.src !== data.qr) {
                 imageEl.src           = data.qr;
             }
+        }
+    }
+
+    async function requestNewQr() {
+        try {
+            isConnected = false;
+            document.getElementById('qr-connected').style.display = 'none';
+            document.getElementById('qr-image').style.display     = 'none';
+            document.getElementById('qr-offline').style.display   = 'none';
+            document.getElementById('qr-loading').style.display   = 'flex';
+
+            // Send restart request
+            await fetch('http://127.0.0.1:3000/restart', { method: 'POST' }).catch(() => {
+                return fetch('/api/bot/restart', { method: 'POST' });
+            });
+
+            setTimeout(checkBotStatus, 1500);
+        } catch (e) {
+            console.error('Restart failed', e);
         }
     }
 

@@ -57,3 +57,16 @@ Route::get('/bot/qr-status', function () {
         'bot_number' => null,
     ]);
 });
+
+Route::post('/bot/restart', function () {
+    try {
+        $internalUrl = config('app.bot_internal_api', env('BOT_INTERNAL_API', 'http://127.0.0.1:3000')) . '/restart';
+        $res = \Illuminate\Support\Facades\Http::timeout(3)->post($internalUrl);
+        if ($res->ok()) {
+            return response()->json($res->json());
+        }
+    } catch (\Exception $e) {
+        // Fallback
+    }
+    return response()->json(['success' => false, 'message' => 'Could not reach bot internal server.']);
+});

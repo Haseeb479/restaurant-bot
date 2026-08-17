@@ -33,6 +33,14 @@ export class InternalServer {
         this.botNumber = null;
     }
 
+    setClient(client) {
+        this.client = client;
+    }
+
+    setRestartHandler(cb) {
+        this.onRestartCallback = cb;
+    }
+
     start() {
         const server = http.createServer(async (req, res) => {
             // Enable CORS for dashboard/web polling
@@ -81,12 +89,24 @@ export class InternalServer {
                         res.writeHead(200, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ success: true }));
 
-                    } catch (err) {
-                        console.error('❌ Internal server send error:', err.message);
-                        res.writeHead(500, { 'Content-Type': 'application/json' });
-                        res.end(JSON.stringify({ success: false, error: err.message }));
                     }
                 });
+                return;
+            }
+
+            // ── Restart / Re-link Bot (New QR Code) ────────────────────────────
+            if (req.method === 'POST' && (req.url === '/restart' || req.url === '/reset-qr')) {
+                this.status    = 'initializing';
+                this.qrDataUrl = null;
+                this.qrRaw     = null;
+                this.botNumber = null;
+
+                if (typeof this.onRestartCallback === 'function') {
+                    this.onRestartCallback();
+                }
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, message: 'Bot restart initiated. Generating fresh QR...' }));
                 return;
             }
 

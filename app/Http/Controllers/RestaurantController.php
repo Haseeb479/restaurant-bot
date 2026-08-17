@@ -47,6 +47,8 @@ class RestaurantController extends Controller
         }
 
         $restaurant = null;
+
+        // 1. Try exact match against candidate formats
         foreach ($candidates as $candidate) {
             $restaurant = Restaurant::where('whatsapp_number', $candidate)
                 ->where('is_active', true)
@@ -61,8 +63,33 @@ class RestaurantController extends Controller
                 ->first();
 
             if ($restaurant) {
-                Log::info("Bot lookup matched: {$restaurant->name} via number candidate: {$candidate}");
+                Log::info("Bot lookup matched: {$restaurant->name} via candidate: {$candidate}");
                 break;
+            }
+        }
+
+        // 2. Fallback: match by core 9-10 digits (matches across 0329... vs +92329... vs 92329...)
+        if (!$restaurant && strlen($digits) >= 9) {
+            $last10 = substr($digits, -10);
+            $last9  = substr($digits, -9);
+
+            $restaurant = Restaurant::where('is_active', true)
+                ->where(function ($q) use ($last10, $last9) {
+                    $q->where('whatsapp_number', 'LIKE', "%{$last10}")
+                      ->orWhere('whatsapp_number', 'LIKE', "%{$last9}");
+                })
+                ->with([
+                    'menuItems' => fn($q) => $q
+                        ->where('is_available', true)
+                        ->orderBy('sort_order'),
+                    'categories' => fn($q) => $q
+                        ->where('is_active', true)
+                        ->orderBy('sort_order'),
+                ])
+                ->first();
+
+            if ($restaurant) {
+                Log::info("Bot lookup matched: {$restaurant->name} via core digits: {$last10}");
             }
         }
 
