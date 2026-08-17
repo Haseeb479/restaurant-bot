@@ -4,15 +4,17 @@ import http from 'http';
  * InternalServer — lightweight HTTP server that:
  *  1. Lets Laravel check Bot connection status & live QR code image (GET /qr-status)
  *  2. Lets Laravel push WhatsApp messages to customers/riders (POST /send-message)
+ *  3. Lets Laravel/Dashboard request a clean bot restart/re-link (POST /restart)
  */
 export class InternalServer {
     constructor(client, port = 3000) {
-        this.client    = client;
-        this.port      = parseInt(port);
-        this.status    = 'initializing'; // initializing | qr | connected | disconnected
-        this.qrDataUrl = null;
-        this.qrRaw     = null;
-        this.botNumber = null;
+        this.client            = client;
+        this.port              = parseInt(port);
+        this.status            = 'initializing'; // initializing | qr | connected | disconnected
+        this.qrDataUrl         = null;
+        this.qrRaw             = null;
+        this.botNumber         = null;
+        this.onRestartCallback = null;
     }
 
     setQr(qrRaw, qrDataUrl) {
@@ -82,6 +84,12 @@ export class InternalServer {
                             return;
                         }
 
+                        if (!this.client) {
+                            res.writeHead(503, { 'Content-Type': 'application/json' });
+                            res.end(JSON.stringify({ success: false, error: 'WhatsApp client is not ready' }));
+                            return;
+                        }
+
                         const chatId = `${to.replace(/[^0-9]/g, '')}@c.us`;
                         await this.client.sendMessage(chatId, message);
                         console.log(`📤 Internal server sent message to: ${to}`);
@@ -89,6 +97,10 @@ export class InternalServer {
                         res.writeHead(200, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ success: true }));
 
+                    } catch (err) {
+                        console.error('❌ Internal server send error:', err.message);
+                        res.writeHead(500, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: false, error: err.message }));
                     }
                 });
                 return;
