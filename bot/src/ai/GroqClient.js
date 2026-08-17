@@ -1,7 +1,11 @@
 import Groq from 'groq-sdk';
 
-// Models tried in order — falls back if one is rate-limited or fails
+// Models tried in order — active models on Groq
 const MODELS = [
+    'openai/gpt-oss-120b',
+    'openai/gpt-oss-20b',
+    'qwen/qwen3.6-27b',
+    'groq/compound-mini',
     'llama-3.3-70b-versatile',
     'llama-3.1-8b-instant',
 ];
@@ -59,10 +63,14 @@ export class GroqClient {
                     top_p:       0.95,
                 });
 
-                const reply = completion.choices[0]?.message?.content?.trim();
+                let reply = completion.choices[0]?.message?.content?.trim();
                 if (reply) {
-                    console.log(`✅ Reply via ${modelName}`);
-                    return reply;
+                    // Strip any reasoning / think tags from output
+                    reply = reply.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+                    if (reply) {
+                        console.log(`✅ Reply via ${modelName}`);
+                        return reply;
+                    }
                 }
 
             } catch (err) {
