@@ -1,6 +1,7 @@
 @echo off
 REM WhatsApp QR Quick Test Start
-cd restaurant-bot
+
+cd /d "%~dp0.."
 
 echo.
 echo ========================================

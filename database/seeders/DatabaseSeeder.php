@@ -109,8 +109,33 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
+        // ── Seed Time-based Deals for AI Bot ───────────────────
+        \App\Models\Deal::updateOrCreate([
+            'restaurant_id' => $r->id,
+            'title'         => 'Weekend Family Feast',
+        ], [
+            'description'   => '2 Large Zingers, 1 Chicken Biryani, and 1.5L Drink for Rs. 1499 only',
+            'discount_type' => 'bundle',
+            'discount_value'=> 0,
+            'valid_days'    => ['friday', 'saturday', 'sunday'],
+            'is_active'     => true,
+        ]);
+
+        \App\Models\Deal::updateOrCreate([
+            'restaurant_id' => $r->id,
+            'title'         => 'Daily Lunch Deal',
+        ], [
+            'description'   => '1 Zinger Burger + 1 Cold Drink (500ml) + Fries for Rs. 450',
+            'discount_type' => 'bundle',
+            'discount_value'=> 0,
+            'valid_days'    => ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
+            'valid_from'    => '12:00',
+            'valid_until'   => '16:00',
+            'is_active'     => true,
+        ]);
+
         $this->command->info('');
-        $this->command->info('Sample restaurant created!');
+        $this->command->info('Sample restaurant created with menu, categories, and deals!');
         $this->command->info('Dashboard URL : /dashboard/' . $r->id . '/login');
         $this->command->info('Password      : test123');
         $this->command->info('Admin URL     : /admin');

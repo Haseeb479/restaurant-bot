@@ -1,12 +1,45 @@
-*.log
-.DS_Store
+# Environment files (SENSITIVE - NEVER COMMIT)
 .env
-.env.backup
-.env.production
+.env.*
+!.env.example
 .env.llm
 env.llm
-.phpactor.json
-.phpunit.result.cache
+*.env
+
+# WhatsApp Session Auth & Cache (SENSITIVE TOKENS)
+.wwebjs_auth/
+.wwebjs_cache/
+session-*/
+
+# Logs & Debugging
+*.log
+logs/
+storage/logs/*.log
+
+# Dependencies
+/node_modules/
+/vendor/
+
+# Database Files
+database/*.sqlite
+database/*.sqlite-journal
+
+# Compiled Views & Sessions
+storage/framework/sessions/*
+!storage/framework/sessions/.gitkeep
+storage/framework/views/*
+!storage/framework/views/.gitkeep
+storage/framework/cache/*
+!storage/framework/cache/.gitkeep
+
+# Uploaded Media
+public/uploads/*
+!public/uploads/.gitkeep
+!public/uploads/menus/.gitkeep
+
+# OS / Editor Artifacts
+.DS_Store
+Thumbs.db
 /.fleet
 /.idea
 /.nova
@@ -14,18 +47,12 @@ env.llm
 /.vscode
 /.zed
 /auth.json
-/node_modules
-/public/build
-/public/hot
-/public/storage
-/storage/*.key
-/storage/pail
-/vendor
+.phpunit.result.cache
 _ide_helper.php
 Homestead.json
 Homestead.yaml
-Thumbs.db
 
-# WhatsApp Session Files
-.wwebjs_auth/
-.wwebjs_cache/
+# Build & Vite Output
+/public/build
+/public/hot
+/public/storage

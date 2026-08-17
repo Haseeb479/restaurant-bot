@@ -10,6 +10,18 @@ Route::get('/', function () {
     return redirect('/admin/login');
 });
 
+// ── Live Order Tracking (Public Web Portal - Free) ─────────
+Route::get('track/{code?}', function (?string $code = null) {
+    $orderCode = $code ?? request('code');
+    $order = null;
+    if ($orderCode) {
+        $order = \App\Models\Order::where('tracking_code', strtoupper(trim($orderCode)))
+            ->with(['restaurant', 'items'])
+            ->first();
+    }
+    return view('tracking.live', compact('order'));
+})->name('order.track.live');
+
 // ── Restaurant self-service onboarding ───────────────────────
 Route::get('restaurant/register', [RestaurantController::class, 'showRegistrationForm'])
     ->name('restaurant.register');
@@ -20,11 +32,15 @@ Route::prefix('dashboard/{id}')->group(function () {
     Route::get('login',                        [DashboardController::class, 'loginForm'])->name('dashboard.login');
     Route::post('login',                       [DashboardController::class, 'login']);
     Route::post('logout',                      [DashboardController::class, 'logout'])->name('dashboard.logout');
+    Route::get('connect-whatsapp',             [DashboardController::class, 'connectWhatsapp'])->name('dashboard.connect-whatsapp');
     Route::get('orders',                       [DashboardController::class, 'orders'])->name('dashboard.orders');
     Route::post('orders/{order}/status',       [DashboardController::class, 'updateStatus'])->name('dashboard.update-status');
     Route::get('menu',                         [DashboardController::class, 'menu'])->name('dashboard.menu');
     Route::post('menu/category',               [DashboardController::class, 'storeCategory'])->name('dashboard.store-category');
     Route::post('menu/item',                   [DashboardController::class, 'storeItem'])->name('dashboard.store-item');
+    Route::post('menu/upload-csv',             [DashboardController::class, 'uploadMenuCsv'])->name('dashboard.upload-menu-csv');
+    Route::post('menu/upload-image',           [DashboardController::class, 'uploadMenuImage'])->name('dashboard.upload-menu-image');
+    Route::get('menu/sample-csv',              [DashboardController::class, 'downloadSampleCsv'])->name('dashboard.sample-menu-csv');
     Route::post('menu/item/{item}/toggle',     [DashboardController::class, 'toggleItem'])->name('dashboard.toggle-item');
     Route::delete('menu/item/{item}',          [DashboardController::class, 'deleteItem'])->name('dashboard.delete-item');
     Route::get('settings',                     [DashboardController::class, 'settings'])->name('dashboard.settings');

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Builder;
 
 class Restaurant extends Model
 {
@@ -23,6 +24,9 @@ class Restaurant extends Model
         'plan',
         'plan_expires_at',
         'greeting_message',
+        'menu_image',
+        'google_sheet_webhook',
+        'manager_phone',
     ];
 
     protected $casts = [
@@ -53,6 +57,20 @@ class Restaurant extends Model
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class)->latest();
+    }
+
+    public function deals(): HasMany
+    {
+        return $this->hasMany(Deal::class);
+    }
+
+    /**
+     * Returns only deals that are valid right now (day + time match).
+     * Used by RestaurantController when the bot fetches restaurant data.
+     */
+    public function activeDeals(): HasMany
+    {
+        return $this->hasMany(Deal::class)->activeNow();
     }
 
     public function todayOrders(): HasMany

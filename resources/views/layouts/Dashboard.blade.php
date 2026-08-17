@@ -233,6 +233,10 @@
                class="nav-link {{ request()->routeIs('dashboard.menu') ? 'active' : '' }}">
                 Menu
             </a>
+            <a href="/dashboard/{{ $restaurant->id }}/connect-whatsapp"
+               class="nav-link {{ request()->routeIs('dashboard.connect-whatsapp') ? 'active' : '' }}">
+                📱 WhatsApp Bot (QR)
+            </a>
             <a href="/dashboard/{{ $restaurant->id }}/settings"
                class="nav-link {{ request()->routeIs('dashboard.settings') ? 'active' : '' }}">
                 Settings

@@ -161,10 +161,10 @@
                     <th>Customer</th>
                     <th>Items</th>
                     <th>Total</th>
-                    <th>Payment</th>
+                    <th>Rider Info</th>
                     <th>Status</th>
                     <th>Time</th>
-                    <th>Update</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -173,7 +173,9 @@
                     <td><strong>#{{ $order->id }}</strong></td>
 
                     <td>
-                        <span class="tracking-code">{{ $order->tracking_code }}</span>
+                        <a href="{{ url('/track/' . $order->tracking_code) }}" target="_blank" class="tracking-code" title="View Live Tracking Page">
+                            {{ $order->tracking_code }} ↗
+                        </a>
                     </td>
 
                     <td>
@@ -198,8 +200,15 @@
 
                     <td><strong>Rs. {{ number_format($order->total, 0) }}</strong></td>
 
-                    <td style="text-transform:uppercase;font-size:12px;">
-                        {{ str_replace('_', ' ', $order->payment_method) }}
+                    <td>
+                        @if($order->rider_name || $order->rider_phone)
+                            <div style="font-size:12px; background:#f0fdf4; border:1px solid #bbf7d0; padding:4px 8px; border-radius:6px; color:#166534;">
+                                <strong>🛵 {{ $order->rider_name ?: 'Rider' }}</strong><br>
+                                <span style="font-size:11px;">{{ $order->rider_phone }}</span>
+                            </div>
+                        @else
+                            <span style="font-size:12px; color:#aaa;">Not assigned</span>
+                        @endif
                     </td>
 
                     <td>
@@ -214,21 +223,25 @@
 
                     <td>
                         @if(!in_array($order->status, ['delivered','cancelled']))
-                        <form method="POST"
-                              action="{{ route('dashboard.update-status', [$restaurant->id, $order->id]) }}">
-                            @csrf
-                            <select name="status" onchange="this.form.submit()"
-                                    style="padding:6px 8px;border-radius:6px;border:1px solid #e8e8e4;font-size:12px;cursor:pointer;">
-                                <option value="pending"          {{ $order->status==='pending'          ? 'selected':'' }}>Pending</option>
-                                <option value="confirmed"        {{ $order->status==='confirmed'        ? 'selected':'' }}>Confirmed</option>
-                                <option value="preparing"        {{ $order->status==='preparing'        ? 'selected':'' }}>Preparing</option>
-                                <option value="out_for_delivery" {{ $order->status==='out_for_delivery' ? 'selected':'' }}>Out for Delivery</option>
-                                <option value="delivered">Delivered</option>
-                                <option value="cancelled">Cancel</option>
-                            </select>
-                        </form>
+                        <div style="display:flex; flex-direction:column; gap:6px;">
+                            <form id="form-order-{{ $order->id }}" method="POST" action="{{ route('dashboard.update-status', [$restaurant->id, $order->id]) }}">
+                                @csrf
+                                <input type="hidden" name="rider_name" id="rider-name-{{ $order->id }}" value="{{ $order->rider_name }}">
+                                <input type="hidden" name="rider_phone" id="rider-phone-{{ $order->id }}" value="{{ $order->rider_phone }}">
+                                
+                                <select name="status" onchange="handleStatusChange(this, '{{ $order->id }}', '{{ $order->tracking_code }}')"
+                                        style="padding:6px 8px;border-radius:6px;border:1px solid #e8e8e4;font-size:12px;cursor:pointer;width:100%;">
+                                    <option value="pending"          {{ $order->status==='pending'          ? 'selected':'' }}>Pending</option>
+                                    <option value="confirmed"        {{ $order->status==='confirmed'        ? 'selected':'' }}>Confirm Order</option>
+                                    <option value="preparing"        {{ $order->status==='preparing'        ? 'selected':'' }}>Start Preparing</option>
+                                    <option value="out_for_delivery" {{ $order->status==='out_for_delivery' ? 'selected':'' }}>🛵 Assign Rider & Send</option>
+                                    <option value="delivered"        {{ $order->status==='delivered'        ? 'selected':'' }}>Mark Delivered</option>
+                                    <option value="cancelled">Cancel Order</option>
+                                </select>
+                            </form>
+                        </div>
                         @else
-                            <span style="color:#aaa;font-size:12px;">Done</span>
+                            <span style="color:#166534; font-size:12px; font-weight:600;">✓ Completed</span>
                         @endif
                     </td>
                 </tr>
@@ -243,7 +256,62 @@
     @endif
 </div>
 
+<!-- Modal for Assigning Rider -->
+<div id="rider-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:14px; padding:24px; max-width:400px; width:90%; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);">
+        <h3 style="font-size:16px; font-weight:700; margin-bottom:6px;">🛵 Assign Rider & Send Order</h3>
+        <p style="font-size:12px; color:#666; margin-bottom:16px;">The customer will automatically receive a WhatsApp alert with the rider's contact details and live tracking link.</p>
+        
+        <div style="margin-bottom:12px;">
+            <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px;">Rider Name:</label>
+            <input type="text" id="modal-rider-name" placeholder="e.g. Ali Raza" style="width:100%; padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:13px;">
+        </div>
+
+        <div style="margin-bottom:20px;">
+            <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px;">Rider Phone Number:</label>
+            <input type="text" id="modal-rider-phone" placeholder="e.g. 03001234567" style="width:100%; padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:13px;">
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:8px;">
+            <button onclick="closeRiderModal()" style="padding:8px 14px; border:1px solid #ddd; background:#f9fafb; border-radius:8px; font-size:12px; cursor:pointer;">Cancel</button>
+            <button onclick="confirmRiderDispatch()" style="padding:8px 16px; background:#0e0e10; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">Dispatch Order 🛵</button>
+        </div>
+    </div>
+</div>
+
 <script>
+    let activeOrderId = null;
+
+    function handleStatusChange(selectElem, orderId, trackingCode) {
+        if (selectElem.value === 'out_for_delivery') {
+            activeOrderId = orderId;
+            const currentRiderName = document.getElementById('rider-name-' + orderId).value;
+            const currentRiderPhone = document.getElementById('rider-phone-' + orderId).value;
+            document.getElementById('modal-rider-name').value = currentRiderName || '';
+            document.getElementById('modal-rider-phone').value = currentRiderPhone || '';
+            document.getElementById('rider-modal').style.display = 'flex';
+        } else {
+            document.getElementById('form-order-' + orderId).submit();
+        }
+    }
+
+    function closeRiderModal() {
+        document.getElementById('rider-modal').style.display = 'none';
+        if (activeOrderId) {
+            location.reload();
+        }
+    }
+
+    function confirmRiderDispatch() {
+        if (!activeOrderId) return;
+        const name = document.getElementById('modal-rider-name').value.trim();
+        const phone = document.getElementById('modal-rider-phone').value.trim();
+        
+        document.getElementById('rider-name-' + activeOrderId).value = name;
+        document.getElementById('rider-phone-' + activeOrderId).value = phone;
+        document.getElementById('form-order-' + activeOrderId).submit();
+    }
+
     // Auto-refresh every 30 seconds
     setTimeout(() => location.reload(), 30000);
 </script>

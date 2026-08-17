@@ -107,6 +107,8 @@
 <script>
     const restaurantId = {{ $restaurantId ?? 'null' }};
     let currentOrder = null;
+    let lastOrderCount = -1; // -1 means first load
+    const notificationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 
     async function loadOrders() {
         if (!restaurantId) {
@@ -159,6 +161,13 @@
             });
 
             document.getElementById('orders-list').innerHTML = html;
+
+            // Check for new orders
+            if (lastOrderCount !== -1 && data.orders.length > lastOrderCount) {
+                notificationSound.play().catch(e => console.log('Sound blocked by browser'));
+                console.log("🔔 New order received!");
+            }
+            lastOrderCount = data.orders.length;
 
             // Update stats
             document.getElementById('pending-count').innerHTML = statusCounts['pending'] || 0;

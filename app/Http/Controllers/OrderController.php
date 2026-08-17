@@ -48,12 +48,38 @@ class OrderController extends Controller
             // ── Notify owner on WhatsApp ──
             $this->notifyOwnerWhatsApp($order, $restaurant);
 
+            // ── Live Google Sheet Webhook Sync ──
+            $sheetWebhook = $restaurant->google_sheet_webhook ?: env('GOOGLE_SHEET_WEBHOOK');
+            if ($sheetWebhook) {
+                try {
+                    Http::timeout(5)->post($sheetWebhook, [
+                        'timestamp'        => now()->toIso8601String(),
+                        'event'            => 'new_order',
+                        'tracking_code'    => $trackingCode,
+                        'restaurant_id'    => $restaurant->id,
+                        'restaurant_name'  => $restaurant->name,
+                        'customer_name'    => $order->customer_name ?: 'WhatsApp Customer',
+                        'customer_phone'   => $order->customer_phone,
+                        'delivery_address' => $order->delivery_address,
+                        'items'            => $order->notes ?: 'Items recorded via chat',
+                        'total'            => $order->total,
+                        'payment_method'   => $order->payment_method,
+                        'status'           => $order->status,
+                        'tracking_url'     => url('/track/' . $trackingCode),
+                    ]);
+                    Log::info("📊 New order logged to Google Sheet for {$restaurant->name}");
+                } catch (\Exception $e) {
+                    Log::warning("Google Sheet webhook error: " . $e->getMessage());
+                }
+            }
+
             Log::info("✅ Order #{$order->id} created for {$restaurant->name} — Tracking: {$trackingCode}");
 
             return response()->json([
                 'success'       => true,
                 'order_id'      => $order->id,
                 'tracking_code' => $trackingCode,
+                'tracking_url'  => url('/track/' . $trackingCode),
                 'message'       => 'Order placed successfully!',
                 'order'         => $order,
             ], 201);
@@ -69,7 +95,7 @@ class OrderController extends Controller
     public function track($trackingCode)
     {
         $order = Order::where('tracking_code', strtoupper($trackingCode))
-            ->with('items')
+            ->with(['items', 'restaurant'])
             ->first();
 
         if (!$order) {
@@ -81,6 +107,9 @@ class OrderController extends Controller
             'status'         => $order->status,
             'status_label'   => $order->status_label,
             'status_message' => $order->status_message,
+            'rider_name'     => $order->rider_name,
+            'rider_phone'    => $order->rider_phone,
+            'tracking_url'   => url('/track/' . $order->tracking_code),
             'items'          => $order->items,
             'subtotal'       => $order->subtotal,
             'delivery_charge'=> $order->delivery_charge,

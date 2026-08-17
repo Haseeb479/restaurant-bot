@@ -4,14 +4,80 @@ namespace App\Http\Controllers;
 
 use App\Models\Restaurant;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class RestaurantController extends Controller
 {
+    /**
+     * GET /api/restaurant-by-bot/{botNumber}
+     *
+     * Used by the Node.js WhatsApp bot to identify which restaurant owns
+     * the incoming message, then loads its menu items and active deals.
+     * The bot caches this result for 5 minutes, so keep the response lean.
+     */
+    public function getByBotNumber(string $botNumber)
+    {
+        $normalized = preg_replace('/[^0-9]/', '', $botNumber);
+
+        $restaurant = Restaurant::where('whatsapp_number', $normalized)
+            ->where('is_active', true)
+            ->with([
+                'menuItems' => fn($q) => $q
+                    ->where('is_available', true)
+                    ->orderBy('sort_order'),
+                'categories' => fn($q) => $q
+                    ->where('is_active', true)
+                    ->orderBy('sort_order'),
+            ])
+            ->first();
+
+        if (!$restaurant) {
+            Log::info("Bot lookup: no restaurant for number {$normalized}");
+            return response()->json(['error' => 'Restaurant not found'], 404);
+        }
+
+        // Active deals filtered by current day + time
+        $activeDeals = $restaurant->activeDeals()->get();
+
+        return response()->json([
+            ...$restaurant->toArray(),
+            'active_deals' => $activeDeals,
+            'is_open'      => $restaurant->is_open,
+        ]);
+    }
+
+    /**
+     * GET /api/restaurant-by-phone/{phone}
+     *
+     * Backwards-compatible lookup by wa_phone_id (used by the Meta webhook path).
+     */
+    public function getByPhone(string $phone)
+    {
+        $restaurant = Restaurant::where('wa_phone_id', $phone)
+            ->where('is_active', true)
+            ->with(['menuItems', 'categories'])
+            ->first();
+
+        if (!$restaurant) {
+            return response()->json(['error' => 'Restaurant not found'], 404);
+        }
+
+        return response()->json($restaurant);
+    }
+
+    // ── Web Routes (self-service restaurant registration) ──────────────────────
+
+    /**
+     * GET /restaurant/register
+     */
     public function showRegistrationForm()
     {
         return view('restaurant.register');
     }
 
+    /**
+     * POST /restaurant/register
+     */
     public function register(Request $request)
     {
         $request->validate([
@@ -19,113 +85,22 @@ class RestaurantController extends Controller
             'whatsapp_number' => 'required|string|unique:restaurants',
             'owner_phone'     => 'required|string',
             'owner_password'  => 'required|string|min:4',
-            'city'            => 'nullable|string|max:255',
-            'address'         => 'nullable|string|max:255',
+            'city'            => 'nullable|string|max:100',
         ]);
 
         $restaurant = Restaurant::create([
-            'name'             => $request->input('name'),
-            'whatsapp_number'  => $request->input('whatsapp_number'),
-            'owner_phone'      => $request->input('owner_phone'),
-            'owner_password'   => bcrypt($request->input('owner_password')),
-            'city'             => $request->input('city'),
-            'address'          => $request->input('address'),
-            'plan'             => 'trial',
-            'plan_expires_at'  => null,
-            'is_active'        => true,
-            'is_open'          => true,
-            'delivery_charge'  => 0,
-            'minimum_order'    => 0,
-            'greeting_message' => 'Welcome! How can I help you today?',
+            ...$request->only(['name', 'whatsapp_number', 'owner_phone', 'city', 'address']),
+            'owner_password' => bcrypt($request->owner_password),
+            'plan'           => 'trial',
+            'is_active'      => true,
+            'is_open'        => true,
         ]);
 
-        return redirect()->route('restaurant.register')
-            ->with('success', "Restaurant '{$restaurant->name}' registered! Login at /dashboard/{$restaurant->id}/login");
-    }
+        // Automatically log owner into dashboard session
+        session(["restaurant_{$restaurant->id}" => true]);
 
-    // ─── API: Get restaurant by BOT WhatsApp number (msg.to from bot) ────────
-    public function getByBotNumber($botNumber)
-    {
-        $normalized = preg_replace('/[^0-9]/', '', $botNumber);
-        
-        // Take the last 10 digits as the core number to ignore variations like 92, +92, or 0.
-        $coreNumber = substr($normalized, -10);
-
-        $restaurant = Restaurant::where('whatsapp_number', 'like', '%' . $coreNumber)
-            ->where('is_active', true)
-            ->with([
-                'categories' => fn($q) => $q->where('is_active', true)->orderBy('sort_order'),
-                'menuItems'  => fn($q) => $q->where('is_available', true)->orderBy('sort_order'),
-            ])
-            ->first();
-
-        if (!$restaurant) {
-            return response()->json([
-                'error'  => 'Restaurant not found for this number',
-                'number' => $normalized
-            ], 404);
-        }
-
-        if (!$restaurant->is_open) {
-            return response()->json([
-                'error'   => 'Restaurant is currently closed',
-                'is_open' => false,
-                'name'    => $restaurant->name,
-            ], 200);
-        }
-
-        return response()->json([
-            'id'               => $restaurant->id,
-            'name'             => $restaurant->name,
-            'owner_phone'      => $restaurant->owner_phone,
-            'whatsapp_number'  => $restaurant->whatsapp_number,
-            'address'          => $restaurant->address,
-            'city'             => $restaurant->city,
-            'delivery_charge'  => $restaurant->delivery_charge,
-            'minimum_order'    => $restaurant->minimum_order,
-            'is_open'          => $restaurant->is_open,
-            'greeting_message' => $restaurant->greeting_message,
-            'hours'            => $restaurant->hours ?? '10 AM - 11 PM',
-            'menu_items'       => $restaurant->menuItems->map(fn($item) => [
-                'id'          => $item->id,
-                'name'        => $item->name,
-                'description' => $item->description,
-                'price'       => $item->price,
-                'sizes'       => $item->sizes,
-            ]),
-        ]);
-    }
-
-    // ─── API: Get restaurant by owner phone (backwards compat) ───────────────
-    public function getByPhone($phone)
-    {
-        $normalized = preg_replace('/[^0-9]/', '', $phone);
-
-        $restaurant = Restaurant::where('owner_phone', $normalized)
-            ->orWhere('whatsapp_number', $normalized)
-            ->with(['menuItems' => fn($q) => $q->where('is_available', true)])
-            ->first();
-
-        if (!$restaurant) {
-            return response()->json(['error' => 'Restaurant not found'], 404);
-        }
-
-        return response()->json([
-            'id'              => $restaurant->id,
-            'name'            => $restaurant->name,
-            'owner_phone'     => $restaurant->owner_phone,
-            'whatsapp_number' => $restaurant->whatsapp_number,
-            'address'         => $restaurant->address,
-            'delivery_charge' => $restaurant->delivery_charge,
-            'minimum_order'   => $restaurant->minimum_order,
-            'is_open'         => $restaurant->is_open,
-            'menu_items'      => $restaurant->menuItems->map(fn($item) => [
-                'id'          => $item->id,
-                'name'        => $item->name,
-                'description' => $item->description,
-                'price'       => $item->price,
-                'sizes'       => $item->sizes,
-            ]),
-        ]);
+        return redirect()
+            ->route('dashboard.connect-whatsapp', ['id' => $restaurant->id])
+            ->with('success', '🎉 Restaurant registered! Please scan the QR code below to connect your WhatsApp bot.');
     }
 }

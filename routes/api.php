@@ -30,3 +30,30 @@ Route::patch('/orders/{orderId}/status',           [OrderController::class, 'upd
 
 // ─── Admin Notification ───────────────────────────────────────────────────────
 Route::post('/admin/notify-order', [BotController::class, 'notifyAdminOrder']);
+
+// ─── Deals ────────────────────────────────────────────────────────────────────
+// Returns only deals currently valid (day + time filtered) for a restaurant
+Route::get('/restaurant/{restaurantId}/deals/active', function ($restaurantId) {
+    $restaurant = \App\Models\Restaurant::findOrFail($restaurantId);
+    return response()->json($restaurant->activeDeals()->get());
+});
+
+// ─── Live Bot QR & Connection Status ──────────────────────────────────────────
+Route::get('/bot/qr-status', function () {
+    try {
+        $internalUrl = config('app.bot_internal_api', env('BOT_INTERNAL_API', 'http://127.0.0.1:3000')) . '/qr-status';
+        $res = \Illuminate\Support\Facades\Http::timeout(1)->get($internalUrl);
+        if ($res->ok()) {
+            return response()->json($res->json());
+        }
+    } catch (\Exception $e) {
+        // Bot is not currently running
+    }
+    return response()->json([
+        'success'    => false,
+        'status'     => 'offline',
+        'message'    => 'Bot process is not currently running. Please launch "node bot/index.js"',
+        'qr'         => null,
+        'bot_number' => null,
+    ]);
+});

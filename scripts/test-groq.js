@@ -34,7 +34,6 @@ const groq = new Groq({ apiKey });
 const models = [
     'llama-3.3-70b-versatile',
     'llama-3.1-8b-instant',
-    'mixtral-8x7b-32768',
 ];
 
 async function testModel(modelName) {
@@ -75,7 +74,7 @@ async function runTests() {
     console.log('');
     if (anyWorking) {
         console.log('🎉 At least one model works! Your bot should work.');
-        console.log('   Run: node bot.js');
+        console.log('   Run: node bot/index.js');
     } else {
         console.log('❌ No models working. Possible causes:');
         console.log('');

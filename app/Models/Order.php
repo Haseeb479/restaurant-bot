@@ -24,6 +24,9 @@ class Order extends Model
         'customer_notified',
         'notes',
         'estimated_minutes',
+        'rider_name',
+        'rider_phone',
+        'rider_notes',
     ];
 
     protected $casts = [

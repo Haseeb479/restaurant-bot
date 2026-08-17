@@ -58,7 +58,7 @@ class AdminController extends Controller
         $request->validate([
             'name'            => 'required|string|max:255',
             'whatsapp_number' => 'required|string|unique:restaurants',
-            'wa_phone_id'     => 'required|string|unique:restaurants',
+            'wa_phone_id'     => 'nullable|string',
             'owner_phone'     => 'required|string',
             'owner_password'  => 'required|string|min:4',
             'plan'            => 'required|in:trial,basic,pro',
@@ -78,8 +78,9 @@ class AdminController extends Controller
             ]
         ));
 
-        return redirect()->route('admin.dashboard')
-            ->with('success', "Restaurant '{$r->name}' created! Dashboard: /dashboard/{$r->id}");
+        return redirect()
+            ->route('dashboard.connect-whatsapp', $r->id)
+            ->with('success', "🎉 Restaurant {$r->name} created! Scan the QR code below to connect WhatsApp.");
     }
 
     // ── Toggle restaurant active/inactive ─────────────────

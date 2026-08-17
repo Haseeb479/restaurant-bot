@@ -2,7 +2,7 @@ module.exports = {
     apps: [
         {
             name: 'restaurant-bot',
-            script: 'bot-waiter-v2.js',
+            script: 'bot/index.js',
             interpreter: 'node',
             cwd: 'C:\\Users\\Seeb\\restaurant-bot\\restaurant-bot',
             watch: false,
