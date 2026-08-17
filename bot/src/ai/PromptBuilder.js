@@ -112,7 +112,18 @@ You: [mention only currently active deals from the ACTIVE DEALS section above]`;
     static buildMenuText(restaurant) {
         const name = restaurant?.name || 'this restaurant';
 
-        // ── Priority 1: OCR-extracted text from menu image ─────────────────────
+        // ── Priority 1: Extracted from official Excel Sheet (.xlsx / .csv) ──────
+        if (restaurant?.menu_excel_text) {
+            return `${restaurant.menu_excel_text}
+CALCULATION INSTRUCTIONS:
+- These are the EXACT items, categories, and prices from the official Excel menu sheet.
+- Always use these exact prices when calculating subtotals and grand totals.
+- If an item has size options (e.g. Small / Large / M / L), always confirm the customer's size choice and use that specific size's price.
+
+`;
+        }
+
+        // ── Priority 2: OCR-extracted text from menu image ─────────────────────
         if (restaurant?.menu_ocr_text) {
             return `MENU (extracted from uploaded menu image — these are the REAL items and prices):
 ${restaurant.menu_ocr_text}
@@ -123,7 +134,7 @@ When a customer orders, calculate the exact total from prices listed here.
 `;
         }
 
-        // ── Priority 2: Items saved individually in DB ─────────────────────────
+        // ── Priority 3: Items saved individually in DB ─────────────────────────
         if (restaurant?.menu_items?.length) {
             let text = 'MENU:\n';
             restaurant.menu_items.forEach((item, i) => {
@@ -140,7 +151,7 @@ When a customer orders, calculate the exact total from prices listed here.
             return text + '\n';
         }
 
-        // ── Priority 3: Image-only, OCR not yet available ──────────────────────
+        // ── Priority 4: Image-only, OCR not yet available ──────────────────────
         const hasMenuFile = !!(restaurant?.menu_file || restaurant?.menu_image);
         if (hasMenuFile) {
             return `MENU:
@@ -151,7 +162,7 @@ When a customer orders, calculate the exact total from prices listed here.
 `;
         }
 
-        // ── Priority 4: No menu configured at all ─────────────────────────────
+        // ── Priority 5: No menu configured at all ─────────────────────────────
         return `MENU:
 - No menu items have been set up yet for ${name}.
 - If the customer asks for the menu, say: "Our menu is being updated. Please contact us directly for today's items!"

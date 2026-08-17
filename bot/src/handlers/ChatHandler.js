@@ -9,6 +9,7 @@ import { NotifyService } from '../services/NotifyService.js';
 import { GroqClient } from '../ai/GroqClient.js';
 import { PromptBuilder } from '../ai/PromptBuilder.js';
 import { menuOcr } from '../ai/MenuOcrService.js';
+import { excelMenu } from '../services/ExcelMenuService.js';
 
 const { MessageMedia } = whatsappWebPkg;
 
@@ -19,16 +20,72 @@ const LARAVEL_PUBLIC = path.resolve(__dirname, '..', '..', '..', 'public');
 
 // Image extensions that should be sent as images (not documents)
 const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.jfif', '.jpe']);
+const EXCEL_EXTS = new Set(['.xlsx', '.xls', '.csv']);
+
+/**
+ * Helper to find the latest menu files (image and/or excel) on disk for a restaurant
+ */
+function findRestaurantMenuFiles(restaurantId, dbMenuFile, dbMenuImage) {
+    let imagePath = null;
+    let excelPath = null;
+
+    const resolvePath = (p) => {
+        if (!p) return null;
+        if (path.isAbsolute(p) || p.startsWith('http')) return p;
+        return path.join(LARAVEL_PUBLIC, p.replace(/^\//, ''));
+    };
+
+    const checkFile = (p) => {
+        if (!p) return null;
+        const resolved = resolvePath(p);
+        return (resolved && fs.existsSync(resolved)) ? resolved : null;
+    };
+
+    // 1. Check direct DB columns
+    const resolvedImage = checkFile(dbMenuImage);
+    const resolvedFile  = checkFile(dbMenuFile);
+
+    if (resolvedImage) {
+        const ext = path.extname(resolvedImage).toLowerCase();
+        if (IMAGE_EXTS.has(ext)) imagePath = resolvedImage;
+        else if (EXCEL_EXTS.has(ext)) excelPath = resolvedImage;
+    }
+
+    if (resolvedFile) {
+        const ext = path.extname(resolvedFile).toLowerCase();
+        if (IMAGE_EXTS.has(ext) && !imagePath) imagePath = resolvedFile;
+        else if (EXCEL_EXTS.has(ext)) excelPath = resolvedFile;
+    }
+
+    // 2. Scan uploads/menus directory if missing either image or excel
+    const menusDir = path.join(LARAVEL_PUBLIC, 'uploads', 'menus');
+    if (fs.existsSync(menusDir)) {
+        try {
+            const files = fs.readdirSync(menusDir);
+            const prefix = `menu_${restaurantId}_`;
+
+            for (const file of files) {
+                if (file.startsWith(prefix)) {
+                    const fullPath = path.join(menusDir, file);
+                    const ext = path.extname(file).toLowerCase();
+
+                    if (IMAGE_EXTS.has(ext) && !imagePath) {
+                        imagePath = fullPath;
+                    } else if (EXCEL_EXTS.has(ext) && !excelPath) {
+                        excelPath = fullPath;
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('⚠️ Could not scan menus directory:', e.message);
+        }
+    }
+
+    return { imagePath, excelPath, genericFile: resolvedFile };
+}
 
 /**
  * ChatHandler — AI-powered conversation handler.
- *
- * Flow for every message:
- *  1. Load restaurant + menu + deals (isolated per restaurant)
- *  2. Get/create in-memory session for this customer (scoped to restaurantId)
- *  3. Build message array and call Groq AI
- *  4. Send AI reply to customer
- *  5. If AI reply contains order confirmation → save to DB + send tracking code
  */
 export class ChatHandler {
     constructor(client) {
@@ -69,15 +126,25 @@ export class ChatHandler {
             return;
         }
 
-        // ── Enrich restaurant with OCR'd menu if image-only ────────────────────
-        const menuFilePath = restaurant?.menu_file || restaurant?.menu_image;
-        if (menuFilePath && !restaurant?.menu_items?.length && !restaurant.menu_ocr_text) {
-            let imgPath = menuFilePath;
-            if (!path.isAbsolute(imgPath) && !imgPath.startsWith('http')) {
-                imgPath = path.join(LARAVEL_PUBLIC, imgPath.replace(/^\//, ''));
+        // ── Locate Menu Files (Image for customer, Excel for calculation) ───────
+        const { imagePath, excelPath, genericFile } = findRestaurantMenuFiles(
+            restaurant.id,
+            restaurant.menu_file,
+            restaurant.menu_image
+        );
+
+        // 1. Try reading Excel Sheet for exact prices & calculation
+        if (excelPath && !restaurant.menu_excel_text) {
+            const parsedExcel = excelMenu.parseExcel(restaurant.id, excelPath);
+            if (parsedExcel) {
+                restaurant.menu_excel_text = parsedExcel.menuText;
+                console.log(`📊 Injected ${parsedExcel.items.length} items from Excel sheet for ${restaurant.name}`);
             }
-            // Extract once — result cached in MenuOcrService per restaurantId
-            const ocrText = await menuOcr.extractMenu(restaurant.id, imgPath);
+        }
+
+        // 2. If no Excel sheet and no DB items, fallback to Image OCR
+        if (!restaurant.menu_excel_text && !restaurant?.menu_items?.length && !restaurant.menu_ocr_text && imagePath) {
+            const ocrText = await menuOcr.extractMenu(restaurant.id, imagePath);
             if (ocrText) {
                 restaurant.menu_ocr_text = ocrText;
                 console.log(`🧾 Menu OCR injected for ${restaurant.name}`);
@@ -108,47 +175,36 @@ export class ChatHandler {
             this.sessions.trim(customerPhone, restaurant.id);
         }
 
-        // ── Check if customer asked for menu & image/document exists ───────────
-        const isMenuRequest = /menu|dikhao|prices|kya hai|list|card|items|منو|مینو|pdf|sheet|flyer|photo|document/i.test(text);
+        // ── Send Menu Picture / Document to Customer ───────────────────────────
+        const isMenuRequest = /menu|dikhao|prices|kya hai|list|card|items|منو|مینو|pdf|sheet|flyer|photo|document|picture/i.test(text);
         let sentMedia = false;
 
-        const menuFileForSending = restaurant?.menu_file || restaurant?.menu_image;
-        if (isMenuRequest && menuFileForSending) {
+        // When sending to customer, prioritize the visual Image (JPG/PNG)
+        const fileToSend = imagePath || (genericFile && !EXCEL_EXTS.has(path.extname(genericFile).toLowerCase()) ? genericFile : null);
+
+        if (isMenuRequest && fileToSend && fs.existsSync(fileToSend)) {
             try {
-                // Resolve relative paths against Laravel's public/ folder
-                let resolvedPath = menuFileForSending;
-                if (!path.isAbsolute(resolvedPath) && !resolvedPath.startsWith('http')) {
-                    resolvedPath = path.join(LARAVEL_PUBLIC, resolvedPath.replace(/^\//, ''));
-                }
+                const ext = path.extname(fileToSend).toLowerCase();
+                const media = MessageMedia.fromFilePath(fileToSend);
 
-                console.log(`📂 Menu file path: ${resolvedPath}`);
-                console.log(`📂 File exists: ${fs.existsSync(resolvedPath)}`);
-
-                if (fs.existsSync(resolvedPath)) {
-                    const ext = path.extname(resolvedPath).toLowerCase();
-                    const media = MessageMedia.fromFilePath(resolvedPath);
-
-                    if (IMAGE_EXTS.has(ext)) {
-                        // Force image/jpeg so WhatsApp renders it as a photo (not a document)
-                        // Use msg.reply() — avoids "No LID for user" error from client.sendMessage()
-                        media.mimetype = 'image/jpeg';
-                        media.filename = undefined;
-                        await msg.reply(media, undefined, {
-                            caption: `📋 *${restaurant.name} Menu*`
-                        });
-                    } else {
-                        // PDF / Excel — send as named document
-                        const fileTitle = restaurant?.menu_file_name || `${restaurant.name} Menu`;
-                        await msg.reply(media, undefined, { caption: `📋 *${fileTitle}*` });
-                    }
-
-                    sentMedia = true;
-                    console.log(`📎 Sent menu (${ext}) to ${customerPhone}`);
+                if (IMAGE_EXTS.has(ext)) {
+                    // Force image/jpeg so WhatsApp renders it as a photo (not a document)
+                    // Use msg.reply() — avoids "No LID for user" error
+                    media.mimetype = 'image/jpeg';
+                    media.filename = undefined;
+                    await msg.reply(media, undefined, {
+                        caption: `📋 *${restaurant.name} Menu*`
+                    });
                 } else {
-                    console.warn(`⚠️ Menu file not found on disk: ${resolvedPath}`);
+                    // PDF / Document — send with title
+                    const fileTitle = restaurant?.menu_file_name || `${restaurant.name} Menu`;
+                    await msg.reply(media, undefined, { caption: `📋 *${fileTitle}*` });
                 }
+
+                sentMedia = true;
+                console.log(`📎 Sent menu photo (${ext}) to ${customerPhone}`);
             } catch (err) {
-                console.error('❌ Could not send menu file:', err.message, err.stack);
+                console.error('❌ Could not send menu file:', err.message);
             }
         }
 
