@@ -114,9 +114,10 @@ export class ChatHandler {
 
                     if (IMAGE_EXTS.has(ext)) {
                         // Force image/jpeg so WhatsApp renders it as a photo (not a document)
+                        // Use msg.reply() — avoids "No LID for user" error from client.sendMessage()
                         media.mimetype = 'image/jpeg';
                         media.filename = undefined;
-                        await this.client.sendMessage(`${customerPhone}@c.us`, media, {
+                        await msg.reply(media, undefined, {
                             caption: `📋 *${restaurant.name} Menu*`
                         });
                     } else {
