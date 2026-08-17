@@ -233,92 +233,104 @@ class DashboardController extends Controller
         $r = Restaurant::findOrFail($id);
 
         $request->validate([
-            'csv_file' => 'required|file|mimes:csv,txt|max:4096',
+            'csv_file' => 'required|file|max:20480',
         ]);
 
         $file = $request->file('csv_file');
-        $handle = fopen($file->getRealPath(), 'r');
+        $extension = strtolower($file->getClientOriginalExtension());
+        $originalName = $file->getClientOriginalName();
 
-        if (!$handle) {
-            return back()->withErrors(['csv_file' => 'Could not read CSV file.']);
+        // Save a copy to public/uploads/menus so the Node.js bot can also read it directly
+        $destPath = public_path('uploads/menus');
+        if (!file_exists($destPath)) {
+            mkdir($destPath, 0777, true);
         }
+        $savedFileName = 'menu_' . $r->id . '_' . time() . '.' . $extension;
+        $file->move($destPath, $savedFileName);
+        $savedRelativePath = 'uploads/menus/' . $savedFileName;
 
-        // Read header
-        $header = fgetcsv($handle);
-        if (!$header) {
-            fclose($handle);
-            return back()->withErrors(['csv_file' => 'The uploaded file is empty.']);
-        }
-
+        // If it's a CSV or text file, also parse directly into MySQL categories & menu_items
         $imported = 0;
-        $categoryCache = [];
+        if (in_array($extension, ['csv', 'txt'])) {
+            $handle = fopen(public_path($savedRelativePath), 'r');
+            if ($handle) {
+                $header = fgetcsv($handle);
+                $categoryCache = [];
 
-        while (($row = fgetcsv($handle)) !== false) {
-            if (count($row) < 3 || empty(trim($row[0])) || empty(trim($row[1]))) {
-                continue; // skip empty or invalid rows
-            }
+                while (($row = fgetcsv($handle)) !== false) {
+                    if (count($row) < 3 || empty(trim($row[0])) || empty(trim($row[1]))) {
+                        continue;
+                    }
 
-            $categoryName = trim($row[0]);
-            $itemName     = trim($row[1]);
-            $basePrice    = (float) preg_replace('/[^0-9.]/', '', $row[2] ?? 0);
-            $sizesRaw     = trim($row[3] ?? '');
-            $description  = trim($row[4] ?? '');
+                    $categoryName = trim($row[0]);
+                    $itemName     = trim($row[1]);
+                    $basePrice    = (float) preg_replace('/[^0-9.]/', '', $row[2] ?? 0);
+                    $sizesRaw     = trim($row[3] ?? '');
+                    $description  = trim($row[4] ?? '');
 
-            // Find or create Category
-            if (!isset($categoryCache[strtolower($categoryName)])) {
-                $category = $r->categories()->firstOrCreate(
-                    ['name' => $categoryName],
-                    ['sort_order' => count($categoryCache) + 1]
-                );
-                $categoryCache[strtolower($categoryName)] = $category->id;
-            }
-            $categoryId = $categoryCache[strtolower($categoryName)];
+                    // Find or create Category
+                    if (!isset($categoryCache[strtolower($categoryName)])) {
+                        $category = $r->categories()->firstOrCreate(
+                            ['name' => $categoryName],
+                            ['sort_order' => count($categoryCache) + 1]
+                        );
+                        $categoryCache[strtolower($categoryName)] = $category->id;
+                    }
+                    $categoryId = $categoryCache[strtolower($categoryName)];
 
-            // Parse Sizes (e.g. "M:150, L:250" or "Small:200 / Large:350")
-            $sizes = null;
-            if (!empty($sizesRaw)) {
-                $parts = preg_split('/[,|\/]/', $sizesRaw);
-                $parsedSizes = [];
-                foreach ($parts as $part) {
-                    if (str_contains($part, ':')) {
-                        [$sName, $sPrice] = explode(':', $part, 2);
-                        $cleanPrice = (float) preg_replace('/[^0-9.]/', '', $sPrice);
-                        if ($cleanPrice > 0) {
-                            $parsedSizes[] = [
-                                'size'  => strtoupper(trim($sName)),
-                                'price' => $cleanPrice,
-                            ];
+                    // Parse Sizes (e.g. "M:150, L:250" or "Small:200 / Large:350")
+                    $sizes = null;
+                    if (!empty($sizesRaw)) {
+                        $parts = preg_split('/[,|\/]/', $sizesRaw);
+                        $parsedSizes = [];
+                        foreach ($parts as $part) {
+                            if (str_contains($part, ':')) {
+                                [$sName, $sPrice] = explode(':', $part, 2);
+                                $cleanPrice = (float) preg_replace('/[^0-9.]/', '', $sPrice);
+                                if ($cleanPrice > 0) {
+                                    $parsedSizes[] = [
+                                        'size'  => strtoupper(trim($sName)),
+                                        'price' => $cleanPrice,
+                                    ];
+                                }
+                            }
+                        }
+                        if (!empty($parsedSizes)) {
+                            $sizes = $parsedSizes;
+                            if ($basePrice <= 0 && !empty($sizes[0]['price'])) {
+                                $basePrice = $sizes[0]['price'];
+                            }
                         }
                     }
+
+                    // Create or update item
+                    $r->menuItems()->updateOrCreate(
+                        [
+                            'category_id' => $categoryId,
+                            'name'        => $itemName,
+                        ],
+                        [
+                            'price'        => $basePrice,
+                            'sizes'        => $sizes,
+                            'description'  => $description ?: null,
+                            'is_available' => true,
+                        ]
+                    );
+                    $imported++;
                 }
-                if (!empty($parsedSizes)) {
-                    $sizes = $parsedSizes;
-                    if ($basePrice <= 0 && !empty($sizes[0]['price'])) {
-                        $basePrice = $sizes[0]['price'];
-                    }
-                }
+                fclose($handle);
             }
-
-            // Create or update item
-            $r->menuItems()->updateOrCreate(
-                [
-                    'category_id' => $categoryId,
-                    'name'        => $itemName,
-                ],
-                [
-                    'price'        => $basePrice,
-                    'sizes'        => $sizes,
-                    'description'  => $description ?: null,
-                    'is_available' => true,
-                ]
-            );
-
-            $imported++;
         }
 
-        fclose($handle);
+        // Update restaurant record with menu_file path for bot access
+        $r->update([
+            'menu_file'      => $savedRelativePath,
+            'menu_file_name' => $originalName,
+            'menu_file_type' => in_array($extension, ['xls', 'xlsx', 'csv']) ? 'excel' : 'document',
+        ]);
+        TenantResolver::clearCache($r);
 
-        return back()->with('success', "🎉 Successfully imported {$imported} menu items from CSV!");
+        return back()->with('success', "🎉 Menu file ({$originalName}) successfully uploaded! The bot will now read all items and prices for accurate billing.");
     }
 
     // ── Upload Menu File / Poster / Document (PDF, Excel, Images, Docs) ──
@@ -328,7 +340,7 @@ class DashboardController extends Controller
         $r = Restaurant::findOrFail($id);
 
         $request->validate([
-            'menu_file' => 'required|file|mimes:jpeg,png,jpg,webp,gif,pdf,xls,xlsx,csv,doc,docx|max:20480',
+            'menu_file' => 'required|file|max:20480',
         ]);
 
         $file         = $request->file('menu_file');
@@ -338,7 +350,7 @@ class DashboardController extends Controller
 
         // Classify file type
         $fileType = 'document';
-        if (in_array($extension, ['jpg', 'jpeg', 'png', 'webp', 'gif'])) {
+        if (in_array($extension, ['jpg', 'jpeg', 'png', 'webp', 'gif', 'jfif'])) {
             $fileType = 'image';
         } elseif ($extension === 'pdf') {
             $fileType = 'pdf';
@@ -368,7 +380,7 @@ class DashboardController extends Controller
         $r->update($updateData);
         TenantResolver::clearCache($r);
 
-        return back()->with('success', "🎉 Menu document ({$originalName}) uploaded! The bot will automatically share this file with customers when they ask for the menu.");
+        return back()->with('success', "🎉 Menu file ({$originalName}) uploaded successfully!");
     }
 
     // ── Download Sample CSV Template ───────────────────────

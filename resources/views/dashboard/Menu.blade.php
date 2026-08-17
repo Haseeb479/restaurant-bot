@@ -273,8 +273,8 @@
         <form method="POST" action="{{ route('dashboard.upload-menu-csv', $restaurant->id) }}" enctype="multipart/form-data">
             @csrf
             <div style="margin-bottom: 16px;">
-                <label class="form-label">Select CSV File</label>
-                <input type="file" name="csv_file" accept=".csv,text/csv,text/plain" required class="form-input" style="padding: 8px;">
+                <label class="form-label">Select Excel / CSV File</label>
+                <input type="file" name="csv_file" accept=".csv,.xlsx,.xls,.txt,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required class="form-input" style="padding: 8px;">
             </div>
 
             <div style="display: flex; justify-content: flex-end; gap: 10px;">

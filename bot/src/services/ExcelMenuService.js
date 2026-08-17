@@ -27,7 +27,7 @@ export class ExcelMenuService {
         }
 
         const ext = path.extname(filePath).toLowerCase();
-        if (!['.xlsx', '.xls', '.csv'].includes(ext)) {
+        if (!['.xlsx', '.xls', '.csv', '.tsv', '.txt'].includes(ext)) {
             return null;
         }
 

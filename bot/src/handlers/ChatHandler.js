@@ -20,7 +20,7 @@ const LARAVEL_PUBLIC = path.resolve(__dirname, '..', '..', '..', 'public');
 
 // Image extensions that should be sent as images (not documents)
 const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.jfif', '.jpe']);
-const EXCEL_EXTS = new Set(['.xlsx', '.xls', '.csv']);
+const EXCEL_EXTS = new Set(['.xlsx', '.xls', '.csv', '.tsv', '.txt']);
 
 /**
  * Helper to find the latest menu files (image and/or excel) on disk for a restaurant
