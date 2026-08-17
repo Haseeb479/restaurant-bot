@@ -240,7 +240,7 @@ class DashboardController extends Controller
         $extension = strtolower($file->getClientOriginalExtension());
         $originalName = $file->getClientOriginalName();
 
-        // Save a copy to public/uploads/menus so the Node.js bot can also read it directly
+        // Save a copy to public/uploads/menus
         $destPath = public_path('uploads/menus');
         if (!file_exists($destPath)) {
             mkdir($destPath, 0777, true);
@@ -248,79 +248,10 @@ class DashboardController extends Controller
         $savedFileName = 'menu_' . $r->id . '_' . time() . '.' . $extension;
         $file->move($destPath, $savedFileName);
         $savedRelativePath = 'uploads/menus/' . $savedFileName;
+        $fullPath = public_path($savedRelativePath);
 
-        // If it's a CSV or text file, also parse directly into MySQL categories & menu_items
-        $imported = 0;
-        if (in_array($extension, ['csv', 'txt'])) {
-            $handle = fopen(public_path($savedRelativePath), 'r');
-            if ($handle) {
-                $header = fgetcsv($handle);
-                $categoryCache = [];
-
-                while (($row = fgetcsv($handle)) !== false) {
-                    if (count($row) < 3 || empty(trim($row[0])) || empty(trim($row[1]))) {
-                        continue;
-                    }
-
-                    $categoryName = trim($row[0]);
-                    $itemName     = trim($row[1]);
-                    $basePrice    = (float) preg_replace('/[^0-9.]/', '', $row[2] ?? 0);
-                    $sizesRaw     = trim($row[3] ?? '');
-                    $description  = trim($row[4] ?? '');
-
-                    // Find or create Category
-                    if (!isset($categoryCache[strtolower($categoryName)])) {
-                        $category = $r->categories()->firstOrCreate(
-                            ['name' => $categoryName],
-                            ['sort_order' => count($categoryCache) + 1]
-                        );
-                        $categoryCache[strtolower($categoryName)] = $category->id;
-                    }
-                    $categoryId = $categoryCache[strtolower($categoryName)];
-
-                    // Parse Sizes (e.g. "M:150, L:250" or "Small:200 / Large:350")
-                    $sizes = null;
-                    if (!empty($sizesRaw)) {
-                        $parts = preg_split('/[,|\/]/', $sizesRaw);
-                        $parsedSizes = [];
-                        foreach ($parts as $part) {
-                            if (str_contains($part, ':')) {
-                                [$sName, $sPrice] = explode(':', $part, 2);
-                                $cleanPrice = (float) preg_replace('/[^0-9.]/', '', $sPrice);
-                                if ($cleanPrice > 0) {
-                                    $parsedSizes[] = [
-                                        'size'  => strtoupper(trim($sName)),
-                                        'price' => $cleanPrice,
-                                    ];
-                                }
-                            }
-                        }
-                        if (!empty($parsedSizes)) {
-                            $sizes = $parsedSizes;
-                            if ($basePrice <= 0 && !empty($sizes[0]['price'])) {
-                                $basePrice = $sizes[0]['price'];
-                            }
-                        }
-                    }
-
-                    // Create or update item
-                    $r->menuItems()->updateOrCreate(
-                        [
-                            'category_id' => $categoryId,
-                            'name'        => $itemName,
-                        ],
-                        [
-                            'price'        => $basePrice,
-                            'sizes'        => $sizes,
-                            'description'  => $description ?: null,
-                            'is_available' => true,
-                        ]
-                    );
-                    $imported++;
-                }
-                fclose($handle);
-            }
-        }
+        $items = $this->extractMenuItemsFromFile($fullPath, $extension);
+        $importedCount = $this->importItemsToDatabase($r, $items);
 
         // Update restaurant record with menu_file path for bot access
         $r->update([
@@ -330,7 +261,7 @@ class DashboardController extends Controller
         ]);
         TenantResolver::clearCache($r);
 
-        return back()->with('success', "🎉 Menu file ({$originalName}) successfully uploaded! The bot will now read all items and prices for accurate billing.");
+        return back()->with('success', "🎉 Successfully imported {$importedCount} menu items! All items are now categorized and visible on your menu page below.");
     }
 
     // ── Upload Menu File / Poster / Document (PDF, Excel, Images, Docs) ──
@@ -365,6 +296,7 @@ class DashboardController extends Controller
 
         $file->move($destPath, $fileName);
         $relativePath = 'uploads/menus/' . $fileName;
+        $fullPath = public_path($relativePath);
 
         $updateData = [
             'menu_file'      => $relativePath,
@@ -375,12 +307,156 @@ class DashboardController extends Controller
         // If it's an image, also keep menu_image updated
         if ($fileType === 'image') {
             $updateData['menu_image'] = $relativePath;
+        } elseif ($fileType === 'excel') {
+            // If it's an Excel/CSV file, also automatically import items into the database!
+            $items = $this->extractMenuItemsFromFile($fullPath, $extension);
+            $this->importItemsToDatabase($r, $items);
         }
 
         $r->update($updateData);
         TenantResolver::clearCache($r);
 
-        return back()->with('success', "🎉 Menu file ({$originalName}) uploaded successfully!");
+        return back()->with('success', "🎉 Menu file ({$originalName}) uploaded successfully! Items are now active on your menu.");
+    }
+
+    // ── Helper: Extract menu items from CSV or Excel file ──────
+    private function extractMenuItemsFromFile(string $fullPath, string $extension): array
+    {
+        $items = [];
+
+        if (in_array($extension, ['xlsx', 'xls'])) {
+            // Use Node.js script with SheetJS to parse Excel files
+            $scriptPath = base_path('bot/src/services/parse_excel_to_json.js');
+            $command = 'node ' . escapeshellarg($scriptPath) . ' ' . escapeshellarg($fullPath);
+            $output = shell_exec($command);
+
+            if ($output) {
+                $decoded = json_decode($output, true);
+                if (is_array($decoded)) {
+                    $items = $decoded;
+                }
+            }
+        } else {
+            // CSV / TSV / TXT parsing
+            $handle = fopen($fullPath, 'r');
+            if ($handle) {
+                // Try reading header
+                $header = fgetcsv($handle);
+                $colMap = ['category' => 0, 'name' => 1, 'price' => 2, 'sizes' => 3, 'desc' => 4];
+
+                if ($header) {
+                    $headerLower = array_map(fn($h) => strtolower(trim((string)$h)), $header);
+                    foreach ($headerLower as $idx => $col) {
+                        if (str_contains($col, 'cat') || str_contains($col, 'section') || str_contains($col, 'type')) $colMap['category'] = $idx;
+                        elseif (str_contains($col, 'item') || str_contains($col, 'name') || str_contains($col, 'dish') || str_contains($col, 'product')) $colMap['name'] = $idx;
+                        elseif (str_contains($col, 'price') || str_contains($col, 'rate') || str_contains($col, 'rs') || str_contains($col, 'amount')) $colMap['price'] = $idx;
+                        elseif (str_contains($col, 'size') || str_contains($col, 'variant') || str_contains($col, 'portion')) $colMap['sizes'] = $idx;
+                        elseif (str_contains($col, 'desc') || str_contains($col, 'detail') || str_contains($col, 'info')) $colMap['desc'] = $idx;
+                    }
+                }
+
+                $currentCategory = 'General';
+                while (($row = fgetcsv($handle)) !== false) {
+                    if (empty($row) || count($row) < 2) continue;
+
+                    $catCell   = isset($row[$colMap['category']]) ? trim((string)$row[$colMap['category']]) : '';
+                    $nameCell  = isset($row[$colMap['name']]) ? trim((string)$row[$colMap['name']]) : '';
+                    $priceCell = isset($row[$colMap['price']]) ? trim((string)$row[$colMap['price']]) : '';
+                    $sizesCell = isset($row[$colMap['sizes']]) ? trim((string)$row[$colMap['sizes']]) : '';
+                    $descCell  = isset($row[$colMap['desc']]) ? trim((string)$row[$colMap['desc']]) : '';
+
+                    if (empty($nameCell)) continue;
+                    if (!empty($catCell)) $currentCategory = $catCell;
+
+                    $basePrice = (float) preg_replace('/[^0-9.]/', '', $priceCell);
+
+                    $sizes = null;
+                    if (!empty($sizesCell)) {
+                        $parts = preg_split('/[,|\/]/', $sizesCell);
+                        $parsedSizes = [];
+                        foreach ($parts as $part) {
+                            if (str_contains($part, ':')) {
+                                [$sName, $sPrice] = explode(':', $part, 2);
+                                $cleanPrice = (float) preg_replace('/[^0-9.]/', '', $sPrice);
+                                if ($cleanPrice > 0) {
+                                    $parsedSizes[] = [
+                                        'size'  => strtoupper(trim($sName)),
+                                        'price' => $cleanPrice,
+                                    ];
+                                }
+                            }
+                        }
+                        if (!empty($parsedSizes)) {
+                            $sizes = $parsedSizes;
+                            if ($basePrice <= 0 && !empty($sizes[0]['price'])) {
+                                $basePrice = $sizes[0]['price'];
+                            }
+                        }
+                    }
+
+                    $items[] = [
+                        'category'    => $currentCategory,
+                        'name'        => $nameCell,
+                        'price'       => $basePrice,
+                        'sizes'       => $sizes,
+                        'description' => $descCell ?: null,
+                    ];
+                }
+                fclose($handle);
+            }
+        }
+
+        return $items;
+    }
+
+    // ── Helper: Save items & auto-create categories in database ─
+    private function importItemsToDatabase(Restaurant $restaurant, array $items): int
+    {
+        if (empty($items)) return 0;
+
+        $imported = 0;
+        $categoryCache = [];
+
+        foreach ($items as $itemData) {
+            $catName = trim($itemData['category'] ?? 'General');
+            if (empty($catName)) $catName = 'General';
+
+            $itemName = trim($itemData['name'] ?? '');
+            if (empty($itemName)) continue;
+
+            $price       = (float) ($itemData['price'] ?? 0);
+            $sizes       = $itemData['sizes'] ?? null;
+            $description = $itemData['description'] ?? null;
+
+            // Find or create Category
+            $catKey = strtolower($catName);
+            if (!isset($categoryCache[$catKey])) {
+                $category = $restaurant->categories()->firstOrCreate(
+                    ['name' => $catName],
+                    ['sort_order' => count($categoryCache) + 1]
+                );
+                $categoryCache[$catKey] = $category->id;
+            }
+            $categoryId = $categoryCache[$catKey];
+
+            // Create or update item
+            $restaurant->menuItems()->updateOrCreate(
+                [
+                    'category_id' => $categoryId,
+                    'name'        => $itemName,
+                ],
+                [
+                    'price'        => $price,
+                    'sizes'        => $sizes,
+                    'description'  => $description,
+                    'is_available' => true,
+                ]
+            );
+
+            $imported++;
+        }
+
+        return $imported;
     }
 
     // ── Download Sample CSV Template ───────────────────────
