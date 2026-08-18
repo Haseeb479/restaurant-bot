@@ -75,10 +75,44 @@ export async function getRestaurantDirectFromDb(botNumber) {
             [r.id]
         );
 
-        const [deals] = await db.query(
+        const [allDeals] = await db.query(
             'SELECT * FROM deals WHERE restaurant_id = ? AND is_active = 1',
             [r.id]
         ).catch(() => [[]]);
+
+        // Filter deals by current Pakistan Standard Time (PKT, UTC+5)
+        const nowUtc = new Date();
+        const pktDate = new Date(nowUtc.getTime() + (5 * 60 + nowUtc.getTimezoneOffset()) * 60000);
+        const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const currentDay = dayNames[pktDate.getDay()];
+        const currentTimeStr = pktDate.toTimeString().slice(0, 8); // "HH:MM:SS"
+
+        const activeDeals = (allDeals || []).filter(deal => {
+            // 1. Check valid_days
+            if (deal.valid_days) {
+                let validDays = [];
+                try {
+                    validDays = typeof deal.valid_days === 'string' ? JSON.parse(deal.valid_days) : deal.valid_days;
+                } catch (e) {}
+
+                if (Array.isArray(validDays) && validDays.length > 0) {
+                    const daysLower = validDays.map(d => String(d).toLowerCase());
+                    if (!daysLower.includes(currentDay)) {
+                        return false; // Not valid today
+                    }
+                }
+            }
+
+            // 2. Check time window
+            if (deal.valid_from && currentTimeStr < deal.valid_from) {
+                return false; // Deal hasn't started yet today
+            }
+            if (deal.valid_until && currentTimeStr > deal.valid_until) {
+                return false; // Deal ended for today
+            }
+
+            return true;
+        });
 
         const parsedItems = items.map(item => ({
             ...item,
@@ -89,7 +123,7 @@ export async function getRestaurantDirectFromDb(botNumber) {
             ...r,
             categories,
             menu_items:   parsedItems,
-            active_deals: deals || [],
+            active_deals: activeDeals,
             is_open:      Boolean(r.is_open),
         };
 

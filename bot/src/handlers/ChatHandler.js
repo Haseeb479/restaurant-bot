@@ -10,6 +10,7 @@ import { GroqClient } from '../ai/GroqClient.js';
 import { PromptBuilder } from '../ai/PromptBuilder.js';
 import { menuOcr } from '../ai/MenuOcrService.js';
 import { excelMenu } from '../services/ExcelMenuService.js';
+import { Logger } from '../services/Logger.js';
 
 const { MessageMedia } = whatsappWebPkg;
 
@@ -214,6 +215,10 @@ export class ChatHandler {
         }
         console.log(`✅ Replied to ${customerPhone}`);
 
+        // ── Structured Logging to File & Database for Owner Review ─────────────
+        Logger.info('Chat reply sent', { customerPhone, restaurantId: restaurant.id, replyLength: reply.length });
+        Logger.logToDb(restaurant.id, customerPhone, text, reply, this.isOrderConfirmed(reply) ? 'order_confirmed' : 'chat');
+
         // ── Order confirmed? ───────────────────────────────────────────────────
         if (this.isOrderConfirmed(reply)) {
             console.log(`🎯 Order confirmed for ${customerPhone}`);
@@ -229,15 +234,23 @@ export class ChatHandler {
                     .catch(() => {});
 
                 await this.notifier.notifyOwner(customerPhone, session, trackingCode);
+                Logger.info('Order saved & notified', { customerPhone, trackingCode, restaurantId: restaurant.id });
             }
         }
     }
 
-    // ── Order confirmation detection ───────────────────────────────────────────
+    // ── Order confirmation detection (strict check) ────────────────────────────
     isOrderConfirmed(reply) {
         const lower = reply.toLowerCase();
+
+        // If it's still asking the user to confirm, it's NOT yet placed
+        if (lower.includes('confirm kar doon') || lower.includes('shall i place') || lower.includes('kya main aapka order confirm')) {
+            return false;
+        }
+
         return (
             lower.includes('your order is placed') ||
+            lower.includes('order has been placed') ||
             lower.includes('order placed')          ||
             lower.includes('آرڈر ہو گیا')            ||
             lower.includes('آرڈر ہوگیا')             ||
@@ -258,6 +271,6 @@ export class ChatHandler {
             return `Sure! Tell me what you'd like from *${name}* and your delivery address 🙂`;
         if (/track|tracking/.test(m))
             return `Please send your tracking code and I'll check your order status!`;
-        return `Hey! I'm here to help with *${name}* 😊 What would you like today?`;
+        return `Hey! I'm here to help with *${name}* 😊 What would you like today? (You can type *menu* to see our items!)`;
     }
 }
