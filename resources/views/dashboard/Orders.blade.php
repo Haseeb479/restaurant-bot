@@ -162,8 +162,8 @@
     </div>
     <div class="stat-card">
         <div class="stat-label">Revenue</div>
-        <div class="stat-value" id="stat-today-revenue">Rs. {{ number_format($today->sum('total'), 0) }}</div>
-        <div class="stat-sub">today</div>
+        <div class="stat-value" id="stat-today-revenue">Rs. {{ number_format($today->where('status', '!=', 'cancelled')->sum('total'), 0) }}</div>
+        <div class="stat-sub">confirmed & active</div>
     </div>
     <div class="stat-card">
         <div class="stat-label">Active Orders</div>
@@ -237,15 +237,36 @@
                     </td>
 
                     <td>
-                        @forelse($order->items as $item)
-                            <div>
-                                <strong>{{ $item->name }}</strong>
-                                @if($item->size) <span style="font-size:11px; color:#64748b;">({{ $item->size }})</span> @endif
-                                × {{ $item->quantity }}
-                            </div>
-                        @empty
-                            <span style="color:#64748b; font-size:12px;">{{ Str::limit($order->notes, 45) }}</span>
-                        @endforelse
+                        @if($order->items->count() > 0)
+                            @foreach($order->items as $item)
+                                <div style="margin-bottom:2px;">
+                                    <strong>{{ $item->name }}</strong>
+                                    @if($item->size) <span style="font-size:11px; color:#64748b;">({{ $item->size }})</span> @endif
+                                    <span style="color:#0284c7; font-weight:700;">× {{ $item->quantity }}</span>
+                                </div>
+                            @endforeach
+                        @else
+                            {{-- Fallback: Extract item lines from notes for past orders --}}
+                            @php
+                                $itemLines = [];
+                                if ($order->notes) {
+                                    $lines = explode("\n", $order->notes);
+                                    foreach ($lines as $l) {
+                                        $cleanL = trim(str_replace(['*','_'], '', $l));
+                                        if (preg_match('/^([0-9]+)\s*[xX×]\s*(.+?)(?:\s*—|\s*[-–:]\s*|\s+Rs\.|\s+@|\s+each|$)/i', $cleanL, $m)) {
+                                            $itemLines[] = $m[1] . 'x ' . trim($m[2]);
+                                        }
+                                    }
+                                }
+                            @endphp
+                            @if(count($itemLines) > 0)
+                                @foreach($itemLines as $il)
+                                    <div style="margin-bottom:2px; font-weight:600; color:#334155;">{{ $il }}</div>
+                                @endforeach
+                            @else
+                                <span style="color:#64748b; font-size:12px;">Standard Order</span>
+                            @endif
+                        @endif
                     </td>
 
                     <td>

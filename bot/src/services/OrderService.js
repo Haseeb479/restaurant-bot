@@ -87,7 +87,10 @@ export class OrderService {
             }
         }
 
-        // 6. Notes / Summary
+        // 6. Extract Line Items (e.g. 4x Paneer Roll, 12x Tandoori Roti)
+        const items = this.extractOrderItems(assistantMsgs);
+
+        // 7. Notes / Summary
         const notes = session.history
             .filter(h => h.role === 'assistant')
             .slice(-2)
@@ -102,8 +105,62 @@ export class OrderService {
             total,
             deliveryAddress,
             paymentMethod,
+            items,
             notes,
         };
+    }
+
+    /**
+     * Extract individual ordered items from Order Summary
+     */
+    extractOrderItems(assistantMsgs) {
+        const items = [];
+        const lines = assistantMsgs.split('\n');
+
+        for (const rawLine of lines) {
+            const line = rawLine.trim().replace(/^[-*•]\s*/, '').replace(/[*_]/g, '');
+
+            const itemMatch = line.match(/^([0-9]+)\s*[xX×]\s*(.+?)(?:\s*—|\s*[-–:]\s*|\s+Rs\.|\s+@|\s+each|$)/i);
+            if (itemMatch) {
+                const qty = parseInt(itemMatch[1], 10) || 1;
+                let fullItemName = itemMatch[2].trim();
+
+                if (/^(order summary|subtotal|delivery|total|payment|deliver to)/i.test(fullItemName)) {
+                    continue;
+                }
+
+                let size = null;
+                const sizeMatch = fullItemName.match(/\(([^)]+)\)/);
+                if (sizeMatch) {
+                    size = sizeMatch[1].trim();
+                    fullItemName = fullItemName.replace(/\([^)]+\)/, '').trim();
+                }
+
+                let unitPrice = 0;
+                let subtotal = 0;
+
+                const allPrices = Array.from(line.matchAll(/rs\.?\s*([0-9,]+(?:\.[0-9]{1,2})?)/gi))
+                    .map(m => parseFloat(m[1].replace(/,/g, '')));
+
+                if (allPrices.length >= 2) {
+                    unitPrice = allPrices[0];
+                    subtotal = allPrices[allPrices.length - 1];
+                } else if (allPrices.length === 1) {
+                    subtotal = allPrices[0];
+                    unitPrice = subtotal / qty;
+                }
+
+                items.push({
+                    name: fullItemName,
+                    size: size,
+                    quantity: qty,
+                    unit_price: unitPrice || 0,
+                    subtotal: subtotal || (unitPrice * qty) || 0
+                });
+            }
+        }
+
+        return items;
     }
 
     /**
@@ -148,7 +205,30 @@ export class OrderService {
             );
 
             if (result && result.insertId) {
-                console.log(`✅ Order #${result.insertId} saved directly to MySQL — Tracking: ${trackingCode}, Total: Rs.${parsed.total}, Address: ${parsed.deliveryAddress}`);
+                const orderId = result.insertId;
+                console.log(`✅ Order #${orderId} saved directly to MySQL — Tracking: ${trackingCode}, Total: Rs.${parsed.total}, Address: ${parsed.deliveryAddress}`);
+
+                // Insert itemized records into order_items table
+                if (parsed.items && parsed.items.length > 0) {
+                    for (const item of parsed.items) {
+                        await db.query(
+                            `INSERT INTO order_items (order_id, name, size, unit_price, quantity, subtotal, created_at, updated_at) 
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                            [
+                                orderId,
+                                item.name,
+                                item.size,
+                                item.unit_price,
+                                item.quantity,
+                                item.subtotal,
+                                now,
+                                now,
+                            ]
+                        ).catch(itemErr => console.warn('⚠️ order_item insert note:', itemErr.message));
+                    }
+                    console.log(`📦 Saved ${parsed.items.length} itemized records for Order #${orderId}`);
+                }
+
                 return trackingCode;
             }
         } catch (dbErr) {
@@ -169,6 +249,7 @@ export class OrderService {
                     delivery_charge:  parsed.deliveryCharge,
                     total:            parsed.total,
                     payment_method:   parsed.paymentMethod,
+                    items:            parsed.items,
                 },
                 { timeout: 5000 }
             );

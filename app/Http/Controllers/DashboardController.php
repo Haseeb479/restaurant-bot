@@ -38,7 +38,7 @@ class DashboardController extends Controller
     {
         $this->authCheck($id);
         $r      = Restaurant::findOrFail($id);
-        $orders = $r->orders()->with('items')->paginate(20);
+        $orders = $r->orders()->with('items')->orderBy('created_at', 'desc')->paginate(20);
         $today  = $r->todayOrders()->get();
 
         return view('dashboard.orders', ['restaurant' => $r, 'orders' => $orders, 'today' => $today]);
@@ -52,12 +52,14 @@ class DashboardController extends Controller
         $orders = $r->orders()->with('items')->orderBy('created_at', 'desc')->paginate(20);
         $today  = $r->todayOrders()->get();
 
+        $activeRevenue = (float) $today->where('status', '!=', 'cancelled')->sum('total');
+
         return response()->json([
-            'success'       => true,
-            'today_count'   => $today->count(),
-            'pending_count' => $today->where('status', 'pending')->count(),
-            'revenue'       => (float) $today->sum('total'),
-            'active_count'  => $today->whereIn('status', ['pending', 'confirmed', 'preparing', 'out_for_delivery'])->count(),
+            'success'         => true,
+            'today_count'     => $today->count(),
+            'pending_count'   => $today->where('status', 'pending')->count(),
+            'revenue'         => $activeRevenue,
+            'active_count'    => $today->whereIn('status', ['pending', 'confirmed', 'preparing', 'out_for_delivery'])->count(),
             'delivered_count' => $today->where('status', 'delivered')->count(),
             'latest_order_id' => $orders->first()?->id ?? 0,
         ]);
