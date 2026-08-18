@@ -1,4 +1,5 @@
 import http from 'http';
+import { sendWhatsAppText } from '../utils/WhatsAppSender.js';
 
 /**
  * InternalServer — lightweight HTTP server that:
@@ -90,12 +91,14 @@ export class InternalServer {
                             return;
                         }
 
-                        const chatId = `${to.replace(/[^0-9]/g, '')}@c.us`;
-                        await this.client.sendMessage(chatId, message);
-                        console.log(`📤 Internal server sent message to: ${to}`);
-
-                        res.writeHead(200, { 'Content-Type': 'application/json' });
-                        res.end(JSON.stringify({ success: true }));
+                        const sent = await sendWhatsAppText(this.client, to, message);
+                        if (sent) {
+                            res.writeHead(200, { 'Content-Type': 'application/json' });
+                            res.end(JSON.stringify({ success: true }));
+                        } else {
+                            res.writeHead(500, { 'Content-Type': 'application/json' });
+                            res.end(JSON.stringify({ success: false, error: 'Failed to send WhatsApp message' }));
+                        }
 
                     } catch (err) {
                         console.error('❌ Internal server send error:', err.message);

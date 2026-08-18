@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { sendWhatsAppText } from '../utils/WhatsAppSender.js';
 
 const OWNER_PHONE          = process.env.OWNER_PHONE          || '';
 const GOOGLE_SHEET_WEBHOOK = process.env.GOOGLE_SHEET_WEBHOOK || '';
@@ -16,13 +17,7 @@ export class NotifyService {
      * Send a raw WhatsApp message to any phone number.
      */
     async sendToPhone(phone, message) {
-        try {
-            const chatId = `${phone.replace(/[^0-9]/g, '')}@c.us`;
-            await this.client.sendMessage(chatId, message);
-            console.log(`📤 Sent message to: ${phone}`);
-        } catch (err) {
-            console.log(`⚠️  Could not send to ${phone}: ${err.message}`);
-        }
+        return await sendWhatsAppText(this.client, phone, message);
     }
 
     /**

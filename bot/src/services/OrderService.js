@@ -21,29 +21,35 @@ export class OrderService {
             .map(h => h.content)
             .join(' ');
 
-        // 1. Total extraction
+        // 1. Subtotal extraction (with decimal support)
+        let subtotal = 0;
+        const subMatch = assistantMsgs.match(/subtotal\s*[:*–-]?\s*rs\.?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i);
+        if (subMatch) {
+            subtotal = parseFloat(subMatch[1].replace(/,/g, '')) || 0;
+        }
+
+        // 2. Delivery charge
+        let deliveryCharge = parseFloat(session.restaurant?.delivery_charge || 0);
+        const delMatch = assistantMsgs.match(/delivery(?:\s*charge)?\s*[:*–-]?\s*rs\.?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i);
+        if (delMatch) {
+            deliveryCharge = parseFloat(delMatch[1].replace(/,/g, '')) || deliveryCharge;
+        }
+
+        // 3. Grand Total extraction (negative lookbehind for 'sub' so it never matches subtotal)
         let total = 0;
-        const totalMatch = assistantMsgs.match(/total\s*[:*–-]?\s*rs\.?\s*([0-9,]+)/i)
-            || assistantMsgs.match(/rs\.?\s*([0-9,]+)\s*total/i)
-            || assistantMsgs.match(/total\s*[:*–-]?\s*([0-9,]+)/i);
+        const totalMatch = assistantMsgs.match(/(?<!sub)total(?:\s*payable)?\s*[:*–-]?\s*rs\.?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i)
+            || assistantMsgs.match(/rs\.?\s*([0-9,]+(?:\.[0-9]{1,2})?)\s*(?:total|payable)/i);
 
         if (totalMatch) {
             total = parseFloat(totalMatch[1].replace(/,/g, '')) || 0;
         }
 
-        // 2. Subtotal extraction
-        let subtotal = 0;
-        const subtotalMatch = assistantMsgs.match(/subtotal\s*[:*–-]?\s*rs\.?\s*([0-9,]+)/i);
-        if (subtotalMatch) {
-            subtotal = parseFloat(subtotalMatch[1].replace(/,/g, '')) || 0;
-        }
-
-        // 3. Delivery charge
-        const deliveryCharge = parseFloat(session.restaurant?.delivery_charge || 0);
-
+        // Cross-calculate if one was missing or if total equaled subtotal without delivery
         if (total > 0 && subtotal === 0) {
             subtotal = Math.max(0, total - deliveryCharge);
         } else if (subtotal > 0 && total === 0) {
+            total = subtotal + deliveryCharge;
+        } else if (subtotal > 0 && total === subtotal && deliveryCharge > 0) {
             total = subtotal + deliveryCharge;
         }
 
@@ -60,13 +66,25 @@ export class OrderService {
             }
         }
 
-        // 5. Payment method detection
+        // 5. Payment method detection: check USER messages first
         let paymentMethod = 'cash_on_delivery';
-        const lowerAll = (userMsgs + ' ' + assistantMsgs).toLowerCase();
-        if (lowerAll.includes('jazzcash') || lowerAll.includes('jazz cash')) {
+        const userLower = userMsgs.toLowerCase();
+
+        if (userLower.includes('jazzcash') || userLower.includes('jazz cash')) {
             paymentMethod = 'jazzcash';
-        } else if (lowerAll.includes('easypaisa') || lowerAll.includes('easy paisa')) {
+        } else if (userLower.includes('easypaisa') || userLower.includes('easy paisa')) {
             paymentMethod = 'easypaisa';
+        } else if (userLower.includes('cod') || userLower.includes('cash')) {
+            paymentMethod = 'cash_on_delivery';
+        } else {
+            // Check assistant's confirmed summary line
+            const payLineMatch = assistantMsgs.match(/payment\s*[:*–-]?\s*([^\n\r]+)/i);
+            if (payLineMatch) {
+                const line = payLineMatch[1].toLowerCase();
+                if (line.includes('jazzcash') || line.includes('jazz cash')) paymentMethod = 'jazzcash';
+                else if (line.includes('easypaisa') || line.includes('easy paisa')) paymentMethod = 'easypaisa';
+                else paymentMethod = 'cash_on_delivery';
+            }
         }
 
         // 6. Notes / Summary

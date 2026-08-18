@@ -11,6 +11,7 @@ import { PromptBuilder } from '../ai/PromptBuilder.js';
 import { menuOcr } from '../ai/MenuOcrService.js';
 import { excelMenu } from '../services/ExcelMenuService.js';
 import { Logger } from '../services/Logger.js';
+import { sendWhatsAppText } from '../utils/WhatsAppSender.js';
 
 const { MessageMedia } = whatsappWebPkg;
 
@@ -229,9 +230,7 @@ export class ChatHandler {
                     `🎉 *Your tracking code is: ${trackingCode}*\n\n` +
                     `Send this code anytime to check your order status!`;
 
-                await this.client
-                    .sendMessage(`${customerPhone}@c.us`, trackingMsg)
-                    .catch(() => {});
+                await sendWhatsAppText(this.client, customerPhone, trackingMsg);
 
                 await this.notifier.notifyOwner(customerPhone, session, trackingCode);
                 Logger.info('Order saved & notified', { customerPhone, trackingCode, restaurantId: restaurant.id });
