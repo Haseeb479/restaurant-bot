@@ -4,11 +4,11 @@ import { getDbPool } from './Database.js';
 const LARAVEL_API = process.env.LARAVEL_API || 'http://127.0.0.1:8000/api';
 
 /**
- * OrderService — parses order details from conversation and saves to database.
+ * OrderService — parses order details from conversation and saves directly to MySQL database.
  */
 export class OrderService {
     /**
-     * Parse items, subtotal, delivery, and grand total from chat history
+     * Parse items, subtotal, delivery, grand total, and delivery address from chat history
      */
     parseOrderFromHistory(session) {
         const assistantMsgs = session.history
@@ -47,7 +47,20 @@ export class OrderService {
             total = subtotal + deliveryCharge;
         }
 
-        // 4. Payment method detection
+        // 4. Delivery address extraction
+        let deliveryAddress = 'Collected via WhatsApp chat';
+        const addrMatch = assistantMsgs.match(/deliver\s*to\s*[:*–-]?\s*([^\n\r]+)/i)
+            || assistantMsgs.match(/address\s*[:*–-]?\s*([^\n\r]+)/i)
+            || assistantMsgs.match(/pata\s*[:*–-]?\s*([^\n\r]+)/i);
+
+        if (addrMatch && addrMatch[1]?.trim()) {
+            const cleanAddr = addrMatch[1].replace(/[*_]/g, '').trim();
+            if (cleanAddr.length > 3 && !cleanAddr.includes('[address]')) {
+                deliveryAddress = cleanAddr;
+            }
+        }
+
+        // 5. Payment method detection
         let paymentMethod = 'cash_on_delivery';
         const lowerAll = (userMsgs + ' ' + assistantMsgs).toLowerCase();
         if (lowerAll.includes('jazzcash') || lowerAll.includes('jazz cash')) {
@@ -56,7 +69,7 @@ export class OrderService {
             paymentMethod = 'easypaisa';
         }
 
-        // 5. Notes / Summary
+        // 6. Notes / Summary
         const notes = session.history
             .filter(h => h.role === 'assistant')
             .slice(-2)
@@ -69,6 +82,7 @@ export class OrderService {
             subtotal,
             deliveryCharge,
             total,
+            deliveryAddress,
             paymentMethod,
             notes,
         };
@@ -92,17 +106,18 @@ export class OrderService {
         const trackingCode = this.generateTrackingCode(session.restaurant?.name);
 
         try {
-            // 1. Direct MySQL insert for 0ms reliability
+            // 1. Direct MySQL insert for 0ms reliability (all required columns included)
             const db = getDbPool();
             const now = new Date();
 
             const [result] = await db.query(
                 `INSERT INTO orders 
-                 (restaurant_id, customer_phone, tracking_code, status, subtotal, delivery_charge, total, payment_method, notes, created_at, updated_at) 
-                 VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)`,
+                 (restaurant_id, customer_phone, delivery_address, tracking_code, status, subtotal, delivery_charge, total, payment_method, notes, created_at, updated_at) 
+                 VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     restaurantId,
                     customerPhone,
+                    parsed.deliveryAddress,
                     trackingCode,
                     parsed.subtotal,
                     parsed.deliveryCharge,
@@ -115,7 +130,7 @@ export class OrderService {
             );
 
             if (result && result.insertId) {
-                console.log(`✅ Order #${result.insertId} saved directly to MySQL — Tracking: ${trackingCode}, Total: Rs.${parsed.total}`);
+                console.log(`✅ Order #${result.insertId} saved directly to MySQL — Tracking: ${trackingCode}, Total: Rs.${parsed.total}, Address: ${parsed.deliveryAddress}`);
                 return trackingCode;
             }
         } catch (dbErr) {
@@ -129,7 +144,7 @@ export class OrderService {
                 {
                     customer_phone:   customerPhone,
                     restaurant_id:    restaurantId,
-                    delivery_address: 'Collected via chat',
+                    delivery_address: parsed.deliveryAddress,
                     notes:            parsed.notes,
                     status:           'pending',
                     subtotal:         parsed.subtotal,
@@ -143,7 +158,7 @@ export class OrderService {
             return res.data?.tracking_code || trackingCode;
         } catch (apiErr) {
             console.error('❌ Could not save order via API:', apiErr.message);
-            return trackingCode; // Return tracking code so customer isn't stranded
+            return trackingCode;
         }
     }
 }
