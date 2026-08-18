@@ -74,26 +74,26 @@ class Order extends Model
     public function getStatusLabelAttribute(): string
     {
         return match($this->status) {
-            'pending'          => '🕐 Pending',
-            'confirmed'        => '✅ Confirmed',
-            'preparing'        => '👨‍🍳 Preparing',
-            'out_for_delivery' => '🚴 Out for Delivery',
-            'delivered'        => '✅ Delivered',
+            'pending'          => '🕐 Pending Confirmation',
+            'confirmed',
+            'preparing'        => '👨‍🍳 Preparing in Kitchen',
+            'out_for_delivery' => '🛵 Dispatched & On the Way',
+            'delivered'        => '🎉 Delivered',
             'cancelled'        => '❌ Cancelled',
-            default            => $this->status,
+            default            => ucwords(str_replace('_', ' ', $this->status)),
         };
     }
 
     public function getStatusMessageAttribute(): string
     {
         return match($this->status) {
-            'pending'          => 'Your order has been received and is waiting for confirmation.',
-            'confirmed'        => 'Your order has been confirmed! We are getting it ready.',
-            'preparing'        => 'Your order is being prepared in the kitchen 👨‍🍳',
-            'out_for_delivery' => 'Your order is on the way! 🚴 Should arrive in ~15-20 mins.',
+            'pending'          => 'Your order has been received and is waiting for confirmation from our team.',
+            'confirmed',
+            'preparing'        => 'Our kitchen is preparing your order fresh! 👨‍🍳',
+            'out_for_delivery' => 'Your order has been dispatched and is on its way with our rider! 🛵',
             'delivered'        => 'Your order has been delivered. Enjoy your meal! 🎉',
-            'cancelled'        => 'Your order has been cancelled. Please contact us for help.',
-            default            => 'Status unknown.',
+            'cancelled'        => 'Your order was cancelled. Please contact us directly for assistance.',
+            default            => 'Your order is in progress.',
         };
     }
 }

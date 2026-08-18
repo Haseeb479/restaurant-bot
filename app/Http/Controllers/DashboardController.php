@@ -44,7 +44,26 @@ class DashboardController extends Controller
         return view('dashboard.orders', ['restaurant' => $r, 'orders' => $orders, 'today' => $today]);
     }
 
-    // ── Update order status & assign rider ─────────────────
+    // ── Live JSON Feed for Real-Time Dashboard Updates ────
+    public function liveOrdersFeed(string $id)
+    {
+        $this->authCheck($id);
+        $r      = Restaurant::findOrFail($id);
+        $orders = $r->orders()->with('items')->orderBy('created_at', 'desc')->paginate(20);
+        $today  = $r->todayOrders()->get();
+
+        return response()->json([
+            'success'       => true,
+            'today_count'   => $today->count(),
+            'pending_count' => $today->where('status', 'pending')->count(),
+            'revenue'       => (float) $today->sum('total'),
+            'active_count'  => $today->whereIn('status', ['pending', 'confirmed', 'preparing', 'out_for_delivery'])->count(),
+            'delivered_count' => $today->where('status', 'delivered')->count(),
+            'latest_order_id' => $orders->first()?->id ?? 0,
+        ]);
+    }
+
+    // ── Update order status & assign rider (Automated WhatsApp Notification) ──
     public function updateStatus(Request $request, string $id, Order $order)
     {
         $this->authCheck($id);
@@ -64,6 +83,9 @@ class DashboardController extends Controller
         if ($request->filled('rider_notes')) {
             $updateData['rider_notes'] = $request->input('rider_notes');
         }
+        if ($request->filled('estimated_minutes')) {
+            $updateData['estimated_minutes'] = (int) $request->input('estimated_minutes');
+        }
 
         $order->update($updateData);
 
@@ -78,10 +100,12 @@ class DashboardController extends Controller
             $riderInfo = "\n🛵 *Rider:* {$name}{$phone}";
         }
 
+        $etaText = $order->estimated_minutes ? "\n⏱️ *Estimated Delivery:* ~{$order->estimated_minutes} mins" : "\n⏱️ *Estimated Delivery:* ~20-30 mins";
+
         $messages = [
             'confirmed' => "✅ *Order Confirmed!*\n\nYour order *{$order->tracking_code}* has been accepted by *{$r->name}*!\n\n📍 *Live Tracking:* {$trackingUrl}",
-            'preparing' => "👨‍🍳 *Preparing Your Food!*\n\nOur kitchen is currently preparing your order *{$order->tracking_code}*.\n\n📍 *Live Tracking:* {$trackingUrl}",
-            'out_for_delivery' => "🛵 *Order Out for Delivery!*\n\nYour order *{$order->tracking_code}* is on its way!{$riderInfo}\n💰 *Total to Pay:* Rs. " . number_format($order->total, 0) . " ({$order->payment_method})\n\n📍 *Live Tracking:* {$trackingUrl}",
+            'preparing' => "👨‍🍳 *Preparing Your Food!*\n\nOur kitchen is preparing your order *{$order->tracking_code}* fresh.\n\n📍 *Live Tracking:* {$trackingUrl}",
+            'out_for_delivery' => "🛵 *Order Dispatched & On The Way!*\n\nYour order *{$order->tracking_code}* has been dispatched by *{$r->name}*!{$riderInfo}{$etaText}\n💰 *Total to Pay:* Rs. " . number_format($order->total, 0) . " (" . ucwords(str_replace('_', ' ', $order->payment_method ?: 'COD')) . ")\n\n📍 *Live Tracking:* {$trackingUrl}",
             'delivered' => "🎉 *Order Delivered!*\n\nYour order *{$order->tracking_code}* has been delivered. Enjoy your meal! Thank you for ordering from *{$r->name}*! 🙏",
             'cancelled' => "❌ *Order Cancelled*\n\nYour order *{$order->tracking_code}* was cancelled. Please call us directly for details.",
         ];
@@ -89,7 +113,7 @@ class DashboardController extends Controller
         if (isset($messages[$status])) {
             try {
                 \Illuminate\Support\Facades\Http::timeout(5)
-                    ->post(config('app.bot_internal_api', 'http://localhost:3000') . '/send-message', [
+                    ->post(config('app.bot_internal_api', 'http://127.0.0.1:3000') . '/send-message', [
                         'to'      => $order->customer_phone,
                         'message' => $messages[$status],
                     ]);
@@ -118,7 +142,7 @@ class DashboardController extends Controller
             }
         }
 
-        return back()->with('success', 'Order status & rider updated!');
+        return back()->with('success', "Order #{$order->id} status updated to " . ucwords(str_replace('_', ' ', $status)) . "!");
     }
 
     // ── Menu management ────────────────────────────────────

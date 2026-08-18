@@ -34,6 +34,7 @@ Route::prefix('dashboard/{id}')->group(function () {
     Route::post('logout',                      [DashboardController::class, 'logout'])->name('dashboard.logout');
     Route::get('connect-whatsapp',             [DashboardController::class, 'connectWhatsapp'])->name('dashboard.connect-whatsapp');
     Route::get('orders',                       [DashboardController::class, 'orders'])->name('dashboard.orders');
+    Route::get('orders/live-feed',             [DashboardController::class, 'liveOrdersFeed'])->name('dashboard.orders.live-feed');
     Route::post('orders/{order}/status',       [DashboardController::class, 'updateStatus'])->name('dashboard.update-status');
     Route::get('menu',                         [DashboardController::class, 'menu'])->name('dashboard.menu');
     Route::post('menu/category',               [DashboardController::class, 'storeCategory'])->name('dashboard.store-category');
