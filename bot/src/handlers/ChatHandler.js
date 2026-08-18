@@ -230,7 +230,7 @@ export class ChatHandler {
                     `🎉 *Your tracking code is: ${trackingCode}*\n\n` +
                     `Send this code anytime to check your order status!`;
 
-                await sendWhatsAppText(this.client, customerPhone, trackingMsg);
+                await msg.reply(trackingMsg).catch(() => sendWhatsAppText(this.client, customerPhone, trackingMsg));
 
                 await this.notifier.notifyOwner(customerPhone, session, trackingCode);
                 Logger.info('Order saved & notified', { customerPhone, trackingCode, restaurantId: restaurant.id });
