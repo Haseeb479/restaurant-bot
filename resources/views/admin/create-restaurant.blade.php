@@ -141,20 +141,20 @@
                 </div>
             </div>
 
-            <div class="section-title">WhatsApp API Credentials (from Meta)</div>
+            <div class="section-title">WhatsApp Bot Connection</div>
 
             <div class="form-group">
                 <label class="form-label">WhatsApp Number (with country code) <span class="req">*</span></label>
                 <input type="text" name="whatsapp_number" class="form-control" value="{{ old('whatsapp_number') }}"
                        placeholder="+923001234567" required>
-                <div class="form-hint">The phone number registered on WhatsApp Business API</div>
+                <div class="form-hint">The WhatsApp number the bot will use to chat with customers.</div>
             </div>
 
             <div class="form-group">
-                <label class="form-label">Phone Number ID <span class="req">*</span></label>
+                <label class="form-label">Phone Number ID <span style="font-size:11px; color:#888; font-weight:normal;">(Optional - leave blank if using WhatsApp Web QR scan)</span></label>
                 <input type="text" name="wa_phone_id" class="form-control" value="{{ old('wa_phone_id') }}"
-                       placeholder="1234567890123456" required>
-                <div class="form-hint">Found in Meta Business Manager → WhatsApp → API Setup</div>
+                       placeholder="Optional for Meta Cloud API">
+                <div class="form-hint">Only required if using Meta Cloud API. For QR scanning, this is optional.</div>
             </div>
 
             <div class="section-title">Plan</div>

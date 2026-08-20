@@ -1,12 +1,18 @@
 <?php
 namespace App\Http\Controllers;
 
-use App\Models\{Restaurant, Order};
+use App\Models\{Restaurant, Order, Conversation};
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 
 class AdminController extends Controller
 {
+    // ── SaaS Plan Pricing (Bot Service Platform Packages) ───
+    public const PLAN_PRICES = [
+        'trial' => 0,
+        'basic' => 3000,
+        'pro'   => 7000,
+    ];
+
     private function adminAuth(): void
     {
         abort_unless(session('admin_logged_in'), 403, 'Admin access required.');
@@ -32,38 +38,48 @@ class AdminController extends Controller
         return redirect()->route('admin.login');
     }
 
-    // ── Main dashboard — all restaurants at a glance ───────
+    // ── Main dashboard — SaaS Bot Platform Overview ───────
     public function dashboard()
     {
         $this->adminAuth();
 
-        $restaurants = Restaurant::withCount(['orders', 'menuItems'])
-            ->withCount(['orders as today_orders_count' => fn($q) => $q->whereDate('created_at', today())])
+        $restaurants = Restaurant::withCount(['orders', 'menuItems', 'conversations'])
             ->withCount(['orders as month_orders_count' => fn($q) => $q->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)])
-            ->with([
-                'orders' => fn($q) => $q->whereDate('created_at', today())->select('id','restaurant_id','total','status'),
-                'conversations' => fn($q) => $q->latest()->take(3)->select('id','restaurant_id','customer_phone','state','last_message_at'),
-            ])
-            ->orderByDesc('updated_at')
+            ->orderByDesc('created_at')
             ->get();
 
-        // Platform-wide stats (excluding cancelled orders for revenue)
-        $totalRevenue      = Order::whereDate('created_at', today())->where('status', '!=', 'cancelled')->sum('total');
-        $totalOrders       = Order::whereDate('created_at', today())->count();
-        $monthOrders       = Order::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count();
-        $monthRevenue      = Order::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->where('status', '!=', 'cancelled')->sum('total');
-        $activeRestaurants = $restaurants->where('is_active', true)->count();
-        $botConnected      = $restaurants->where('bot_status', 'connected')->count();
-        $needsAttention    = $restaurants->whereIn('bot_status', ['qr_expired', 'disconnected'])->where('is_active', true)->count();
+        // ── SaaS Bot Service Package Revenue & Subscription Stats ──
+        $activeRestaurants = $restaurants->where('is_active', true);
+        $totalSubscribers  = $restaurants->count();
+        $activeCount       = $activeRestaurants->count();
+        $trialCount        = $activeRestaurants->where('plan', 'trial')->count();
+        $basicCount        = $activeRestaurants->where('plan', 'basic')->count();
+        $proCount          = $activeRestaurants->where('plan', 'pro')->count();
 
-        // Recent failed messages (from bot error log per restaurant)
+        // Monthly Recurring Revenue (MRR) from Bot Subscriptions / Plans
+        $monthlySaasRevenue = ($basicCount * self::PLAN_PRICES['basic']) + ($proCount * self::PLAN_PRICES['pro']);
+
+        // WhatsApp Bot activity & conversations platform-wide
+        $totalConversations = Conversation::count();
+        $monthConversations = Conversation::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count();
+
+        // Bot Health
+        $botConnected   = $restaurants->where('bot_status', 'connected')->count();
+        $needsAttention = $restaurants->whereIn('bot_status', ['qr_expired', 'disconnected'])->where('is_active', true)->count();
         $errorRestaurants = $restaurants->whereNotNull('last_error')->where('is_active', true);
 
         return view('admin.dashboard', compact(
             'restaurants',
-            'totalRevenue', 'totalOrders',
-            'monthOrders', 'monthRevenue',
-            'activeRestaurants', 'botConnected', 'needsAttention',
+            'totalSubscribers',
+            'activeCount',
+            'monthlySaasRevenue',
+            'trialCount',
+            'basicCount',
+            'proCount',
+            'totalConversations',
+            'monthConversations',
+            'botConnected',
+            'needsAttention',
             'errorRestaurants'
         ));
     }
@@ -102,9 +118,12 @@ class AdminController extends Controller
             ]
         ));
 
+        // Pre-authorize session so redirect directly loads without 403/404
+        session(["restaurant_{$r->id}" => true]);
+
         return redirect()
             ->route('dashboard.connect-whatsapp', $r->id)
-            ->with('success', "🎉 Restaurant {$r->name} created! Scan the QR code below to connect WhatsApp.");
+            ->with('success', "🎉 Restaurant {$r->name} registered! Scan the QR code below to connect WhatsApp.");
     }
 
     // ── Toggle restaurant active/inactive (soft — never hard delete) ──

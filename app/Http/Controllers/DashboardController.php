@@ -581,11 +581,19 @@ class DashboardController extends Controller
     // ── Auth helper (Access Isolation enforced at query level) ─
     private function authCheck(string $id): void
     {
-        // 1. Must be logged in to THIS specific restaurant_id (not cross-tenant)
-        abort_unless(session("restaurant_{$id}"), 403, 'Please login to access this dashboard.');
+        $isSuperAdmin = session('admin_logged_in') === true;
+        $isOwner      = session("restaurant_{$id}") === true;
 
-        // 2. Restaurant must exist and be active (deactivated restaurants cannot access dashboard)
-        $r = \App\Models\Restaurant::where('id', $id)->where('is_active', true)->first();
-        abort_if(!$r, 403, 'This restaurant account has been deactivated. Please contact the platform admin.');
+        // 1. Must be logged in as Super Admin OR the specific restaurant owner
+        abort_unless($isSuperAdmin || $isOwner, 403, 'Please login to access this dashboard.');
+
+        // 2. Restaurant must exist in the database
+        $r = \App\Models\Restaurant::find($id);
+        abort_if(!$r, 404, 'Restaurant not found.');
+
+        // 3. If standard restaurant owner login (not super admin), block if deactivated
+        if (!$isSuperAdmin) {
+            abort_if(!$r->is_active, 403, 'This restaurant account has been deactivated. Please contact the platform admin.');
+        }
     }
 }
