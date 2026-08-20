@@ -47,7 +47,7 @@
                             <label class="form-label">WhatsApp Bot Number</label>
                             <input type="text" name="whatsapp_number" class="form-control"
                                    value="{{ old('whatsapp_number', $restaurant->whatsapp_number) }}"
-                                   placeholder="03294647476" required>
+                                   placeholder="03293647476" required>
                             <div class="form-hint">Number used to scan the QR code</div>
                         </div>
 

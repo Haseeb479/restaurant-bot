@@ -1,7 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
-use App\Models\{Restaurant, Order, Category, MenuItem};
+use App\Models\{Restaurant, Order, Category, MenuItem, Rider};
 use App\Services\TenantResolver;
 use Illuminate\Http\Request;
 
@@ -40,8 +40,9 @@ class DashboardController extends Controller
         $r      = Restaurant::findOrFail($id);
         $orders = $r->orders()->with('items')->orderBy('created_at', 'desc')->paginate(20);
         $today  = $r->todayOrders()->get();
+        $riders = $r->riders()->where('is_active', true)->get();
 
-        return view('dashboard.orders', ['restaurant' => $r, 'orders' => $orders, 'today' => $today]);
+        return view('dashboard.orders', ['restaurant' => $r, 'orders' => $orders, 'today' => $today, 'riders' => $riders]);
     }
 
     // ── Live JSON Feed for Real-Time Dashboard Updates ────
@@ -201,6 +202,9 @@ class DashboardController extends Controller
             'sizes'       => $sizes, // null if no size variants
         ]);
 
+        TenantResolver::clearCache($r);
+        $this->invalidateBotCache($r);
+
         return back()->with('success', 'Item added!');
     }
 
@@ -210,7 +214,12 @@ class DashboardController extends Controller
         $r = Restaurant::findOrFail($id);
         abort_if($item->restaurant_id !== $r->id, 403);
         $item->update(['is_available' => !$item->is_available]);
-        return back()->with('success', 'Item updated!');
+
+        TenantResolver::clearCache($r);
+        $this->invalidateBotCache($r);
+
+        $statusText = $item->is_available ? 'marked In Stock' : 'marked Out of Stock';
+        return back()->with('success', "Item {$item->name} {$statusText}!");
     }
 
     public function deleteItem(string $id, MenuItem $item)
@@ -219,7 +228,60 @@ class DashboardController extends Controller
         $r = Restaurant::findOrFail($id);
         abort_if($item->restaurant_id !== $r->id, 403);
         $item->delete();
+
+        TenantResolver::clearCache($r);
+        $this->invalidateBotCache($r);
+
         return back()->with('success', 'Item deleted!');
+    }
+
+    // ── Rider Management (Owner Dashboard) ─────────────────
+    public function riders(string $id)
+    {
+        $this->authCheck($id);
+        $r      = Restaurant::findOrFail($id);
+        $riders = $r->riders()->get();
+
+        return view('dashboard.riders', ['restaurant' => $r, 'riders' => $riders]);
+    }
+
+    public function storeRider(Request $request, string $id)
+    {
+        $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
+
+        $request->validate([
+            'name'  => 'required|string|max:255',
+            'phone' => 'required|string|max:50',
+        ]);
+
+        $r->riders()->create([
+            'name'      => trim($request->input('name')),
+            'phone'     => trim($request->input('phone')),
+            'is_active' => true,
+        ]);
+
+        return back()->with('success', 'Rider added successfully!');
+    }
+
+    public function toggleRider(string $id, Rider $rider)
+    {
+        $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
+        abort_if($rider->restaurant_id !== $r->id, 403);
+
+        $rider->update(['is_active' => !$rider->is_active]);
+        return back()->with('success', 'Rider status updated!');
+    }
+
+    public function deleteRider(string $id, Rider $rider)
+    {
+        $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
+        abort_if($rider->restaurant_id !== $r->id, 403);
+
+        $rider->delete();
+        return back()->with('success', 'Rider deleted!');
     }
 
     // ── Settings ───────────────────────────────────────────
@@ -501,6 +563,19 @@ class DashboardController extends Controller
             'Content-Type'        => 'text/csv',
             'Content-Disposition' => 'attachment; filename="menu_sample_template.csv"',
         ]);
+    }
+
+    // ── Instant Bot Cache Invalidation ─────────────────────
+    private function invalidateBotCache(Restaurant $r): void
+    {
+        try {
+            \Illuminate\Support\Facades\Http::timeout(1)->post(
+                config('app.bot_internal_api', 'http://127.0.0.1:3000') . '/invalidate-cache',
+                ['restaurant_id' => $r->id, 'bot_number' => $r->whatsapp_number]
+            );
+        } catch (\Throwable $e) {
+            // Non-blocking: bot will also use 5s TTL
+        }
     }
 
     // ── Auth helper (Access Isolation enforced at query level) ─

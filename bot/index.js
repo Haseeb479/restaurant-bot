@@ -96,6 +96,9 @@ async function initBot(cleanSession = false) {
 
         router = new MessageRouter(client);
         internalServer.setClient(client);
+        if (router.chat?.restaurants) {
+            internalServer.setRestaurantService(router.chat.restaurants);
+        }
 
         // ─── Events ───────────────────────────────────────────────────────────
         client.on('qr', async (qr) => {

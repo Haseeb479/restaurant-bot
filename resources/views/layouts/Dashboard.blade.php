@@ -226,20 +226,24 @@
         <span class="brand">🍽️ {{ $restaurant->name }}</span>
         <div class="nav-links">
             <a href="/dashboard/{{ $restaurant->id }}/orders"
-               class="nav-link {{ request()->routeIs('dashboard.orders') ? 'active' : '' }}">
-                Orders
+               class="nav-link {{ request()->routeIs('dashboard.orders*') ? 'active' : '' }}">
+                📋 Orders
             </a>
             <a href="/dashboard/{{ $restaurant->id }}/menu"
-               class="nav-link {{ request()->routeIs('dashboard.menu') ? 'active' : '' }}">
-                Menu
+               class="nav-link {{ request()->routeIs('dashboard.menu*') ? 'active' : '' }}">
+                🍔 Menu
+            </a>
+            <a href="/dashboard/{{ $restaurant->id }}/riders"
+               class="nav-link {{ request()->routeIs('dashboard.riders*') ? 'active' : '' }}">
+                🛵 Riders
             </a>
             <a href="/dashboard/{{ $restaurant->id }}/connect-whatsapp"
-               class="nav-link {{ request()->routeIs('dashboard.connect-whatsapp') ? 'active' : '' }}">
+               class="nav-link {{ request()->routeIs('dashboard.connect-whatsapp*') ? 'active' : '' }}">
                 📱 WhatsApp Bot (QR)
             </a>
             <a href="/dashboard/{{ $restaurant->id }}/settings"
-               class="nav-link {{ request()->routeIs('dashboard.settings') ? 'active' : '' }}">
-                Settings
+               class="nav-link {{ request()->routeIs('dashboard.settings*') ? 'active' : '' }}">
+                ⚙️ Settings
             </a>
         </div>
     </div>

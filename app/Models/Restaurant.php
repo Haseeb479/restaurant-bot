@@ -76,6 +76,11 @@ class Restaurant extends Model
         return $this->hasMany(Deal::class);
     }
 
+    public function riders(): HasMany
+    {
+        return $this->hasMany(Rider::class)->orderBy('name');
+    }
+
     public function activeDeals(): HasMany
     {
         return $this->hasMany(Deal::class)->activeNow();

@@ -18,10 +18,15 @@ export class InternalServer {
         this.botNumber         = null;
         this.onRestartCallback = null;
         this.restaurantId      = null;
+        this.restaurantService = null;
     }
 
     setRestaurantId(id) {
         this.restaurantId = id;
+    }
+
+    setRestaurantService(service) {
+        this.restaurantService = service;
     }
 
     async _syncBotStatusToDb(status) {
@@ -160,6 +165,17 @@ export class InternalServer {
                         res.end(JSON.stringify({ success: false, error: err.message }));
                     }
                 });
+                return;
+            }
+
+            // ── Invalidate Menu / Restaurant Cache ─────────────────────────────
+            if (req.method === 'POST' && req.url === '/invalidate-cache') {
+                if (this.restaurantService) {
+                    this.restaurantService.cache.clear();
+                    console.log('🔄 Bot restaurant/menu cache invalidated upon dashboard update');
+                }
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, message: 'Cache invalidated' }));
                 return;
             }
 

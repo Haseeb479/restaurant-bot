@@ -366,14 +366,29 @@
             When you click <strong>Dispatch Order</strong>, the customer automatically receives a WhatsApp alert with the rider's contact details, ETA, and live tracking link.
         </p>
         
+        @if(isset($riders) && $riders->count() > 0)
         <div style="margin-bottom:12px;">
-            <label style="display:block; font-size:12px; font-weight:700; color:#334155; margin-bottom:4px;">Rider Name:</label>
-            <input type="text" id="modal-rider-name" placeholder="e.g. Ali Raza" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
+            <label style="display:block; font-size:12px; font-weight:700; color:#334155; margin-bottom:4px;">Select Saved Rider:</label>
+            <select id="modal-rider-select" onchange="onSelectSavedRider(this)" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; background:#f8fafc;">
+                <option value="">-- Choose from your riders list --</option>
+                @foreach($riders as $rdr)
+                    <option value="{{ $rdr->id }}" data-name="{{ $rdr->name }}" data-phone="{{ $rdr->phone }}">
+                        🛵 {{ $rdr->name }} ({{ $rdr->phone }})
+                    </option>
+                @endforeach
+                <option value="custom">✏️ Enter custom rider...</option>
+            </select>
+        </div>
+        @endif
+
+        <div style="margin-bottom:12px;">
+            <label style="display:block; font-size:12px; font-weight:700; color:#334155; margin-bottom:4px;">Rider Name: *</label>
+            <input type="text" id="modal-rider-name" required placeholder="e.g. Ali Raza" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
         </div>
 
         <div style="margin-bottom:12px;">
-            <label style="display:block; font-size:12px; font-weight:700; color:#334155; margin-bottom:4px;">Rider Phone Number:</label>
-            <input type="text" id="modal-rider-phone" placeholder="e.g. 03001234567" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
+            <label style="display:block; font-size:12px; font-weight:700; color:#334155; margin-bottom:4px;">Rider Phone Number: *</label>
+            <input type="text" id="modal-rider-phone" required placeholder="e.g. 03001234567" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
         </div>
 
         <div style="margin-bottom:18px;">
@@ -397,6 +412,18 @@
 <script>
     let activeOrderId = null;
     let lastLatestOrderId = {{ $orders->first()?->id ?? 0 }};
+
+    function onSelectSavedRider(selectElem) {
+        const selected = selectElem.options[selectElem.selectedIndex];
+        if (selected && selected.dataset.name) {
+            document.getElementById('modal-rider-name').value = selected.dataset.name;
+            document.getElementById('modal-rider-phone').value = selected.dataset.phone;
+        } else if (selectElem.value === 'custom') {
+            document.getElementById('modal-rider-name').value = '';
+            document.getElementById('modal-rider-phone').value = '';
+            document.getElementById('modal-rider-name').focus();
+        }
+    }
 
     function quickAdvanceStatus(orderId, nextStatus) {
         const form = document.getElementById('form-order-' + orderId);

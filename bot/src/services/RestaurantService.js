@@ -3,7 +3,7 @@ import { getRestaurantDirectFromDb } from './Database.js';
 
 const PRIMARY_API  = process.env.LARAVEL_API || 'http://127.0.0.1:8000/api';
 const FALLBACK_API = 'http://localhost:8000/api';
-const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const CACHE_TTL_MS = 5 * 1000; // 5 seconds for instant menu stock availability updates
 
 /**
  * RestaurantService — fetches restaurant + menu + active deals.

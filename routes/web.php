@@ -45,6 +45,10 @@ Route::prefix('dashboard/{id}')->group(function () {
     Route::get('menu/sample-csv',              [DashboardController::class, 'downloadSampleCsv'])->name('dashboard.sample-menu-csv');
     Route::post('menu/item/{item}/toggle',     [DashboardController::class, 'toggleItem'])->name('dashboard.toggle-item');
     Route::delete('menu/item/{item}',          [DashboardController::class, 'deleteItem'])->name('dashboard.delete-item');
+    Route::get('riders',                       [DashboardController::class, 'riders'])->name('dashboard.riders');
+    Route::post('riders',                      [DashboardController::class, 'storeRider'])->name('dashboard.store-rider');
+    Route::delete('riders/{rider}',            [DashboardController::class, 'deleteRider'])->name('dashboard.delete-rider');
+    Route::post('riders/{rider}/toggle',       [DashboardController::class, 'toggleRider'])->name('dashboard.toggle-rider');
     Route::get('settings',                     [DashboardController::class, 'settings'])->name('dashboard.settings');
     Route::post('settings',                    [DashboardController::class, 'updateSettings'])->name('dashboard.update-settings');
 });
