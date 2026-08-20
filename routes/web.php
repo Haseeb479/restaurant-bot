@@ -59,5 +59,6 @@ Route::prefix('admin')->group(function () {
     Route::post('restaurant',                  [AdminController::class, 'storeRestaurant'])->name('admin.store-restaurant');
     Route::post('restaurant/{r}/toggle',       [AdminController::class, 'toggleRestaurant'])->name('admin.toggle-restaurant');
     Route::post('restaurant/{r}/plan',         [AdminController::class, 'extendPlan'])->name('admin.extend-plan');
+    Route::post('restaurant/{r}/clear-error',  [AdminController::class, 'clearError'])->name('admin.clear-error');
     Route::get('orders',                       [AdminController::class, 'allOrders'])->name('admin.orders');
 });

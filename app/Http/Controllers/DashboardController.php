@@ -233,6 +233,8 @@ class DashboardController extends Controller
     public function updateSettings(Request $request, string $id)
     {
         $this->authCheck($id);
+        $r = Restaurant::findOrFail($id); // scoped: only the authenticated restaurant
+
         $data = $request->only([
             'name', 'whatsapp_number', 'owner_phone', 'manager_phone', 'address', 'city',
             'delivery_areas', 'delivery_charge', 'minimum_order', 'greeting_message', 'google_sheet_webhook',
@@ -501,9 +503,14 @@ class DashboardController extends Controller
         ]);
     }
 
-    // ── Auth helper ────────────────────────────────────────
+    // ── Auth helper (Access Isolation enforced at query level) ─
     private function authCheck(string $id): void
     {
-        abort_unless(session("restaurant_{$id}"), 403, 'Please login first.');
+        // 1. Must be logged in to THIS specific restaurant_id (not cross-tenant)
+        abort_unless(session("restaurant_{$id}"), 403, 'Please login to access this dashboard.');
+
+        // 2. Restaurant must exist and be active (deactivated restaurants cannot access dashboard)
+        $r = \App\Models\Restaurant::where('id', $id)->where('is_active', true)->first();
+        abort_if(!$r, 403, 'This restaurant account has been deactivated. Please contact the platform admin.');
     }
 }

@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Models\{Restaurant, Order};
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 
 class AdminController extends Controller
 {
@@ -35,14 +36,36 @@ class AdminController extends Controller
     public function dashboard()
     {
         $this->adminAuth();
+
         $restaurants = Restaurant::withCount(['orders', 'menuItems'])
-            ->with(['orders' => fn($q) => $q->whereDate('created_at', today())])
+            ->withCount(['orders as today_orders_count' => fn($q) => $q->whereDate('created_at', today())])
+            ->withCount(['orders as month_orders_count' => fn($q) => $q->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)])
+            ->with([
+                'orders' => fn($q) => $q->whereDate('created_at', today())->select('id','restaurant_id','total','status'),
+                'conversations' => fn($q) => $q->latest()->take(3)->select('id','restaurant_id','customer_phone','state','last_message_at'),
+            ])
+            ->orderByDesc('updated_at')
             ->get();
 
-        $totalRevenue = Order::whereDate('created_at', today())->sum('total');
-        $totalOrders  = Order::whereDate('created_at', today())->count();
+        // Platform-wide stats (excluding cancelled orders for revenue)
+        $totalRevenue      = Order::whereDate('created_at', today())->where('status', '!=', 'cancelled')->sum('total');
+        $totalOrders       = Order::whereDate('created_at', today())->count();
+        $monthOrders       = Order::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count();
+        $monthRevenue      = Order::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->where('status', '!=', 'cancelled')->sum('total');
+        $activeRestaurants = $restaurants->where('is_active', true)->count();
+        $botConnected      = $restaurants->where('bot_status', 'connected')->count();
+        $needsAttention    = $restaurants->whereIn('bot_status', ['qr_expired', 'disconnected'])->where('is_active', true)->count();
 
-        return view('admin.dashboard', compact('restaurants', 'totalRevenue', 'totalOrders'));
+        // Recent failed messages (from bot error log per restaurant)
+        $errorRestaurants = $restaurants->whereNotNull('last_error')->where('is_active', true);
+
+        return view('admin.dashboard', compact(
+            'restaurants',
+            'totalRevenue', 'totalOrders',
+            'monthOrders', 'monthRevenue',
+            'activeRestaurants', 'botConnected', 'needsAttention',
+            'errorRestaurants'
+        ));
     }
 
     // ── Create a new restaurant ────────────────────────────
@@ -74,7 +97,8 @@ class AdminController extends Controller
                 'plan_expires_at' => $request->plan !== 'trial'
                     ? now()->addMonth()
                     : null,
-                'is_active' => true,
+                'is_active'  => true,
+                'bot_status' => 'disconnected',
             ]
         ));
 
@@ -83,13 +107,32 @@ class AdminController extends Controller
             ->with('success', "🎉 Restaurant {$r->name} created! Scan the QR code below to connect WhatsApp.");
     }
 
-    // ── Toggle restaurant active/inactive ─────────────────
-    public function toggleRestaurant(Restaurant $r)
+    // ── Toggle restaurant active/inactive (soft — never hard delete) ──
+    public function toggleRestaurant(Request $request, Restaurant $r)
     {
         $this->adminAuth();
-        $r->update(['is_active' => !$r->is_active]);
-        \App\Services\TenantResolver::clearCache($r);
-        return back()->with('success', "Restaurant {$r->name} " . ($r->is_active ? 'activated' : 'deactivated'));
+
+        $newState = !$r->is_active;
+        $updateData = ['is_active' => $newState];
+
+        if (!$newState) {
+            // Deactivating: record when and reason (optional)
+            $updateData['deactivated_at']     = now();
+            $updateData['deactivated_reason'] = $request->input('reason', 'Admin deactivation');
+        } else {
+            // Reactivating: clear deactivation timestamp
+            $updateData['deactivated_at']     = null;
+            $updateData['deactivated_reason'] = null;
+        }
+
+        $r->update($updateData);
+
+        try {
+            \App\Services\TenantResolver::clearCache($r);
+        } catch (\Throwable $e) {}
+
+        $label = $newState ? '✅ Reactivated' : '⏸️ Deactivated';
+        return back()->with('success', "{$label}: {$r->name}");
     }
 
     // ── Extend plan ────────────────────────────────────────
@@ -103,6 +146,14 @@ class AdminController extends Controller
 
         $r->update(['plan_expires_at' => $expiry, 'plan' => $request->input('plan', $r->plan)]);
         return back()->with('success', "Plan extended until {$expiry->format('d M Y')}");
+    }
+
+    // ── Clear last error for a restaurant ─────────────────
+    public function clearError(Restaurant $r)
+    {
+        $this->adminAuth();
+        $r->update(['last_error' => null, 'last_error_at' => null]);
+        return back()->with('success', "Error log cleared for {$r->name}");
     }
 
     // ── All orders across all restaurants ─────────────────

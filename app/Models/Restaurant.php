@@ -30,17 +30,26 @@ class Restaurant extends Model
         'menu_file_type',
         'google_sheet_webhook',
         'manager_phone',
+        'bot_status',
+        'bot_last_seen_at',
+        'deactivated_at',
+        'deactivated_reason',
+        'last_error',
+        'last_error_at',
     ];
 
     protected $casts = [
-        'is_active'       => 'boolean',
-        'is_open'         => 'boolean',
-        'delivery_charge' => 'decimal:2',
-        'minimum_order'   => 'decimal:2',
-        'plan_expires_at' => 'datetime',
+        'is_active'        => 'boolean',
+        'is_open'          => 'boolean',
+        'delivery_charge'  => 'decimal:2',
+        'minimum_order'    => 'decimal:2',
+        'plan_expires_at'  => 'datetime',
+        'bot_last_seen_at' => 'datetime',
+        'deactivated_at'   => 'datetime',
+        'last_error_at'    => 'datetime',
     ];
 
-    protected $hidden = ['owner_password']; // removed wa_access_token
+    protected $hidden = ['owner_password'];
 
     public function categories(): HasMany
     {
@@ -67,10 +76,6 @@ class Restaurant extends Model
         return $this->hasMany(Deal::class);
     }
 
-    /**
-     * Returns only deals that are valid right now (day + time match).
-     * Used by RestaurantController when the bot fetches restaurant data.
-     */
     public function activeDeals(): HasMany
     {
         return $this->hasMany(Deal::class)->activeNow();
@@ -85,5 +90,49 @@ class Restaurant extends Model
     {
         if ($this->plan === 'trial') return true;
         return $this->plan_expires_at && $this->plan_expires_at->isFuture();
+    }
+
+    /**
+     * Human-readable bot status label and colour class
+     */
+    public function getBotStatusLabelAttribute(): string
+    {
+        return match($this->bot_status) {
+            'connected'    => '🟢 Connected',
+            'qr_pending'   => '🟡 Scan QR',
+            'qr_expired'   => '🔴 QR Expired',
+            'disconnected' => '⚪ Disconnected',
+            default        => '⚪ Unknown',
+        };
+    }
+
+    public function getBotStatusClassAttribute(): string
+    {
+        return match($this->bot_status) {
+            'connected'    => 'bot-connected',
+            'qr_pending'   => 'bot-qr',
+            'qr_expired'   => 'bot-expired',
+            default        => 'bot-disconnected',
+        };
+    }
+
+    /**
+     * Display-friendly status string (Active / Inactive / Deactivated)
+     */
+    public function getDisplayStatusAttribute(): string
+    {
+        if (!$this->is_active && $this->deactivated_at) return 'Deactivated';
+        if (!$this->is_active) return 'Inactive';
+        if (!$this->isPlanActive()) return 'Plan Expired';
+        return 'Active';
+    }
+
+    public function getDisplayStatusClassAttribute(): string
+    {
+        return match($this->display_status) {
+            'Active'       => 's-active',
+            'Plan Expired' => 's-expired',
+            default        => 's-inactive',
+        };
     }
 }
