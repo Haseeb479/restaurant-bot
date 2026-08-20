@@ -1,206 +1,272 @@
 @extends('layouts.dashboard')
+@section('title', 'WhatsApp Bot')
+@section('header_title', 'WhatsApp Bot Connection')
+@section('header_subtitle', 'Link your restaurant phone to enable automated WhatsApp customer ordering')
+
 @section('content')
 
-<div class="page-header">
-    <h1>📱 Connect WhatsApp Bot</h1>
-    <p>Link your restaurant's WhatsApp phone number to enable AI automated ordering</p>
-</div>
+<style>
+    .qr-grid {
+        display: grid;
+        grid-template-columns: 1.1fr 1fr;
+        gap: 20px;
+        align-items: start;
+    }
 
-<div class="grid2" style="align-items: start;">
-    
-    <!-- QR Code Card -->
-    <div class="card" style="padding: 24px; text-align: center;">
-        <h2 style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">Scan QR Code to Connect</h2>
-        <p style="font-size: 13px; color: #666; margin-bottom: 20px;">
-            Open WhatsApp on your restaurant phone to scan this QR code
-        </p>
+    .card-panel {
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
 
-        <!-- QR Display Container -->
-        <div id="qr-wrapper" style="min-height: 280px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fafafa; border: 1px dashed #ddd; border-radius: 16px; padding: 20px;">
+    .card-panel-header {
+        margin-bottom: 20px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .card-panel-header h3 {
+        font-size: 15px;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .card-panel-header p {
+        font-size: 12px;
+        color: #64748b;
+        margin-top: 2px;
+    }
+
+    .qr-box {
+        min-height: 280px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #f8fafc;
+        border: 2px dashed #cbd5e1;
+        border-radius: 16px;
+        padding: 24px;
+        text-align: center;
+    }
+
+    .step-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .step-item {
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+    }
+
+    .step-num {
+        width: 28px;
+        height: 28px;
+        background: #0f172a;
+        color: #fff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 800;
+        flex-shrink: 0;
+    }
+
+    .step-text h4 {
+        font-size: 13px;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .step-text p {
+        font-size: 12px;
+        color: #64748b;
+        margin-top: 2px;
+        line-height: 1.4;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 900px) {
+        .qr-grid { grid-template-columns: 1fr; }
+    }
+</style>
+
+<div class="qr-grid">
+    <!-- QR SCANNER CARD -->
+    <div class="card-panel">
+        <div class="card-panel-header">
+            <h3>📱 Scan QR Code with WhatsApp</h3>
+            <p>Open WhatsApp on <strong>{{ $restaurant->whatsapp_number }}</strong> to link your bot</p>
+        </div>
+
+        <div class="qr-box" id="qr-wrapper">
+            <!-- Loading state -->
             <div id="qr-loading" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
-                <div style="width: 36px; height: 36px; border: 3px solid #e5e7eb; border-top-color: #0e0e10; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                <span style="font-size: 13px; color: #888;">Fetching live QR code from bot...</span>
+                <div style="width: 40px; height: 40px; border: 3px solid #e2e8f0; border-top-color: #4f46e5; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                <span style="font-size: 13px; color: #64748b; font-weight: 600;">Fetching live QR code from bot engine...</span>
             </div>
 
-            <img id="qr-image" src="" alt="WhatsApp QR Code" style="display: none; width: 240px; height: 240px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); background: #fff; padding: 8px;">
+            <!-- QR image -->
+            <img id="qr-image" src="" alt="WhatsApp QR Code" style="display: none; width: 240px; height: 240px; border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.08); background: #fff; padding: 10px;">
 
-            <div id="qr-connected" style="display: none; flex-direction: column; align-items: center; text-align: center; gap: 8px;">
-                <div style="width: 60px; height: 60px; background: #dcfce7; color: #166534; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 6px;">
+            <!-- Connected state -->
+            <div id="qr-connected" style="display: none; flex-direction: column; align-items: center; text-align: center; gap: 10px;">
+                <div style="width: 60px; height: 60px; background: #dcfce7; color: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px;">
                     ✓
                 </div>
-                <h3 style="font-size: 18px; font-weight: 700; color: #166534;">WhatsApp Connected!</h3>
-                <p style="font-size: 13px; color: #4b5563;" id="connected-number">Bot is actively receiving and processing orders</p>
-                <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
-                    <span style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 6px 14px; border-radius: 99px; font-size: 12px; font-weight: 600;">
+                <h3 style="font-size: 18px; font-weight: 800; color: #166534;">WhatsApp Bot is Connected!</h3>
+                <p style="font-size: 13px; color: #475569;" id="connected-number">Active on {{ $restaurant->whatsapp_number }}</p>
+                <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+                    <span class="badge-status delivered" style="font-size: 12px; padding: 5px 12px;">
                         ● Status: LIVE & READY
                     </span>
-                    <button type="button" onclick="requestNewQr()" style="background: #fff; border: 1px solid #cbd5e1; color: #475569; padding: 6px 12px; border-radius: 99px; font-size: 12px; font-weight: 600; cursor: pointer;">
+                    <button type="button" onclick="requestNewQr()" class="btn btn-secondary" style="font-size: 12px;">
                         🔄 Re-link / New QR
                     </button>
                 </div>
             </div>
 
-            <div id="qr-offline" style="display: none; flex-direction: column; align-items: center; text-align: center; gap: 8px;">
-                <div style="font-size: 32px; margin-bottom: 4px;">⚠️</div>
-                <h3 style="font-size: 15px; font-weight: 700; color: #991b1b;">Bot Process Offline</h3>
-                <p style="font-size: 12px; color: #6b7280; max-width: 260px;">
-                    The bot is currently not running in the background. Start it in terminal or with PM2:
+            <!-- Offline state -->
+            <div id="qr-offline" style="display: none; flex-direction: column; align-items: center; text-align: center; gap: 10px;">
+                <div style="font-size: 32px;">⚠️</div>
+                <h3 style="font-size: 15px; font-weight: 800; color: #991b1b;">Bot Background Process Offline</h3>
+                <p style="font-size: 12px; color: #64748b; max-width: 280px; line-height: 1.4;">
+                    The Node.js WhatsApp engine is starting. Start it in terminal or with PM2:
                 </p>
-                <code style="background: #1e293b; color: #38bdf8; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-family: monospace; margin-top: 6px;">
+                <code style="background: #0f172a; color: #38bdf8; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-family: monospace;">
                     node bot/index.js
                 </code>
             </div>
         </div>
 
         <div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
-            <div style="font-size: 11px; color: #9ca3af;" id="poll-indicator">
-                Auto-syncing status...
+            <div style="font-size: 11px; color: #94a3b8;" id="poll-indicator">
+                ● Auto-syncing connection status...
             </div>
-            <button type="button" onclick="requestNewQr()" style="background: none; border: none; font-size: 12px; color: #2563eb; font-weight: 600; cursor: pointer; text-decoration: underline;">
-                🔄 Refresh / Reset QR Code
+            <button type="button" onclick="requestNewQr()" style="background: none; border: none; font-size: 12px; color: #4f46e5; font-weight: 700; cursor: pointer; text-decoration: underline;">
+                🔄 Reset / Refresh QR Code
             </button>
         </div>
     </div>
 
-    <!-- Instructions Card -->
-    <div class="card" style="padding: 24px;">
-        <h2 style="font-size: 16px; font-weight: 700; margin-bottom: 14px;">How to link your WhatsApp:</h2>
-        
-        <div style="display: flex; flex-direction: column; gap: 16px;">
-            <div style="display: flex; gap: 14px; align-items: flex-start;">
-                <div style="width: 26px; height: 26px; background: #0e0e10; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0;">
-                    1
-                </div>
-                <div>
-                    <h4 style="font-size: 13px; font-weight: 600; color: #111;">Open WhatsApp on your Phone</h4>
-                    <p style="font-size: 12px; color: #666; margin-top: 2px;">Use the official phone number registered for <strong>{{ $restaurant->name }}</strong> ({{ $restaurant->whatsapp_number }}).</p>
+    <!-- INSTRUCTIONS CARD -->
+    <div class="card-panel">
+        <div class="card-panel-header">
+            <h3>How to Connect in 30 Seconds</h3>
+            <p>Simple 3-step guide to connect your WhatsApp number</p>
+        </div>
+
+        <div class="step-list">
+            <div class="step-item">
+                <div class="step-num">1</div>
+                <div class="step-text">
+                    <h4>Open WhatsApp on your Phone</h4>
+                    <p>Use the WhatsApp app on the phone with number <strong>{{ $restaurant->whatsapp_number }}</strong>.</p>
                 </div>
             </div>
 
-            <div style="display: flex; gap: 14px; align-items: flex-start;">
-                <div style="width: 26px; height: 26px; background: #0e0e10; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0;">
-                    2
-                </div>
-                <div>
-                    <h4 style="font-size: 13px; font-weight: 600; color: #111;">Go to Linked Devices</h4>
-                    <p style="font-size: 12px; color: #666; margin-top: 2px;">
-                        On Android: Tap <strong>⋮ (3 dots)</strong> &gt; <strong>Linked Devices</strong><br>
-                        On iPhone: Go to <strong>Settings</strong> &gt; <strong>Linked Devices</strong>
+            <div class="step-item">
+                <div class="step-num">2</div>
+                <div class="step-text">
+                    <h4>Go to Linked Devices</h4>
+                    <p>
+                        <strong>Android:</strong> Tap ⋮ (3 dots top right) → <strong>Linked Devices</strong><br>
+                        <strong>iPhone:</strong> Go to <strong>Settings</strong> → <strong>Linked Devices</strong>
                     </p>
                 </div>
             </div>
 
-            <div style="display: flex; gap: 14px; align-items: flex-start;">
-                <div style="width: 26px; height: 26px; background: #0e0e10; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0;">
-                    3
-                </div>
-                <div>
-                    <h4 style="font-size: 13px; font-weight: 600; color: #111;">Tap "Link a Device"</h4>
-                    <p style="font-size: 12px; color: #666; margin-top: 2px;">Point your camera at the QR code shown on the left. Once scanned, the bot connects automatically!</p>
+            <div class="step-item">
+                <div class="step-num">3</div>
+                <div class="step-text">
+                    <h4>Tap "Link a Device" and Scan</h4>
+                    <p>Point your camera at the QR code on the left. Once scanned, your bot connects instantly and starts taking customer orders.</p>
                 </div>
             </div>
         </div>
 
-        <div style="margin-top: 24px; padding: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
-            <h4 style="font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px;">💡 Tips:</h4>
-            <ul style="font-size: 12px; color: #64748b; padding-left: 16px; line-height: 1.5;">
-                <li>Keep the restaurant phone connected to the internet.</li>
-                <li>You can link or unlink devices anytime from WhatsApp settings.</li>
-                <li>Session data is saved securely on your local server.</li>
-            </ul>
+        <div style="margin-top: 24px; padding: 14px 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px;">
+            <strong style="font-size: 12px; color: #166534;">💡 Multi-Device Support:</strong>
+            <p style="font-size: 11px; color: #15803d; margin-top: 2px;">
+                You can still use WhatsApp on your phone normally while the bot handles orders in the background.
+            </p>
         </div>
     </div>
-
 </div>
 
-<style>
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-</style>
-
 <script>
-    let isConnected = false;
-
-    async function fetchStatusWithTimeout(url, timeoutMs = 1000) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-        try {
-            const res = await fetch(url, { signal: controller.signal });
-            clearTimeout(timeoutId);
-            if (res.ok) return await res.json();
-        } catch (e) {
-            clearTimeout(timeoutId);
-        }
-        return null;
-    }
+    const BOT_API = 'http://' + window.location.hostname + ':3000';
+    let pollInterval = null;
 
     async function checkBotStatus() {
-        if (isConnected) return; // Stop polling once connected
+        try {
+            const res = await fetch(BOT_API + '/qr-status', { cache: 'no-store' });
+            if (!res.ok) throw new Error('Status ' + res.status);
+            const data = await res.json();
 
-        // 1. Try super-fast direct connection to bot internal port (0ms delay)
-        let data = await fetchStatusWithTimeout('http://127.0.0.1:3000/qr-status', 800);
+            document.getElementById('qr-loading').style.display = 'none';
 
-        // 2. Fallback to Laravel proxy API if direct port fails
-        if (!data) {
-            data = await fetchStatusWithTimeout('/api/bot/qr-status', 1500);
-        }
-
-        const loadingEl   = document.getElementById('qr-loading');
-        const imageEl     = document.getElementById('qr-image');
-        const connectedEl = document.getElementById('qr-connected');
-        const offlineEl   = document.getElementById('qr-offline');
-
-        if (!data || data.status === 'offline') {
-            loadingEl.style.display   = 'none';
-            imageEl.style.display     = 'none';
-            connectedEl.style.display = 'none';
-            offlineEl.style.display   = 'flex';
-            return;
-        }
-
-        if (data.status === 'connected') {
-            isConnected               = true;
-            loadingEl.style.display   = 'none';
-            imageEl.style.display     = 'none';
-            offlineEl.style.display   = 'none';
-            connectedEl.style.display = 'flex';
-            if (data.bot_number) {
-                document.getElementById('connected-number').innerText = 'Connected Number: +' + data.bot_number;
+            if (data.status === 'connected') {
+                document.getElementById('qr-image').style.display = 'none';
+                document.getElementById('qr-offline').style.display = 'none';
+                document.getElementById('qr-connected').style.display = 'flex';
+                if (data.bot_number) {
+                    document.getElementById('connected-number').innerText = 'Connected Phone: +' + data.bot_number;
+                }
+                document.getElementById('poll-indicator').innerText = '✓ Live connection active';
+            } else if (data.qr) {
+                document.getElementById('qr-connected').style.display = 'none';
+                document.getElementById('qr-offline').style.display = 'none';
+                const img = document.getElementById('qr-image');
+                img.src = data.qr;
+                img.style.display = 'block';
+                document.getElementById('poll-indicator').innerText = '● QR Code ready — scan now';
+            } else {
+                document.getElementById('qr-image').style.display = 'none';
+                document.getElementById('qr-connected').style.display = 'none';
+                document.getElementById('qr-offline').style.display = 'none';
+                document.getElementById('qr-loading').style.display = 'flex';
+                document.getElementById('poll-indicator').innerText = '● Initializing WhatsApp session...';
             }
-        } else if (data.status === 'qr' && data.qr) {
-            loadingEl.style.display   = 'none';
-            connectedEl.style.display = 'none';
-            offlineEl.style.display   = 'none';
-            imageEl.style.display     = 'block';
-            if (imageEl.src !== data.qr) {
-                imageEl.src           = data.qr;
-            }
+        } catch (err) {
+            document.getElementById('qr-loading').style.display = 'none';
+            document.getElementById('qr-image').style.display = 'none';
+            document.getElementById('qr-connected').style.display = 'none';
+            document.getElementById('qr-offline').style.display = 'flex';
+            document.getElementById('poll-indicator').innerText = '⚠️ Internal API unreachable (Port 3000)';
         }
     }
 
     async function requestNewQr() {
+        document.getElementById('qr-connected').style.display = 'none';
+        document.getElementById('qr-image').style.display = 'none';
+        document.getElementById('qr-offline').style.display = 'none';
+        document.getElementById('qr-loading').style.display = 'flex';
+        document.getElementById('poll-indicator').innerText = 'Generating fresh QR code...';
+
         try {
-            isConnected = false;
-            document.getElementById('qr-connected').style.display = 'none';
-            document.getElementById('qr-image').style.display     = 'none';
-            document.getElementById('qr-offline').style.display   = 'none';
-            document.getElementById('qr-loading').style.display   = 'flex';
+            await fetch(BOT_API + '/restart', { method: 'POST' });
+        } catch (e) {}
 
-            // Send restart request
-            await fetch('http://127.0.0.1:3000/restart', { method: 'POST' }).catch(() => {
-                return fetch('/api/bot/restart', { method: 'POST' });
-            });
-
-            setTimeout(checkBotStatus, 1500);
-        } catch (e) {
-            console.error('Restart failed', e);
-        }
+        setTimeout(checkBotStatus, 2000);
     }
 
-    // Check immediately, then poll every 1.2 seconds
+    // Initial check and start polling
     checkBotStatus();
-    const pollTimer = setInterval(checkBotStatus, 1200);
+    pollInterval = setInterval(checkBotStatus, 4000);
+
+    window.addEventListener('beforeunload', () => {
+        if (pollInterval) clearInterval(pollInterval);
+    });
 </script>
 
 @endsection
