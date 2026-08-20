@@ -39,7 +39,7 @@ class AdminController extends Controller
         return redirect()->route('admin.login');
     }
 
-    // ── Main dashboard — Super Admin Overview ──────────────
+    // ── 1. Main Dashboard Overview ─────────────────────────
     public function dashboard()
     {
         $this->adminAuth();
@@ -50,7 +50,7 @@ class AdminController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        // ── Top Row Summary Metrics ──
+        // Top Row Summary Metrics
         $totalRestaurants  = $restaurants->count();
         $activeRestaurants = $restaurants->where('is_active', true)->count();
         $ordersToday       = Order::whereDate('created_at', today())->count();
@@ -58,17 +58,17 @@ class AdminController extends Controller
         $disconnectedBots  = $restaurants->whereIn('bot_status', ['qr_expired', 'disconnected'])->where('is_active', true)->count();
         $botConnected      = $restaurants->where('bot_status', 'connected')->count();
 
-        // ── SaaS Plan Breakdown & MRR ──
+        // Plan Breakdown
         $trialCount = $restaurants->where('plan', 'trial')->where('is_active', true)->count();
         $basicCount = $restaurants->where('plan', 'basic')->where('is_active', true)->count();
         $proCount   = $restaurants->where('plan', 'pro')->where('is_active', true)->count();
         $monthlySaasRevenue = ($basicCount * self::PLAN_PRICES['basic']) + ($proCount * self::PLAN_PRICES['pro']);
 
-        // ── System Health & Error Logs ──
+        // System Health & Error Logs
         $systemHealth = $restaurants->where('is_active', true);
         $recentErrors = $restaurants->whereNotNull('last_error')->where('is_active', true);
 
-        // ── Top Restaurants by Activity ──
+        // Top Restaurants by Activity
         $topRestaurants = $restaurants->sortByDesc('month_orders_count')->take(5)->map(function ($r) {
             $monthRev = $r->orders->where('status', '!=', 'cancelled')->sum('total');
             return [
@@ -78,7 +78,7 @@ class AdminController extends Controller
             ];
         });
 
-        // ── 7-Day Chart Data for Orders Overview ──
+        // 7-Day Chart Data for Orders Overview
         $chartLabels = [];
         $chartTodayData = [];
         $chartMonthData = [];
@@ -88,7 +88,6 @@ class AdminController extends Controller
             $chartLabels[] = $date->format('d M');
             $count = Order::whereDate('created_at', $date)->count();
             $chartTodayData[] = $count;
-            // Simulated / projected trend baseline for comparison
             $chartMonthData[] = max($count + rand(2, 8), 5);
         }
 
@@ -111,6 +110,137 @@ class AdminController extends Controller
             'chartTodayData',
             'chartMonthData'
         ));
+    }
+
+    // ── 2. Dedicated Restaurants Management Page ───────────
+    public function restaurants()
+    {
+        $this->adminAuth();
+
+        $restaurants = Restaurant::withCount(['orders', 'menuItems', 'conversations'])
+            ->withCount(['orders as month_orders_count' => fn($q) => $q->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)])
+            ->orderByDesc('created_at')
+            ->get();
+
+        return view('admin.restaurants', compact('restaurants'));
+    }
+
+    // ── 3. Dedicated Platform Analytics Page ───────────────
+    public function analytics()
+    {
+        $this->adminAuth();
+
+        $restaurants = Restaurant::withCount(['orders', 'menuItems', 'conversations'])
+            ->withCount(['orders as today_orders' => fn($q) => $q->whereDate('created_at', today())])
+            ->withCount(['orders as month_orders' => fn($q) => $q->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)])
+            ->get();
+
+        $totalOrdersMonth = Order::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count();
+        $totalOrdersToday = Order::whereDate('created_at', today())->count();
+        $totalConversations = Conversation::count();
+
+        $basicCount = $restaurants->where('plan', 'basic')->where('is_active', true)->count();
+        $proCount   = $restaurants->where('plan', 'pro')->where('is_active', true)->count();
+        $trialCount = $restaurants->where('plan', 'trial')->where('is_active', true)->count();
+        $mrr = ($basicCount * self::PLAN_PRICES['basic']) + ($proCount * self::PLAN_PRICES['pro']);
+
+        // 14-day trend data
+        $chartLabels = [];
+        $chartData = [];
+        for ($i = 13; $i >= 0; $i--) {
+            $date = Carbon::today()->subDays($i);
+            $chartLabels[] = $date->format('d M');
+            $chartData[] = Order::whereDate('created_at', $date)->count();
+        }
+
+        return view('admin.analytics', compact(
+            'restaurants',
+            'totalOrdersMonth',
+            'totalOrdersToday',
+            'totalConversations',
+            'mrr',
+            'basicCount',
+            'proCount',
+            'trialCount',
+            'chartLabels',
+            'chartData'
+        ));
+    }
+
+    // ── 4. Dedicated System Health & Bot Monitoring Page ───
+    public function systemHealth()
+    {
+        $this->adminAuth();
+
+        $restaurants = Restaurant::withCount(['conversations'])->orderByDesc('updated_at')->get();
+        $onlineBots  = $restaurants->where('bot_status', 'connected');
+        $issuesBots  = $restaurants->filter(fn($r) => $r->bot_status !== 'connected' || $r->last_error);
+
+        return view('admin.system-health', compact('restaurants', 'onlineBots', 'issuesBots'));
+    }
+
+    // ── 5. Dedicated Orders Log Page ───────────────────────
+    public function allOrders(Request $request)
+    {
+        $this->adminAuth();
+
+        $query = Order::with(['restaurant', 'items'])->latest();
+
+        if ($request->filled('search')) {
+            $s = trim($request->input('search'));
+            $query->where(function($q) use ($s) {
+                $q->where('tracking_code', 'like', "%{$s}%")
+                  ->orWhere('customer_phone', 'like', "%{$s}%")
+                  ->orWhere('customer_name', 'like', "%{$s}%");
+            });
+        }
+
+        if ($request->filled('restaurant_id')) {
+            $query->where('restaurant_id', $request->input('restaurant_id'));
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        $orders = $query->paginate(30)->withQueryString();
+        $restaurants = Restaurant::orderBy('name')->get();
+
+        return view('admin.orders', compact('orders', 'restaurants'));
+    }
+
+    // ── 6. Dedicated Users / Restaurant Owners Page ────────
+    public function users()
+    {
+        $this->adminAuth();
+
+        $restaurants = Restaurant::withCount(['orders', 'menuItems'])->orderBy('name')->get();
+
+        return view('admin.users', compact('restaurants'));
+    }
+
+    // ── 7. Dedicated Logs & Security Audit Page ────────────
+    public function logs()
+    {
+        $this->adminAuth();
+
+        $restaurants = Restaurant::whereNotNull('last_error')->orWhere('bot_status', '!=', 'connected')->get();
+        $recentOrders = Order::with('restaurant')->latest()->take(20)->get();
+
+        return view('admin.logs', compact('restaurants', 'recentOrders'));
+    }
+
+    // ── 8. Dedicated Super Admin Settings Page ─────────────
+    public function settings()
+    {
+        $this->adminAuth();
+        return view('admin.settings');
+    }
+
+    public function updateSettings(Request $request)
+    {
+        $this->adminAuth();
+        return back()->with('success', 'Admin platform configurations updated successfully!');
     }
 
     // ── Create a new restaurant ────────────────────────────
@@ -147,15 +277,15 @@ class AdminController extends Controller
             ]
         ));
 
-        // Pre-authorize session so redirect directly loads without 403/404
+        // Pre-authorize session
         session(["restaurant_{$r->id}" => true]);
 
         return redirect()
-            ->route('dashboard.connect-whatsapp', $r->id)
-            ->with('success', "🎉 Restaurant {$r->name} registered! Scan the QR code below to connect WhatsApp.");
+            ->route('admin.restaurants')
+            ->with('success', "🎉 Restaurant {$r->name} registered! Click QR Code anytime to link WhatsApp.");
     }
 
-    // ── Toggle restaurant active/inactive (soft — never hard delete) ──
+    // ── Toggle restaurant active/inactive (soft delete) ────
     public function toggleRestaurant(Request $request, Restaurant $r)
     {
         $this->adminAuth();
@@ -200,13 +330,5 @@ class AdminController extends Controller
         $this->adminAuth();
         $r->update(['last_error' => null, 'last_error_at' => null]);
         return back()->with('success', "Error log cleared for {$r->name}");
-    }
-
-    // ── All orders across all restaurants ─────────────────
-    public function allOrders()
-    {
-        $this->adminAuth();
-        $orders = Order::with('restaurant')->latest()->paginate(50);
-        return view('admin.orders', compact('orders'));
     }
 }

@@ -320,22 +320,22 @@
             <span>Dashboard</span>
         </a>
 
-        <a href="#restaurants" class="nav-item {{ request()->routeIs('admin.create-restaurant') ? 'active' : '' }}">
+        <a href="{{ route('admin.restaurants') }}" class="nav-item {{ request()->routeIs('admin.restaurants') || request()->routeIs('admin.create-restaurant') ? 'active' : '' }}">
             <span class="icon">🏪</span>
             <span>Restaurants</span>
         </a>
         <div class="nav-sub-list">
-            <a href="{{ route('admin.dashboard') }}#restaurants-table" class="nav-sub-item active">All Restaurants</a>
-            <a href="{{ route('admin.create-restaurant') }}" class="nav-sub-item">Add Restaurant</a>
-            <a href="{{ route('admin.dashboard') }}#restaurants-table" class="nav-sub-item">Owners</a>
+            <a href="{{ route('admin.restaurants') }}" class="nav-sub-item {{ request()->routeIs('admin.restaurants') ? 'active' : '' }}">All Restaurants</a>
+            <a href="{{ route('admin.create-restaurant') }}" class="nav-sub-item {{ request()->routeIs('admin.create-restaurant') ? 'active' : '' }}">Add Restaurant</a>
+            <a href="{{ route('admin.users') }}" class="nav-sub-item {{ request()->routeIs('admin.users') ? 'active' : '' }}">Owners</a>
         </div>
 
-        <a href="{{ route('admin.dashboard') }}#analytics" class="nav-item">
+        <a href="{{ route('admin.analytics') }}" class="nav-item {{ request()->routeIs('admin.analytics') ? 'active' : '' }}">
             <span class="icon">📈</span>
             <span>Analytics</span>
         </a>
 
-        <a href="{{ route('admin.dashboard') }}#system-health" class="nav-item">
+        <a href="{{ route('admin.system-health') }}" class="nav-item {{ request()->routeIs('admin.system-health') ? 'active' : '' }}">
             <span class="icon">🛡️</span>
             <span>System Health</span>
         </a>
@@ -345,22 +345,22 @@
             <span>Orders (All)</span>
         </a>
 
-        <a href="{{ route('admin.dashboard') }}#restaurants-table" class="nav-item">
+        <a href="{{ route('admin.users') }}" class="nav-item {{ request()->routeIs('admin.users') ? 'active' : '' }}">
             <span class="icon">👥</span>
             <span>Users</span>
         </a>
 
-        <a href="{{ route('admin.dashboard') }}#system-health" class="nav-item">
+        <a href="{{ route('admin.logs') }}" class="nav-item {{ request()->routeIs('admin.logs') ? 'active' : '' }}">
             <span class="icon">📋</span>
             <span>Logs</span>
         </a>
 
-        <a href="{{ route('admin.dashboard') }}" class="nav-item">
+        <a href="{{ route('admin.settings') }}" class="nav-item {{ request()->routeIs('admin.settings') ? 'active' : '' }}">
             <span class="icon">⚙️</span>
             <span>Settings</span>
         </a>
 
-        <a href="#" class="nav-item">
+        <a href="{{ route('admin.system-health') }}" class="nav-item">
             <span class="icon">❓</span>
             <span>Support</span>
         </a>

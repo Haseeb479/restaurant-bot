@@ -59,10 +59,17 @@ Route::prefix('admin')->group(function () {
     Route::post('login',                       [AdminController::class, 'login']);
     Route::post('logout',                      [AdminController::class, 'logout'])->name('admin.logout');
     Route::get('/',                            [AdminController::class, 'dashboard'])->name('admin.dashboard');
+    Route::get('restaurants',                  [AdminController::class, 'restaurants'])->name('admin.restaurants');
     Route::get('restaurant/create',            [AdminController::class, 'createRestaurant'])->name('admin.create-restaurant');
     Route::post('restaurant',                  [AdminController::class, 'storeRestaurant'])->name('admin.store-restaurant');
     Route::post('restaurant/{r}/toggle',       [AdminController::class, 'toggleRestaurant'])->name('admin.toggle-restaurant');
     Route::post('restaurant/{r}/plan',         [AdminController::class, 'extendPlan'])->name('admin.extend-plan');
     Route::post('restaurant/{r}/clear-error',  [AdminController::class, 'clearError'])->name('admin.clear-error');
+    Route::get('analytics',                    [AdminController::class, 'analytics'])->name('admin.analytics');
+    Route::get('system-health',                [AdminController::class, 'systemHealth'])->name('admin.system-health');
     Route::get('orders',                       [AdminController::class, 'allOrders'])->name('admin.orders');
+    Route::get('users',                        [AdminController::class, 'users'])->name('admin.users');
+    Route::get('logs',                         [AdminController::class, 'logs'])->name('admin.logs');
+    Route::get('settings',                     [AdminController::class, 'settings'])->name('admin.settings');
+    Route::post('settings',                    [AdminController::class, 'updateSettings'])->name('admin.update-settings');
 });
