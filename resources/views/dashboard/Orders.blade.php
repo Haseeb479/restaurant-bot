@@ -281,14 +281,31 @@
                 </div>
             </div>
 
-            <!-- Items List -->
+            <!-- Items List (deduplicated display) -->
             <div class="detail-section">
                 <div class="detail-label" style="margin-bottom: 6px;">Ordered Items</div>
                 <table class="items-table">
-                    @forelse($selectedOrder->items as $item)
+                    @php
+                        $groupedItems = $selectedOrder->items->groupBy(function($item) {
+                            return strtolower(trim($item->name)) . '___' . strtolower(trim($item->size ?? ''));
+                        })->map(function($group) {
+                            $first = $group->first();
+                            $qty = $group->sum('quantity') ?: 1;
+                            $unit = $first->unit_price ?: ($first->subtotal / ($first->quantity ?: 1));
+                            $subtotal = $group->sum('subtotal') ?: ($unit * $qty);
+                            return (object)[
+                                'name' => $first->name,
+                                'size' => $first->size,
+                                'quantity' => $qty,
+                                'unit_price' => $unit,
+                                'subtotal' => $subtotal,
+                            ];
+                        });
+                    @endphp
+                    @forelse($groupedItems as $item)
                     <tr>
                         <td><strong>{{ $item->quantity }}x</strong> {{ $item->name }} {{ $item->size ? "({$item->size})" : '' }}</td>
-                        <td class="t-right">PKR {{ number_format($item->subtotal ?: ($item->unit_price * $item->quantity), 0) }}</td>
+                        <td class="t-right">PKR {{ number_format($item->subtotal, 0) }}</td>
                     </tr>
                     @empty
                     <tr><td colspan="2" style="color: #94a3b8; font-size: 11px;">Standard Food Order Package</td></tr>
@@ -328,25 +345,60 @@
                         <button type="button" onclick="setOrderStatus('delivered')" class="step-btn {{ $selectedOrder->status==='delivered' ? 'current' : '' }}">Delivered</button>
                     </div>
 
-                    <!-- Rider Dispatch Box -->
-                    <div class="dispatch-box">
-                        <span class="notice">🛵 Assign a rider before marking as Dispatched</span>
-                        <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px; margin-bottom: 8px;">
-                            <select id="riderSelectBox" onchange="syncRiderDetails(this)" style="padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; background: #fff;">
-                                <option value="">Select Rider ▾</option>
-                                @foreach($riders as $rdr)
-                                    <option value="{{ $rdr->id }}" data-name="{{ $rdr->name }}" data-phone="{{ $rdr->phone }}" {{ $selectedOrder->rider_name === $rdr->name ? 'selected' : '' }}>
-                                        {{ $rdr->name }} ({{ $rdr->phone }})
-                                    </option>
-                                @endforeach
-                            </select>
-                            <input type="text" id="etaInput" placeholder="30-40 mins" value="{{ $selectedOrder->estimated_minutes ? $selectedOrder->estimated_minutes . ' mins' : '30-40 mins' }}" onchange="document.getElementById('formRiderEta').value=parseInt(this.value)||30" style="padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; background: #fff;">
+                    <!-- Dynamic Action Box Based on Current Status -->
+                    @if($selectedOrder->status === 'delivered')
+                        <!-- DELIVERED STATE -->
+                        <div class="dispatch-box" style="background: #ecfdf5; border-color: #a7f3d0; text-align: center; padding: 16px;">
+                            <div style="font-size: 14px; font-weight: 800; color: #047857; margin-bottom: 3px;">
+                                🎉 Order Delivered & Completed
+                            </div>
+                            <p style="font-size: 12px; color: #065f46; margin: 0;">
+                                Customer notified via WhatsApp. Total collected: PKR {{ number_format($selectedOrder->total, 0) }} ({{ ucwords(str_replace('_', ' ', $selectedOrder->payment_method ?: 'COD')) }})
+                            </p>
                         </div>
+                    @elseif($selectedOrder->status === 'out_for_delivery')
+                        <!-- DISPATCHED STATE -->
+                        <div class="dispatch-box" style="background: #f0fdf4; border-color: #bbf7d0;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 4px;">
+                                <span style="font-size: 12px; font-weight: 700; color: #166534;">
+                                    🛵 Assigned Rider: <strong>{{ $selectedOrder->rider_name ?: 'Rider' }}</strong> ({{ $selectedOrder->rider_phone ?: '—' }})
+                                </span>
+                                <span style="font-size: 11px; color: #15803d; font-weight: 600;">
+                                    ⏱️ ETA: {{ $selectedOrder->estimated_minutes ? $selectedOrder->estimated_minutes . ' mins' : '20-30 mins' }}
+                                </span>
+                            </div>
+                            <button type="button" onclick="setOrderStatus('delivered')" class="btn btn-success" style="width: 100%; justify-content: center; font-weight: 800; padding: 10px; font-size: 13px;">
+                                ✓ Mark as Delivered & Complete Order
+                            </button>
+                        </div>
+                    @elseif($selectedOrder->status === 'cancelled')
+                        <!-- CANCELLED STATE -->
+                        <div class="dispatch-box" style="background: #fef2f2; border-color: #fecaca; text-align: center; padding: 14px;">
+                            <div style="font-size: 13px; font-weight: 800; color: #dc2626;">
+                                ❌ Order Cancelled
+                            </div>
+                        </div>
+                    @else
+                        <!-- PENDING / CONFIRMED / PREPARING STATE -->
+                        <div class="dispatch-box">
+                            <span class="notice">🛵 Assign a rider before marking as Dispatched</span>
+                            <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px; margin-bottom: 8px;">
+                                <select id="riderSelectBox" onchange="syncRiderDetails(this)" style="padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; background: #fff;">
+                                    <option value="">Select Rider ▾</option>
+                                    @foreach($riders as $rdr)
+                                        <option value="{{ $rdr->id }}" data-name="{{ $rdr->name }}" data-phone="{{ $rdr->phone }}" {{ $selectedOrder->rider_name === $rdr->name ? 'selected' : '' }}>
+                                            {{ $rdr->name }} ({{ $rdr->phone }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <input type="text" id="etaInput" placeholder="30-40 mins" value="{{ $selectedOrder->estimated_minutes ? $selectedOrder->estimated_minutes . ' mins' : '30-40 mins' }}" onchange="document.getElementById('formRiderEta').value=parseInt(this.value)||30" style="padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; background: #fff;">
+                            </div>
 
-                        <button type="button" onclick="dispatchOrderNow()" class="btn btn-success" style="width: 100%; justify-content: center; font-weight: 700; padding: 9px;">
-                            🛵 Mark as Dispatched & Send WhatsApp
-                        </button>
-                    </div>
+                            <button type="button" onclick="dispatchOrderNow()" class="btn btn-success" style="width: 100%; justify-content: center; font-weight: 700; padding: 9px;">
+                                🛵 Mark as Dispatched & Send WhatsApp
+                            </button>
+                        </div>
+                    @endif
                 </form>
             </div>
         @else
@@ -491,6 +543,26 @@
         syncRiderDetails(selectBox);
         document.getElementById('statusFlowForm').submit();
     }
+
+    // ── Live Real-Time Feed Polling (every 6 seconds) ──
+    let initialLatestId = {{ $orders->first()?->id ?? 0 }};
+    let initialTodayCount = {{ $today->count() }};
+
+    function pollLiveFeed() {
+        fetch('/dashboard/{{ $restaurant->id }}/orders/live-feed')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.latest_order_id > initialLatestId || data.today_count !== initialTodayCount) {
+                        // Gently refresh to show new incoming orders
+                        window.location.reload();
+                    }
+                }
+            })
+            .catch(() => {});
+    }
+
+    setInterval(pollLiveFeed, 6000);
 </script>
 
 @endsection

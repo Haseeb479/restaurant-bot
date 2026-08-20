@@ -159,7 +159,8 @@ class DashboardController extends Controller
             }
         }
 
-        return back()->with('success', "Order #{$order->id} status updated to " . ucwords(str_replace('_', ' ', $status)) . "!");
+        return redirect()->route('dashboard.orders', ['id' => $r->id, 'order_id' => $order->id])
+            ->with('success', "Order #{$order->tracking_code} marked as " . ucwords(str_replace('_', ' ', $status)) . "!");
     }
 
     // ── Menu management ────────────────────────────────────

@@ -11,33 +11,47 @@ export class OrderService {
      * Parse items, subtotal, delivery, grand total, and delivery address from chat history
      */
     parseOrderFromHistory(session) {
-        const assistantMsgs = session.history
-            .filter(h => h.role === 'assistant')
-            .map(h => h.content)
-            .join('\n');
+        const assistantHistory = (session.history || []).filter(h => h.role === 'assistant');
+        const assistantMsgs = assistantHistory.map(h => h.content).join('\n');
 
-        const userMsgs = session.history
+        // Find the FINAL/LATEST Order Summary message block
+        let finalSummaryMsg = '';
+        for (let i = assistantHistory.length - 1; i >= 0; i--) {
+            const content = assistantHistory[i].content || '';
+            if (/order summary|aapka order|subtotal|total payable/i.test(content)) {
+                finalSummaryMsg = content;
+                break;
+            }
+        }
+        if (!finalSummaryMsg && assistantHistory.length > 0) {
+            finalSummaryMsg = assistantHistory[assistantHistory.length - 1].content || '';
+        }
+
+        const userMsgs = (session.history || [])
             .filter(h => h.role === 'user')
             .map(h => h.content)
             .join(' ');
 
-        // 1. Subtotal extraction (with decimal support)
+        // 1. Subtotal extraction (from final summary first, then history fallback)
         let subtotal = 0;
-        const subMatch = assistantMsgs.match(/subtotal\s*[:*–-]?\s*rs\.?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i);
+        const subMatch = finalSummaryMsg.match(/subtotal\s*[:*–-]?\s*rs\.?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i)
+            || assistantMsgs.match(/subtotal\s*[:*–-]?\s*rs\.?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i);
         if (subMatch) {
             subtotal = parseFloat(subMatch[1].replace(/,/g, '')) || 0;
         }
 
         // 2. Delivery charge
         let deliveryCharge = parseFloat(session.restaurant?.delivery_charge || 0);
-        const delMatch = assistantMsgs.match(/delivery(?:\s*charge)?\s*[:*–-]?\s*rs\.?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i);
+        const delMatch = finalSummaryMsg.match(/delivery(?:\s*charge)?\s*[:*–-]?\s*rs\.?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i)
+            || assistantMsgs.match(/delivery(?:\s*charge)?\s*[:*–-]?\s*rs\.?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i);
         if (delMatch) {
             deliveryCharge = parseFloat(delMatch[1].replace(/,/g, '')) || deliveryCharge;
         }
 
         // 3. Grand Total extraction (negative lookbehind for 'sub' so it never matches subtotal)
         let total = 0;
-        const totalMatch = assistantMsgs.match(/(?<!sub)total(?:\s*payable)?\s*[:*–-]?\s*rs\.?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i)
+        const totalMatch = finalSummaryMsg.match(/(?<!sub)total(?:\s*payable)?\s*[:*–-]?\s*rs\.?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i)
+            || assistantMsgs.match(/(?<!sub)total(?:\s*payable)?\s*[:*–-]?\s*rs\.?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i)
             || assistantMsgs.match(/rs\.?\s*([0-9,]+(?:\.[0-9]{1,2})?)\s*(?:total|payable)/i);
 
         if (totalMatch) {
@@ -87,11 +101,11 @@ export class OrderService {
             }
         }
 
-        // 6. Extract Line Items (e.g. 4x Paneer Roll, 12x Tandoori Roti)
-        const items = this.extractOrderItems(assistantMsgs);
+        // 6. Extract Line Items strictly from the final summary message
+        const items = this.extractOrderItems(finalSummaryMsg || assistantMsgs);
 
         // 7. Notes / Summary
-        const notes = session.history
+        const notes = (session.history || [])
             .filter(h => h.role === 'assistant')
             .slice(-2)
             .map(h => h.content)
@@ -111,11 +125,11 @@ export class OrderService {
     }
 
     /**
-     * Extract individual ordered items from Order Summary
+     * Extract individual ordered items from Order Summary (with deduplication)
      */
-    extractOrderItems(assistantMsgs) {
-        const items = [];
-        const lines = assistantMsgs.split('\n');
+    extractOrderItems(summaryText) {
+        const itemMap = new Map();
+        const lines = summaryText.split('\n');
 
         for (const rawLine of lines) {
             const line = rawLine.trim().replace(/^[-*•]\s*/, '').replace(/[*_]/g, '');
@@ -150,7 +164,10 @@ export class OrderService {
                     unitPrice = subtotal / qty;
                 }
 
-                items.push({
+                const itemKey = `${fullItemName.toLowerCase()}___${(size || '').toLowerCase()}`;
+                
+                // Keep the latest or update record
+                itemMap.set(itemKey, {
                     name: fullItemName,
                     size: size,
                     quantity: qty,
@@ -160,7 +177,7 @@ export class OrderService {
             }
         }
 
-        return items;
+        return Array.from(itemMap.values());
     }
 
     /**
