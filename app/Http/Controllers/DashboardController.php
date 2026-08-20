@@ -37,12 +37,26 @@ class DashboardController extends Controller
     public function orders(string $id)
     {
         $this->authCheck($id);
-        $r      = Restaurant::findOrFail($id);
-        $orders = $r->orders()->with('items')->orderBy('created_at', 'desc')->paginate(20);
-        $today  = $r->todayOrders()->get();
-        $riders = $r->riders()->where('is_active', true)->get();
+        $r         = Restaurant::findOrFail($id);
+        $orders    = $r->orders()->with('items')->orderBy('created_at', 'desc')->paginate(20);
+        $today     = $r->todayOrders()->get();
+        $riders    = $r->riders()->where('is_active', true)->get();
+        $menuItems = $r->menuItems()->orderBy('sort_order')->take(8)->get();
 
-        return view('dashboard.orders', ['restaurant' => $r, 'orders' => $orders, 'today' => $today, 'riders' => $riders]);
+        $selectedOrderId = request('order_id');
+        $selectedOrder   = $selectedOrderId 
+            ? $orders->firstWhere('id', $selectedOrderId) 
+            : $orders->first();
+
+        return view('dashboard.orders', [
+            'restaurant'    => $r,
+            'orders'        => $orders,
+            'today'         => $today,
+            'riders'        => $riders,
+            'menuItems'     => $menuItems,
+            'selectedOrder' => $selectedOrder,
+            'pendingCount'  => $today->where('status', 'pending')->count(),
+        ]);
     }
 
     // ── Live JSON Feed for Real-Time Dashboard Updates ────

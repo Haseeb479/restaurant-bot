@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Dashboard') — {{ $restaurant->name ?? 'Restaurant Owner' }}</title>
+    <title>@yield('title', 'Dashboard') — WhatsApp Bot Super Admin</title>
     <!-- Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         :root {
@@ -62,17 +63,17 @@
             gap: 12px;
         }
 
-        .brand-avatar {
-            width: 38px;
-            height: 38px;
-            background: #475569;
-            border-radius: 50%;
+        .brand-icon {
+            width: 36px;
+            height: 36px;
+            background: #22c55e;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: #fff;
-            font-size: 14px;
-            font-weight: 800;
+            font-size: 20px;
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);
         }
 
         .brand-info h2 {
@@ -126,14 +127,36 @@
             text-align: center;
         }
 
-        .nav-item .badge-pill {
+        .nav-item .badge {
             margin-left: auto;
             font-size: 11px;
-            background: #ef4444;
+            background: rgba(255, 255, 255, 0.15);
             padding: 2px 7px;
             border-radius: 99px;
             color: #fff;
-            font-weight: 700;
+        }
+
+        .nav-sub-list {
+            padding-left: 36px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-top: 2px;
+            margin-bottom: 6px;
+        }
+
+        .nav-sub-item {
+            font-size: 12px;
+            color: #64748b;
+            text-decoration: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: 0.15s;
+        }
+
+        .nav-sub-item:hover, .nav-sub-item.active {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.05);
         }
 
         /* MAIN WRAPPER */
@@ -178,25 +201,18 @@
             gap: 16px;
         }
 
-        .status-online-pill {
+        .date-picker-btn {
             display: flex;
             align-items: center;
-            gap: 6px;
-            padding: 5px 12px;
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
-            border-radius: 99px;
+            gap: 8px;
+            padding: 8px 14px;
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
             font-size: 12px;
-            font-weight: 700;
-            color: #16a34a;
-        }
-
-        .status-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: #16a34a;
-            box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
+            font-weight: 600;
+            color: #334155;
+            cursor: pointer;
         }
 
         .user-profile {
@@ -230,6 +246,11 @@
             color: #0f172a;
         }
 
+        .user-email {
+            font-size: 11px;
+            color: #64748b;
+        }
+
         .logout-link {
             background: none;
             border: none;
@@ -243,58 +264,38 @@
 
         /* CONTENT */
         main {
-            padding: 24px 32px 60px;
+            padding: 28px 32px 60px;
             flex: 1;
         }
 
-        /* BUTTONS & PILLS */
-        .btn {
+        /* PILLS & BADGES */
+        .badge {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            padding: 8px 14px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: none;
-            border: 1px solid transparent;
-            transition: all 0.15s ease;
-        }
-        .btn-primary { background: #4f46e5; color: #fff; border-color: #4f46e5; }
-        .btn-primary:hover { background: #4338ca; }
-        .btn-success { background: #16a34a; color: #fff; border-color: #16a34a; }
-        .btn-success:hover { background: #15803d; }
-        .btn-secondary { background: #f8fafc; color: #334155; border-color: var(--border-color); }
-        .btn-secondary:hover { background: #f1f5f9; }
-
-        .badge-status {
-            display: inline-flex;
-            align-items: center;
+            gap: 5px;
             font-size: 11px;
             font-weight: 700;
-            padding: 3px 9px;
+            padding: 3px 10px;
             border-radius: 99px;
-            text-transform: capitalize;
+            white-space: nowrap;
         }
-        .badge-status.pending   { background: #fef3c7; color: #b45309; }
-        .badge-status.confirmed { background: #e0e7ff; color: #4338ca; }
-        .badge-status.preparing { background: #fef9c3; color: #854d0e; }
-        .badge-status.out_for_delivery { background: #dbeafe; color: #1e40af; }
-        .badge-status.delivered { background: #dcfce7; color: #15803d; }
-        .badge-status.cancelled { background: #fee2e2; color: #b91c1c; }
+        .badge-green  { background: #dcfce7; color: #15803d; }
+        .badge-red    { background: #fee2e2; color: #b91c1c; }
+        .badge-yellow { background: #fef3c7; color: #b45309; }
+        .badge-blue   { background: #e0e7ff; color: #4338ca; }
+        .badge-gray   { background: #f1f5f9; color: #475569; }
 
         /* SWITCH TOGGLE */
-        .switch { position: relative; display: inline-block; width: 34px; height: 18px; }
+        .switch { position: relative; display: inline-block; width: 36px; height: 20px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; inset: 0; background: #cbd5e1; border-radius: 999px; transition: 0.2s; }
-        .slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.2s; }
-        input:checked + .slider { background: #16a34a; }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.2s; }
+        input:checked + .slider { background: #4f46e5; }
         input:checked + .slider:before { transform: translateX(16px); }
 
         @media (max-width: 1024px) {
             aside { width: 70px; }
-            aside .brand-info, aside .nav-item span, aside .badge-pill { display: none; }
+            aside .brand-info, aside .nav-item span, aside .nav-sub-list, aside .badge { display: none; }
             .main-wrapper { margin-left: 70px; }
         }
     </style>
@@ -305,70 +306,64 @@
 <aside>
     <div class="brand-header">
         <div class="brand-box">
-            <div class="brand-avatar">{{ strtoupper(substr($restaurant->name ?? 'TB', 0, 2)) }}</div>
+            <div class="brand-icon">💬</div>
             <div class="brand-info">
-                <h2>{{ Str::limit($restaurant->name ?? 'Tasty Bites', 16) }}</h2>
-                <span>Restaurant Owner</span>
+                <h2>WhatsApp Bot</h2>
+                <span>Super Admin</span>
             </div>
         </div>
     </div>
 
     <div class="nav-section">
-        <a href="{{ route('dashboard.orders', $restaurant->id) }}" class="nav-item {{ request()->routeIs('dashboard.orders*') ? 'active' : '' }}">
+        <a href="{{ route('admin.dashboard') }}" class="nav-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
             <span class="icon">📊</span>
             <span>Dashboard</span>
         </a>
 
-        <a href="{{ route('dashboard.orders', $restaurant->id) }}" class="nav-item">
-            <span class="icon">📋</span>
-            <span>Live Orders</span>
-            @if(isset($pendingCount) && $pendingCount > 0)
-                <span class="badge-pill">{{ $pendingCount }} New</span>
-            @endif
+        <a href="#restaurants" class="nav-item {{ request()->routeIs('admin.create-restaurant') ? 'active' : '' }}">
+            <span class="icon">🏪</span>
+            <span>Restaurants</span>
         </a>
+        <div class="nav-sub-list">
+            <a href="{{ route('admin.dashboard') }}#restaurants-table" class="nav-sub-item active">All Restaurants</a>
+            <a href="{{ route('admin.create-restaurant') }}" class="nav-sub-item">Add Restaurant</a>
+            <a href="{{ route('admin.dashboard') }}#restaurants-table" class="nav-sub-item">Owners</a>
+        </div>
 
-        <a href="{{ route('dashboard.orders', $restaurant->id) }}" class="nav-item">
-            <span class="icon">📦</span>
-            <span>Orders History</span>
-        </a>
-
-        <a href="{{ route('dashboard.menu', $restaurant->id) }}" class="nav-item {{ request()->routeIs('dashboard.menu*') ? 'active' : '' }}">
-            <span class="icon">🍔</span>
-            <span>Menu Management</span>
-        </a>
-
-        <a href="{{ route('dashboard.riders', $restaurant->id) }}" class="nav-item {{ request()->routeIs('dashboard.riders*') ? 'active' : '' }}">
-            <span class="icon">🛵</span>
-            <span>Riders</span>
-        </a>
-
-        <a href="{{ route('dashboard.orders', $restaurant->id) }}" class="nav-item">
-            <span class="icon">👥</span>
-            <span>Customers</span>
-        </a>
-
-        <a href="{{ route('dashboard.orders', $restaurant->id) }}" class="nav-item">
+        <a href="{{ route('admin.dashboard') }}#analytics" class="nav-item">
             <span class="icon">📈</span>
-            <span>Reports</span>
+            <span>Analytics</span>
         </a>
 
-        <a href="{{ route('dashboard.settings', $restaurant->id) }}" class="nav-item {{ request()->routeIs('dashboard.settings*') ? 'active' : '' }}">
+        <a href="{{ route('admin.dashboard') }}#system-health" class="nav-item">
+            <span class="icon">🛡️</span>
+            <span>System Health</span>
+        </a>
+
+        <a href="{{ route('admin.orders') }}" class="nav-item {{ request()->routeIs('admin.orders') ? 'active' : '' }}">
+            <span class="icon">📦</span>
+            <span>Orders (All)</span>
+        </a>
+
+        <a href="{{ route('admin.dashboard') }}#restaurants-table" class="nav-item">
+            <span class="icon">👥</span>
+            <span>Users</span>
+        </a>
+
+        <a href="{{ route('admin.dashboard') }}#system-health" class="nav-item">
+            <span class="icon">📋</span>
+            <span>Logs</span>
+        </a>
+
+        <a href="{{ route('admin.dashboard') }}" class="nav-item">
             <span class="icon">⚙️</span>
             <span>Settings</span>
         </a>
 
-        <a href="{{ route('dashboard.connect-whatsapp', $restaurant->id) }}" class="nav-item {{ request()->routeIs('dashboard.connect-whatsapp*') ? 'active' : '' }}">
-            <span class="icon">🤖</span>
-            <span>Bot Settings</span>
+        <a href="#" class="nav-item">
+            <span class="icon">❓</span>
+            <span>Support</span>
         </a>
-
-        <form method="POST" action="{{ route('dashboard.logout', $restaurant->id) }}" style="margin-top: auto;">
-            @csrf
-            <button type="submit" class="nav-item" style="width: 100%; background: none; border: none; cursor: pointer; text-align: left;">
-                <span class="icon">🚪</span>
-                <span>Logout</span>
-            </button>
-        </form>
     </div>
 </aside>
 
@@ -377,21 +372,22 @@
     <header>
         <div class="header-title">
             <h1>@yield('header_title', 'Dashboard')</h1>
-            <p>@yield('header_subtitle', 'Welcome back, ' . ($restaurant->name ?? 'Hassan') . '!')</p>
+            <p>@yield('header_subtitle', 'Platform Overview')</p>
         </div>
 
         <div class="header-actions">
-            <div class="status-online-pill">
-                <span class="status-dot"></span>
-                <span>Online</span>
+            <div class="date-picker-btn">
+                <span>📅</span>
+                <span>{{ now()->subDays(6)->format('M d') }} – {{ now()->format('M d, Y') }} ▾</span>
             </div>
 
             <div class="user-profile">
-                <div class="avatar">{{ strtoupper(substr($restaurant->name ?? 'H', 0, 1)) }}</div>
+                <div class="avatar">SA</div>
                 <div class="user-info">
-                    <div class="user-name">{{ $restaurant->name }}</div>
+                    <div class="user-name">Super Admin</div>
+                    <div class="user-email">superadmin@platform.com</div>
                 </div>
-                <form method="POST" action="{{ route('dashboard.logout', $restaurant->id) }}" style="display:inline; margin-left:8px;">
+                <form method="POST" action="{{ route('admin.logout') }}" style="display:inline; margin-left:8px;">
                     @csrf
                     <button type="submit" class="logout-link" title="Sign out">🚪</button>
                 </form>
@@ -401,7 +397,7 @@
 
     <main>
         @if(session('success'))
-            <div style="background: #eaf4ee; border: 1px solid #c0dd97; color: #166534; padding: 12px 18px; border-radius: 12px; margin-bottom: 20px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+            <div style="background: #eaf4ee; border: 1px solid #c0dd97; color: #166534; padding: 12px 18px; border-radius: 12px; margin-bottom: 24px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
                 <span>✓</span> {{ session('success') }}
             </div>
         @endif

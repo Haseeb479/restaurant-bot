@@ -1,173 +1,240 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login — {{ $r->name }}</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owner Login — {{ $r->name }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f172a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1.5rem;
+            color: #0f172a;
+        }
 
-<style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
+        .login-container {
+            display: grid;
+            grid-template-columns: 1.1fr 1fr;
+            background: #ffffff;
+            border-radius: 24px;
+            overflow: hidden;
+            max-width: 860px;
+            width: 100%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
+        }
 
-body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: #f0efe9;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    padding: 1rem;
-}
+        .left-banner {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+            padding: 3.5rem 2.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            color: #ffffff;
+        }
 
-.page {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    border-radius: 18px;
-    overflow: hidden;
-    border: 1px solid #e0e0db;
-    max-width: 780px;
-    width: 100%;
-}
+        .logo-box {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
 
-/* LEFT PANEL */
-.left {
-    background: #0e0e10;
-    padding: 3rem 2.5rem;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-}
+        .logo-avatar {
+            width: 44px;
+            height: 44px;
+            background: #4f46e5;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 800;
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
+        }
 
-.left h1 {
-    font-size: 22px;
-    color: #fff;
-    margin-bottom: 10px;
-}
+        .logo-title h2 { font-size: 18px; font-weight: 800; }
+        .logo-title span { font-size: 12px; color: #94a3b8; font-weight: 600; }
 
-.left p {
-    font-size: 13px;
-    color: rgba(255,255,255,0.5);
-}
+        .banner-quote {
+            margin: 2.5rem 0;
+        }
+        .banner-quote h1 {
+            font-size: 26px;
+            font-weight: 800;
+            line-height: 1.3;
+            letter-spacing: -0.02em;
+            margin-bottom: 12px;
+        }
+        .banner-quote p {
+            font-size: 13px;
+            color: #cbd5e1;
+            line-height: 1.6;
+        }
 
-/* RIGHT PANEL */
-.right {
-    background: #fff;
-    padding: 3rem 2.5rem;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
+        .stats-strip {
+            display: flex;
+            gap: 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 20px;
+        }
+        .stat-item .num { font-size: 18px; font-weight: 800; color: #fff; }
+        .stat-item .lbl { font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600; }
 
-.right h2 {
-    font-size: 20px;
-    font-weight: 600;
-    margin-bottom: 6px;
-}
+        .right-form {
+            padding: 3.5rem 3rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: #ffffff;
+        }
 
-.hint {
-    font-size: 13px;
-    color: #888;
-    margin-bottom: 2rem;
-}
+        .form-header h2 { font-size: 22px; font-weight: 800; color: #0f172a; }
+        .form-header p  { font-size: 13px; color: #64748b; margin-top: 4px; margin-bottom: 24px; }
 
-/* FORM */
-.error {
-    background: #fff0f0;
-    border: 1px solid #f5c1c1;
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-size: 12px;
-    color: #a32d2d;
-    margin-bottom: 1rem;
-}
+        .form-group { margin-bottom: 18px; }
+        .form-label { display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px; }
 
-label {
-    font-size: 11px;
-    color: #999;
-    text-transform: uppercase;
-    margin-bottom: 6px;
-    display: block;
-}
+        .input-wrap {
+            position: relative;
+        }
+        .input-wrap input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 14px;
+            outline: none;
+            background: #f8fafc;
+            color: #0f172a;
+            font-family: inherit;
+        }
+        .input-wrap input:focus {
+            border-color: #4f46e5;
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+        }
 
-.input-wrap {
-    position: relative;
-    margin-bottom: 1rem;
-}
+        .btn-submit {
+            width: 100%;
+            padding: 13px;
+            background: #4f46e5;
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 700;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+            transition: all 0.15s ease;
+            margin-top: 8px;
+        }
+        .btn-submit:hover {
+            background: #4338ca;
+            transform: translateY(-1px);
+        }
 
-input {
-    width: 100%;
-    padding: 11px 40px 11px 14px;
-    font-size: 14px;
-    background: #f8f8f6;
-    border: 1px solid #e8e8e4;
-    border-radius: 10px;
-}
+        .error-alert {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 18px;
+        }
 
-input:focus {
-    border-color: #aaa;
-    box-shadow: 0 0 0 3px rgba(0,0,0,0.06);
-    outline: none;
-}
+        .security-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 24px;
+            justify-content: center;
+        }
 
-.btn {
-    width: 100%;
-    padding: 12px;
-    background: #0e0e10;
-    color: #fff;
-    border: none;
-    border-radius: 10px;
-    font-size: 14px;
-    cursor: pointer;
-    margin-top: 1.5rem;
-}
-
-.btn:hover {
-    background: #2a2a2e;
-}
-
-@media(max-width: 580px) {
-    .page { grid-template-columns: 1fr; }
-    .left { display: none; }
-}
-</style>
+        @media (max-width: 768px) {
+            .login-container { grid-template-columns: 1fr; }
+            .left-banner { display: none; }
+        }
+    </style>
 </head>
-
 <body>
 
-<div class="page">
-
-    <!-- LEFT SIDE -->
-    <div class="left">
-        <div>
-            <h1>🍽️ {{ $r->name }}</h1>
-            <p>Restaurant Dashboard</p>
+<div class="login-container">
+    <!-- Left Hero Banner -->
+    <div class="left-banner">
+        <div class="logo-box">
+            <div class="logo-avatar">{{ strtoupper(substr($r->name, 0, 2)) }}</div>
+            <div class="logo-title">
+                <h2>{{ $r->name }}</h2>
+                <span>Restaurant Dashboard</span>
+            </div>
         </div>
 
-        <p>Manage orders, menu and customers from one place.</p>
+        <div class="banner-quote">
+            <h1>Live Kitchen Orders & WhatsApp Bot</h1>
+            <p>Track live customer orders, update kitchen cooking stages, assign delivery riders, and manage your food menu in real-time.</p>
+        </div>
+
+        <div class="stats-strip">
+            <div class="stat-item">
+                <div class="num">Live</div>
+                <div class="lbl">Order Feed</div>
+            </div>
+            <div class="stat-item">
+                <div class="num">Instant</div>
+                <div class="lbl">WhatsApp Alert</div>
+            </div>
+            <div class="stat-item">
+                <div class="num">1-Click</div>
+                <div class="lbl">Rider Dispatch</div>
+            </div>
+        </div>
     </div>
 
-    <!-- RIGHT SIDE -->
-    <div class="right">
-
-        <h2>Welcome back</h2>
-        <p class="hint">Login to continue</p>
+    <!-- Right Login Form -->
+    <div class="right-form">
+        <div class="form-header">
+            <h2>Welcome Back</h2>
+            <p>Enter your restaurant owner password to manage {{ $r->name }}.</p>
+        </div>
 
         @if($errors->any())
-            <div class="error">{{ $errors->first() }}</div>
+            <div class="error-alert">
+                @foreach($errors->all() as $e)
+                    <div>⚠️ {{ $e }}</div>
+                @endforeach
+            </div>
         @endif
 
-        <form method="POST" action="/dashboard/{{ $r->id }}/login">
+        <form method="POST" action="{{ route('dashboard.login', $r->id) }}">
             @csrf
 
-            <label>Password</label>
-            <div class="input-wrap">
-                <input type="password" name="password" placeholder="Enter your password" required autofocus>
+            <div class="form-group">
+                <label class="form-label">Owner Password</label>
+                <div class="input-wrap">
+                    <input type="password" name="password" required placeholder="••••••••••••" autofocus>
+                </div>
             </div>
 
-            <button type="submit" class="btn">Sign in →</button>
+            <button type="submit" class="btn-submit">Sign In to Dashboard →</button>
         </form>
 
+        <div class="security-badge">
+            <span>🔒</span>
+            <span>Isolated Tenant Session — Protected & Encrypted</span>
+        </div>
     </div>
-
 </div>
 
 </body>
