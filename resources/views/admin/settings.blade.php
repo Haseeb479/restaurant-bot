@@ -21,14 +21,20 @@
                 <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">
                     Current Master Password
                 </label>
-                <input type="password" name="current_password" style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 13px; outline: none; background: #f8fafc;" placeholder="••••••••••••">
+                <div style="position: relative;">
+                    <input type="password" id="current_password" name="current_password" style="width: 100%; padding: 10px 44px 10px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 13px; outline: none; background: #f8fafc; box-sizing: border-box;" placeholder="••••••••">
+                    <button type="button" onclick="togglePw('current_password', this)" tabindex="-1" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:17px;color:#94a3b8;padding:2px;" aria-label="Show/hide password">👁</button>
+                </div>
             </div>
 
             <div style="margin-bottom: 20px;">
                 <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">
                     New Master Password
                 </label>
-                <input type="password" name="new_password" style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 13px; outline: none; background: #f8fafc;" placeholder="Enter new password">
+                <div style="position: relative;">
+                    <input type="password" id="new_password" name="new_password" style="width: 100%; padding: 10px 44px 10px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 13px; outline: none; background: #f8fafc; box-sizing: border-box;" placeholder="Enter new password (min 6 characters)">
+                    <button type="button" onclick="togglePw('new_password', this)" tabindex="-1" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:17px;color:#94a3b8;padding:2px;" aria-label="Show/hide password">👁</button>
+                </div>
             </div>
 
             <button type="submit" class="btn btn-primary">

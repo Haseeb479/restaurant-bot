@@ -574,5 +574,20 @@
     </main>
 </div>
 
+<script>
+function togglePw(id, btn) {
+    const inp = document.getElementById(id);
+    if (!inp) return;
+    if (inp.type === 'password') {
+        inp.type = 'text';
+        btn.textContent = '🙈';
+    } else {
+        inp.type = 'password';
+        btn.textContent = '👁';
+    }
+}
+</script>
+@stack('scripts')
+
 </body>
 </html>
