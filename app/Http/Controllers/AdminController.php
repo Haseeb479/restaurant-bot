@@ -21,13 +21,16 @@ class AdminController extends Controller
 
     private function adminAuth(): void
     {
-        abort_unless(session('admin_logged_in'), 403, 'Admin access required.');
+        if (! session('admin_logged_in')) {
+            redirect('/')->throwResponse();
+        }
     }
 
     public function loginForm()
     {
         return view('admin.login');
     }
+
 
     /**
      * Verify a submitted master password.
@@ -96,7 +99,7 @@ class AdminController extends Controller
     public function logout()
     {
         session()->forget('admin_logged_in');
-        return redirect()->route('admin.login');
+        return redirect('/');
     }
 
     // ── 1. Main Dashboard Overview ─────────────────────────

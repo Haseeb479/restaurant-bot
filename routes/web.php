@@ -5,10 +5,50 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\RestaurantController;
 use Illuminate\Support\Facades\Route;
 
-// ── Home redirect ──────────────────────────────────────────
+// ── Home — Unified login landing page ───────────────────────
 Route::get('/', function () {
-    return redirect('/admin/login');
-});
+    $restaurants = \App\Models\Restaurant::where('is_active', true)
+        ->orderBy('name')
+        ->get(['id', 'name', 'city']);
+    return view('auth.landing', compact('restaurants'));
+})->name('landing');
+
+// ── Owner login from the unified landing page ────────────────
+Route::post('/login/owner', function (\Illuminate\Http\Request $req) {
+    $req->validate([
+        'restaurant_id' => 'required|integer',
+        'password'      => 'required|string',
+    ]);
+
+    $r = \App\Models\Restaurant::find($req->restaurant_id);
+
+    if (!$r || !\App\Http\Controllers\DashboardController::passwordMatches(
+        (string) $req->password,
+        (string) $r->owner_password
+    )) {
+        return back()
+            ->withInput($req->only('restaurant_id'))
+            ->withErrors(['password' => 'Wrong restaurant or password.'], 'owner');
+    }
+
+    if (!$r->is_active) {
+        return back()
+            ->withInput($req->only('restaurant_id'))
+            ->withErrors(['password' => 'This restaurant account has been deactivated.'], 'owner');
+    }
+
+    // Upgrade plaintext password to hash on first login
+    if (!\App\Http\Controllers\DashboardController::isHashed((string) $r->owner_password)) {
+        $r->owner_password = \Illuminate\Support\Facades\Hash::make($req->password);
+        $r->save();
+    }
+
+    $req->session()->regenerate();
+    session(["restaurant_{$r->id}" => true]);
+    session(["restaurant_{$r->id}_login_time" => now()->toIso8601String()]);
+
+    return redirect()->route('dashboard.orders', $r->id);
+})->middleware('throttle:5,1')->name('landing.owner-login');
 
 // ── Live Order Tracking (Public Web Portal - Free) ─────────
 // Throttled: tracking codes are the only secret protecting order details, so
