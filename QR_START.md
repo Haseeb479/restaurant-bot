@@ -1,66 +1,78 @@
-# WhatsApp QR Testing - Start Here
+# WhatsApp QR — Quick Start
 
-## Your Bot is Ready! 🎉
+This bot connects to WhatsApp by scanning a QR code with the restaurant's phone
+(via `whatsapp-web.js`). There is **no** Meta/Facebook developer account, webhook,
+ngrok tunnel, or access token involved — that older integration has been removed.
 
-Your bot code is fully set up for WhatsApp QR testing. Just 4 simple steps:
+## 1. Start the two processes
 
-## Step 1: Start Development Server
+Laravel (web dashboard + tracking pages):
 
-```
+```bash
 php artisan serve
 ```
 
-## Step 2: Expose with ngrok (new terminal)
+The bot (in a second terminal):
 
-```
-ngrok http 8000
-```
-Copy the HTTPS URL shown (e.g., `https://abc123.ngrok.io`)
-
-## Step 3: Configure Webhook in Meta
-
-1. Go to https://developers.facebook.com/
-2. Select your WhatsApp app
-3. Settings → Webhook Configuration  
-4. Set **Webhook URL**: `https://your-ngrok-url/api/webhook`
-5. Set **Verify Token**: `my_secret_verify_token_2024`
-
-## Step 4: Test via QR
-
-1. In your app: WhatsApp → Sandbox
-2. Scan QR code with WhatsApp
-3. Send: `hello`
-4. Bot responds! ✅
-
-## View Logs
-
-```
-Get-Content storage/logs/laravel.log -Tail 20 -Wait
+```bash
+npm run bot
 ```
 
-## Bot Commands
+Laravel serves on <http://localhost:8000>; the bot's control server listens on
+`127.0.0.1:3000` and is reached only through Laravel (never exposed to the
+browser). Both must share the same `BOT_INTERNAL_TOKEN` — see `.env.example`.
 
-- `hello` or `hi` - Start conversation
-- `menu` - Show menu
-- `cancel` - Cancel order
+## 2. Create a restaurant
 
-## Test Restaurants Already Set Up
+Either:
 
-- **Taste of Bahawalpur** (Phone ID: YOUR_PHONE_NUMBER_ID_HERE)
-- **ZFC** (Phone ID: 03241679919)
+- **Super admin:** open <http://localhost:8000/admin/login> (password =
+  `ADMIN_PASSWORD` from `.env`) → **Create Restaurant**, or
+- **Owner self-service:** <http://localhost:8000/restaurant/register>.
 
-Just use one of these phone IDs in your ngrok webhook setup!
+## 3. Scan the QR
 
----
+1. Log into the owner dashboard: `http://localhost:8000/dashboard/{id}/login`.
+2. Open **Connect WhatsApp**. A QR code appears (served from the bot via the
+   dashboard proxy).
+3. On the restaurant's phone: WhatsApp → **Linked devices** → **Link a device** →
+   scan.
+4. The dashboard status flips to **connected** once pairing completes.
 
-## Verify Everything is Ready
+## 4. Place a test order
+
+Message the restaurant's WhatsApp number from another phone:
 
 ```
-php artisan qr:verify
+hello
+menu
 ```
 
-This will check database, tables, restaurants, and configuration.
+Order conversationally (the bot asks for items, your name, address, and payment,
+then shows a summary and a confirmation prompt). On confirmation it replies with a
+tracking code.
 
----
+## 5. Track and manage
 
-**That's it!** Scan the QR and start testing. 🚀
+- **Customer:** the tracking code, or `http://localhost:8000/track/{code}`.
+- **Owner:** `http://localhost:8000/dashboard/{id}/orders` — update status; the
+  customer is notified on WhatsApp at each stage.
+
+## Logs
+
+```bash
+tail -f storage/logs/laravel.log
+```
+
+The bot prints its own activity (QR, connection state, orders, errors) to the
+terminal running `npm run bot`.
+
+## Troubleshooting
+
+- **QR never appears / status stuck on initializing** — confirm the bot process
+  is running and `BOT_INTERNAL_TOKEN` matches between Laravel and the bot.
+- **"This WhatsApp number is not yet linked to a restaurant"** — the scanned
+  number doesn't match any active restaurant's `whatsapp_number`. Fix it in the
+  dashboard/admin panel; the bot's cache clears within a few seconds.
+- **Bot replies with small talk instead of taking an order** — check
+  `GROQ_API_KEY` is set; without it the bot falls back to canned replies.

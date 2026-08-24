@@ -1,14 +1,21 @@
 import Groq from 'groq-sdk';
 
-// Models tried in order — active models on Groq
-const MODELS = [
+// Models tried in order. Override the list with GROQ_MODELS (comma-separated) as
+// Groq's catalog evolves — see https://console.groq.com/docs/models for current IDs.
+const DEFAULT_MODELS = [
     'openai/gpt-oss-120b',
     'openai/gpt-oss-20b',
-    'qwen/qwen3.6-27b',
     'groq/compound-mini',
     'llama-3.3-70b-versatile',
     'llama-3.1-8b-instant',
 ];
+
+const ACTIVE_MODELS = (process.env.GROQ_MODELS || '')
+    .split(',')
+    .map(m => m.trim())
+    .filter(Boolean);
+
+const MODELS = ACTIVE_MODELS.length ? ACTIVE_MODELS : DEFAULT_MODELS;
 
 const REQUEST_DELAY_MS = parseInt(process.env.REQUEST_DELAY_MS) || 2000;
 const lastRequestTime  = new Map(); // phone → timestamp

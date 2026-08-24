@@ -65,7 +65,7 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => env('APP_TIMEZONE', 'Asia/Karachi'),
 
     /*
     |--------------------------------------------------------------------------
@@ -123,6 +123,49 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
-    'admin_password' => env('ADMIN_PASSWORD', 'admin123'),
+    /*
+    |--------------------------------------------------------------------------
+    | Super-Admin Master Password
+    |--------------------------------------------------------------------------
+    |
+    | REQUIRED to use the super-admin panel. There is deliberately no default:
+    | a missing value means no password can log in. May be a plaintext value or
+    | a bcrypt hash — on first successful login it is persisted as a hash in the
+    | `settings` table, after which it can be rotated from Admin → Settings.
+    |
+    */
+
+    'admin_password' => env('ADMIN_PASSWORD'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | WhatsApp Bot Internal Control API
+    |--------------------------------------------------------------------------
+    |
+    | Base URL of the Node bot's internal HTTP control server (QR status,
+    | send-message, restart, cache invalidation). Kept in config so it resolves
+    | correctly even when the config cache is warm. See BOT_INTERNAL_PORT on the
+    | bot side for the matching listen port.
+    |
+    */
+
+    'bot_internal_api' => env('BOT_INTERNAL_API', 'http://127.0.0.1:3000'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | WhatsApp Bot Internal Control Token
+    |--------------------------------------------------------------------------
+    |
+    | Shared secret sent as `X-Bot-Token` on every call to the bot's control
+    | server, and required by the bot before it will answer. The control server
+    | can hand out the WhatsApp pairing QR and send messages as the restaurant,
+    | so it must never be reachable without this. The bot refuses to serve any
+    | route when the token is unset, so both sides must agree.
+    |
+    | Generate one with:  php -r "echo bin2hex(random_bytes(32));"
+    |
+    */
+
+    'bot_internal_token' => env('BOT_INTERNAL_TOKEN', ''),
 
 ];

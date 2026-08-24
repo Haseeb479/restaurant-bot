@@ -14,6 +14,7 @@ session-*/
 # Logs & Debugging
 *.log
 logs/
+logs
 storage/logs/*.log
 
 # Dependencies
@@ -33,9 +34,14 @@ storage/framework/cache/*
 !storage/framework/cache/.gitkeep
 
 # Uploaded Media
+# NOTE: .htaccess must stay tracked — it is the rule that stops uploads from
+# being executed, so it has to exist on a fresh deploy.
 public/uploads/*
 !public/uploads/.gitkeep
+!public/uploads/.htaccess
 !public/uploads/menus/.gitkeep
+public/menus/*
+!public/menus/.gitkeep
 
 # OS / Editor Artifacts
 .DS_Store

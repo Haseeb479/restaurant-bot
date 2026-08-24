@@ -1,181 +1,131 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Restaurant — Admin</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0efe9; min-height: 100vh; }
-        nav { background: #0e0e10; height: 54px; padding: 0 1.75rem; display: flex; align-items: center; justify-content: space-between; }
-        .nav-left { display: flex; align-items: center; gap: 10px; }
-        .wm-icon { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; width: 22px; height: 22px; }
-        .wm-sq { border-radius: 2px; }
-        .wm-sq:nth-child(1),.wm-sq:nth-child(4) { background: #fff; }
-        .wm-sq:nth-child(2),.wm-sq:nth-child(3) { background: rgba(255,255,255,0.25); }
-        .brand-text { font-size: 13px; font-weight: 500; color: #fff; letter-spacing: -0.01em; }
-        .nav-right { display: flex; align-items: center; gap: 12px; }
-        .back-btn { font-size: 12px; color: rgba(255,255,255,0.45); background: none; border: 0.5px solid rgba(255,255,255,0.12); border-radius: 7px; padding: 5px 14px; cursor: pointer; text-decoration: none; }
-        .back-btn:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
-        .body { max-width: 700px; margin: 1.75rem auto; padding: 0 1.25rem; }
-        .success-bar { background: #eaf4ee; border: 0.5px solid #c0dd97; border-radius: 8px; padding: 10px 16px; font-size: 12px; color: #27500A; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 8px; }
-        .s-bar-dot { width: 6px; height: 6px; border-radius: 50%; background: #3B6D11; flex-shrink: 0; }
-        h1 { font-size: 22px; font-weight: 600; margin-bottom: 0.5rem; color: #111; }
-        p.sub { color: #888; font-size: 14px; margin-bottom: 1.5rem; }
-        .card { background: #fff; border-radius: 12px; border: 0.5px solid #e8e8e4; padding: 1.5rem; }
-        .section-title { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin: 1.5rem 0 1rem; padding-top: 1.5rem; border-top: 1px solid #f3f4f6; }
-        .section-title:first-child { margin-top: 0; padding-top: 0; border-top: none; }
-        .form-group { margin-bottom: 1rem; }
-        .form-label { display: block; font-size: 13px; font-weight: 500; color: #374151; margin-bottom: 5px; }
-        .form-label .req { color: #dc2626; }
-        .form-control { width: 100%; padding: 9px 12px; border: 1px solid #e8e8e4; border-radius: 10px; font-size: 14px; background: #f8f8f6; color: #111; outline: none; }
-        .form-control:focus { border-color: #aaa; box-shadow: 0 0 0 3px rgba(0,0,0,0.06); }
-        .form-hint { font-size: 12px; color: #9ca3af; margin-top: 4px; line-height: 1.5; }
-        .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-        .btn { display: inline-flex; align-items: center; padding: 10px 20px; border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; text-decoration: none; gap: 6px; }
-        .btn-dark { background: #0e0e10; color: white; }
-        .btn-dark:hover { background: #2a2a2e; }
-        .btn-outline { background: white; border: 1px solid #e8e8e4; color: #374151; }
-        .btn-outline:hover { background: #f9fafb; }
-        .error { background: #fff0f0; border: 1px solid #f5c1c1; border-radius: 8px; padding: 12px 16px; margin-bottom: 1.5rem; font-size: 14px; color: #a32d2d; }
-        .info-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; font-size: 13px; color: #1e40af; line-height: 1.6; }
-        @media (max-width: 600px) { .grid2 { grid-template-columns: 1fr; } }
-    </style>
-</head>
-<body>
+@extends('layouts.admin')
+@section('title', 'Add Restaurant')
+@section('header_title', 'Register New Restaurant')
+@section('header_subtitle', 'Onboard a new restaurant tenant and configure WhatsApp bot credentials')
 
-<nav>
-    <div class="nav-left">
-        <div class="wm-icon">
-            <div class="wm-sq"></div><div class="wm-sq"></div>
-            <div class="wm-sq"></div><div class="wm-sq"></div>
-        </div>
-        <span class="brand-text">Restaurant admin</span>
-    </div>
-    <div class="nav-right">
-        <a href="{{ route('admin.dashboard') }}" class="back-btn">← Back to Dashboard</a>
-    </div>
-</nav>
+@section('content')
 
-<div class="body">
-    @if(session('success'))
-        <div class="success-bar">
-            <div class="s-bar-dot"></div>
-            {{ session('success') }}
-        </div>
-    @endif
-
-    <h1>Add New Restaurant</h1>
-    <p class="sub">Fill in the restaurant details. They'll be live on WhatsApp immediately.</p>
-
-    <div class="info-box">
-        <strong>📋 Before you start:</strong> You need the restaurant's WhatsApp Business API credentials from Meta.
-        Go to <strong>business.facebook.com</strong> → WhatsApp → API Setup to get the
-        <strong>Phone Number ID</strong> and <strong>Access Token</strong>.
-    </div>
+<div style="max-width: 860px;">
 
     @if($errors->any())
-        <div class="error">
-            @foreach($errors->all() as $e) <div>• {{ $e }}</div> @endforeach
+        <div style="background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 14px 18px; border-radius: 12px; margin-bottom: 20px; font-size: 13px;">
+            <strong style="display: block; margin-bottom: 4px;">⚠️ Please check the following errors:</strong>
+            <ul style="padding-left: 18px; margin: 0;">
+                @foreach($errors->all() as $e)
+                    <li>{{ $e }}</li>
+                @endforeach
+            </ul>
         </div>
     @endif
 
-    <div class="card">
-        <form method="POST" action="/admin/restaurant">
+    <div class="panel-card">
+        <form method="POST" action="{{ route('admin.store-restaurant') }}">
             @csrf
 
-            <div class="section-title">Restaurant Info</div>
-
-            <div class="form-group">
-                <label class="form-label">Restaurant Name <span class="req">*</span></label>
-                <input type="text" name="name" class="form-control" value="{{ old('name') }}"
-                       placeholder="e.g. Pizza Palace Bahawalpur" required>
+            <!-- STEP 1: RESTAURANT BASIC DETAILS -->
+            <div style="margin-bottom: 24px; padding-bottom: 18px; border-bottom: 1px solid #f1f5f9;">
+                <h3 style="font-size: 15px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">1. Business Profile</h3>
+                <p style="font-size: 12px; color: #64748b;">Basic restaurant identity and location details</p>
             </div>
 
-            <div class="grid2">
-                <div class="form-group">
-                    <label class="form-label">City <span class="req">*</span></label>
-                    <input type="text" name="city" class="form-control" value="{{ old('city','Bahawalpur') }}" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Address</label>
-                    <input type="text" name="address" class="form-control" value="{{ old('address') }}"
-                           placeholder="Shop 5, Satellite Town">
-                </div>
+            <div style="margin-bottom: 18px;">
+                <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">
+                    Restaurant Name <span style="color: #ef4444;">*</span>
+                </label>
+                <input type="text" name="name" value="{{ old('name') }}" required placeholder="e.g. Tasty Bites, Pizza Crust, Biryani Express" style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 13px; outline: none; background: #f8fafc;">
             </div>
 
-            <div class="grid2">
-                <div class="form-group">
-                    <label class="form-label">Delivery Charge (Rs.)</label>
-                    <input type="number" name="delivery_charge" class="form-control" value="{{ old('delivery_charge',0) }}" min="0" step="1">
-                    <div class="form-hint">Set 0 for free delivery</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px;">
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">
+                        City
+                    </label>
+                    <input type="text" name="city" value="{{ old('city') }}" placeholder="e.g. Lahore, Karachi, Bahawalpur" style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 13px; outline: none; background: #f8fafc;">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Minimum Order (Rs.)</label>
-                    <input type="number" name="minimum_order" class="form-control" value="{{ old('minimum_order',0) }}" min="0" step="1">
-                    <div class="form-hint">Set 0 for no minimum</div>
+
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">
+                        Physical Address
+                    </label>
+                    <input type="text" name="address" value="{{ old('address') }}" placeholder="e.g. Shop 4, Commercial Market" style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 13px; outline: none; background: #f8fafc;">
                 </div>
             </div>
 
-            <div class="form-group">
-                <label class="form-label">Greeting Message</label>
-                <input type="text" name="greeting_message" class="form-control"
-                       value="{{ old('greeting_message','Assalam o Alaikum! Welcome!') }}">
-                <div class="form-hint">First message shown to customers when they text the bot</div>
+            <!-- STEP 2: WHATSAPP BOT & OWNER CREDENTIALS -->
+            <div style="margin: 28px 0 20px; padding-bottom: 18px; border-bottom: 1px solid #f1f5f9; border-top: 1px solid #f1f5f9; padding-top: 20px;">
+                <h3 style="font-size: 15px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">2. WhatsApp Bot & Owner Login</h3>
+                <p style="font-size: 12px; color: #64748b;">Phone numbers for bot engine and owner portal credentials</p>
             </div>
 
-            <div class="section-title">Owner Info</div>
-
-            <div class="grid2">
-                <div class="form-group">
-                    <label class="form-label">Owner WhatsApp Number <span class="req">*</span></label>
-                    <input type="text" name="owner_phone" class="form-control" value="{{ old('owner_phone') }}"
-                           placeholder="+923001234567" required>
-                    <div class="form-hint">Owner gets new order alerts here</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px;">
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">
+                        WhatsApp Bot Number <span style="color: #ef4444;">*</span>
+                    </label>
+                    <input type="text" name="whatsapp_number" value="{{ old('whatsapp_number') }}" required placeholder="e.g. 03293647476" style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 13px; outline: none; background: #f8fafc;">
+                    <span style="font-size: 11px; color: #94a3b8; margin-top: 4px; display: block;">The number that will scan the QR code to take orders</span>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Dashboard Password <span class="req">*</span></label>
-                    <input type="text" name="owner_password" class="form-control" value="{{ old('owner_password') }}"
-                           placeholder="Give owner a password" required minlength="4">
-                    <div class="form-hint">Owner uses this to login to their dashboard</div>
+
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">
+                        Owner Contact Phone <span style="color: #ef4444;">*</span>
+                    </label>
+                    <input type="text" name="owner_phone" value="{{ old('owner_phone') }}" required placeholder="e.g. 03001234567" style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 13px; outline: none; background: #f8fafc;">
+                    <span style="font-size: 11px; color: #94a3b8; margin-top: 4px; display: block;">Contact number to receive owner alerts</span>
                 </div>
             </div>
 
-            <div class="section-title">WhatsApp Bot Connection</div>
-
-            <div class="form-group">
-                <label class="form-label">WhatsApp Number (with country code) <span class="req">*</span></label>
-                <input type="text" name="whatsapp_number" class="form-control" value="{{ old('whatsapp_number') }}"
-                       placeholder="+923001234567" required>
-                <div class="form-hint">The WhatsApp number the bot will use to chat with customers.</div>
+            <div style="margin-bottom: 18px;">
+                <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">
+                    Owner Dashboard Password <span style="color: #ef4444;">*</span>
+                </label>
+                <input type="password" name="owner_password" value="{{ old('owner_password') }}" required placeholder="••••••••••••" style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 13px; outline: none; background: #f8fafc;">
+                <span style="font-size: 11px; color: #94a3b8; margin-top: 4px; display: block;">Password the owner uses to sign into /dashboard/{id}/login</span>
             </div>
 
-            <div class="form-group">
-                <label class="form-label">Phone Number ID <span style="font-size:11px; color:#888; font-weight:normal;">(Optional - leave blank if using WhatsApp Web QR scan)</span></label>
-                <input type="text" name="wa_phone_id" class="form-control" value="{{ old('wa_phone_id') }}"
-                       placeholder="Optional for Meta Cloud API">
-                <div class="form-hint">Only required if using Meta Cloud API. For QR scanning, this is optional.</div>
+            <!-- STEP 3: SUBSCRIPTION PLAN & DELIVERY RULES -->
+            <div style="margin: 28px 0 20px; padding-bottom: 18px; border-bottom: 1px solid #f1f5f9; border-top: 1px solid #f1f5f9; padding-top: 20px;">
+                <h3 style="font-size: 15px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">3. SaaS Plan & Delivery Rules</h3>
+                <p style="font-size: 12px; color: #64748b;">Subscription package and automated order pricing</p>
             </div>
 
-            <div class="section-title">Plan</div>
-
-            <div class="grid2">
-                <div class="form-group">
-                    <label class="form-label">Plan <span class="req">*</span></label>
-                    <select name="plan" class="form-control" required>
-                        <option value="trial"  {{ old('plan')=='trial' ?'selected':'' }}>Trial (no expiry)</option>
-                        <option value="basic"  {{ old('plan')=='basic' ?'selected':'' }}>Basic</option>
-                        <option value="pro"    {{ old('plan')=='pro'   ?'selected':'' }}>Pro</option>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px;">
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">
+                        Subscription Package Plan <span style="color: #ef4444;">*</span>
+                    </label>
+                    <select name="plan" style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 13px; outline: none; background: #f8fafc;">
+                        <option value="trial" {{ old('plan') === 'trial' ? 'selected' : '' }}>Trial — 14 Days Free</option>
+                        <option value="basic" {{ old('plan', 'basic') === 'basic' ? 'selected' : '' }}>Basic — 3,000 PKR / mo</option>
+                        <option value="pro" {{ old('plan') === 'pro' ? 'selected' : '' }}>Pro — 7,000 PKR / mo (Sheets sync included)</option>
                     </select>
                 </div>
+
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">
+                        Delivery Fee (PKR)
+                    </label>
+                    <input type="number" name="delivery_charge" value="{{ old('delivery_charge', 0) }}" min="0" placeholder="0 = Free" style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 13px; outline: none; background: #f8fafc;">
+                </div>
             </div>
 
-            <div style="display:flex;gap:1rem;margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid #f3f4f6;">
-                <button type="submit" class="btn btn-dark">Create Restaurant →</button>
-                <a href="/admin" class="btn btn-outline">Cancel</a>
+            <div style="margin-bottom: 24px;">
+                <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">
+                    WhatsApp Greeting Message
+                </label>
+                <input type="text" name="greeting_message" value="{{ old('greeting_message', 'Welcome! How can I help you today? Send menu to view food items.') }}" style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 13px; outline: none; background: #f8fafc;">
+            </div>
+
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <button type="submit" class="btn btn-primary" style="padding: 12px 24px; font-size: 13px; font-weight: 700;">
+                    ✓ Register Restaurant & Proceed to QR Code
+                </button>
+                <a href="{{ route('admin.restaurants') }}" class="btn btn-secondary" style="padding: 12px 20px; font-size: 13px;">
+                    Cancel
+                </a>
             </div>
         </form>
     </div>
 </div>
-</body>
-</html>
+
+@endsection

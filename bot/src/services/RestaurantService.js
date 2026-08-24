@@ -1,13 +1,16 @@
-import axios from 'axios';
 import { getRestaurantDirectFromDb } from './Database.js';
 
-const PRIMARY_API  = process.env.LARAVEL_API || 'http://127.0.0.1:8000/api';
-const FALLBACK_API = 'http://localhost:8000/api';
 const CACHE_TTL_MS = 5 * 1000; // 5 seconds for instant menu stock availability updates
 
 /**
  * RestaurantService — fetches restaurant + menu + active deals.
- * Uses direct MySQL query for instant zero-latency lookups, with HTTP API fallback.
+ *
+ * MySQL is the only source. There used to be an HTTP fallback to
+ * `{LARAVEL_API}/restaurant-by-bot/{number}`, but routes/api.php is deliberately
+ * not registered in bootstrap/app.php (finding H-05), so that request could only
+ * ever 404 — it made a DB outage look like "no restaurant registered for this
+ * number", which sent the bot into its unlinked-number script instead of saying
+ * anything true.
  */
 export class RestaurantService {
     constructor() {
@@ -34,39 +37,16 @@ export class RestaurantService {
                 this.cache.set(normalized, { data: dbData, cachedAt: Date.now() });
                 return dbData;
             }
+
+            console.log(`⚠️  No restaurant registered for bot number: ${normalized}`);
+            return null;
         } catch (dbErr) {
-            console.warn('⚠️ Direct DB query failed, falling back to HTTP API:', dbErr.message);
+            // A database error is NOT the same as an unregistered number, and the
+            // caller must be able to tell them apart — one is a config problem the
+            // owner can fix, the other is an outage.
+            console.error('❌ Restaurant lookup failed (database):', dbErr.message);
+            throw dbErr;
         }
-
-        // 3. Fallback to Laravel HTTP API
-        const apiBases = [PRIMARY_API, FALLBACK_API];
-        for (const apiBase of apiBases) {
-            try {
-                console.log(`🔍 Fetching restaurant via API: ${apiBase}/restaurant-by-bot/${normalized}`);
-
-                const res = await axios.get(
-                    `${apiBase}/restaurant-by-bot/${normalized}`,
-                    { timeout: 5000 }
-                );
-
-                const data = res.data;
-
-                if (data.is_open === false) {
-                    console.log(`⚠️  Restaurant "${data.name}" is currently closed`);
-                    return { ...data, _closed: true };
-                }
-
-                console.log(`✅ Restaurant (HTTP API): ${data.name} | ${data.menu_items?.length || 0} items`);
-                this.cache.set(normalized, { data, cachedAt: Date.now() });
-                return data;
-
-            } catch (err) {
-                // Continue to next fallback
-            }
-        }
-
-        console.log(`⚠️  No restaurant registered for bot number: ${normalized}`);
-        return null;
     }
 
     /**

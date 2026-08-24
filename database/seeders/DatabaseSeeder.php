@@ -6,17 +6,19 @@ use App\Models\Restaurant;
 use App\Models\Category;
 use App\Models\MenuItem;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        $seedPassword = 'test123456789';
+
         $r = Restaurant::updateOrCreate([
             'whatsapp_number' => '+923001234567',
         ], [
             'name'             => 'Taste of Bahawalpur',
             'owner_phone'      => '+923009876543',
-            'owner_password'   => 'test123',
             'city'             => 'Bahawalpur',
             'address'          => 'Shop 5, Satellite Town, Bahawalpur',
             'delivery_areas'   => 'Satellite Town, Model Town, City Centre, Cantt',
@@ -28,6 +30,10 @@ class DatabaseSeeder extends Seeder
             'plan_expires_at'  => null,
             'greeting_message' => 'Assalam o Alaikum! Khush Amdeed!',
         ]);
+
+        // Set explicitly + hashed: owner_password is guarded (not mass-assignable).
+        $r->owner_password = Hash::make($seedPassword);
+        $r->save();
 
         $burgers = Category::updateOrCreate(['restaurant_id' => $r->id, 'name' => 'Burgers'],        ['sort_order' => 1]);
         $biryani = Category::updateOrCreate(['restaurant_id' => $r->id, 'name' => 'Biryani & Rice'], ['sort_order' => 2]);
@@ -137,8 +143,8 @@ class DatabaseSeeder extends Seeder
         $this->command->info('');
         $this->command->info('Sample restaurant created with menu, categories, and deals!');
         $this->command->info('Dashboard URL : /dashboard/' . $r->id . '/login');
-        $this->command->info('Password      : test123');
-        $this->command->info('Admin URL     : /admin');
+        $this->command->info('Password      : ' . $seedPassword);
+        $this->command->info('Admin URL     : /admin  (password: ADMIN_PASSWORD from .env)');
         $this->command->info('');
     }
 }

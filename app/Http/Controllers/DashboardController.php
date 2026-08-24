@@ -2,11 +2,40 @@
 namespace App\Http\Controllers;
 
 use App\Models\{Restaurant, Order, Category, MenuItem, Rider};
-use App\Services\TenantResolver;
+use App\Rules\SafeWebhookUrl;
+use App\Support\BotControlClient;
+use App\Support\CsvSanitizer;
+use App\Support\WebhookUrlValidator;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class DashboardController extends Controller
 {
+    /**
+     * Extensions accepted for menu uploads.
+     *
+     * The stored filename is always rebuilt from this allow-list and never from
+     * the client-supplied name, so an `evil.php` (or `.svg`/`.html`) upload can
+     * never be written into the web root. Previously the extension came straight
+     * from `getClientOriginalExtension()` into `public/uploads/menus`, which meant
+     * an authenticated owner could drop an executable PHP file under the document
+     * root — remote code execution.
+     */
+    private const ALLOWED_MENU_EXTENSIONS = [
+        'pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt', 'tsv',
+        'jpg', 'jpeg', 'jfif', 'jpe', 'png', 'webp', 'gif', 'bmp',
+    ];
+
+    /**
+     * Content-sniffed allow-list for the `mimes:` rule. Laravel derives this from
+     * the file's actual bytes (finfo), not its name, so it is the second
+     * independent gate alongside ALLOWED_MENU_EXTENSIONS. `txt` is included
+     * because plain CSV files are commonly detected as `text/plain`.
+     */
+    private const ALLOWED_MENU_MIMES = 'mimes:pdf,doc,docx,xls,xlsx,csv,txt,jpg,jpeg,png,webp,gif,bmp';
+
     // ── Login ──────────────────────────────────────────────
     public function loginForm(string $slug)
     {
@@ -17,14 +46,62 @@ class DashboardController extends Controller
     public function login(Request $request, string $slug)
     {
         $r        = Restaurant::findOrFail($slug);
-        $password = $request->input('password');
+        $password = (string) $request->input('password', '');
 
-        if ($password !== $r->owner_password) {
+        if (! self::passwordMatches($password, $r->owner_password)) {
             return back()->withErrors(['password' => 'Wrong password']);
         }
 
+        // Legacy rows stored the password in plaintext; upgrade to a hash the
+        // first time the owner logs in successfully. This is what lets the
+        // plaintext→hash migration happen without locking anyone out.
+        $stored = (string) $r->owner_password;
+        if (! self::isHashed($stored) || Hash::needsRehash($stored)) {
+            $r->owner_password = Hash::make($password);
+            $r->save();
+        }
+
+        // New session ID on privilege change (prevents session fixation).
+        $request->session()->regenerate();
+
         session(["restaurant_{$r->id}" => true]);
+        // Anchors the "Current Login Session" reporting period (reports() reads
+        // this key; nothing set it before, so that filter silently fell back to
+        // start-of-day).
+        session(["restaurant_{$r->id}_login_time" => now()->toIso8601String()]);
+
         return redirect()->route('dashboard.orders', $r->id);
+    }
+
+    /**
+     * True when $stored is a real password hash (bcrypt/argon) rather than a
+     * legacy plaintext value. Guard for Hash::check(), which throws a
+     * RuntimeException on non-bcrypt input when hashing.verify is enabled.
+     */
+    public static function isHashed(?string $stored): bool
+    {
+        $stored = (string) $stored;
+
+        return $stored !== '' && password_get_info($stored)['algoName'] !== 'unknown';
+    }
+
+    /**
+     * Verify a submitted password against either a hash (current) or a
+     * plaintext value (legacy rows created before hashing was unified).
+     */
+    public static function passwordMatches(string $plain, ?string $stored): bool
+    {
+        $stored = (string) $stored;
+
+        if ($plain === '' || $stored === '') {
+            return false;
+        }
+
+        if (self::isHashed($stored)) {
+            return Hash::check($plain, $stored);
+        }
+
+        return hash_equals($stored, $plain);
     }
 
     public function logout(string $id)
@@ -88,20 +165,28 @@ class DashboardController extends Controller
 
         abort_if($order->restaurant_id !== $r->id, 403);
 
-        $status = $request->input('status');
+        // `status` was previously taken straight from the request and written to
+        // an ENUM column: an arbitrary value either threw a 500 (strict mode) or
+        // silently stored '' (non-strict), breaking every status filter, report
+        // and tracking page afterwards.
+        $validated = $request->validate([
+            'status'            => ['required', 'string', Rule::in(Order::STATUSES)],
+            'rider_name'        => ['nullable', 'string', 'max:100'],
+            'rider_phone'       => ['nullable', 'string', 'max:32'],
+            'rider_notes'       => ['nullable', 'string', 'max:500'],
+            'estimated_minutes' => ['nullable', 'integer', 'min:0', 'max:1440'],
+        ]);
+
+        $status     = $validated['status'];
         $updateData = ['status' => $status];
 
-        if ($request->filled('rider_name')) {
-            $updateData['rider_name'] = $request->input('rider_name');
-        }
-        if ($request->filled('rider_phone')) {
-            $updateData['rider_phone'] = $request->input('rider_phone');
-        }
-        if ($request->filled('rider_notes')) {
-            $updateData['rider_notes'] = $request->input('rider_notes');
+        foreach (['rider_name', 'rider_phone', 'rider_notes'] as $field) {
+            if ($request->filled($field)) {
+                $updateData[$field] = $validated[$field];
+            }
         }
         if ($request->filled('estimated_minutes')) {
-            $updateData['estimated_minutes'] = (int) $request->input('estimated_minutes');
+            $updateData['estimated_minutes'] = (int) $validated['estimated_minutes'];
         }
 
         $order->update($updateData);
@@ -128,34 +213,50 @@ class DashboardController extends Controller
         ];
 
         if (isset($messages[$status])) {
-            try {
-                \Illuminate\Support\Facades\Http::timeout(5)
-                    ->post(config('app.bot_internal_api', 'http://127.0.0.1:3000') . '/send-message', [
-                        'to'      => $order->customer_phone,
-                        'message' => $messages[$status],
-                    ]);
-            } catch (\Exception $e) {
-                \Log::warning('Could not notify customer via WhatsApp: ' . $e->getMessage());
-            }
+            BotControlClient::sendMessage($order->customer_phone, $messages[$status], [
+                'restaurant_id' => $r->id,
+                'order_id'      => $order->id,
+                'recipient'     => 'customer',
+            ]);
         }
 
         // Live Google Sheet Webhook Push (if configured)
+        //
+        // Re-checked here even though the write path validates it: the value can
+        // also come from a row saved before validation existed, or from the
+        // GOOGLE_SHEET_WEBHOOK environment variable, neither of which passed
+        // through form validation. Without this the owner-controlled URL is an
+        // SSRF sink — it would happily POST order PII to cloud metadata
+        // (169.254.169.254) or to the bot's own control server on 127.0.0.1:3000.
         $sheetWebhook = $r->google_sheet_webhook ?: env('GOOGLE_SHEET_WEBHOOK');
         if ($sheetWebhook) {
-            try {
-                \Illuminate\Support\Facades\Http::timeout(5)->post($sheetWebhook, [
-                    'timestamp'     => now()->toIso8601String(),
-                    'event'         => 'status_updated',
-                    'tracking_code' => $order->tracking_code,
-                    'status'        => $order->status,
-                    'customer_name' => $order->customer_name,
-                    'customer_phone'=> $order->customer_phone,
-                    'total'         => $order->total,
-                    'rider_name'    => $order->rider_name,
-                    'rider_phone'   => $order->rider_phone,
+            $rejection = WebhookUrlValidator::validate($sheetWebhook);
+
+            if ($rejection !== null) {
+                \Log::warning('Refused to push to unsafe Google Sheet webhook', [
+                    'restaurant_id' => $r->id,
+                    'reason'        => $rejection,
                 ]);
-            } catch (\Exception $e) {
-                \Log::warning('Google Sheet update push failed: ' . $e->getMessage());
+            } else {
+                try {
+                    \Illuminate\Support\Facades\Http::timeout(5)
+                        // Do not follow redirects: a public URL that 302s to
+                        // 127.0.0.1 would otherwise bypass the check above.
+                        ->withOptions(['allow_redirects' => false])
+                        ->post($sheetWebhook, [
+                            'timestamp'     => now()->toIso8601String(),
+                            'event'         => 'status_updated',
+                            'tracking_code' => $order->tracking_code,
+                            'status'        => $order->status,
+                            'customer_name' => $order->customer_name,
+                            'customer_phone'=> $order->customer_phone,
+                            'total'         => $order->total,
+                            'rider_name'    => $order->rider_name,
+                            'rider_phone'   => $order->rider_phone,
+                        ]);
+                } catch (\Exception $e) {
+                    \Log::warning('Google Sheet update push failed: ' . $e->getMessage());
+                }
             }
         }
 
@@ -217,7 +318,6 @@ class DashboardController extends Controller
             'sizes'       => $sizes, // null if no size variants
         ]);
 
-        TenantResolver::clearCache($r);
         $this->invalidateBotCache($r);
 
         return back()->with('success', 'Item added!');
@@ -230,7 +330,6 @@ class DashboardController extends Controller
         abort_if($item->restaurant_id !== $r->id, 403);
         $item->update(['is_available' => !$item->is_available]);
 
-        TenantResolver::clearCache($r);
         $this->invalidateBotCache($r);
 
         $statusText = $item->is_available ? 'marked In Stock' : 'marked Out of Stock';
@@ -244,7 +343,6 @@ class DashboardController extends Controller
         abort_if($item->restaurant_id !== $r->id, 403);
         $item->delete();
 
-        TenantResolver::clearCache($r);
         $this->invalidateBotCache($r);
 
         return back()->with('success', 'Item deleted!');
@@ -312,14 +410,42 @@ class DashboardController extends Controller
         $this->authCheck($id);
         $r = Restaurant::findOrFail($id); // scoped: only the authenticated restaurant
 
-        $data = $request->only([
-            'name', 'whatsapp_number', 'owner_phone', 'manager_phone', 'address', 'city',
-            'delivery_areas', 'delivery_charge', 'minimum_order', 'greeting_message', 'google_sheet_webhook',
+        // Previously this took `$request->only([...])` with no validation at all,
+        // so a duplicate whatsapp_number hit the UNIQUE constraint as a 500 and
+        // google_sheet_webhook was an unchecked SSRF target.
+        $validated = $request->validate([
+            'name'                 => ['required', 'string', 'max:255'],
+            'whatsapp_number'      => ['required', 'string', 'max:32', Rule::unique('restaurants', 'whatsapp_number')->ignore($r->id)],
+            'owner_phone'          => ['nullable', 'string', 'max:32'],
+            'manager_phone'        => ['nullable', 'string', 'max:32'],
+            'address'              => ['nullable', 'string', 'max:500'],
+            'city'                 => ['nullable', 'string', 'max:100'],
+            'delivery_areas'       => ['nullable', 'string', 'max:1000'],
+            'delivery_charge'      => ['nullable', 'numeric', 'min:0', 'max:100000'],
+            'minimum_order'        => ['nullable', 'numeric', 'min:0', 'max:1000000'],
+            'greeting_message'     => ['nullable', 'string', 'max:1000'],
+            'hours'                => ['nullable', 'string', 'max:255'],
+            'google_sheet_webhook' => ['nullable', 'string', 'max:2048', new SafeWebhookUrl],
+        ], [
+            'whatsapp_number.unique' => 'That WhatsApp number is already linked to another restaurant.',
         ]);
+
+        $data = array_intersect_key($validated, array_flip([
+            'name', 'whatsapp_number', 'owner_phone', 'manager_phone', 'address', 'city',
+            'delivery_areas', 'delivery_charge', 'minimum_order', 'greeting_message',
+            'google_sheet_webhook', 'hours',
+        ]));
+
         $data['is_open'] = $request->has('is_open');
 
         $r->update($data);
-        TenantResolver::clearCache($r);
+
+        // These settings (opening state, delivery charge, minimum order) are read
+        // by the bot on every message, so push the change through instead of
+        // waiting on its cache. This line used to be TenantResolver::clearCache(),
+        // which forgot a cache key derived from the removed Meta `wa_phone_id` —
+        // nothing wrote that key, so it invalidated nothing at all.
+        $this->invalidateBotCache($r);
         return back()->with('success', 'Settings saved!');
     }
 
@@ -331,6 +457,95 @@ class DashboardController extends Controller
         return view('dashboard.connect-whatsapp', ['restaurant' => $r]);
     }
 
+    /**
+     * Same-origin proxy for the bot's pairing status and QR code.
+     *
+     * The connect page used to have the browser fetch `http://<host>:3000/qr-status`
+     * directly, which forced the control server to be world-reachable with
+     * `Access-Control-Allow-Origin: *` and no auth — anyone who could load that
+     * port got a QR code they could scan to seize the WhatsApp account. The QR now
+     * only ever leaves the server through this authenticated route.
+     */
+    public function botStatus(string $id)
+    {
+        $this->authCheck($id);
+
+        $status = BotControlClient::status();
+
+        if ($status === null) {
+            return response()->json([
+                'success' => false,
+                'status'  => 'unreachable',
+                'message' => 'The WhatsApp bot process is not running.',
+            ], 503);
+        }
+
+        // One bot process serves one WhatsApp account. If it is already paired to
+        // another restaurant, this owner must not see its QR (scanning it would
+        // hijack that account) and must not be able to restart it out from under
+        // them. The super-admin is exempt because they operate the process.
+        if (! $this->botBelongsTo($status, $id)) {
+            return response()->json([
+                'success' => false,
+                'status'  => 'linked_elsewhere',
+                'message' => 'This bot process is currently linked to another restaurant. Contact support to get your own bot instance.',
+            ], 409);
+        }
+
+        return response()->json([
+            'success'    => true,
+            'status'     => $status['status'] ?? 'unknown',
+            // `qr` is the rendered data-URL image. The raw QR payload the bot also
+            // held is deliberately not exposed anywhere.
+            'qr'         => $status['qr'] ?? null,
+            'bot_number' => $status['bot_number'] ?? null,
+        ]);
+    }
+
+    /**
+     * Ask the bot to drop its session and show a fresh pairing QR.
+     */
+    public function botRestart(string $id)
+    {
+        $this->authCheck($id);
+
+        $status = BotControlClient::status();
+
+        if ($status !== null && ! $this->botBelongsTo($status, $id)) {
+            return response()->json([
+                'success' => false,
+                'status'  => 'linked_elsewhere',
+                'message' => 'This bot process is linked to another restaurant, so it cannot be restarted from here.',
+            ], 409);
+        }
+
+        $ok = BotControlClient::restart();
+
+        return response()->json([
+            'success' => $ok,
+            'message' => $ok
+                ? 'Bot restart requested. A fresh QR code will appear shortly.'
+                : 'Could not reach the WhatsApp bot process.',
+        ], $ok ? 200 : 503);
+    }
+
+    /**
+     * True when the running bot is unpaired (free to claim) or already paired to
+     * this restaurant. Super-admins always pass.
+     *
+     * @param  array<string, mixed>  $status
+     */
+    private function botBelongsTo(array $status, string $id): bool
+    {
+        if (session('admin_logged_in') === true) {
+            return true;
+        }
+
+        $boundTo = $status['restaurant_id'] ?? null;
+
+        return $boundTo === null || (int) $boundTo === (int) $id;
+    }
+
     // ── Bulk Upload Menu via CSV / Excel ───────────────────
     public function uploadMenuCsv(Request $request, string $id)
     {
@@ -338,33 +553,29 @@ class DashboardController extends Controller
         $r = Restaurant::findOrFail($id);
 
         $request->validate([
-            'csv_file' => 'required|file|max:20480',
+            'csv_file' => ['required', 'file', 'max:20480', self::ALLOWED_MENU_MIMES],
+        ], [
+            'csv_file.mimes' => 'Only spreadsheet files (.csv, .xls, .xlsx) are accepted here.',
         ]);
 
-        $file = $request->file('csv_file');
-        $extension = strtolower($file->getClientOriginalExtension());
+        $file         = $request->file('csv_file');
         $originalName = $file->getClientOriginalName();
 
-        // Save a copy to public/uploads/menus
-        $destPath = public_path('uploads/menus');
-        if (!file_exists($destPath)) {
-            mkdir($destPath, 0777, true);
+        $stored = $this->storeMenuUpload($file, $r);
+        if ($stored === null) {
+            return back()->withErrors(['csv_file' => 'That file type is not allowed. Please upload a .csv, .xls or .xlsx file.']);
         }
-        $savedFileName = 'menu_' . $r->id . '_' . time() . '.' . $extension;
-        $file->move($destPath, $savedFileName);
-        $savedRelativePath = 'uploads/menus/' . $savedFileName;
-        $fullPath = public_path($savedRelativePath);
 
-        $items = $this->extractMenuItemsFromFile($fullPath, $extension);
+        $items         = $this->extractMenuItemsFromFile($stored['fullPath'], $stored['extension']);
         $importedCount = $this->importItemsToDatabase($r, $items);
 
         // Update restaurant record with menu_file path for bot access
         $r->update([
-            'menu_file'      => $savedRelativePath,
+            'menu_file'      => $stored['relativePath'],
             'menu_file_name' => $originalName,
-            'menu_file_type' => in_array($extension, ['xls', 'xlsx', 'csv']) ? 'excel' : 'document',
+            'menu_file_type' => in_array($stored['extension'], ['xls', 'xlsx', 'csv'], true) ? 'excel' : 'document',
         ]);
-        TenantResolver::clearCache($r);
+        $this->invalidateBotCache($r);
 
         return back()->with('success', "🎉 Successfully imported {$importedCount} menu items! All items are now categorized and visible on your menu page below.");
     }
@@ -376,32 +587,31 @@ class DashboardController extends Controller
         $r = Restaurant::findOrFail($id);
 
         $request->validate([
-            'menu_file' => 'required|file|max:20480',
+            'menu_file' => ['required', 'file', 'max:20480', self::ALLOWED_MENU_MIMES],
+        ], [
+            'menu_file.mimes' => 'Unsupported file type. Allowed: PDF, Word, Excel/CSV, or an image (JPG, PNG, WEBP, GIF).',
         ]);
 
         $file         = $request->file('menu_file');
-        $extension    = strtolower($file->getClientOriginalExtension());
         $originalName = $file->getClientOriginalName();
-        $fileName     = 'menu_' . $r->id . '_' . time() . '.' . $extension;
+
+        $stored = $this->storeMenuUpload($file, $r);
+        if ($stored === null) {
+            return back()->withErrors(['menu_file' => 'That file type is not allowed. Allowed: PDF, Word, Excel/CSV, or an image.']);
+        }
+
+        $extension    = $stored['extension'];
+        $relativePath = $stored['relativePath'];
 
         // Classify file type
         $fileType = 'document';
-        if (in_array($extension, ['jpg', 'jpeg', 'png', 'webp', 'gif', 'jfif'])) {
+        if (in_array($extension, ['jpg', 'jpeg', 'png', 'webp', 'gif', 'jfif', 'jpe', 'bmp'], true)) {
             $fileType = 'image';
         } elseif ($extension === 'pdf') {
             $fileType = 'pdf';
-        } elseif (in_array($extension, ['xls', 'xlsx', 'csv'])) {
+        } elseif (in_array($extension, ['xls', 'xlsx', 'csv', 'tsv', 'txt'], true)) {
             $fileType = 'excel';
         }
-
-        $destPath = public_path('uploads/menus');
-        if (!file_exists($destPath)) {
-            mkdir($destPath, 0777, true);
-        }
-
-        $file->move($destPath, $fileName);
-        $relativePath = 'uploads/menus/' . $fileName;
-        $fullPath = public_path($relativePath);
 
         $updateData = [
             'menu_file'      => $relativePath,
@@ -414,14 +624,102 @@ class DashboardController extends Controller
             $updateData['menu_image'] = $relativePath;
         } elseif ($fileType === 'excel') {
             // If it's an Excel/CSV file, also automatically import items into the database!
-            $items = $this->extractMenuItemsFromFile($fullPath, $extension);
+            $items = $this->extractMenuItemsFromFile($stored['fullPath'], $extension);
             $this->importItemsToDatabase($r, $items);
         }
 
         $r->update($updateData);
-        TenantResolver::clearCache($r);
+        $this->invalidateBotCache($r);
 
         return back()->with('success', "🎉 Menu file ({$originalName}) uploaded successfully! Items are now active on your menu.");
+    }
+
+    /**
+     * Move an uploaded menu file into `public/uploads/menus` under a safe,
+     * server-generated name, and drop the restaurant's previous menu file.
+     *
+     * Returns null when the extension is not in ALLOWED_MENU_EXTENSIONS.
+     *
+     * The `menu_{id}_` prefix is load-bearing: the bot locates menu files by
+     * scanning this directory for that prefix (bot/src/handlers/ChatHandler.js).
+     * The random suffix replaces the old `time()` suffix so filenames can't be
+     * guessed or collide within the same second.
+     *
+     * @return array{relativePath: string, fullPath: string, extension: string}|null
+     */
+    private function storeMenuUpload(UploadedFile $file, Restaurant $r): ?array
+    {
+        // Extension comes from the client, so it is only ever *selected from* the
+        // allow-list — never trusted as-is. A disallowed extension is a hard
+        // reject: falling back to the content-sniffed type here would silently
+        // rename `evil.php` to `.txt` and accept it, which is confusing at best.
+        $extension = strtolower($file->getClientOriginalExtension());
+
+        if ($extension === '') {
+            // No extension supplied at all — derive one from the file's content.
+            $extension = strtolower((string) $file->guessExtension());
+        }
+
+        if (! in_array($extension, self::ALLOWED_MENU_EXTENSIONS, true)) {
+            return null;
+        }
+
+        $destPath = public_path('uploads/menus');
+        if (! is_dir($destPath)) {
+            // 0755, not 0777 — the web server never needs world-writable dirs.
+            mkdir($destPath, 0755, true);
+        }
+
+        $previous = [$r->menu_file, $r->menu_image];
+
+        $fileName = 'menu_' . $r->id . '_' . bin2hex(random_bytes(8)) . '.' . $extension;
+        $file->move($destPath, $fileName);
+
+        // Remove the superseded file(s). The bot picks the *first* prefix match it
+        // finds while scanning the directory, so leaving stale uploads behind can
+        // make it serve an old menu — and they accumulate on disk forever.
+        $this->deletePreviousMenuFiles($previous, $fileName);
+
+        return [
+            'relativePath' => 'uploads/menus/' . $fileName,
+            'fullPath'     => $destPath . DIRECTORY_SEPARATOR . $fileName,
+            'extension'    => $extension,
+        ];
+    }
+
+    /**
+     * Delete previously-stored menu files, refusing anything that isn't a plain
+     * filename directly inside `public/uploads/menus` — these values come from the
+     * database, so they are treated as untrusted for path-traversal purposes.
+     *
+     * @param  array<int, string|null>  $paths
+     */
+    private function deletePreviousMenuFiles(array $paths, string $keepFileName): void
+    {
+        $menusDir = realpath(public_path('uploads/menus'));
+        if ($menusDir === false) {
+            return;
+        }
+
+        foreach (array_unique(array_filter($paths)) as $path) {
+            $basename = basename((string) $path);
+
+            if ($basename === '' || $basename === $keepFileName) {
+                continue;
+            }
+
+            // Only ever touch files we generated, inside the menus directory.
+            if ($path !== 'uploads/menus/' . $basename) {
+                continue;
+            }
+
+            $target = realpath($menusDir . DIRECTORY_SEPARATOR . $basename);
+            if ($target === false || ! str_starts_with($target, $menusDir . DIRECTORY_SEPARATOR) || ! is_file($target)) {
+                continue;
+            }
+
+            @unlink($target);
+        }
     }
 
     // ── Helper: Extract menu items from CSV or Excel file ──────
@@ -580,17 +878,333 @@ class DashboardController extends Controller
         ]);
     }
 
+    // ── Orders History (Dedicated search & archive) ────────
+    public function history(Request $request, string $id)
+    {
+        $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
+
+        $query = $r->orders()->with('items')->latest();
+
+        if ($request->filled('search')) {
+            $s = trim($request->input('search'));
+            $query->where(function($q) use ($s) {
+                $q->where('tracking_code', 'like', "%{$s}%")
+                  ->orWhere('customer_phone', 'like', "%{$s}%")
+                  ->orWhere('customer_name', 'like', "%{$s}%");
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        $orders = $query->paginate(25)->withQueryString();
+        $pendingCount = $r->orders()->where('status', 'pending')->whereDate('created_at', today())->count();
+
+        return view('dashboard.history', compact('r', 'orders', 'pendingCount'));
+    }
+
+    // ── Customers Directory (Persistent Database & Broadcasts) ───
+    public function customers(Request $request, string $id)
+    {
+        $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
+
+        // Auto-sync past orders into customers table if empty
+        if ($r->customers()->count() === 0 && $r->orders()->count() > 0) {
+            $pastCustomers = Order::where('restaurant_id', $r->id)
+                ->selectRaw('customer_phone, MAX(customer_name) as name, MAX(delivery_address) as address, COUNT(*) as total_orders, SUM(CASE WHEN status != "cancelled" THEN total ELSE 0 END) as total_spent, MAX(created_at) as last_order_at')
+                ->groupBy('customer_phone')
+                ->get();
+
+            foreach ($pastCustomers as $pc) {
+                \App\Models\Customer::updateOrCreate(
+                    ['restaurant_id' => $r->id, 'phone' => $pc->customer_phone],
+                    [
+                        'name'         => $pc->name ?: 'Customer',
+                        'address'      => $pc->address,
+                        'total_orders' => (int) $pc->total_orders,
+                        'total_spent'  => (float) $pc->total_spent,
+                        'tag'          => $pc->total_orders >= 5 ? 'VIP' : ($pc->total_orders >= 2 ? 'Frequent' : 'New'),
+                        'last_order_at'=> $pc->last_order_at,
+                    ]
+                );
+            }
+        }
+
+        $query = $r->customers();
+
+        if ($request->filled('search')) {
+            $s = trim($request->input('search'));
+            $query->where(function($q) use ($s) {
+                $q->where('name', 'like', "%{$s}%")
+                  ->orWhere('phone', 'like', "%{$s}%")
+                  ->orWhere('address', 'like', "%{$s}%");
+            });
+        }
+
+        if ($request->filled('tag')) {
+            $query->where('tag', $request->input('tag'));
+        }
+
+        $customers = $query->paginate(25)->withQueryString();
+        $totalCustomers = $r->customers()->count();
+        $vipCount = $r->customers()->where('tag', 'VIP')->count();
+        $marketingOptInCount = $r->customers()->where('opt_in_marketing', true)->count();
+        $pendingCount = $r->orders()->where('status', 'pending')->whereDate('created_at', today())->count();
+
+        return view('dashboard.customers', compact(
+            'r',
+            'customers',
+            'totalCustomers',
+            'vipCount',
+            'marketingOptInCount',
+            'pendingCount'
+        ));
+    }
+
+    // ── Send Broadcast Promotion / Deal via WhatsApp Bot ─────
+    public function broadcastDeal(Request $request, string $id)
+    {
+        $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
+
+        $request->validate([
+            'message' => 'required|string|min:5',
+            'target'  => 'required|in:all,vip,frequent',
+        ]);
+
+        $query = $r->customers()->where('opt_in_marketing', true);
+        if ($request->target === 'vip') {
+            $query->where('tag', 'VIP');
+        } elseif ($request->target === 'frequent') {
+            $query->whereIn('tag', ['VIP', 'Frequent']);
+        }
+
+        $targetCustomers = $query->get();
+        $dealMessage = trim($request->input('message'));
+        $sentCount = 0;
+
+        foreach ($targetCustomers as $c) {
+            $sent = BotControlClient::sendMessage(
+                $c->phone,
+                "🎉 *Special Offer from {$r->name}!*\n\n{$dealMessage}\n\n_Reply *menu* anytime to order!_",
+                ['restaurant_id' => $r->id, 'customer_id' => $c->id, 'recipient' => 'broadcast']
+            );
+
+            // Only count what actually went out — the old code incremented even
+            // when the send failed, so the owner was told "dispatched to 40" for
+            // a bot that was offline.
+            if ($sent) {
+                $sentCount++;
+            }
+        }
+
+        if ($sentCount === 0 && $targetCustomers->isNotEmpty()) {
+            return back()->with('error', 'Nothing was sent — the WhatsApp bot is not reachable. Connect it and try again.');
+        }
+
+        return back()->with('success', "🚀 Promotional deal dispatched to {$sentCount} customers via WhatsApp bot!");
+    }
+
+    // ── Export Customers CSV ─────────────────────────────────
+    public function exportCustomersCsv(string $id)
+    {
+        $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
+
+        $customers = $r->customers()->get();
+
+        $headers = [
+            'Content-Type'        => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="customers_' . $r->id . '_' . date('Ymd_His') . '.csv"',
+        ];
+
+        $callback = function () use ($customers) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['Customer Name', 'Phone Number', 'Delivery Address', 'Total Orders', 'Total Spent (PKR)', 'Customer Tag', 'Marketing Opt-In', 'Last Order Date']);
+
+            foreach ($customers as $c) {
+                // Name/address/phone come from WhatsApp, so they are attacker
+                // controlled — see App\Support\CsvSanitizer.
+                fputcsv($file, CsvSanitizer::row([
+                    $c->name ?: 'Customer',
+                    $c->phone,
+                    $c->address ?: 'N/A',
+                    $c->total_orders,
+                    $c->total_spent,
+                    $c->tag,
+                    $c->opt_in_marketing ? 'Yes' : 'No',
+                    $c->last_order_at ? $c->last_order_at->format('Y-m-d H:i:s') : 'N/A',
+                ]));
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    // ── Reports & Analytics (Daily & Session-Based) ─────────
+    public function reports(Request $request, string $id)
+    {
+        $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
+
+        $period = $request->input('period', 'today'); // 'session', 'today', 'yesterday', 'this_week', 'this_month', 'all'
+        $sessionLoginTime = session("restaurant_{$r->id}_login_time", now()->startOfDay()->toIso8601String());
+
+        $query = $r->orders()->with('items');
+
+        switch ($period) {
+            case 'session':
+                $query->where('created_at', '>=', $sessionLoginTime);
+                $periodLabel = 'Current Login Session (since ' . \Carbon\Carbon::parse($sessionLoginTime)->format('h:i A') . ')';
+                break;
+            case 'yesterday':
+                $query->whereDate('created_at', today()->subDay());
+                $periodLabel = 'Yesterday (' . today()->subDay()->format('d M Y') . ')';
+                break;
+            case 'this_week':
+                $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
+                $periodLabel = 'This Week (' . now()->startOfWeek()->format('d M') . ' – ' . now()->endOfWeek()->format('d M') . ')';
+                break;
+            case 'this_month':
+                $query->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year);
+                $periodLabel = 'This Month (' . now()->format('F Y') . ')';
+                break;
+            case 'all':
+                $periodLabel = 'All-Time Records';
+                break;
+            case 'today':
+            default:
+                $query->whereDate('created_at', today());
+                $periodLabel = 'Today (' . today()->format('d M Y') . ')';
+                break;
+        }
+
+        $orders = $query->orderBy('created_at', 'desc')->get();
+        $delivered = $orders->where('status', 'delivered');
+        $cancelled = $orders->where('status', 'cancelled');
+        $foodRevenue = (float) $orders->where('status', '!=', 'cancelled')->sum('subtotal');
+        $deliveryFees = (float) $orders->where('status', '!=', 'cancelled')->sum('delivery_charge');
+        $netTotalRevenue = (float) $orders->where('status', '!=', 'cancelled')->sum('total');
+
+        // 7-day revenue trend for chart
+        $chartLabels = [];
+        $chartRevenue = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date = \Carbon\Carbon::today()->subDays($i);
+            $chartLabels[] = $date->format('d M');
+            $chartRevenue[] = (float) $r->orders()->whereDate('created_at', $date)->where('status', '!=', 'cancelled')->sum('total');
+        }
+
+        // Top ordered items in selected period
+        $topItems = \App\Models\OrderItem::whereIn('order_id', $orders->pluck('id'))
+            ->selectRaw('name, COUNT(*) as order_count, SUM(quantity) as total_qty, SUM(subtotal) as total_revenue')
+            ->groupBy('name')
+            ->orderByDesc('total_qty')
+            ->take(8)
+            ->get();
+
+        $pendingCount = $r->orders()->where('status', 'pending')->whereDate('created_at', today())->count();
+
+        return view('dashboard.reports', compact(
+            'r',
+            'orders',
+            'delivered',
+            'cancelled',
+            'foodRevenue',
+            'deliveryFees',
+            'netTotalRevenue',
+            'period',
+            'periodLabel',
+            'sessionLoginTime',
+            'chartLabels',
+            'chartRevenue',
+            'topItems',
+            'pendingCount'
+        ));
+    }
+
+    // ── Export Daily / Session Sales Report to CSV ──────────
+    public function exportSalesReportCsv(Request $request, string $id)
+    {
+        $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
+
+        $period = $request->input('period', 'today');
+        $sessionLoginTime = session("restaurant_{$r->id}_login_time", now()->startOfDay()->toIso8601String());
+
+        $query = $r->orders()->with('items');
+
+        switch ($period) {
+            case 'session':
+                $query->where('created_at', '>=', $sessionLoginTime);
+                $fileSuffix = 'session_' . date('Ymd_His');
+                break;
+            case 'yesterday':
+                $query->whereDate('created_at', today()->subDay());
+                $fileSuffix = 'yesterday_' . today()->subDay()->format('Ymd');
+                break;
+            case 'this_week':
+                $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
+                $fileSuffix = 'week_' . now()->format('Y_W');
+                break;
+            case 'this_month':
+                $query->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year);
+                $fileSuffix = 'month_' . now()->format('Y_m');
+                break;
+            case 'all':
+                $fileSuffix = 'all_time_' . date('Ymd');
+                break;
+            case 'today':
+            default:
+                $query->whereDate('created_at', today());
+                $fileSuffix = 'daily_' . today()->format('Ymd');
+                break;
+        }
+
+        $orders = $query->orderBy('created_at', 'asc')->get();
+
+        $headers = [
+            'Content-Type'        => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="sales_report_' . $r->id . '_' . $fileSuffix . '.csv"',
+        ];
+
+        $callback = function () use ($orders, $r) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['Order ID', 'Tracking Code', 'Placed Date', 'Placed Time', 'Customer Name', 'Customer Phone', 'Delivery Address', 'Items Count', 'Food Subtotal (PKR)', 'Delivery Fee (PKR)', 'Total Amount (PKR)', 'Payment Method', 'Rider Name', 'Order Status']);
+
+            foreach ($orders as $o) {
+                // Customer name, address and rider name are attacker controlled.
+                fputcsv($file, CsvSanitizer::row([
+                    $o->id,
+                    $o->tracking_code,
+                    $o->created_at->format('Y-m-d'),
+                    $o->created_at->format('h:i A'),
+                    $o->customer_name ?: 'Customer',
+                    $o->customer_phone,
+                    $o->delivery_address ?: 'N/A',
+                    $o->items->count(),
+                    $o->subtotal,
+                    $o->delivery_charge,
+                    $o->total,
+                    ucwords(str_replace('_', ' ', $o->payment_method ?: 'COD')),
+                    $o->rider_name ?: 'Unassigned',
+                    ucfirst(str_replace('_', ' ', $o->status)),
+                ]));
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
     // ── Instant Bot Cache Invalidation ─────────────────────
     private function invalidateBotCache(Restaurant $r): void
     {
-        try {
-            \Illuminate\Support\Facades\Http::timeout(1)->post(
-                config('app.bot_internal_api', 'http://127.0.0.1:3000') . '/invalidate-cache',
-                ['restaurant_id' => $r->id, 'bot_number' => $r->whatsapp_number]
-            );
-        } catch (\Throwable $e) {
-            // Non-blocking: bot will also use 5s TTL
-        }
+        BotControlClient::invalidateCache($r->id, $r->whatsapp_number);
     }
 
     // ── Auth helper (Access Isolation enforced at query level) ─

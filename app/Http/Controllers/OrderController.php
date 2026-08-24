@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\Restaurant;
+use App\Support\BotControlClient;
+use App\Support\WebhookUrlValidator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
@@ -49,27 +51,44 @@ class OrderController extends Controller
             $this->notifyOwnerWhatsApp($order, $restaurant);
 
             // ── Live Google Sheet Webhook Sync ──
+            // Owner-supplied URL, so it is an SSRF sink and has to be re-checked
+            // at send time — the stored value may predate validation, or come from
+            // the GOOGLE_SHEET_WEBHOOK env var. See App\Support\WebhookUrlValidator.
             $sheetWebhook = $restaurant->google_sheet_webhook ?: env('GOOGLE_SHEET_WEBHOOK');
+
             if ($sheetWebhook) {
-                try {
-                    Http::timeout(5)->post($sheetWebhook, [
-                        'timestamp'        => now()->toIso8601String(),
-                        'event'            => 'new_order',
-                        'tracking_code'    => $trackingCode,
-                        'restaurant_id'    => $restaurant->id,
-                        'restaurant_name'  => $restaurant->name,
-                        'customer_name'    => $order->customer_name ?: 'WhatsApp Customer',
-                        'customer_phone'   => $order->customer_phone,
-                        'delivery_address' => $order->delivery_address,
-                        'items'            => $order->notes ?: 'Items recorded via chat',
-                        'total'            => $order->total,
-                        'payment_method'   => $order->payment_method,
-                        'status'           => $order->status,
-                        'tracking_url'     => url('/track/' . $trackingCode),
+                $rejection = WebhookUrlValidator::validate($sheetWebhook);
+
+                if ($rejection !== null) {
+                    Log::warning('Refused to push new order to unsafe Google Sheet webhook', [
+                        'restaurant_id' => $restaurant->id,
+                        'reason'        => $rejection,
                     ]);
-                    Log::info("📊 New order logged to Google Sheet for {$restaurant->name}");
-                } catch (\Exception $e) {
-                    Log::warning("Google Sheet webhook error: " . $e->getMessage());
+                } else {
+                    try {
+                        Http::timeout(5)
+                            // A public URL that redirects to 127.0.0.1 would
+                            // otherwise walk straight past the check above.
+                            ->withOptions(['allow_redirects' => false])
+                            ->post($sheetWebhook, [
+                                'timestamp'        => now()->toIso8601String(),
+                                'event'            => 'new_order',
+                                'tracking_code'    => $trackingCode,
+                                'restaurant_id'    => $restaurant->id,
+                                'restaurant_name'  => $restaurant->name,
+                                'customer_name'    => $order->customer_name ?: 'WhatsApp Customer',
+                                'customer_phone'   => $order->customer_phone,
+                                'delivery_address' => $order->delivery_address,
+                                'items'            => $order->notes ?: 'Items recorded via chat',
+                                'total'            => $order->total,
+                                'payment_method'   => $order->payment_method,
+                                'status'           => $order->status,
+                                'tracking_url'     => url('/track/' . $trackingCode),
+                            ]);
+                        Log::info("📊 New order logged to Google Sheet for {$restaurant->name}");
+                    } catch (\Exception $e) {
+                        Log::warning("Google Sheet webhook error: " . $e->getMessage());
+                    }
                 }
             }
 
@@ -197,13 +216,18 @@ class OrderController extends Controller
                 . "👉 Login to dashboard to confirm order.";
 
             // Call the Node.js bot's internal API to send WhatsApp message to owner
-            Http::timeout(5)->post(config('app.bot_internal_api', 'http://localhost:3000') . '/send-message', [
-                'to'      => $restaurant->owner_phone,
-                'message' => $message,
+            $sent = BotControlClient::sendMessage($restaurant->owner_phone ?: '', $message, [
+                'restaurant_id' => $restaurant->id,
+                'order_id'      => $order->id,
+                'recipient'     => 'owner',
             ]);
 
-            $order->update(['owner_notified' => true]);
-            Log::info("Owner notified for order #{$order->id}");
+            // Only claim the owner was notified if the send actually succeeded —
+            // the flag drives the "unseen orders" badge.
+            if ($sent) {
+                $order->update(['owner_notified' => true]);
+                Log::info("Owner notified for order #{$order->id}");
+            }
 
         } catch (\Exception $e) {
             Log::warning("Could not notify owner: " . $e->getMessage());
@@ -222,12 +246,12 @@ class OrderController extends Controller
                 . "{$order->status_message}\n\n"
                 . "Reply with your tracking code anytime to check your order status.";
 
-            Http::timeout(5)->post(config('app.bot_internal_api', 'http://localhost:3000') . '/send-message', [
-                'to'      => $order->customer_phone,
-                'message' => $message,
-            ]);
-
-            Log::info("Customer notified for order #{$order->id} — status: {$order->status}");
+            if (BotControlClient::sendMessage($order->customer_phone, $message, [
+                'order_id'  => $order->id,
+                'recipient' => 'customer',
+            ])) {
+                Log::info("Customer notified for order #{$order->id} — status: {$order->status}");
+            }
 
         } catch (\Exception $e) {
             Log::warning("Could not notify customer: " . $e->getMessage());

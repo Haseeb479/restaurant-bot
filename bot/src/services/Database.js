@@ -50,16 +50,6 @@ export async function getRestaurantDirectFromDb(botNumber) {
             [digits, `%${last10}`, `%${last9}`]
         );
 
-        // 2. If no match and only 1 active restaurant exists, bind and use that sole restaurant!
-        if (!rows.length) {
-            const [allActive] = await db.query('SELECT * FROM restaurants WHERE is_active = 1');
-            if (allActive.length === 1) {
-                rows = allActive;
-                // Auto-update number in DB
-                await db.query('UPDATE restaurants SET whatsapp_number = ? WHERE id = ?', [digits, rows[0].id]).catch(() => {});
-            }
-        }
-
         if (!rows.length) return null;
 
         const r = rows[0];
@@ -114,17 +104,32 @@ export async function getRestaurantDirectFromDb(botNumber) {
             return true;
         });
 
-        const parsedItems = items.map(item => ({
-            ...item,
-            sizes: typeof item.sizes === 'string' ? JSON.parse(item.sizes || 'null') : item.sizes,
-        }));
+        const parsedItems = items.map(item => {
+            let sizes = item.sizes;
+            if (typeof sizes === 'string') {
+                try {
+                    sizes = JSON.parse(sizes || 'null');
+                } catch (e) {
+                    // A single malformed `sizes` cell must not null the whole
+                    // restaurant load (which would look like "not linked").
+                    console.warn(`⚠️ Bad sizes JSON for menu item ${item.id} — ignoring sizes.`);
+                    sizes = null;
+                }
+            }
+            return { ...item, sizes };
+        });
+
+        const isOpen = Boolean(r.is_open);
 
         return {
             ...r,
             categories,
             menu_items:   parsedItems,
             active_deals: activeDeals,
-            is_open:      Boolean(r.is_open),
+            is_open:      isOpen,
+            // `_closed` is what ChatHandler checks; set it on this primary path
+            // (previously only the dead HTTP-fallback path set it → bot ordered 24/7).
+            _closed:      !isOpen,
         };
 
     } catch (err) {

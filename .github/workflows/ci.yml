@@ -1,0 +1,67 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  laravel-backend:
+    name: Laravel Backend (PHPUnit)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, iconv, intl, pdo, pdo_sqlite, sqlite3, bcmath, fileinfo, filter, hash
+          coverage: none
+
+      - name: Copy .env
+        run: cp .env.example .env
+
+      - name: Install Composer Dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Generate App Key
+        run: php artisan key:generate
+
+      - name: Run PHP Syntax / Lint Checks
+        run: |
+          php -l app/Models/Restaurant.php
+          php -l app/Models/Order.php
+          php -l app/Models/Customer.php
+          php -l app/Http/Controllers/DashboardController.php
+          php -l app/Http/Controllers/AdminController.php
+          php -l app/Http/Controllers/RestaurantController.php
+          php -l app/Support/WebhookUrlValidator.php
+          php -l app/Support/CsvSanitizer.php
+          php -l app/Support/BotControlClient.php
+
+      - name: Run PHPUnit Test Suite
+        run: php vendor/phpunit/phpunit/phpunit
+
+  whatsapp-bot:
+    name: WhatsApp Bot (Node.js Test Suite)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Node Dependencies
+        run: npm ci
+
+      - name: Run Bot Test Suite
+        run: npm test

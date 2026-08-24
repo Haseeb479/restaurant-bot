@@ -1,7 +1,56 @@
-import axios from 'axios';
+import { randomInt } from 'crypto';
 import { getDbPool } from './Database.js';
 
-const LARAVEL_API = process.env.LARAVEL_API || 'http://127.0.0.1:8000/api';
+/**
+ * Crockford Base32 — omits I, L, O and U so a code can't be misread (1/I, 0/O).
+ * Must match Order::TRACKING_CODE_ALPHABET in app/Models/Order.php.
+ */
+const TRACKING_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+
+/** 16 symbols x 5 bits = 80 bits of entropy. */
+const TRACKING_LENGTH = 16;
+
+/** Up to 3 A–Z initials from the restaurant name, for human recognisability. */
+function trackingPrefix(restaurantName) {
+    const initials = String(restaurantName || '')
+        .toUpperCase()
+        .split(/\s+/)
+        .map(word => (word.match(/[A-Z]/) || [''])[0])
+        .join('')
+        .slice(0, 3);
+
+    return initials || 'ORD';
+}
+
+/** CSPRNG-backed suffix (`crypto.randomInt`, not `Math.random`). */
+function randomTrackingSuffix() {
+    let code = '';
+    for (let i = 0; i < TRACKING_LENGTH; i++) {
+        code += TRACKING_ALPHABET[randomInt(TRACKING_ALPHABET.length)];
+    }
+    return code;
+}
+
+/**
+ * Pull a usable customer name out of the value the AI wrote on the summary's
+ * "Name:" line. Returns null (not "Customer") when there is nothing real to
+ * store, so the DB keeps NULL and a later order can still fill it in.
+ */
+function cleanCustomerName(raw) {
+    if (!raw) return null;
+
+    // Take just the first clause, drop markdown, trim trailing punctuation.
+    let name = String(raw).split(/[,\n\r]/)[0].replace(/[*_`]/g, '').trim();
+    name = name.replace(/[.!?？،]+$/u, '').trim();
+
+    // Reject an unfilled placeholder ("[Customer Name]") or a generic token the
+    // model echoed back instead of a real name.
+    if (!name || name.includes('[') || name.includes(']')) return null;
+    if (/^(customer|name|naam|n\/?a|none|guest|unknown)$/i.test(name)) return null;
+    if (name.length < 2 || name.length > 60) return null;
+
+    return name;
+}
 
 /**
  * OrderService — parses order details from conversation and saves directly to MySQL database.
@@ -80,6 +129,16 @@ export class OrderService {
             }
         }
 
+        // 4b. Customer name — read from the summary's "Name:" line (see
+        // PromptBuilder). Anchored to line start and requiring a colon so it can't
+        // catch a question like "aap ka naam?" earlier in the chat; the optional
+        // asterisks tolerate the model bolding the label as *Name:*. Prefer the
+        // final summary, fall back to anywhere in the assistant transcript.
+        const nameRe = /(?:^|\n)\s*\**\s*(?:name|naam)\s*\**\s*[:：]\s*([^\n\r]+)/i;
+        const nameMatch = finalSummaryMsg.match(nameRe) || assistantMsgs.match(nameRe);
+        const customerName = cleanCustomerName(nameMatch?.[1]) || session.customerName || null;
+
+
         // 5. Payment method detection: check USER messages first
         let paymentMethod = 'cash_on_delivery';
         const userLower = userMsgs.toLowerCase();
@@ -118,6 +177,7 @@ export class OrderService {
             deliveryCharge,
             total,
             deliveryAddress,
+            customerName,
             paymentMethod,
             items,
             notes,
@@ -181,21 +241,36 @@ export class OrderService {
     }
 
     /**
-     * Generate unique tracking code (e.g. TRK-FEZ-8492)
+     * Generate a unique tracking code, e.g. `FEZ-7K2MQX9P4TVBNH3R`.
+     *
+     * Must stay in sync with Order::generateTrackingCode() on the Laravel side
+     * (app/Models/Order.php) — both paths write to the same `tracking_code`
+     * column and customers look codes up through either.
+     *
+     * The previous implementation was `TRK-${prefix}-${1000 + Math.random()*9000}`,
+     * which had two distinct problems:
+     *   1. Only 9,000 possible codes, from a non-cryptographic PRNG. A tracking
+     *      code is a bearer token for the customer's name, phone and address, so
+     *      the whole space could be enumerated in minutes.
+     *   2. `tracking_code` is UNIQUE, so with 9,000 values collisions start
+     *      breaking real orders after only ~120 of them (birthday bound).
      */
     generateTrackingCode(restaurantName) {
-        const prefix = (restaurantName || 'ORD').slice(0, 3).toUpperCase().replace(/[^A-Z]/g, 'X');
-        const rand = Math.floor(1000 + Math.random() * 9000);
-        return `TRK-${prefix}-${rand}`;
+        return `${trackingPrefix(restaurantName)}-${randomTrackingSuffix()}`;
     }
 
     /**
-     * Save order directly to MySQL DB, with HTTP API fallback
+     * Save order directly to MySQL DB.
      */
     async save(customerPhone, session) {
         const restaurantId = session.restaurant?.id || 1;
         const parsed = this.parseOrderFromHistory(session);
         const trackingCode = this.generateTrackingCode(session.restaurant?.name);
+
+        // Remember the name on the session so the owner alert (sent right after
+        // this returns) can show who ordered, and so a follow-up order in the
+        // same conversation doesn't have to re-ask.
+        session.customerName = parsed.customerName;
 
         try {
             // 1. Direct MySQL insert for 0ms reliability (all required columns included)
@@ -203,12 +278,13 @@ export class OrderService {
             const now = new Date();
 
             const [result] = await db.query(
-                `INSERT INTO orders 
-                 (restaurant_id, customer_phone, delivery_address, tracking_code, status, subtotal, delivery_charge, total, payment_method, notes, created_at, updated_at) 
-                 VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)`,
+                `INSERT INTO orders
+                 (restaurant_id, customer_phone, customer_name, delivery_address, tracking_code, status, subtotal, delivery_charge, total, payment_method, notes, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     restaurantId,
                     customerPhone,
+                    parsed.customerName,
                     parsed.deliveryAddress,
                     trackingCode,
                     parsed.subtotal,
@@ -246,35 +322,63 @@ export class OrderService {
                     console.log(`📦 Saved ${parsed.items.length} itemized records for Order #${orderId}`);
                 }
 
+                // Auto-upsert customer record into customers table for CRM and deal broadcasts
+                await db.query(
+                    `INSERT INTO customers (restaurant_id, phone, name, address, total_orders, total_spent, last_order_at, created_at, updated_at)
+                     VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)
+                     ON DUPLICATE KEY UPDATE
+                       total_orders = total_orders + 1,
+                       total_spent = total_spent + VALUES(total_spent),
+                       name = COALESCE(VALUES(name), name),
+                       address = IF(VALUES(address) != 'Collected via WhatsApp chat', VALUES(address), address),
+                       last_order_at = VALUES(last_order_at),
+                       updated_at = VALUES(updated_at)`,
+                    [
+                        restaurantId,
+                        customerPhone,
+                        parsed.customerName,
+                        parsed.deliveryAddress,
+                        parsed.total,
+                        now,
+                        now,
+                        now
+                    ]
+                ).catch(cErr => console.warn('⚠️ customer profile upsert note:', cErr.message));
+
                 return trackingCode;
             }
+
+            // An INSERT that neither threw nor produced an id should be
+            // impossible; treat it as the failure it is rather than reporting
+            // a tracking code for a row that does not exist.
+            console.error('❌ Order INSERT returned no insertId — order NOT saved.');
         } catch (dbErr) {
-            console.warn('⚠️ Direct MySQL order insert failed, trying HTTP API fallback:', dbErr.message);
+            console.error('❌ Order INSERT failed — order NOT saved:', dbErr.message);
         }
 
-        // 2. HTTP Fallback
-        try {
-            const res = await axios.post(
-                `${LARAVEL_API}/orders/create`,
-                {
-                    customer_phone:   customerPhone,
-                    restaurant_id:    restaurantId,
-                    delivery_address: parsed.deliveryAddress,
-                    notes:            parsed.notes,
-                    status:           'pending',
-                    subtotal:         parsed.subtotal,
-                    delivery_charge:  parsed.deliveryCharge,
-                    total:            parsed.total,
-                    payment_method:   parsed.paymentMethod,
-                    items:            parsed.items,
-                },
-                { timeout: 5000 }
-            );
+        // There is deliberately no HTTP fallback. It used to POST to
+        // `{LARAVEL_API}/orders/create`, but routes/api.php is not registered in
+        // bootstrap/app.php (finding H-05), so that call could only ever 404 —
+        // and the old code returned the tracking code regardless, telling the
+        // customer their order was placed when nothing had been written. Failing
+        // out loud is the honest behaviour; the caller apologises.
+        return null;
+    }
 
-            return res.data?.tracking_code || trackingCode;
-        } catch (apiErr) {
-            console.error('❌ Could not save order via API:', apiErr.message);
-            return trackingCode;
+    /**
+     * Flag an order's `owner_notified` column after the owner WhatsApp alert
+     * actually succeeded. Matches on the unique tracking_code.
+     */
+    async markOwnerNotified(trackingCode) {
+        if (!trackingCode) return;
+        try {
+            const db = getDbPool();
+            await db.query(
+                `UPDATE orders SET owner_notified = 1, updated_at = ? WHERE tracking_code = ?`,
+                [new Date(), trackingCode]
+            );
+        } catch (e) {
+            console.warn('⚠️ owner_notified flag update note:', e.message);
         }
     }
 }

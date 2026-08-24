@@ -15,9 +15,14 @@ This document contains the steps needed to prepare, deploy, and launch the Resta
   - `DB_DATABASE`
   - `DB_USERNAME`
   - `DB_PASSWORD`
-- Configure WhatsApp credentials for restaurants:
-  - `wa_phone_id`
-  - `wa_access_token`
+- Configure the bot process:
+  - `BOT_INTERNAL_TOKEN` — **required**, shared secret between Laravel and the
+    bot's control server. Generate with
+    `php -r "echo bin2hex(random_bytes(32));"`.
+  - `BOT_INTERNAL_PORT` / `BOT_INTERNAL_API` — must agree with each other.
+  - `GROQ_API_KEY`, `OWNER_PHONE`.
+  Restaurants need no per-tenant API credentials: owners connect by scanning a
+  QR code from their dashboard.
 - Configure any mail settings if needed.
 
 ## 2. Install dependencies

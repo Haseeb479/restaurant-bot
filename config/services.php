@@ -35,8 +35,9 @@ return [
         ],
     ],
 
-    'whatsapp' => [
-        'verify_token' => env('WHATSAPP_VERIFY_TOKEN'),
-    ],
+    // The 'whatsapp' block that used to sit here held the Meta Cloud API
+    // verify token, read only by the deleted webhook controller. The product
+    // runs on the whatsapp-web.js bot, which authenticates by QR scan — see
+    // BOT_INTERNAL_TOKEN in config/app.php for the bot's own shared secret.
 
 ];

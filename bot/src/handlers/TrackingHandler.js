@@ -1,11 +1,50 @@
-import axios from 'axios';
 import { getDbPool } from '../services/Database.js';
 
-const LARAVEL_API = process.env.LARAVEL_API || 'http://127.0.0.1:8000/api';
+/**
+ * Codes issued since the tracking-code hardening (finding H-04): a 1–5 letter
+ * restaurant prefix, a dash, then 16 characters of Crockford-style base32
+ * (I, L, O and U are omitted so nothing is misread aloud or over the phone).
+ *
+ * Must stay in step with `Order::TRACKING_CODE_ALPHABET` / `TRACKING_CODE_LENGTH`
+ * (app/Models/Order.php) and `TRACKING_ALPHABET` / `TRACKING_LENGTH`
+ * (bot/src/services/OrderService.js). Widening the alphabet without widening this
+ * pattern silently stops the bot recognising the codes it just handed out.
+ */
+const CURRENT_CODE = /^[A-Z]{1,5}-[0-9A-HJKMNP-TV-Z]{16}$/;
+
+/**
+ * Shapes issued *before* that change. Real orders still carry them, so they stay
+ * recognised — the DB lookup below matches on the literal string either way.
+ */
+const LEGACY_CODES = [
+    /^[A-Z]{1,5}-\d{4}-\d{2,6}$/, // JC-2026-00042
+    /^[A-Z]{2,4}-\d{3,6}$/,       // FEZ-001
+];
+
+/**
+ * First name only — the same rule the public web page applies
+ * (Order::getRiderDisplayNameAttribute).
+ */
+function riderDisplayName(riderName) {
+    const name = String(riderName || '').trim();
+    return name === '' ? null : name.split(/\s+/)[0];
+}
+
+/**
+ * A tracking code is a bearer token: anyone it is forwarded to can look the order
+ * up, from any WhatsApp number. So the rider's number is published only while the
+ * order is actually in transit, matching Order::showsRiderContact().
+ */
+function showsRiderContact(order) {
+    return order.status === 'out_for_delivery' && String(order.rider_phone || '').trim() !== '';
+}
 
 /**
  * TrackingHandler — detects and resolves order tracking codes.
- * Supports: TRK-FEZ-1234, JC-2026-00042, FEZ-2026-001, etc.
+ *
+ * Enumeration is bounded by the per-customer RateLimiter in MessageRouter
+ * (12 messages/minute), which is what makes guessing at the 80-bit code space
+ * pointless rather than merely slow.
  */
 export class TrackingHandler {
 
@@ -13,59 +52,56 @@ export class TrackingHandler {
      * Static check — is this message an order tracking code?
      */
     static isTrackingCode(text) {
-        const clean = text.trim().toUpperCase();
+        const clean = String(text || '').trim().toUpperCase();
+
+        // Anything typed with the old explicit prefix is a tracking attempt,
+        // whatever follows it.
         if (clean.startsWith('TRK-')) return true;
-        if (/^[A-Z]{1,5}-\d{4}-\d{2,6}$/.test(clean)) return true;
-        if (/^[A-Z]{2,4}-\d{3,6}$/.test(clean)) return true;
-        return false;
+
+        if (CURRENT_CODE.test(clean)) return true;
+
+        return LEGACY_CODES.some(pattern => pattern.test(clean));
     }
 
     async handle(msg, text, customerPhone) {
         const trackingCode = text.trim().toUpperCase();
         console.log(`🔍 Tracking lookup: ${trackingCode} for ${customerPhone}`);
 
-        // 1. Direct MySQL Lookup for 0ms speed
+        let order = null;
+
         try {
             const db = getDbPool();
             const [rows] = await db.query(
-                `SELECT o.*, r.name as restaurant_name 
-                 FROM orders o 
-                 LEFT JOIN restaurants r ON o.restaurant_id = r.id 
-                 WHERE o.tracking_code = ? 
+                `SELECT o.*, r.name as restaurant_name
+                 FROM orders o
+                 LEFT JOIN restaurants r ON o.restaurant_id = r.id
+                 WHERE o.tracking_code = ?
                  LIMIT 1`,
                 [trackingCode]
             );
 
-            if (rows.length > 0) {
-                const order = rows[0];
-                await msg.reply(this.formatReplyFromDb(order));
-                return;
-            }
+            order = rows[0] || null;
         } catch (dbErr) {
-            console.warn('⚠️ Direct DB tracking lookup fallback to API:', dbErr.message);
-        }
-
-        // 2. HTTP Fallback
-        try {
-            const res = await axios.get(
-                `${LARAVEL_API}/orders/track/${trackingCode}`,
-                { timeout: 5000 }
+            // There is no HTTP fallback: routes/api.php is deliberately not
+            // registered in bootstrap/app.php, so the old
+            // `GET {LARAVEL_API}/orders/track/{code}` call could only ever 404.
+            // Say so plainly instead of reporting a real order as missing.
+            console.error('❌ Tracking lookup failed (database):', dbErr.message);
+            await msg.reply(
+                `⚠️ Couldn't check your order right now. Please try again in a moment.`
             );
-            await msg.reply(this.formatReply(res.data));
-
-        } catch (err) {
-            if (err.response?.status === 404) {
-                await msg.reply(
-                    `❌ No order found with tracking code *${trackingCode}*.\n` +
-                    `Please double-check your code and try again!`
-                );
-            } else {
-                console.error('⚠️ Tracking lookup error:', err.message);
-                await msg.reply(
-                    `⚠️ Couldn't check your order right now. Please try again in a moment.`
-                );
-            }
+            return;
         }
+
+        if (!order) {
+            await msg.reply(
+                `❌ No order found with tracking code *${trackingCode}*.\n` +
+                `Please double-check your code and try again!`
+            );
+            return;
+        }
+
+        await msg.reply(this.formatReplyFromDb(order));
     }
 
     formatReplyFromDb(order) {
@@ -88,10 +124,11 @@ export class TrackingHandler {
         }
 
         let riderSection = '';
-        if (order.rider_name || order.rider_phone) {
-            const name  = order.rider_name || 'Assigned Rider';
-            const phone = order.rider_phone ? ` (${order.rider_phone})` : '';
-            riderSection = `\n🛵 *Rider:* ${name}${phone}`;
+        const riderName = riderDisplayName(order.rider_name);
+
+        if (riderName || showsRiderContact(order)) {
+            const phone = showsRiderContact(order) ? ` (${order.rider_phone})` : '';
+            riderSection = `\n🛵 *Rider:* ${riderName || 'Assigned Rider'}${phone}`;
             if (order.estimated_minutes) {
                 riderSection += `\n⏱️ *Estimated Delivery:* ~${order.estimated_minutes} mins`;
             }
@@ -108,28 +145,6 @@ export class TrackingHandler {
             `${statusMsg}\n` +
             riderSection +
             `💰 Total: Rs. ${Number(order.total || 0).toLocaleString()}\n` +
-            webLink
-        );
-    }
-
-    formatReply(order) {
-        let riderSection = '';
-        if (order.rider_name || order.rider_phone) {
-            const name  = order.rider_name || 'Assigned Rider';
-            const phone = order.rider_phone ? ` (${order.rider_phone})` : '';
-            riderSection = `\n🛵 *Rider:* ${name}${phone}\n`;
-        }
-
-        const webLink = order.tracking_url ? `\n📍 *Live Web Tracking:* ${order.tracking_url}\n` : '';
-
-        return (
-            `📦 *Order Status*\n\n` +
-            `🔖 Tracking: *${order.tracking_code}*\n` +
-            `📊 Status: *${order.status_label}*\n\n` +
-            `${order.status_message}\n` +
-            riderSection +
-            `💰 Total: Rs. ${order.total}\n` +
-            `🕐 Placed: ${order.placed_at}\n` +
             webLink
         );
     }

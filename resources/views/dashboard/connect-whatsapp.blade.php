@@ -204,58 +204,78 @@
 </div>
 
 <script>
-    const BOT_API = 'http://' + window.location.hostname + ':3000';
+    // Same-origin, session-authenticated endpoints. These used to point straight
+    // at `http://<hostname>:3000`, which meant the bot's control server had to be
+    // reachable from every browser on the network with no authentication — and it
+    // hands out the pairing QR, which is enough to take over the WhatsApp account.
+    const STATUS_URL  = @json(route('dashboard.bot-status', $restaurant->id));
+    const RESTART_URL = @json(route('dashboard.bot-restart', $restaurant->id));
+    const CSRF_TOKEN  = @json(csrf_token());
+
     let pollInterval = null;
+
+    function showOnly(visibleId, indicatorText) {
+        for (const id of ['qr-loading', 'qr-image', 'qr-connected', 'qr-offline']) {
+            const el = document.getElementById(id);
+            if (!el) continue;
+            el.style.display = id !== visibleId ? 'none' : (id === 'qr-image' ? 'block' : 'flex');
+        }
+        if (indicatorText !== undefined) {
+            document.getElementById('poll-indicator').innerText = indicatorText;
+        }
+    }
 
     async function checkBotStatus() {
         try {
-            const res = await fetch(BOT_API + '/qr-status', { cache: 'no-store' });
-            if (!res.ok) throw new Error('Status ' + res.status);
-            const data = await res.json();
+            const res  = await fetch(STATUS_URL, { cache: 'no-store', headers: { 'Accept': 'application/json' } });
+            const data = await res.json().catch(() => ({}));
 
-            document.getElementById('qr-loading').style.display = 'none';
+            if (res.status === 409) {
+                // Another restaurant currently owns this bot process.
+                showOnly('qr-offline', '⚠️ ' + (data.message || 'Bot is linked to another restaurant'));
+                return;
+            }
+
+            if (!res.ok) throw new Error(data.message || ('Status ' + res.status));
 
             if (data.status === 'connected') {
-                document.getElementById('qr-image').style.display = 'none';
-                document.getElementById('qr-offline').style.display = 'none';
-                document.getElementById('qr-connected').style.display = 'flex';
+                showOnly('qr-connected', '✓ Live connection active');
                 if (data.bot_number) {
                     document.getElementById('connected-number').innerText = 'Connected Phone: +' + data.bot_number;
                 }
-                document.getElementById('poll-indicator').innerText = '✓ Live connection active';
             } else if (data.qr) {
-                document.getElementById('qr-connected').style.display = 'none';
-                document.getElementById('qr-offline').style.display = 'none';
                 const img = document.getElementById('qr-image');
                 img.src = data.qr;
-                img.style.display = 'block';
-                document.getElementById('poll-indicator').innerText = '● QR Code ready — scan now';
+                showOnly('qr-image', '● QR Code ready — scan now');
             } else {
-                document.getElementById('qr-image').style.display = 'none';
-                document.getElementById('qr-connected').style.display = 'none';
-                document.getElementById('qr-offline').style.display = 'none';
-                document.getElementById('qr-loading').style.display = 'flex';
-                document.getElementById('poll-indicator').innerText = '● Initializing WhatsApp session...';
+                showOnly('qr-loading', '● Initializing WhatsApp session...');
             }
         } catch (err) {
-            document.getElementById('qr-loading').style.display = 'none';
-            document.getElementById('qr-image').style.display = 'none';
-            document.getElementById('qr-connected').style.display = 'none';
-            document.getElementById('qr-offline').style.display = 'flex';
-            document.getElementById('poll-indicator').innerText = '⚠️ Internal API unreachable (Port 3000)';
+            showOnly('qr-offline', '⚠️ WhatsApp bot process is not running');
         }
     }
 
     async function requestNewQr() {
-        document.getElementById('qr-connected').style.display = 'none';
-        document.getElementById('qr-image').style.display = 'none';
-        document.getElementById('qr-offline').style.display = 'none';
-        document.getElementById('qr-loading').style.display = 'flex';
-        document.getElementById('poll-indicator').innerText = 'Generating fresh QR code...';
+        showOnly('qr-loading', 'Generating fresh QR code...');
 
         try {
-            await fetch(BOT_API + '/restart', { method: 'POST' });
-        } catch (e) {}
+            const res  = await fetch(RESTART_URL, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': CSRF_TOKEN,
+                    'Accept':       'application/json',
+                },
+            });
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok) {
+                showOnly('qr-offline', '⚠️ ' + (data.message || 'Could not restart the bot'));
+                return;
+            }
+        } catch (e) {
+            showOnly('qr-offline', '⚠️ Could not reach the server');
+            return;
+        }
 
         setTimeout(checkBotStatus, 2000);
     }

@@ -8,21 +8,23 @@ use Illuminate\Database\Eloquent\Builder;
 
 class Restaurant extends Model
 {
+    /**
+     * NOTE: `owner_password` is deliberately NOT mass-assignable. It must always
+     * be set explicitly through a hash (see AdminController::storeRestaurant,
+     * RestaurantController::register, DashboardController::login), so a future
+     * `->update($request->all())` can never overwrite a credential.
+     */
     protected $fillable = [
         'name',
         'whatsapp_number',
-        'wa_phone_id',
         'owner_phone',
-        'owner_password',
         'city',
         'address',
         'delivery_areas',
         'delivery_charge',
         'minimum_order',
-        'is_active',
         'is_open',
-        'plan',
-        'plan_expires_at',
+        'hours',
         'greeting_message',
         'menu_image',
         'menu_file',
@@ -32,8 +34,6 @@ class Restaurant extends Model
         'manager_phone',
         'bot_status',
         'bot_last_seen_at',
-        'deactivated_at',
-        'deactivated_reason',
         'last_error',
         'last_error_at',
     ];
@@ -79,6 +79,11 @@ class Restaurant extends Model
     public function riders(): HasMany
     {
         return $this->hasMany(Rider::class)->orderBy('name');
+    }
+
+    public function customers(): HasMany
+    {
+        return $this->hasMany(Customer::class)->orderByDesc('last_order_at');
     }
 
     public function activeDeals(): HasMany

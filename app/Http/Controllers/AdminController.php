@@ -1,9 +1,11 @@
 <?php
 namespace App\Http\Controllers;
 
-use App\Models\{Restaurant, Order, Conversation};
+use App\Models\{Restaurant, Order, Conversation, Setting};
+use App\Support\BotControlClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Hash;
 
 class AdminController extends Controller
 {
@@ -13,6 +15,9 @@ class AdminController extends Controller
         'basic' => 3000,
         'pro'   => 7000,
     ];
+
+    /** Settings key holding the bcrypt hash of the super-admin master password. */
+    private const ADMIN_PASSWORD_KEY = 'admin_password_hash';
 
     private function adminAuth(): void
     {
@@ -24,13 +29,68 @@ class AdminController extends Controller
         return view('admin.login');
     }
 
+    /**
+     * Verify a submitted master password.
+     *
+     * Precedence:
+     *   1. Hash stored in the `settings` table (set via Admin → Settings).
+     *   2. ADMIN_PASSWORD from the environment — accepted as either a hash or a
+     *      plaintext value, and migrated into the hashed store on first use.
+     *
+     * There is deliberately NO default. If neither source is configured, no
+     * password can log in (previously `admin123` was a working fallback).
+     */
+    private function verifyAdminPassword(string $password): bool
+    {
+        if ($password === '') {
+            return false;
+        }
+
+        $storedHash = Setting::get(self::ADMIN_PASSWORD_KEY);
+
+        if ($storedHash !== null && DashboardController::isHashed($storedHash)) {
+            return Hash::check($password, $storedHash);
+        }
+
+        $envPassword = (string) config('app.admin_password', '');
+
+        if ($envPassword === '') {
+            return false; // Not configured — refuse everything.
+        }
+
+        if (! DashboardController::passwordMatches($password, $envPassword)) {
+            return false;
+        }
+
+        // Correct, but only backed by .env — persist it hashed so it can be
+        // rotated from the panel and never sits in plaintext at rest.
+        try {
+            Setting::put(self::ADMIN_PASSWORD_KEY, Hash::make($password));
+        } catch (\Throwable $e) {
+            // Store unavailable (e.g. pre-migration): login still succeeds.
+        }
+
+        return true;
+    }
+
     public function login(Request $request)
     {
-        if ($request->input('password') === config('app.admin_password', 'admin123')) {
-            session(['admin_logged_in' => true]);
-            return redirect()->route('admin.dashboard');
+        $password = (string) $request->input('password', '');
+
+        if (! $this->verifyAdminPassword($password)) {
+            return back()->withErrors([
+                'password' => (string) config('app.admin_password', '') === ''
+                    && Setting::get(self::ADMIN_PASSWORD_KEY) === null
+                        ? 'No admin password is configured. Set ADMIN_PASSWORD in .env first.'
+                        : 'Wrong password',
+            ]);
         }
-        return back()->withErrors(['password' => 'Wrong password']);
+
+        // New session ID on privilege change (prevents session fixation).
+        $request->session()->regenerate();
+        session(['admin_logged_in' => true]);
+
+        return redirect()->route('admin.dashboard');
     }
 
     public function logout()
@@ -78,17 +138,18 @@ class AdminController extends Controller
             ];
         });
 
-        // 7-Day Chart Data for Orders Overview
+        // 7-Day Chart Data for Orders Overview.
+        // Two real series over the last 7 days: this week vs the same 7 days one
+        // month ago (previously the comparison line was faked with rand()).
         $chartLabels = [];
         $chartTodayData = [];
         $chartMonthData = [];
 
         for ($i = 6; $i >= 0; $i--) {
             $date = Carbon::today()->subDays($i);
-            $chartLabels[] = $date->format('d M');
-            $count = Order::whereDate('created_at', $date)->count();
-            $chartTodayData[] = $count;
-            $chartMonthData[] = max($count + rand(2, 8), 5);
+            $chartLabels[]    = $date->format('d M');
+            $chartTodayData[] = Order::whereDate('created_at', $date)->count();
+            $chartMonthData[] = Order::whereDate('created_at', Carbon::today()->subDays($i)->subMonthNoOverflow())->count();
         }
 
         return view('admin.dashboard', compact(
@@ -237,10 +298,36 @@ class AdminController extends Controller
         return view('admin.settings');
     }
 
+    /**
+     * Change the super-admin master password.
+     *
+     * Was a no-op stub that reported success without changing anything. Now
+     * verifies the current password and persists a bcrypt hash of the new one to
+     * the settings store, which login() reads first.
+     */
     public function updateSettings(Request $request)
     {
         $this->adminAuth();
-        return back()->with('success', 'Admin platform configurations updated successfully!');
+
+        $request->validate([
+            'current_password' => 'required|string',
+            'new_password'     => 'required|string|min:12|different:current_password',
+        ], [
+            'new_password.min' => 'The new master password must be at least 12 characters.',
+        ]);
+
+        if (! $this->verifyAdminPassword((string) $request->input('current_password'))) {
+            return back()->withErrors(['current_password' => 'Current master password is incorrect.']);
+        }
+
+        Setting::put(self::ADMIN_PASSWORD_KEY, Hash::make((string) $request->input('new_password')));
+
+        // Force re-authentication with the new credential.
+        session()->forget('admin_logged_in');
+        $request->session()->regenerate();
+
+        return redirect()->route('admin.login')
+            ->with('success', 'Master password updated. Please log in again with your new password.');
     }
 
     // ── Create a new restaurant ────────────────────────────
@@ -256,29 +343,29 @@ class AdminController extends Controller
         $request->validate([
             'name'            => 'required|string|max:255',
             'whatsapp_number' => 'required|string|unique:restaurants',
-            'wa_phone_id'     => 'nullable|string',
             'owner_phone'     => 'required|string',
-            'owner_password'  => 'required|string|min:4',
+            'owner_password'  => 'required|string|min:12',
             'plan'            => 'required|in:trial,basic,pro',
+            'city'            => 'nullable|string|max:100',
+            'address'         => 'nullable|string|max:500',
+            'delivery_charge' => 'nullable|numeric|min:0',
+            'minimum_order'   => 'nullable|numeric|min:0',
         ]);
 
-        $r = Restaurant::create(array_merge(
-            $request->only([
-                'name', 'whatsapp_number', 'wa_phone_id', 'wa_access_token',
-                'owner_phone', 'owner_password', 'city', 'address', 'plan',
-                'delivery_charge', 'minimum_order', 'greeting_message',
-            ]),
-            [
-                'plan_expires_at' => $request->plan !== 'trial'
-                    ? now()->addMonth()
-                    : null,
-                'is_active'  => true,
-                'bot_status' => 'disconnected',
-            ]
-        ));
+        // NOTE: owner_password and admin state attributes (is_active, plan) are
+        // intentionally absent from fillable. They are assigned explicitly below.
+        $r = new Restaurant($request->only([
+            'name', 'whatsapp_number',
+            'owner_phone', 'city', 'address',
+            'delivery_charge', 'minimum_order', 'greeting_message',
+        ]));
 
-        // Pre-authorize session
-        session(["restaurant_{$r->id}" => true]);
+        $r->plan            = $request->input('plan', 'trial');
+        $r->plan_expires_at = $request->plan !== 'trial' ? now()->addMonth() : null;
+        $r->is_active       = true;
+        $r->bot_status      = 'disconnected';
+        $r->owner_password  = Hash::make($request->input('owner_password'));
+        $r->save();
 
         return redirect()
             ->route('admin.restaurants')
@@ -291,21 +378,24 @@ class AdminController extends Controller
         $this->adminAuth();
 
         $newState = !$r->is_active;
-        $updateData = ['is_active' => $newState];
+        $r->is_active = $newState;
 
         if (!$newState) {
-            $updateData['deactivated_at']     = now();
-            $updateData['deactivated_reason'] = $request->input('reason', 'Admin deactivation');
+            $r->deactivated_at     = now();
+            $r->deactivated_reason = $request->input('reason', 'Admin deactivation');
         } else {
-            $updateData['deactivated_at']     = null;
-            $updateData['deactivated_reason'] = null;
+            $r->deactivated_at     = null;
+            $r->deactivated_reason = null;
         }
 
-        $r->update($updateData);
+        $r->save();
 
-        try {
-            \App\Services\TenantResolver::clearCache($r);
-        } catch (\Throwable $e) {}
+        // Deactivating must take effect on the bot too, not just in the panel.
+        // This used to call TenantResolver::clearCache(), which only forgot a
+        // cache key derived from the (now removed) Meta `wa_phone_id` — nothing
+        // populated it, so it was a no-op and a deactivated restaurant kept
+        // taking orders until the bot's own TTL expired.
+        BotControlClient::invalidateCache($r->id, $r->whatsapp_number);
 
         $label = $newState ? '✅ Reactivated' : '⏸️ Deactivated';
         return back()->with('success', "{$label}: {$r->name}");
@@ -320,7 +410,12 @@ class AdminController extends Controller
             ? $r->plan_expires_at->addMonths($months)
             : now()->addMonths($months);
 
-        $r->update(['plan_expires_at' => $expiry, 'plan' => $request->input('plan', $r->plan)]);
+        $r->plan_expires_at = $expiry;
+        if ($request->filled('plan')) {
+            $r->plan = $request->input('plan');
+        }
+        $r->save();
+
         return back()->with('success', "Plan extended until {$expiry->format('d M Y')}");
     }
 
@@ -328,7 +423,9 @@ class AdminController extends Controller
     public function clearError(Restaurant $r)
     {
         $this->adminAuth();
-        $r->update(['last_error' => null, 'last_error_at' => null]);
+        $r->last_error    = null;
+        $r->last_error_at = null;
+        $r->save();
         return back()->with('success', "Error log cleared for {$r->name}");
     }
 }

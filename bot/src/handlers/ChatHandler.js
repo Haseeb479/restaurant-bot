@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import whatsappWebPkg from 'whatsapp-web.js';
-import { SessionManager } from '../services/SessionManager.js';
+import { sessionManager } from '../services/SessionManager.js';
 import { RestaurantService } from '../services/RestaurantService.js';
 import { OrderService } from '../services/OrderService.js';
 import { NotifyService } from '../services/NotifyService.js';
@@ -92,7 +92,8 @@ function findRestaurantMenuFiles(restaurantId, dbMenuFile, dbMenuImage) {
 export class ChatHandler {
     constructor(client) {
         this.client      = client;
-        this.sessions    = new SessionManager();
+        // Shared across handlers + across bot reconnects (see SessionManager).
+        this.sessions    = sessionManager;
         this.restaurants = new RestaurantService();
         this.orders      = new OrderService();
         this.notifier    = new NotifyService(client);
@@ -108,7 +109,18 @@ export class ChatHandler {
         }
 
         console.log(`🔍 Looking up restaurant for bot number: ${botNumber}`);
-        let restaurant = await this.restaurants.getByBotNumber(botNumber);
+
+        let restaurant;
+        try {
+            restaurant = await this.restaurants.getByBotNumber(botNumber);
+        } catch (lookupErr) {
+            // A database outage, not an unregistered number. Telling the customer
+            // "this number isn't linked to a restaurant" here would send them off
+            // to chase the owner about a registration that is perfectly fine.
+            console.error(`❌ Restaurant lookup unavailable for ${botNumber}:`, lookupErr.message);
+            await msg.reply("⚠️ We're having a brief technical problem. Please send your message again in a moment!");
+            return;
+        }
 
         if (!restaurant) {
             console.log(`❌ No restaurant found for bot number: ${botNumber}`);
@@ -232,8 +244,23 @@ export class ChatHandler {
 
                 await msg.reply(trackingMsg).catch(() => sendWhatsAppText(this.client, customerPhone, trackingMsg));
 
-                await this.notifier.notifyOwner(customerPhone, session, trackingCode);
-                Logger.info('Order saved & notified', { customerPhone, trackingCode, restaurantId: restaurant.id });
+                const ownerNotified = await this.notifier.notifyOwner(customerPhone, session, trackingCode);
+                if (ownerNotified) {
+                    await this.orders.markOwnerNotified(trackingCode);
+                }
+                Logger.info('Order saved & notified', { customerPhone, trackingCode, restaurantId: restaurant.id, ownerNotified });
+            } else {
+                // The AI has already told the customer their order is placed, so
+                // silence here means they wait for food that no one is cooking.
+                // Retract it explicitly instead.
+                const failMsg =
+                    `⚠️ Sorry — something went wrong saving your order, so it has *not* been placed.\n\n` +
+                    `Please send your order again in a moment, or contact us directly.`;
+
+                await msg.reply(failMsg).catch(() => sendWhatsAppText(this.client, customerPhone, failMsg));
+
+                console.error(`❌ Order for ${customerPhone} was NOT saved — customer informed.`);
+                Logger.error('Order save failed', { customerPhone, restaurantId: restaurant.id });
             }
         }
     }

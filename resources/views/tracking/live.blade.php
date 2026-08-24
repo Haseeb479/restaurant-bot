@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {{-- The tracking code is in the URL. Keep it out of search indexes and out
+         of the Referer header sent to the CDNs, fonts and wa.me links below. --}}
+    <meta name="robots" content="noindex, nofollow, noarchive">
+    <meta name="referrer" content="no-referrer">
     <title>Live Order Tracking | {{ $order ? $order->tracking_code : 'Track Your Order' }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -136,7 +140,7 @@
             </div>
 
             <!-- Rider Assignment Card (Shown when Rider Assigned) -->
-            @if($order->rider_name || $order->status === 'out_for_delivery')
+            @if($order->rider_display_name || $order->status === 'out_for_delivery')
                 <div class="bg-gradient-to-br from-emerald-600 to-teal-700 text-white rounded-2xl p-6 shadow-md relative overflow-hidden">
                     <div class="flex items-center justify-between relative z-10">
                         <div class="flex items-center gap-3.5">
@@ -145,27 +149,30 @@
                             </div>
                             <div>
                                 <span class="text-[11px] uppercase tracking-wider text-emerald-200 font-bold">Your Delivery Partner</span>
+                                {{-- First name only, and the number appears solely while the
+                                     order is actually in transit. See Order::showsRiderContact(). --}}
                                 <h3 class="text-lg font-extrabold text-white leading-tight">
-                                    {{ $order->rider_name ?: 'Delivery Rider Assigned' }}
+                                    {{ $order->rider_display_name ?: 'Delivery Rider Assigned' }}
                                 </h3>
-                                @if($order->rider_phone)
+                                @if($order->showsRiderContact())
                                     <p class="text-xs text-emerald-100 mt-0.5">{{ $order->rider_phone }}</p>
                                 @endif
                             </div>
                         </div>
 
-                        @if($order->rider_phone)
+                        @if($order->showsRiderContact())
                             <div class="flex gap-2">
-                                <a 
-                                    href="tel:{{ preg_replace('/[^0-9+]/', '', $order->rider_phone) }}" 
+                                <a
+                                    href="tel:{{ preg_replace('/[^0-9+]/', '', $order->rider_phone) }}"
                                     class="p-2.5 bg-white text-emerald-700 rounded-xl hover:bg-emerald-50 transition active:scale-95 shadow-sm"
                                     title="Call Rider"
                                 >
                                     📞
                                 </a>
-                                <a 
-                                    href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $order->rider_phone) }}" 
+                                <a
+                                    href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $order->rider_phone) }}"
                                     target="_blank"
+                                    rel="noopener noreferrer"
                                     class="p-2.5 bg-emerald-500 text-white rounded-xl hover:bg-emerald-400 transition active:scale-95 shadow-sm"
                                     title="WhatsApp Rider"
                                 >
@@ -183,20 +190,39 @@
                     Order Summary
                 </h3>
 
-                <!-- Delivery Address -->
-                <div class="flex items-start gap-3 text-xs text-slate-600 bg-slate-50 p-3 rounded-xl">
-                    <span class="text-base">📍</span>
-                    <div>
-                        <strong class="text-slate-800">Delivery Address:</strong>
-                        <p class="mt-0.5 leading-relaxed">{{ $order->delivery_address }}</p>
+                <!-- Delivery Address (partly hidden — this page needs no login) -->
+                @if($order->masked_delivery_address !== '')
+                    <div class="flex items-start gap-3 text-xs text-slate-600 bg-slate-50 p-3 rounded-xl">
+                        <span class="text-base">📍</span>
+                        <div>
+                            <strong class="text-slate-800">Delivering to:</strong>
+                            <p class="mt-0.5 leading-relaxed">{{ $order->masked_delivery_address }}</p>
+                            <p class="mt-1 text-[11px] text-slate-400">
+                                Partly hidden for your privacy — the restaurant and rider have the full address.
+                            </p>
+                        </div>
                     </div>
-                </div>
+                @endif
 
-                <!-- Notes / Chat Summary -->
-                @if($order->notes)
+                <!-- Items Ordered -->
+                {{-- From the order_items rows, not `notes`: `notes` is a copy of the
+                     bot's last two chat messages, which restate the customer's full
+                     address and would undo the masking above. --}}
+                @if($order->items->isNotEmpty())
                     <div class="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl">
                         <strong class="text-slate-800">Items Ordered:</strong>
-                        <p class="mt-1 whitespace-pre-line text-slate-700 font-medium">{{ $order->notes }}</p>
+                        <ul class="mt-1.5 space-y-1">
+                            @foreach($order->items as $item)
+                                <li class="flex justify-between gap-3">
+                                    <span class="text-slate-700 font-medium">{{ $item->display_label }}</span>
+                                    <span class="font-semibold text-slate-800 whitespace-nowrap">Rs. {{ number_format($item->subtotal, 0) }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @else
+                    <div class="text-xs text-slate-500 bg-slate-50 p-3 rounded-xl">
+                        Items were confirmed over WhatsApp — check your chat for the full list.
                     </div>
                 @endif
 
@@ -221,8 +247,8 @@
 
             <!-- Restaurant Contact Footer -->
             <div class="text-center text-xs text-slate-400 pt-2 pb-6">
-                Need help with your order? 
-                <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $order->restaurant->whatsapp_number) }}" target="_blank" class="text-slate-700 font-semibold underline hover:text-slate-900">
+                Need help with your order?
+                <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $order->restaurant->whatsapp_number) }}" target="_blank" rel="noopener noreferrer" class="text-slate-700 font-semibold underline hover:text-slate-900">
                     Chat on WhatsApp
                 </a>
             </div>
@@ -233,19 +259,26 @@
 <!-- Live Polling Script (Checks status every 8 seconds) -->
 @if($order && !in_array($order->status, ['delivered', 'cancelled']))
 <script>
-    const trackingCode = "{{ $order->tracking_code }}";
+    // Status-only endpoint: no address, no rider, nothing that should not be
+    // re-fetched every 8 seconds. Both values are JSON-encoded server-side so a
+    // tracking code can never break out of the string literal.
+    const STATUS_URL      = @json(route('order.track.status', $order->tracking_code));
+    const CURRENT_STATUS  = @json($order->status);
+
     const pollInterval = setInterval(async () => {
         try {
-            const res = await fetch(`/api/orders/track/${trackingCode}`);
-            if (res.ok) {
-                const data = await res.json();
-                if (data.status !== "{{ $order->status }}") {
-                    // Reload page smoothly when status changes
-                    window.location.reload();
-                }
+            const res = await fetch(STATUS_URL, { headers: { 'Accept': 'application/json' } });
+            if (!res.ok) return;
+
+            const data = await res.json();
+            if (data.status && data.status !== CURRENT_STATUS) {
+                // Reload so the stepper, rider card and receipt all re-render
+                // from the server's redacted view.
+                clearInterval(pollInterval);
+                window.location.reload();
             }
         } catch (e) {
-            console.log('Poll check failed', e);
+            // Offline or a dropped connection — the next tick will retry.
         }
     }, 8000);
 </script>

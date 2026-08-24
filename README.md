@@ -1,58 +1,102 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Restaurant Bot
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Multi-tenant WhatsApp restaurant-ordering platform: a **Laravel** web app
+(super-admin panel + per-restaurant owner dashboards + public order tracking)
+paired with a **Node.js WhatsApp bot** (`whatsapp-web.js` + Puppeteer) that runs
+an AI ordering conversation (Groq LLM + vision menu OCR) and writes orders to a
+shared **MySQL** database.
 
-## About Laravel
+> Current mode: the bot connects a real WhatsApp account via QR code. This is the
+> foundation for a future hosted SaaS.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Architecture
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+| Component | Tech | Role |
+|-----------|------|------|
+| Web app | Laravel 13 (PHP 8.3+) | Admin panel, owner dashboards, `/track` order lookup |
+| Bot | Node.js 20+, `whatsapp-web.js`, Puppeteer | WhatsApp session, AI conversation, order capture |
+| AI | Groq (chat + menu OCR) | Replies, parses menus from images/Excel |
+| Control server | Node HTTP (`bot/src/server/InternalServer.js`, port 3000) | QR status / send-message / restart, called by Laravel |
+| Database | MySQL | restaurants, menu, orders, customers, conversations |
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Both processes read the same `.env`.
 
-## Learning Laravel
+## Prerequisites
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+- PHP **8.3+** with Composer
+- Node.js **20+** and npm
+- MySQL 8+
+- A Groq API key — <https://console.groq.com/keys>
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Setup
 
 ```bash
-composer require laravel/boost --dev
+composer install
+npm install
 
-php artisan boost:install
+cp .env.example .env
+# Edit .env: DB_* credentials, ADMIN_PASSWORD (required), GROQ_API_KEY, OWNER_PHONE
+
+php artisan key:generate
+php artisan migrate --seed
+npm run build
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+## Running
 
-## Contributing
+Two processes. In development, use two terminals:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+php artisan serve
+```
 
-## Code of Conduct
+```bash
+npm run bot
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Laravel serves on <http://localhost:8000>; the bot's control server listens on
+port 3000. For production, run both under PM2:
 
-## Security Vulnerabilities
+```bash
+pm2 start ecosystem.config.cjs
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Connecting WhatsApp
+
+1. Open the super-admin panel at <http://localhost:8000/admin/login>
+   (password = `ADMIN_PASSWORD`) and create a restaurant — or let an owner
+   self-register at `/restaurant/register`.
+2. Log into the owner dashboard at `http://localhost:8000/dashboard/{id}/login`.
+3. Open **Connect WhatsApp** and scan the QR code with the restaurant's phone.
+4. Message the bot to place a test order; customers track it at `/track/{code}`.
+
+## Key URLs
+
+| URL | Purpose |
+|-----|---------|
+| `/admin/login` | Super-admin panel |
+| `/dashboard/{id}/login` | Restaurant owner dashboard |
+| `/restaurant/register` | Owner self-registration |
+| `/track/{code}` | Public order tracking |
+
+## Configuration
+
+All configuration lives in `.env` (see `.env.example` for the full annotated
+list). Bot-specific keys: `BOT_INTERNAL_PORT`, `BOT_INTERNAL_TOKEN`,
+`GROQ_API_KEY`, `GROQ_MODELS` (optional model fallback order), `REQUEST_DELAY_MS`,
+`OWNER_PHONE`.
+
+The bot reads and writes MySQL directly; it does not call the Laravel HTTP API.
+Traffic goes the other way — Laravel calls the bot's control server on
+`BOT_INTERNAL_API`, authenticated with `BOT_INTERNAL_TOKEN`.
+
+## Security
+
+A source-level security review lives in [`docs/security/`](docs/security/) —
+start with [`REMEDIATION.md`](docs/security/REMEDIATION.md). **Set a strong,
+unique `ADMIN_PASSWORD`** and work through that checklist before exposing this
+platform to the public internet.
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Built on the Laravel framework (MIT). Application code © its authors.

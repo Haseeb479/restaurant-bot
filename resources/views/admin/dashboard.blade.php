@@ -500,7 +500,7 @@
                 labels: labels,
                 datasets: [
                     {
-                        label: 'This Month',
+                        label: 'Same day last month',
                         data: monthData,
                         borderColor: '#8b5cf6',
                         backgroundColor: 'rgba(139, 92, 246, 0.08)',

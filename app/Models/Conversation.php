@@ -10,8 +10,13 @@ class Conversation extends Model
     protected $fillable = [
         'restaurant_id', 'customer_phone', 'customer_name',
         'customer_address', 'state', 'cart', 'payment_method', 'last_message_at',
+        'human_handling_until',
     ];
-    protected $casts = ['cart' => 'array', 'last_message_at' => 'datetime'];
+    protected $casts = [
+        'cart'                 => 'array',
+        'last_message_at'      => 'datetime',
+        'human_handling_until' => 'datetime',
+    ];
 
     public function restaurant(): BelongsTo { return $this->belongsTo(Restaurant::class); }
     public function orders(): HasMany       { return $this->hasMany(Order::class); }

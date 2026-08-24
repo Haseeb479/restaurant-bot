@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Dashboard') — {{ $restaurant->name ?? 'Restaurant Owner' }}</title>
+    <title>@yield('title', 'Dashboard') — {{ $restaurant->name ?? ($r->name ?? 'Restaurant Owner') }}</title>
+
     <!-- Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,7 +13,7 @@
     <style>
         :root {
             --sidebar-bg: #0f172a;
-            --sidebar-hover: #1e293b;
+            --sidebar-hover: rgba(255, 255, 255, 0.06);
             --sidebar-active: #4f46e5;
             --sidebar-text: #94a3b8;
             --sidebar-text-active: #ffffff;
@@ -24,12 +25,15 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: var(--main-bg);
             color: var(--text-main);
             min-height: 100vh;
             display: flex;
+            font-size: 13px;
+            line-height: 1.5;
         }
 
         /* SIDEBAR */
@@ -44,16 +48,16 @@
             left: 0;
             bottom: 0;
             z-index: 100;
-            border-right: 1px solid rgba(255, 255, 255, 0.06);
+            border-right: 1px solid #1e293b;
             overflow-y: auto;
         }
 
         .brand-header {
-            padding: 20px 20px 16px;
+            padding: 22px 20px 18px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            border-bottom: 1px solid #1e293b;
         }
 
         .brand-box {
@@ -65,27 +69,29 @@
         .brand-avatar {
             width: 38px;
             height: 38px;
-            background: #475569;
-            border-radius: 50%;
+            background: #4f46e5;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: #fff;
             font-size: 14px;
             font-weight: 800;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
         }
 
         .brand-info h2 {
             font-size: 15px;
-            font-weight: 700;
+            font-weight: 800;
             color: #fff;
             line-height: 1.2;
+            letter-spacing: -0.01em;
         }
 
         .brand-info span {
             font-size: 11px;
             color: #94a3b8;
-            font-weight: 500;
+            font-weight: 600;
         }
 
         .nav-section {
@@ -160,7 +166,7 @@
         }
 
         .header-title h1 {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 800;
             color: #0f172a;
             letter-spacing: -0.02em;
@@ -247,21 +253,151 @@
             flex: 1;
         }
 
+        /* ── GLOBAL UI SYSTEM COMPONENTS ── */
+        .panel-card {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+            margin-bottom: 24px;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .panel-title h3 {
+            font-size: 15px;
+            font-weight: 800;
+            color: #0f172a;
+        }
+
+        .panel-title p {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
+        /* DATA TABLES */
+        .data-table, .custom-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        .data-table th, .custom-table th {
+            font-size: 11px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 12px 14px;
+            border-bottom: 1.5px solid #e2e8f0;
+            background: #f8fafc;
+        }
+
+        .data-table td, .custom-table td {
+            font-size: 13px;
+            padding: 13px 14px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #334155;
+            vertical-align: middle;
+        }
+
+        .data-table tr:hover td, .custom-table tr:hover td {
+            background: #fafafa;
+        }
+
+        /* METRIC CARDS */
+        .metric-card {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .metric-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .metric-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 8px;
+            line-height: 1.2;
+        }
+
+        .metric-footer {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: #64748b;
+        }
+
+        .metric-icon-box {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        .metric-icon-box.green  { background: #f0fdf4; color: #16a34a; }
+        .metric-icon-box.blue   { background: #eff6ff; color: #2563eb; }
+        .metric-icon-box.orange { background: #fff7ed; color: #ea580c; }
+        .metric-icon-box.red    { background: #fef2f2; color: #dc2626; }
+        .metric-icon-box.purple { background: #faf5ff; color: #7e22ce; }
+
+        .sub-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 99px;
+        }
+        .sub-badge.green  { background: #dcfce7; color: #166534; }
+        .sub-badge.blue   { background: #dbeafe; color: #1e40af; }
+        .sub-badge.orange { background: #ffedd5; color: #9a3412; }
+        .sub-badge.red    { background: #fee2e2; color: #991b1b; }
+
         /* BUTTONS & PILLS */
         .btn {
             display: inline-flex;
             align-items: center;
             gap: 6px;
             padding: 8px 14px;
-            border-radius: 8px;
+            border-radius: 10px;
             font-size: 12px;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
             text-decoration: none;
             border: 1px solid transparent;
             transition: all 0.15s ease;
         }
-        .btn-primary { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+        .btn-primary { background: #4f46e5; color: #fff; border-color: #4f46e5; box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25); }
         .btn-primary:hover { background: #4338ca; }
         .btn-success { background: #16a34a; color: #fff; border-color: #16a34a; }
         .btn-success:hover { background: #15803d; }
@@ -273,9 +409,10 @@
             align-items: center;
             font-size: 11px;
             font-weight: 700;
-            padding: 3px 9px;
+            padding: 3px 10px;
             border-radius: 99px;
             text-transform: capitalize;
+            white-space: nowrap;
         }
         .badge-status.pending   { background: #fef3c7; color: #b45309; }
         .badge-status.confirmed { background: #e0e7ff; color: #4338ca; }
@@ -301,25 +438,30 @@
 </head>
 <body>
 
+@php
+    $currentRest = $restaurant ?? ($r ?? null);
+    $restId = $currentRest?->id ?? 1;
+@endphp
+
 <!-- SIDEBAR -->
 <aside>
     <div class="brand-header">
         <div class="brand-box">
-            <div class="brand-avatar">{{ strtoupper(substr($restaurant->name ?? 'TB', 0, 2)) }}</div>
+            <div class="brand-avatar">{{ strtoupper(substr($currentRest->name ?? 'TB', 0, 2)) }}</div>
             <div class="brand-info">
-                <h2>{{ Str::limit($restaurant->name ?? 'Tasty Bites', 16) }}</h2>
+                <h2>{{ Str::limit($currentRest->name ?? 'Tasty Bites', 15) }}</h2>
                 <span>Restaurant Owner</span>
             </div>
         </div>
     </div>
 
     <div class="nav-section">
-        <a href="{{ route('dashboard.orders', $restaurant->id) }}" class="nav-item {{ request()->routeIs('dashboard.orders*') ? 'active' : '' }}">
+        <a href="{{ route('dashboard.orders', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.orders') ? 'active' : '' }}">
             <span class="icon">📊</span>
             <span>Dashboard</span>
         </a>
 
-        <a href="{{ route('dashboard.orders', $restaurant->id) }}" class="nav-item">
+        <a href="{{ route('dashboard.orders', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.orders') ? 'active' : '' }}">
             <span class="icon">📋</span>
             <span>Live Orders</span>
             @if(isset($pendingCount) && $pendingCount > 0)
@@ -327,42 +469,42 @@
             @endif
         </a>
 
-        <a href="{{ route('dashboard.orders', $restaurant->id) }}" class="nav-item">
+        <a href="{{ route('dashboard.history', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.history*') ? 'active' : '' }}">
             <span class="icon">📦</span>
             <span>Orders History</span>
         </a>
 
-        <a href="{{ route('dashboard.menu', $restaurant->id) }}" class="nav-item {{ request()->routeIs('dashboard.menu*') ? 'active' : '' }}">
+        <a href="{{ route('dashboard.menu', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.menu*') ? 'active' : '' }}">
             <span class="icon">🍔</span>
             <span>Menu Management</span>
         </a>
 
-        <a href="{{ route('dashboard.riders', $restaurant->id) }}" class="nav-item {{ request()->routeIs('dashboard.riders*') ? 'active' : '' }}">
+        <a href="{{ route('dashboard.riders', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.riders*') ? 'active' : '' }}">
             <span class="icon">🛵</span>
             <span>Riders</span>
         </a>
 
-        <a href="{{ route('dashboard.orders', $restaurant->id) }}" class="nav-item">
+        <a href="{{ route('dashboard.customers', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.customers*') ? 'active' : '' }}">
             <span class="icon">👥</span>
             <span>Customers</span>
         </a>
 
-        <a href="{{ route('dashboard.orders', $restaurant->id) }}" class="nav-item">
+        <a href="{{ route('dashboard.reports', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.reports*') ? 'active' : '' }}">
             <span class="icon">📈</span>
             <span>Reports</span>
         </a>
 
-        <a href="{{ route('dashboard.settings', $restaurant->id) }}" class="nav-item {{ request()->routeIs('dashboard.settings*') ? 'active' : '' }}">
+        <a href="{{ route('dashboard.settings', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.settings*') ? 'active' : '' }}">
             <span class="icon">⚙️</span>
             <span>Settings</span>
         </a>
 
-        <a href="{{ route('dashboard.connect-whatsapp', $restaurant->id) }}" class="nav-item {{ request()->routeIs('dashboard.connect-whatsapp*') ? 'active' : '' }}">
+        <a href="{{ route('dashboard.connect-whatsapp', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.connect-whatsapp*') ? 'active' : '' }}">
             <span class="icon">🤖</span>
             <span>Bot Settings</span>
         </a>
 
-        <form method="POST" action="{{ route('dashboard.logout', $restaurant->id) }}" style="margin-top: auto;">
+        <form method="POST" action="{{ route('dashboard.logout', $restId) }}" style="margin-top: auto;">
             @csrf
             <button type="submit" class="nav-item" style="width: 100%; background: none; border: none; cursor: pointer; text-align: left;">
                 <span class="icon">🚪</span>
@@ -377,7 +519,7 @@
     <header>
         <div class="header-title">
             <h1>@yield('header_title', 'Dashboard')</h1>
-            <p>@yield('header_subtitle', 'Welcome back, ' . ($restaurant->name ?? 'Hassan') . '!')</p>
+            <p>@yield('header_subtitle', 'Welcome back, ' . ($currentRest->name ?? 'Owner') . '!')</p>
         </div>
 
         <div class="header-actions">
@@ -387,11 +529,11 @@
             </div>
 
             <div class="user-profile">
-                <div class="avatar">{{ strtoupper(substr($restaurant->name ?? 'H', 0, 1)) }}</div>
+                <div class="avatar">{{ strtoupper(substr($currentRest->name ?? 'TB', 0, 2)) }}</div>
                 <div class="user-info">
-                    <div class="user-name">{{ $restaurant->name }}</div>
+                    <div class="user-name">{{ $currentRest->name ?? 'Restaurant Owner' }}</div>
                 </div>
-                <form method="POST" action="{{ route('dashboard.logout', $restaurant->id) }}" style="display:inline; margin-left:8px;">
+                <form method="POST" action="{{ route('dashboard.logout', $restId) }}" style="display:inline; margin-left:8px;">
                     @csrf
                     <button type="submit" class="logout-link" title="Sign out">🚪</button>
                 </form>
@@ -401,7 +543,7 @@
 
     <main>
         @if(session('success'))
-            <div style="background: #eaf4ee; border: 1px solid #c0dd97; color: #166534; padding: 12px 18px; border-radius: 12px; margin-bottom: 20px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 12px 18px; border-radius: 12px; margin-bottom: 20px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
                 <span>✓</span> {{ session('success') }}
             </div>
         @endif

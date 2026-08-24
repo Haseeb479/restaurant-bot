@@ -90,16 +90,10 @@
                     </div>
                 </div>
 
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label class="form-label">WhatsApp Phone ID</label>
-                        <input class="form-control" name="wa_phone_id" value="{{ old('wa_phone_id') }}" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">WhatsApp Access Token</label>
-                        <input class="form-control" name="wa_access_token" value="{{ old('wa_access_token') }}" required>
-                    </div>
-                </div>
+                {{-- The "WhatsApp Phone ID" and "WhatsApp Access Token" fields that
+                     used to sit here were required, then thrown away: they belonged
+                     to the Meta Cloud API integration, which no longer exists.
+                     Owners connect by scanning a QR code from their dashboard. --}}
 
                 <div class="form-grid">
                     <div class="form-group">

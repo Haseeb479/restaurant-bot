@@ -7,11 +7,14 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { MessageRouter } from './src/handlers/MessageRouter.js';
 import { InternalServer } from './src/server/InternalServer.js';
+import { sessionManager } from './src/services/SessionManager.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
-// Load bot-specific env (.env.llm in the restaurant-bot root)
+// Canonical config lives in the project .env (shared with Laravel). An optional
+// legacy .env.llm may exist for older setups; if present it loads first and wins.
+// New installs only need .env.
 dotenv.config({ path: path.resolve(__dirname, '../.env.llm') });
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
@@ -114,7 +117,7 @@ async function initBot(cleanSession = false) {
                     scale:  8,
                     color: { dark: '#0e0e10', light: '#ffffff' },
                 });
-                internalServer.setQr(qr, qrDataUrl);
+                internalServer.setQr(qrDataUrl);
             } catch (err) {
                 console.error('❌ QR Data URL generation error:', err.message);
             }
@@ -143,8 +146,16 @@ async function initBot(cleanSession = false) {
             console.log(`🌐 Internal API: http://localhost:${INTERNAL_PORT}`);
             console.log('');
 
-            // Preload restaurant & menu data immediately
+            // Preload restaurant & menu data immediately, then pin the restaurant
+            // id so bot-status / error syncs have a stable DB target that survives
+            // a later disconnect (when botNumber gets cleared).
             await router.chat.restaurants.preload(botNumber);
+            try {
+                const linked = await router.chat.restaurants.getByBotNumber(botNumber);
+                if (linked?.id) internalServer.setRestaurantId(linked.id);
+            } catch (e) {
+                // Non-fatal: status still syncs by botNumber as a fallback.
+            }
         });
 
         client.on('message', (msg) => router.handle(msg));

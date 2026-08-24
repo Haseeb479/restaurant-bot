@@ -1,2 +1,13 @@
 User-agent: *
-Disallow:
+# Tracking links contain the code that stands in for a login, and customers
+# forward them freely. The pages themselves also send `noindex` (which is what
+# actually de-indexes an already-crawled URL); this keeps a well-behaved crawler
+# from fetching the order in the first place.
+Disallow: /track
+# Uploaded menu files (images, spreadsheets, PDFs) belong to one tenant each.
+Disallow: /uploads/
+Disallow: /storage/
+# Owner + super-admin surfaces. Nothing here is public.
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /restaurant/register

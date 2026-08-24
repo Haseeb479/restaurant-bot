@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Restaurant;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 
 class RestaurantController extends Controller
@@ -127,25 +128,6 @@ class RestaurantController extends Controller
         ]);
     }
 
-    /**
-     * GET /api/restaurant-by-phone/{phone}
-     *
-     * Backwards-compatible lookup by wa_phone_id (used by the Meta webhook path).
-     */
-    public function getByPhone(string $phone)
-    {
-        $restaurant = Restaurant::where('wa_phone_id', $phone)
-            ->where('is_active', true)
-            ->with(['menuItems', 'categories'])
-            ->first();
-
-        if (!$restaurant) {
-            return response()->json(['error' => 'Restaurant not found'], 404);
-        }
-
-        return response()->json($restaurant);
-    }
-
     // ── Web Routes (self-service restaurant registration) ──────────────────────
 
     /**
@@ -165,20 +147,24 @@ class RestaurantController extends Controller
             'name'            => 'required|string|max:255',
             'whatsapp_number' => 'required|string|unique:restaurants',
             'owner_phone'     => 'required|string',
-            'owner_password'  => 'required|string|min:4',
+            'owner_password'  => 'required|string|min:12',
             'city'            => 'nullable|string|max:100',
+            'address'         => 'nullable|string|max:500',
         ]);
 
-        $restaurant = Restaurant::create([
-            ...$request->only(['name', 'whatsapp_number', 'owner_phone', 'city', 'address']),
-            'owner_password' => bcrypt($request->owner_password),
-            'plan'           => 'trial',
-            'is_active'      => true,
-            'is_open'        => true,
-        ]);
+        $restaurant = new Restaurant(
+            $request->only(['name', 'whatsapp_number', 'owner_phone', 'city', 'address'])
+        );
+        $restaurant->plan           = 'trial';
+        $restaurant->is_active      = true;
+        $restaurant->is_open        = true;
+        $restaurant->owner_password = Hash::make($request->input('owner_password'));
+        $restaurant->save();
 
         // Automatically log owner into dashboard session
+        $request->session()->regenerate();
         session(["restaurant_{$restaurant->id}" => true]);
+        session(["restaurant_{$restaurant->id}_login_time" => now()->toIso8601String()]);
 
         return redirect()
             ->route('dashboard.connect-whatsapp', ['id' => $restaurant->id])

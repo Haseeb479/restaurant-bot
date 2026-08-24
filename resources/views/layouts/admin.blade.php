@@ -3,98 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Dashboard') — WhatsApp Bot Super Admin</title>
-    <!-- Fonts & Icons -->
+    <title>@yield('title', 'Super Admin') — WhatsApp Ordering Platform</title>
+
+    <!-- Plus Jakarta Sans Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         :root {
             --sidebar-bg: #0f172a;
-            --sidebar-hover: #1e293b;
+            --sidebar-hover: rgba(255, 255, 255, 0.06);
             --sidebar-active: #4f46e5;
             --sidebar-text: #94a3b8;
             --sidebar-text-active: #ffffff;
-            --main-bg: #f8fafc;
+            --bg-page: #f8fafc;
             --card-bg: #ffffff;
             --border-color: #e2e8f0;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: var(--main-bg);
-            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text-primary);
             min-height: 100vh;
             display: flex;
+            font-size: 13px;
+            line-height: 1.5;
         }
 
         /* SIDEBAR */
         aside {
             width: 250px;
-            background: var(--sidebar-bg);
-            min-height: 100vh;
+            background-color: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            flex-shrink: 0;
             display: flex;
             flex-direction: column;
+            border-right: 1px solid #1e293b;
             position: fixed;
             top: 0;
-            left: 0;
             bottom: 0;
+            left: 0;
             z-index: 100;
-            border-right: 1px solid rgba(255, 255, 255, 0.06);
             overflow-y: auto;
         }
 
         .brand-header {
-            padding: 20px 20px 16px;
+            padding: 24px 20px 20px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            gap: 12px;
+            border-bottom: 1px solid #1e293b;
         }
 
         .brand-box {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
 
         .brand-icon {
             width: 36px;
             height: 36px;
-            background: #22c55e;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 18px;
             color: #fff;
-            font-size: 20px;
-            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
         }
 
         .brand-info h2 {
             font-size: 15px;
-            font-weight: 700;
-            color: #fff;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: -0.01em;
             line-height: 1.2;
         }
 
         .brand-info span {
             font-size: 11px;
-            color: #94a3b8;
-            font-weight: 500;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
         .nav-section {
-            padding: 16px 12px;
-            flex: 1;
+            padding: 18px 12px;
             display: flex;
             flex-direction: column;
             gap: 4px;
+            flex: 1;
         }
 
         .nav-item {
@@ -125,15 +132,6 @@
             font-size: 16px;
             width: 20px;
             text-align: center;
-        }
-
-        .nav-item .badge {
-            margin-left: auto;
-            font-size: 11px;
-            background: rgba(255, 255, 255, 0.15);
-            padding: 2px 7px;
-            border-radius: 99px;
-            color: #fff;
         }
 
         .nav-sub-list {
@@ -183,7 +181,7 @@
         }
 
         .header-title h1 {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 800;
             color: #0f172a;
             letter-spacing: -0.02em;
@@ -231,12 +229,14 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
-            font-weight: 700;
-            color: #334155;
+            font-size: 12px;
+            font-weight: 800;
+            color: #475569;
         }
 
-        .user-info {
+        .user-meta {
+            display: flex;
+            flex-direction: column;
             line-height: 1.3;
         }
 
@@ -267,6 +267,170 @@
             padding: 28px 32px 60px;
             flex: 1;
         }
+
+        /* ── GLOBAL UI SYSTEM COMPONENTS ── */
+        .panel-card {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+            margin-bottom: 24px;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .panel-title h3 {
+            font-size: 15px;
+            font-weight: 800;
+            color: #0f172a;
+        }
+
+        .panel-title p {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
+        /* DATA TABLES */
+        .data-table, .custom-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        .data-table th, .custom-table th {
+            font-size: 11px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 12px 14px;
+            border-bottom: 1.5px solid #e2e8f0;
+            background: #f8fafc;
+        }
+
+        .data-table td, .custom-table td {
+            font-size: 13px;
+            padding: 13px 14px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #334155;
+            vertical-align: middle;
+        }
+
+        .data-table tr:hover td, .custom-table tr:hover td {
+            background: #fafafa;
+        }
+
+        /* METRIC CARDS */
+        .metric-card {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .metric-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .metric-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 8px;
+            line-height: 1.2;
+        }
+
+        .metric-footer {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: #64748b;
+        }
+
+        .metric-icon-box {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        .metric-icon-box.green  { background: #f0fdf4; color: #16a34a; }
+        .metric-icon-box.blue   { background: #eff6ff; color: #2563eb; }
+        .metric-icon-box.orange { background: #fff7ed; color: #ea580c; }
+        .metric-icon-box.red    { background: #fef2f2; color: #dc2626; }
+        .metric-icon-box.purple { background: #faf5ff; color: #7e22ce; }
+
+        .sub-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 99px;
+        }
+        .sub-badge.green  { background: #dcfce7; color: #166534; }
+        .sub-badge.blue   { background: #dbeafe; color: #1e40af; }
+        .sub-badge.orange { background: #ffedd5; color: #9a3412; }
+        .sub-badge.red    { background: #fee2e2; color: #991b1b; }
+
+        /* BUTTONS */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 8px 16px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.15s ease;
+        }
+        .btn-primary {
+            background: #4f46e5;
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
+        }
+        .btn-primary:hover { background: #4338ca; }
+
+        .btn-secondary {
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            color: #334155;
+        }
+        .btn-secondary:hover { background: #f1f5f9; }
+
+        .btn-success {
+            background: #16a34a;
+            color: #ffffff;
+        }
+        .btn-success:hover { background: #15803d; }
 
         /* PILLS & BADGES */
         .badge {
@@ -369,6 +533,7 @@
 
 <!-- MAIN CONTENT WRAPPER -->
 <div class="main-wrapper">
+    <!-- TOPBAR -->
     <header>
         <div class="header-title">
             <h1>@yield('header_title', 'Dashboard')</h1>
@@ -378,27 +543,30 @@
         <div class="header-actions">
             <div class="date-picker-btn">
                 <span>📅</span>
-                <span>{{ now()->subDays(6)->format('M d') }} – {{ now()->format('M d, Y') }} ▾</span>
+                <span>{{ now()->subDays(6)->format('M d') }} – {{ now()->format('M d, Y') }}</span>
+                <span>▾</span>
             </div>
 
             <div class="user-profile">
                 <div class="avatar">SA</div>
-                <div class="user-info">
-                    <div class="user-name">Super Admin</div>
-                    <div class="user-email">superadmin@platform.com</div>
+                <div class="user-meta">
+                    <span class="user-name">Super Admin</span>
+                    <span class="user-email">superadmin@platform.com</span>
                 </div>
-                <form method="POST" action="{{ route('admin.logout') }}" style="display:inline; margin-left:8px;">
+                <form method="POST" action="{{ route('admin.logout') }}" style="margin-left: 8px;">
                     @csrf
-                    <button type="submit" class="logout-link" title="Sign out">🚪</button>
+                    <button type="submit" class="logout-link" title="Sign Out">🚪</button>
                 </form>
             </div>
         </div>
     </header>
 
+    <!-- DYNAMIC VIEW CONTENT -->
     <main>
         @if(session('success'))
-            <div style="background: #eaf4ee; border: 1px solid #c0dd97; color: #166534; padding: 12px 18px; border-radius: 12px; margin-bottom: 24px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
-                <span>✓</span> {{ session('success') }}
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 12px 18px; border-radius: 12px; margin-bottom: 20px; font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 8px;">
+                <span>✓</span>
+                <span>{{ session('success') }}</span>
             </div>
         @endif
 

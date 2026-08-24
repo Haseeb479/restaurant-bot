@@ -192,6 +192,12 @@
                         <input type="text" name="address" class="form-control" value="{{ old('address', $restaurant->address) }}" placeholder="e.g. Main Boulevard, Phase 5">
                     </div>
                 </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Opening Hours</label>
+                    <input type="text" name="hours" class="form-control" value="{{ old('hours', $restaurant->hours) }}" placeholder="e.g. 10 AM – 11 PM">
+                    <div class="form-hint">Shown to customers when you're closed, and used by the bot to answer "what time do you open?"</div>
+                </div>
             </div>
 
             <!-- DELIVERY RULES -->
