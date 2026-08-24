@@ -79,8 +79,11 @@
                 <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">
                     Owner Dashboard Password <span style="color: #ef4444;">*</span>
                 </label>
-                <input type="password" name="owner_password" value="{{ old('owner_password') }}" required placeholder="••••••••••••" style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 13px; outline: none; background: #f8fafc;">
-                <span style="font-size: 11px; color: #94a3b8; margin-top: 4px; display: block;">Password the owner uses to sign into /dashboard/{id}/login</span>
+                <div style="position: relative;">
+                    <input type="password" id="owner_password" name="owner_password" value="{{ old('owner_password') }}" required placeholder="••••••" style="width: 100%; padding: 10px 44px 10px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 13px; outline: none; background: #f8fafc; box-sizing: border-box;">
+                    <button type="button" onclick="togglePw('owner_password', this)" tabindex="-1" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:17px;color:#94a3b8;padding:2px;" aria-label="Show/hide password">👁</button>
+                </div>
+                <span style="font-size: 11px; color: #94a3b8; margin-top: 4px; display: block;">Password the owner uses to sign into /dashboard/{id}/login (min 6 characters)</span>
             </div>
 
             <!-- STEP 3: SUBSCRIPTION PLAN & DELIVERY RULES -->
@@ -127,5 +130,21 @@
         </form>
     </div>
 </div>
+
+
+@push('scripts')
+<script>
+function togglePw(id, btn) {
+    const inp = document.getElementById(id);
+    if (inp.type === 'password') {
+        inp.type = 'text';
+        btn.textContent = '🙈';
+    } else {
+        inp.type = 'password';
+        btn.textContent = '👁';
+    }
+}
+</script>
+@endpush
 
 @endsection

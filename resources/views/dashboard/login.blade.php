@@ -107,7 +107,7 @@
         }
         .input-wrap input {
             width: 100%;
-            padding: 12px 16px;
+            padding: 12px 44px 12px 16px;
             border: 1px solid #e2e8f0;
             border-radius: 12px;
             font-size: 14px;
@@ -115,12 +115,29 @@
             background: #f8fafc;
             color: #0f172a;
             font-family: inherit;
+            box-sizing: border-box;
         }
         .input-wrap input:focus {
             border-color: #4f46e5;
             background: #ffffff;
             box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
         }
+        .toggle-pw {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #94a3b8;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            font-size: 18px;
+            line-height: 1;
+        }
+        .toggle-pw:hover { color: #4f46e5; }
 
         .btn-submit {
             width: 100%;
@@ -223,7 +240,8 @@
             <div class="form-group">
                 <label class="form-label">Owner Password</label>
                 <div class="input-wrap">
-                    <input type="password" name="password" required placeholder="••••••••••••" autofocus>
+                    <input type="password" id="password" name="password" required placeholder="••••••••" autofocus>
+                    <button type="button" class="toggle-pw" onclick="togglePw('password', this)" tabindex="-1" aria-label="Show/hide password">👁</button>
                 </div>
             </div>
 
@@ -232,10 +250,22 @@
 
         <div class="security-badge">
             <span>🔒</span>
-            <span>Isolated Tenant Session — Protected & Encrypted</span>
+            <span>Isolated Tenant Session — Protected &amp; Encrypted</span>
         </div>
     </div>
 </div>
 
+<script>
+function togglePw(id, btn) {
+    const inp = document.getElementById(id);
+    if (inp.type === 'password') {
+        inp.type = 'text';
+        btn.textContent = '🙈';
+    } else {
+        inp.type = 'password';
+        btn.textContent = '👁';
+    }
+}
+</script>
 </body>
 </html>

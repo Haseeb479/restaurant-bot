@@ -147,7 +147,7 @@ class RestaurantController extends Controller
             'name'            => 'required|string|max:255',
             'whatsapp_number' => 'required|string|unique:restaurants',
             'owner_phone'     => 'required|string',
-            'owner_password'  => 'required|string|min:12',
+            'owner_password'  => 'required|string|min:6',
             'city'            => 'nullable|string|max:100',
             'address'         => 'nullable|string|max:500',
         ]);
