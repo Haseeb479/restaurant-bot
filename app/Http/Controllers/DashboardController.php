@@ -116,8 +116,8 @@ class DashboardController extends Controller
         $this->authCheck($id);
         $r = Restaurant::withCount(['menuItems' => fn($q) => $q->where('is_available', true)])->findOrFail($id);
 
-        $orders      = $r->orders()->with(['items', 'rider', 'customer'])->orderBy('created_at', 'desc')->paginate(20);
-        $todayOrders = $r->todayOrders()->with(['items', 'rider', 'customer'])->get();
+        $orders      = $r->orders()->with('items')->orderBy('created_at', 'desc')->paginate(20);
+        $todayOrders = $r->todayOrders()->with('items')->get();
         $riders      = $r->riders()->get();
         $menuItems   = $r->menuItems()->get();
 
@@ -159,8 +159,8 @@ class DashboardController extends Controller
 
         // Top selling items
         $topSellingItems = \App\Models\OrderItem::whereHas('order', fn($q) => $q->where('restaurant_id', $r->id))
-            ->selectRaw('item_name, sum(quantity) as total_qty')
-            ->groupBy('item_name')
+            ->selectRaw('name, sum(quantity) as total_qty')
+            ->groupBy('name')
             ->orderByDesc('total_qty')
             ->take(5)
             ->get();

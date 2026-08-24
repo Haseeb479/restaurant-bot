@@ -1098,7 +1098,7 @@
                     <div class="top-item-row">
                         <div class="top-item-rank-name">
                             <span class="top-item-rank">{{ $idx + 1 }}</span>
-                            <span>🍽️ {{ $ti->item_name }}</span>
+                            <span>🍽️ {{ $ti->name ?? ($ti->item_name ?? 'Special Dish') }}</span>
                         </div>
                         <span class="top-item-count">{{ $ti->total_qty }} orders</span>
                     </div>
