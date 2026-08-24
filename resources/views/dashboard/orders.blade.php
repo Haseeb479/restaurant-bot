@@ -6,545 +6,1154 @@
 @section('content')
 
 <style>
-    /* 4-COLUMN MAIN GRID */
-    .owner-grid {
-        display: grid;
-        grid-template-columns: 1.1fr 1.6fr 1.1fr 1.2fr;
-        gap: 16px;
-        margin-bottom: 24px;
-        align-items: stretch;
-    }
-
-    .panel-box {
-        background: #ffffff;
-        border: 1px solid var(--border-color);
-        border-radius: 16px;
-        padding: 18px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    /* Global Dashboard Styles */
+    .dashboard-container {
         display: flex;
         flex-direction: column;
-        height: 100%;
+        gap: 22px;
+        color: #0f172a;
     }
 
-    .panel-box-header {
+    /* Top Stats Grid (5 Cards) */
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 16px;
+    }
+
+    .stat-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 18px;
+        padding: 18px 20px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+        transition: transform 0.2s, box-shadow 0.2s;
+        position: relative;
+        overflow: hidden;
+    }
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+    }
+
+    .stat-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 12px;
+    }
+    .stat-icon-wrap {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+    }
+    .stat-icon-wrap.purple { background: #ede9fe; color: #7c3aed; }
+    .stat-icon-wrap.green  { background: #dcfce7; color: #16a34a; }
+    .stat-icon-wrap.blue   { background: #e0f2fe; color: #0284c7; }
+    .stat-icon-wrap.orange { background: #ffedd5; color: #ea580c; }
+    .stat-icon-wrap.teal   { background: #ccfbf1; color: #0d9488; }
+
+    .stat-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #64748b;
+        margin-bottom: 2px;
+    }
+    .stat-val {
+        font-size: 24px;
+        font-weight: 800;
+        color: #0f172a;
+        letter-spacing: -0.5px;
+        line-height: 1.1;
+    }
+
+    .stat-footer {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 14px;
+        font-size: 11px;
+        color: #94a3b8;
+        padding-top: 10px;
+        border-top: 1px solid #f8fafc;
+    }
+    .stat-growth {
+        color: #16a34a;
+        font-weight: 700;
+        background: #f0fdf4;
+        padding: 2px 6px;
+        border-radius: 6px;
+    }
+    .stat-link {
+        color: #6366f1;
+        font-weight: 700;
+        text-decoration: none;
+    }
+    .stat-link:hover { text-decoration: underline; }
+
+    /* Middle 3-Column Section */
+    .middle-grid {
+        display: grid;
+        grid-template-columns: 1.1fr 1.8fr 1.1fr;
+        gap: 18px;
+        align-items: stretch;
+    }
+
+    .panel-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
         padding-bottom: 12px;
         border-bottom: 1px solid #f1f5f9;
     }
-
-    .panel-box-title h3 {
-        font-size: 14px;
+    .panel-title {
+        font-size: 15px;
         font-weight: 800;
         color: #0f172a;
         display: flex;
         align-items: center;
         gap: 8px;
     }
-    .panel-box-title p {
+    .badge-count {
+        background: #ede9fe;
+        color: #7c3aed;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 9999px;
+    }
+
+    /* Live Orders List */
+    .live-orders-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        overflow-y: auto;
+        max-height: 480px;
+        padding-right: 4px;
+    }
+    .live-order-item {
+        background: #ffffff;
+        border: 1px solid #f1f5f9;
+        border-radius: 14px;
+        padding: 12px 14px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        color: inherit;
+        transition: all 0.15s ease;
+    }
+    .live-order-item:hover {
+        border-color: #cbd5e1;
+        background: #f8fafc;
+        transform: translateX(2px);
+    }
+    .live-order-item.active {
+        border-color: #818cf8;
+        background: #f5f3ff;
+        box-shadow: 0 0 0 1px #818cf8;
+    }
+    .wa-avatar-box {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: #dcfce7;
+        color: #16a34a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+    .order-meta-info {
+        flex-grow: 1;
+        min-width: 0;
+    }
+    .order-meta-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 2px;
+    }
+    .order-code-text {
+        font-size: 12px;
+        font-weight: 800;
+        color: #0f172a;
+    }
+    .order-time-text {
+        font-size: 11px;
+        color: #94a3b8;
+    }
+    .order-customer-text {
+        font-size: 11px;
+        color: #64748b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .order-item-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 6px;
+    }
+    .status-pill {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 6px;
+        text-transform: capitalize;
+    }
+    .status-pill.pending   { background: #fef3c7; color: #b45309; }
+    .status-pill.confirmed { background: #dcfce7; color: #15803d; }
+    .status-pill.preparing { background: #ede9fe; color: #6d28d9; }
+    .status-pill.out_for_delivery { background: #e0f2fe; color: #0369a1; }
+    .status-pill.delivered { background: #f1f5f9; color: #475569; }
+    .status-pill.cancelled { background: #fee2e2; color: #b91c1c; }
+
+    .order-price-bold {
+        font-size: 12px;
+        font-weight: 800;
+        color: #4f46e5;
+    }
+
+    /* Center Column: Order Details & Live Tracking */
+    .order-detail-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 14px;
+    }
+    .order-detail-title h3 {
+        font-size: 16px;
+        font-weight: 800;
+        color: #0f172a;
+    }
+    .order-detail-title p {
+        font-size: 11px;
+        color: #94a3b8;
+        margin-top: 2px;
+    }
+
+    .customer-info-box {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        background: #f8fafc;
+        border: 1px solid #f1f5f9;
+        border-radius: 14px;
+        padding: 12px 14px;
+        margin-bottom: 16px;
+    }
+    .info-col-label {
+        font-size: 10px;
+        font-weight: 700;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+    .info-col-val {
+        font-size: 12px;
+        font-weight: 700;
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .info-col-sub {
         font-size: 11px;
         color: #64748b;
         margin-top: 1px;
     }
 
-    /* ORDER CARD LIST */
-    .order-card-list {
+    /* Live Route Map Graphic Mock */
+    .route-map-preview {
+        background: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 50%, #f5f3ff 100%);
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        height: 120px;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 30px;
+    }
+    .map-distance-badge {
+        position: absolute;
+        top: 10px;
+        right: 12px;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid #cbd5e1;
+        padding: 3px 8px;
+        border-radius: 9999px;
+        font-size: 10px;
+        font-weight: 700;
+        color: #0f172a;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    }
+    .map-pin {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        z-index: 2;
+    }
+    .map-pin.store { background: #4f46e5; color: #fff; }
+    .map-pin.dest  { background: #7c3aed; color: #fff; }
+    .route-line-svg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+    }
+
+    /* Order Items Table */
+    .order-items-list {
         display: flex;
         flex-direction: column;
-        gap: 10px;
-        flex: 1;
-        overflow-y: auto;
-        max-height: 520px;
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+    .order-item-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 12px;
+        padding: 4px 0;
+    }
+    .order-item-qty-name {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #334155;
+        font-weight: 600;
+    }
+    .order-item-qty-badge {
+        font-weight: 800;
+        color: #4f46e5;
+    }
+    .order-item-price {
+        font-weight: 700;
+        color: #0f172a;
+    }
+    .order-bill-divider {
+        height: 1px;
+        background: #e2e8f0;
+        margin: 8px 0;
+    }
+    .order-total-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 14px;
+        font-weight: 800;
+        color: #0f172a;
+        padding-top: 4px;
     }
 
-    .order-item-card {
+    /* Assigned Rider Block */
+    .assigned-rider-box {
         background: #f8fafc;
         border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 12px 14px;
-        text-decoration: none;
-        color: inherit;
-        transition: all 0.15s ease;
-        display: block;
-    }
-    .order-item-card:hover {
-        background: #f1f5f9;
-        border-color: #cbd5e1;
-    }
-    .order-item-card.active {
-        background: #ffffff;
-        border-color: #4f46e5;
-        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.12);
-    }
-
-    .oic-top {
+        border-radius: 14px;
+        padding: 10px 14px;
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        margin-bottom: 6px;
+        justify-content: space-between;
+        margin: 14px 0;
     }
-    .oic-code { font-size: 13px; font-weight: 800; color: #0f172a; }
-    .oic-time { font-size: 11px; color: #94a3b8; }
-
-    .oic-cust { font-size: 12px; color: #334155; font-weight: 600; margin-bottom: 2px; }
-    .oic-addr { font-size: 11px; color: #64748b; margin-bottom: 6px; }
-
-    .oic-bottom {
+    .rider-avatar-info {
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        font-size: 11px;
-        color: #475569;
-        border-top: 1px solid #edf2f7;
-        padding-top: 6px;
+        gap: 10px;
     }
-    .oic-total { font-weight: 800; color: #0f172a; font-size: 12px; }
-
-    /* ORDER DETAIL PANEL */
-    .detail-section { margin-bottom: 14px; }
-    .detail-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
-    .detail-label { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; }
-    .detail-val { font-size: 12px; font-weight: 600; color: #0f172a; margin-top: 2px; }
-
-    .items-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
-    .items-table td { padding: 6px 0; font-size: 12px; border-bottom: 1px dashed #f1f5f9; }
-    .items-table .t-right { text-align: right; font-weight: 700; color: #0f172a; }
-
-    /* STATUS FLOW BUTTONS */
-    .status-stepper {
+    .rider-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        background: #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+    }
+    .rider-name-status h4 {
+        font-size: 12px;
+        font-weight: 700;
+        color: #0f172a;
         display: flex;
         align-items: center;
         gap: 6px;
-        background: #f8fafc;
-        padding: 6px;
-        border-radius: 10px;
-        border: 1px solid #e2e8f0;
-        margin-bottom: 14px;
-        overflow-x: auto;
     }
-    .step-btn {
-        flex: 1;
-        padding: 6px 8px;
-        font-size: 11px;
+    .rider-status-dot {
+        font-size: 9px;
+        background: #dcfce7;
+        color: #16a34a;
+        padding: 1px 6px;
+        border-radius: 9999px;
         font-weight: 700;
-        border-radius: 6px;
-        border: none;
-        cursor: pointer;
-        background: #ffffff;
-        color: #64748b;
-        white-space: nowrap;
-        text-align: center;
-        transition: 0.15s;
     }
-    .step-btn.current {
+    .rider-phone-sub {
+        font-size: 11px;
+        color: #64748b;
+    }
+    .btn-call-rider {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: #eff6ff;
+        color: #2563eb;
+        border: 1px solid #bfdbfe;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        font-size: 14px;
+    }
+
+    /* Action Buttons Row */
+    .action-btn-row {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+    }
+    .btn-action-primary {
+        flex: 1;
+        padding: 10px;
         background: #4f46e5;
         color: #ffffff;
-        box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
+        border: none;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.15s;
     }
+    .btn-action-primary:hover { background: #4338ca; }
+    .btn-action-secondary {
+        padding: 10px 16px;
+        background: #f1f5f9;
+        color: #334155;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+    .btn-action-secondary:hover { background: #e2e8f0; }
 
-    /* RIDER ASSIGNMENT BOX */
-    .dispatch-box {
-        background: #fffbeb;
-        border: 1px solid #fef3c7;
+    /* Right Column: Active Riders List */
+    .rider-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 16px;
+        overflow-y: auto;
+        max-height: 360px;
+    }
+    .rider-item-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 12px;
+        background: #f8fafc;
+        border: 1px solid #f1f5f9;
         border-radius: 12px;
-        padding: 12px;
+        transition: all 0.15s;
+    }
+    .rider-item-card:hover {
+        background: #f1f5f9;
+    }
+    .rider-meta-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .rider-pic {
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        background: #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+    }
+    .rider-tag {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 6px;
+    }
+    .rider-tag.delivery { background: #dcfce7; color: #16a34a; }
+    .rider-tag.pickup   { background: #e0f2fe; color: #0284c7; }
+    .rider-tag.free     { background: #f1f5f9; color: #64748b; }
+    .rider-tag.offline  { background: #fee2e2; color: #991b1b; }
+
+    .rider-actions-bottom {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
         margin-top: auto;
     }
-    .dispatch-box .notice {
+    .btn-sub-action {
+        padding: 10px;
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        border-radius: 10px;
         font-size: 11px;
         font-weight: 700;
-        color: #b45309;
-        margin-bottom: 8px;
-        display: block;
+        color: #334155;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .btn-sub-action:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
     }
 
-    /* RIDERS LIST */
-    .rider-row {
+    /* Bottom 4 Analytics Cards */
+    .bottom-analytics-grid {
+        display: grid;
+        grid-template-columns: 1fr 1.3fr 1fr 1.2fr;
+        gap: 18px;
+    }
+
+    /* Donut Chart */
+    .donut-chart-container {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-top: 10px;
+    }
+    .donut-circle-wrap {
+        width: 100px;
+        height: 100px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .donut-center-text {
+        text-align: center;
+    }
+    .donut-center-text h4 {
+        font-size: 18px;
+        font-weight: 800;
+        color: #0f172a;
+        line-height: 1;
+    }
+    .donut-center-text p {
+        font-size: 9px;
+        color: #94a3b8;
+    }
+    .legend-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 11px;
+        flex-grow: 1;
+    }
+    .legend-item {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 10px 0;
-        border-bottom: 1px solid #f8fafc;
     }
-    .rider-info { display: flex; align-items: center; gap: 10px; }
-    .rider-avatar { width: 34px; height: 34px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 14px; }
-    .rider-name { font-size: 13px; font-weight: 700; color: #0f172a; }
-    .rider-phone { font-size: 11px; color: #64748b; }
+    .legend-bullet {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 6px;
+    }
 
-    /* MENU ITEMS LIST */
-    .menu-item-row {
+    /* Top Selling Items List */
+    .top-items-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 8px;
+    }
+    .top-item-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 9px 0;
-        border-bottom: 1px solid #f8fafc;
+        font-size: 12px;
     }
-    .menu-item-left { display: flex; align-items: center; gap: 10px; }
-    .menu-item-img { width: 34px; height: 34px; border-radius: 8px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 16px; object-fit: cover; }
-    .menu-item-name { font-size: 12px; font-weight: 700; color: #0f172a; line-height: 1.2; }
-    .menu-item-price { font-size: 11px; color: #64748b; }
+    .top-item-rank-name {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+        color: #1e293b;
+    }
+    .top-item-rank {
+        font-size: 11px;
+        color: #94a3b8;
+        width: 14px;
+    }
+    .top-item-count {
+        font-size: 11px;
+        color: #64748b;
+        font-weight: 600;
+    }
 
-    /* CUSTOMER NOTIFICATIONS ALERT FOOTER */
-    .notif-banner {
-        background: #fffbeb;
-        border: 1px solid #fde68a;
+    /* Activity Feed */
+    .activity-feed-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 8px;
+    }
+    .activity-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        font-size: 11px;
+    }
+    .activity-dot {
+        width: 18px;
+        height: 18px;
+        border-radius: 6px;
+        background: #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+    .activity-text {
+        flex-grow: 1;
+        color: #334155;
+        line-height: 1.4;
+    }
+    .activity-time {
+        font-size: 10px;
+        color: #94a3b8;
+        white-space: nowrap;
+    }
+
+    /* Bottom Notification Notice */
+    .notice-bar {
+        background: #fefce8;
+        border: 1px solid #fef08a;
         border-radius: 16px;
-        padding: 16px 20px;
+        padding: 14px 20px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 20px;
-        flex-wrap: wrap;
+        gap: 16px;
     }
-    .notif-left { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 280px; }
-    .notif-icon { font-size: 24px; background: #fef3c7; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
-    .notif-text h4 { font-size: 13px; font-weight: 800; color: #92400e; margin-bottom: 2px; }
-    .notif-text p  { font-size: 12px; color: #b45309; line-height: 1.4; }
+    .notice-content {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .notice-icon {
+        font-size: 24px;
+    }
+    .notice-text h4 {
+        font-size: 13px;
+        font-weight: 700;
+        color: #854d0e;
+    }
+    .notice-text p {
+        font-size: 11px;
+        color: #a16207;
+        margin-top: 2px;
+    }
+    .btn-test-wa {
+        padding: 8px 16px;
+        background: #ffffff;
+        border: 1px solid #fde047;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #854d0e;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+        white-space: nowrap;
+    }
 
-    @media (max-width: 1380px) {
-        .owner-grid { grid-template-columns: 1fr 1fr; }
+    @media (max-width: 1200px) {
+        .stats-row { grid-template-columns: repeat(3, 1fr); }
+        .middle-grid { grid-template-columns: 1fr; }
+        .bottom-analytics-grid { grid-template-columns: 1fr 1fr; }
     }
-    @media (max-width: 800px) {
-        .owner-grid { grid-template-columns: 1fr; }
+    @media (max-width: 768px) {
+        .stats-row { grid-template-columns: 1fr 1fr; }
+        .bottom-analytics-grid { grid-template-columns: 1fr; }
+        .notice-bar { flex-direction: column; align-items: flex-start; }
     }
 </style>
 
-<!-- MAIN 4-COLUMN DASHBOARD GRID -->
-<div class="owner-grid">
+<div class="dashboard-container">
 
-    <!-- COLUMN 1: LIVE ORDERS LIST -->
-    <div class="panel-box">
-        <div class="panel-box-header">
-            <div class="panel-box-title">
-                <h3>Live Orders <span style="width: 7px; height: 7px; border-radius: 50%; background: #16a34a; display: inline-block;"></span></h3>
-                <p>● Real-time updates</p>
+    <!-- 1. TOP 5 KPI SUMMARY CARDS -->
+    <div class="stats-row">
+        <!-- Card 1 -->
+        <div class="stat-card">
+            <div class="stat-top">
+                <div>
+                    <div class="stat-label">Live Orders</div>
+                    <div class="stat-val">{{ $liveOrdersCount }}</div>
+                </div>
+                <div class="stat-icon-wrap purple">🛍️</div>
             </div>
-            @if($pendingCount > 0)
-                <span class="badge-pill" style="background: #ef4444; color: #fff; padding: 3px 8px; border-radius: 99px; font-size: 11px; font-weight: 700;">
-                    {{ $pendingCount }} New
-                </span>
+            <div class="stat-footer">
+                <span>Active right now</span>
+                <a href="{{ route('dashboard.orders', $restaurant->id) }}" class="stat-link">View all →</a>
+            </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="stat-card">
+            <div class="stat-top">
+                <div>
+                    <div class="stat-label">Today's Revenue</div>
+                    <div class="stat-val">PKR {{ number_format($todayRevenue) }}</div>
+                </div>
+                <div class="stat-icon-wrap green">📈</div>
+            </div>
+            <div class="stat-footer">
+                <span>vs yesterday <span class="stat-growth">+18.6%</span></span>
+                <svg width="40" height="16" viewBox="0 0 40 16" fill="none"><path d="M1 14L10 8L20 12L30 3L39 7" stroke="#16a34a" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="stat-card">
+            <div class="stat-top">
+                <div>
+                    <div class="stat-label">Active Riders</div>
+                    <div class="stat-val">{{ $activeRidersCount }}</div>
+                </div>
+                <div class="stat-icon-wrap blue">🚴</div>
+            </div>
+            <div class="stat-footer">
+                <span>On delivery</span>
+                <a href="{{ route('dashboard.riders', $restaurant->id) }}" class="stat-link">View riders →</a>
+            </div>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="stat-card">
+            <div class="stat-top">
+                <div>
+                    <div class="stat-label">Total Orders</div>
+                    <div class="stat-val">{{ $totalOrdersToday }}</div>
+                </div>
+                <div class="stat-icon-wrap orange">📦</div>
+            </div>
+            <div class="stat-footer">
+                <span>Today</span>
+                <a href="{{ route('dashboard.reports', $restaurant->id) }}" class="stat-link">View report →</a>
+            </div>
+        </div>
+
+        <!-- Card 5 -->
+        <div class="stat-card">
+            <div class="stat-top">
+                <div>
+                    <div class="stat-label">Menu Items</div>
+                    <div class="stat-val">{{ $menuItemsCount }}</div>
+                </div>
+                <div class="stat-icon-wrap teal">🍽️</div>
+            </div>
+            <div class="stat-footer">
+                <span>In stock</span>
+                <a href="{{ route('dashboard.menu', $restaurant->id) }}" class="stat-link">Manage →</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. MAIN 3-COLUMN SECTION -->
+    <div class="middle-grid">
+
+        <!-- Column 1: Live Incoming Orders -->
+        <div class="panel-card">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span>Live Orders</span>
+                    <span class="badge-count">{{ $liveOrdersCount }}</span>
+                </div>
+                <span style="font-size: 11px; color: #94a3b8;">Real-time incoming</span>
+            </div>
+
+            <div class="live-orders-list">
+                @forelse($orders as $o)
+                    <a href="{{ route('dashboard.orders', [$restaurant->id, 'order_id' => $o->id]) }}" 
+                       class="live-order-item {{ ($selectedOrder && $selectedOrder->id === $o->id) ? 'active' : '' }}">
+                        <div class="wa-avatar-box">💬</div>
+                        <div class="order-meta-info">
+                            <div class="order-meta-top">
+                                <span class="order-code-text">#{{ $o->tracking_code }}</span>
+                                <span class="order-time-text">{{ $o->created_at->diffForHumans(null, true, true) }}</span>
+                            </div>
+                            <div class="order-customer-text">
+                                👤 {{ $o->customer->name ?? ($o->customer_name ?: 'Guest') }} ({{ substr($o->customer_phone ?? 'N/A', -6) }})
+                            </div>
+                            <div class="order-item-footer">
+                                <span class="status-pill {{ $o->status }}">{{ $o->status_label }}</span>
+                                <span class="order-price-bold">PKR {{ number_format($o->total) }}</span>
+                            </div>
+                        </div>
+                    </a>
+                @empty
+                    <div style="text-align: center; padding: 40px 10px; color: #94a3b8;">
+                        <div style="font-size: 32px; margin-bottom: 8px;">🍽️</div>
+                        <p style="font-weight: 700;">No live orders right now</p>
+                        <p style="font-size: 11px; margin-top: 4px;">Orders placed on WhatsApp appear here instantly.</p>
+                    </div>
+                @endforelse
+            </div>
+
+            <div style="margin-top: 14px; text-align: center; border-top: 1px solid #f8fafc; padding-top: 10px;">
+                <a href="{{ route('dashboard.history', $restaurant->id) }}" style="font-size: 11px; font-weight: 700; color: #6366f1; text-decoration: none;">View all orders history →</a>
+            </div>
+        </div>
+
+        <!-- Column 2: Order Details & Live Kitchen Tracking -->
+        <div class="panel-card">
+            @if($selectedOrder)
+                <div class="order-detail-header">
+                    <div class="order-detail-title">
+                        <h3>Order #{{ $selectedOrder->tracking_code }}</h3>
+                        <p>Placed at {{ $selectedOrder->created_at->format('h:i A') }} • {{ $selectedOrder->created_at->diffForHumans() }}</p>
+                    </div>
+                    <span class="status-pill {{ $selectedOrder->status }}" style="font-size: 11px; padding: 4px 12px;">{{ $selectedOrder->status_label }}</span>
+                </div>
+
+                <!-- Customer info & Address -->
+                <div class="customer-info-box">
+                    <div>
+                        <div class="info-col-label">👤 Customer</div>
+                        <div class="info-col-val">
+                            <span>{{ $selectedOrder->customer->name ?? ($selectedOrder->customer_name ?: 'Guest Customer') }}</span>
+                            <a href="https://wa.me/{{ preg_replace('/\D/', '', $selectedOrder->customer_phone) }}" target="_blank" style="color: #16a34a; text-decoration: none;" title="Open WhatsApp Chat">💬</a>
+                        </div>
+                        <div class="info-col-sub">{{ $selectedOrder->customer_phone }}</div>
+                    </div>
+                    <div>
+                        <div class="info-col-label">📍 Delivery Address</div>
+                        <div class="info-col-val">{{ $selectedOrder->delivery_address ?: 'Dine-in / Pickup' }}</div>
+                        <div class="info-col-sub">{{ $restaurant->city ?: 'Local Delivery' }}</div>
+                    </div>
+                </div>
+
+                <!-- Route Map Mock Graphic -->
+                <div class="route-map-preview">
+                    <span class="map-distance-badge">📍 2.3 km away</span>
+                    <div class="map-pin store">🏪</div>
+                    <svg class="route-line-svg" viewBox="0 0 300 120" preserveAspectRatio="none">
+                        <path d="M 40 60 Q 150 10 260 60" stroke="#818cf8" stroke-width="3" stroke-dasharray="6,6" fill="none"/>
+                    </svg>
+                    <div class="map-pin dest">📍</div>
+                </div>
+
+                <!-- Order Items -->
+                <div class="order-items-list">
+                    @foreach($selectedOrder->items as $item)
+                        <div class="order-item-row">
+                            <div class="order-item-qty-name">
+                                <span class="order-item-qty-badge">{{ $item->quantity }}x</span>
+                                <span>{{ $item->name ?: $item->item_name }}</span>
+                            </div>
+                            <span class="order-item-price">PKR {{ number_format($item->subtotal) }}</span>
+                        </div>
+                    @endforeach
+                    <div class="order-item-row" style="color: #64748b;">
+                        <span>Delivery Fee</span>
+                        <span>PKR {{ number_format($restaurant->delivery_fee ?? 150) }}</span>
+                    </div>
+                    <div class="order-bill-divider"></div>
+                    <div class="order-total-row">
+                        <span>Total Bill</span>
+                        <span style="color: #4f46e5; font-size: 16px;">PKR {{ number_format($selectedOrder->total) }}</span>
+                    </div>
+                </div>
+
+                <!-- Assigned Rider -->
+                <div class="assigned-rider-box">
+                    <div class="rider-avatar-info">
+                        <div class="rider-avatar">🚴</div>
+                        <div class="rider-name-status">
+                            <h4>
+                                <span>{{ $selectedOrder->rider->name ?? ($selectedOrder->rider_name ?: 'No Rider Assigned') }}</span>
+                                @if($selectedOrder->rider || $selectedOrder->rider_name)
+                                    <span class="rider-status-dot">Online</span>
+                                @endif
+                            </h4>
+                            <div class="rider-phone-sub">{{ $selectedOrder->rider->phone ?? ($selectedOrder->rider_phone ?: 'Assign rider before dispatch') }}</div>
+                        </div>
+                    </div>
+                    @if(($selectedOrder->rider && $selectedOrder->rider->phone) || $selectedOrder->rider_phone)
+                        <a href="tel:{{ $selectedOrder->rider->phone ?? $selectedOrder->rider_phone }}" class="btn-call-rider" title="Call Rider">📞</a>
+                    @endif
+                </div>
+
+                <!-- Action Buttons: Real-Time Status Transitions -->
+                <div class="action-btn-row">
+                    @if($selectedOrder->status === 'pending')
+                        <form method="POST" action="{{ route('dashboard.update-status', [$restaurant->id, $selectedOrder->id]) }}" style="flex: 1; display: flex;">
+                            @csrf
+                            <input type="hidden" name="status" value="confirmed">
+                            <button type="submit" class="btn-action-primary">✓ Mark as Confirmed</button>
+                        </form>
+                    @elseif($selectedOrder->status === 'confirmed')
+                        <form method="POST" action="{{ route('dashboard.update-status', [$restaurant->id, $selectedOrder->id]) }}" style="flex: 1; display: flex;">
+                            @csrf
+                            <input type="hidden" name="status" value="preparing">
+                            <button type="submit" class="btn-action-primary" style="background: #7c3aed;">🍳 Mark as Preparing</button>
+                        </form>
+                    @elseif($selectedOrder->status === 'preparing')
+                        <form method="POST" action="{{ route('dashboard.update-status', [$restaurant->id, $selectedOrder->id]) }}" style="flex: 1; display: flex;">
+                            @csrf
+                            <input type="hidden" name="status" value="out_for_delivery">
+                            <button type="submit" class="btn-action-primary" style="background: #0284c7;">🚴 Dispatch to Rider</button>
+                        </form>
+                    @elseif($selectedOrder->status === 'out_for_delivery')
+                        <form method="POST" action="{{ route('dashboard.update-status', [$restaurant->id, $selectedOrder->id]) }}" style="flex: 1; display: flex;">
+                            @csrf
+                            <input type="hidden" name="status" value="delivered">
+                            <button type="submit" class="btn-action-primary" style="background: #16a34a;">✅ Mark as Delivered</button>
+                        </form>
+                    @else
+                        <div style="flex: 1; text-align: center; font-weight: 700; color: #64748b; padding: 10px; background: #f8fafc; border-radius: 10px;">
+                            Order is {{ ucfirst($selectedOrder->status) }}
+                        </div>
+                    @endif
+
+                    <a href="{{ route('order.track.live', $selectedOrder->tracking_code) }}" target="_blank" class="btn-action-secondary" title="View Customer Live Tracking Page">
+                        🌐 Live Track
+                    </a>
+                </div>
+            @else
+                <div style="text-align: center; padding: 80px 20px; color: #94a3b8;">
+                    <div style="font-size: 40px; margin-bottom: 12px;">🛍️</div>
+                    <h3 style="font-size: 16px; font-weight: 700; color: #334155;">Select an order</h3>
+                    <p style="font-size: 12px; margin-top: 4px;">Click any order on the left to view its items, delivery route and customer chat.</p>
+                </div>
             @endif
         </div>
 
-        <div class="order-card-list">
-            @forelse($orders as $o)
-            <a href="?order_id={{ $o->id }}" class="order-item-card {{ ($selectedOrder && $selectedOrder->id === $o->id) ? 'active' : '' }}">
-                <div class="oic-top">
-                    <span class="oic-code">#{{ $o->tracking_code }}</span>
-                    <span class="oic-time">{{ $o->created_at->diffForHumans(null, true) }} ago</span>
+        <!-- Column 3: Active Riders & Quick Actions -->
+        <div class="panel-card">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span>Active Riders</span>
+                    <span class="badge-count">{{ $activeRidersCount }}</span>
                 </div>
-                <div class="oic-cust">👤 {{ $o->customer_name ?: 'Customer' }} ({{ $o->customer_phone }})</div>
-                <div class="oic-addr">📍 {{ Str::limit($o->delivery_address ?: 'Standard Delivery', 28) }}</div>
-                <div class="oic-bottom">
-                    <span class="badge-status {{ $o->status }}">{{ ucfirst(str_replace('_', ' ', $o->status)) }}</span>
-                    <span>{{ $o->items->count() }} Items</span>
-                    <span class="oic-total">PKR {{ number_format($o->total, 0) }}</span>
-                </div>
-            </a>
-            @empty
-            <div style="padding: 2.5rem 1rem; text-align: center; color: #94a3b8; font-size: 13px;">
-                No orders yet today.<br>Incoming bot orders will appear here in real-time.
-            </div>
-            @endforelse
-        </div>
-
-        <div style="margin-top: 14px; text-align: center;">
-            <a href="/dashboard/{{ $restaurant->id }}/orders" class="btn btn-secondary" style="width: 100%; justify-content: center;">
-                View All Orders
-            </a>
-        </div>
-    </div>
-
-    <!-- COLUMN 2: ORDER DETAIL & DISPATCH FLOW -->
-    <div class="panel-box">
-        @if($selectedOrder)
-            <div class="panel-box-header">
-                <div class="panel-box-title">
-                    <h3>Order #{{ $selectedOrder->tracking_code }}</h3>
-                    <p>Placed {{ $selectedOrder->created_at->format('M d, Y h:i A') }}</p>
-                </div>
-                <span class="badge-status {{ $selectedOrder->status }}">{{ ucfirst(str_replace('_', ' ', $selectedOrder->status)) }}</span>
+                <a href="{{ route('dashboard.riders', $restaurant->id) }}" style="font-size: 11px; font-weight: 700; color: #6366f1; text-decoration: none;">View all</a>
             </div>
 
-            <!-- Customer & Delivery Info -->
-            <div class="detail-grid-2">
-                <div>
-                    <div class="detail-label">Customer</div>
-                    <div class="detail-val">{{ $selectedOrder->customer_name ?: 'Guest Customer' }}</div>
-                    <div style="font-size: 11px; color: #64748b;">{{ $selectedOrder->customer_phone }}</div>
-                </div>
-                <div>
-                    <div class="detail-label">Delivery Address</div>
-                    <div class="detail-val">{{ $selectedOrder->delivery_address ?: 'Self Pickup / Counter' }}</div>
-                </div>
-            </div>
-
-            <!-- Items List (deduplicated display) -->
-            <div class="detail-section">
-                <div class="detail-label" style="margin-bottom: 6px;">Ordered Items</div>
-                <table class="items-table">
-                    @php
-                        $groupedItems = $selectedOrder->items->groupBy(function($item) {
-                            return strtolower(trim($item->name)) . '___' . strtolower(trim($item->size ?? ''));
-                        })->map(function($group) {
-                            $first = $group->first();
-                            $qty = $group->sum('quantity') ?: 1;
-                            $unit = $first->unit_price ?: ($first->subtotal / ($first->quantity ?: 1));
-                            $subtotal = $group->sum('subtotal') ?: ($unit * $qty);
-                            return (object)[
-                                'name' => $first->name,
-                                'size' => $first->size,
-                                'quantity' => $qty,
-                                'unit_price' => $unit,
-                                'subtotal' => $subtotal,
-                            ];
-                        });
-                    @endphp
-                    @forelse($groupedItems as $item)
-                    <tr>
-                        <td><strong>{{ $item->quantity }}x</strong> {{ $item->name }} {{ $item->size ? "({$item->size})" : '' }}</td>
-                        <td class="t-right">PKR {{ number_format($item->subtotal, 0) }}</td>
-                    </tr>
-                    @empty
-                    <tr><td colspan="2" style="color: #94a3b8; font-size: 11px;">Standard Food Order Package</td></tr>
-                    @endforelse
-                    @if($selectedOrder->delivery_charge > 0)
-                    <tr>
-                        <td style="color: #64748b;">Delivery Fee</td>
-                        <td class="t-right" style="color: #64748b;">PKR {{ number_format($selectedOrder->delivery_charge, 0) }}</td>
-                    </tr>
-                    @endif
-                    <tr style="border-top: 1.5px solid #e2e8f0;">
-                        <td><strong style="font-size: 13px;">Total Bill</strong></td>
-                        <td class="t-right" style="font-size: 14px; color: #4f46e5;">PKR {{ number_format($selectedOrder->total, 0) }}</td>
-                    </tr>
-                </table>
-            </div>
-
-            <!-- Stage Progression Buttons -->
-            <div class="detail-section">
-                <div class="detail-label" style="margin-bottom: 6px;">Update Order Status</div>
-                <form id="statusFlowForm" method="POST" action="{{ route('dashboard.update-status', [$restaurant->id, $selectedOrder->id]) }}">
-                    @csrf
-                    <input type="hidden" name="status" id="selectedStatusInput" value="{{ $selectedOrder->status }}">
-                    <input type="hidden" name="rider_name" id="formRiderName" value="{{ $selectedOrder->rider_name }}">
-                    <input type="hidden" name="rider_phone" id="formRiderPhone" value="{{ $selectedOrder->rider_phone }}">
-                    <input type="hidden" name="estimated_minutes" id="formRiderEta" value="{{ $selectedOrder->estimated_minutes ?: 30 }}">
-
-                    <div class="status-stepper">
-                        <button type="button" onclick="setOrderStatus('pending')" class="step-btn {{ $selectedOrder->status==='pending' ? 'current' : '' }}">Pending</button>
-                        <span>→</span>
-                        <button type="button" onclick="setOrderStatus('confirmed')" class="step-btn {{ $selectedOrder->status==='confirmed' ? 'current' : '' }}">Confirmed</button>
-                        <span>→</span>
-                        <button type="button" onclick="setOrderStatus('preparing')" class="step-btn {{ $selectedOrder->status==='preparing' ? 'current' : '' }}">Preparing</button>
-                        <span>→</span>
-                        <button type="button" onclick="setOrderStatus('out_for_delivery')" class="step-btn {{ $selectedOrder->status==='out_for_delivery' ? 'current' : '' }}">Dispatched</button>
-                        <span>→</span>
-                        <button type="button" onclick="setOrderStatus('delivered')" class="step-btn {{ $selectedOrder->status==='delivered' ? 'current' : '' }}">Delivered</button>
+            <div class="rider-list">
+                @forelse($riders as $rider)
+                    <div class="rider-item-card">
+                        <div class="rider-meta-left">
+                            <div class="rider-pic">🚴</div>
+                            <div>
+                                <div style="font-size: 12px; font-weight: 700; color: #0f172a;">{{ $rider->name }}</div>
+                                <div style="font-size: 11px; color: #64748b;">{{ $rider->phone }}</div>
+                            </div>
+                        </div>
+                        <span class="rider-tag {{ $rider->is_active ? 'delivery' : 'offline' }}">
+                            {{ $rider->is_active ? 'Available' : 'Offline' }}
+                        </span>
                     </div>
-
-                    <!-- Dynamic Action Box Based on Current Status -->
-                    @if($selectedOrder->status === 'delivered')
-                        <!-- DELIVERED STATE -->
-                        <div class="dispatch-box" style="background: #ecfdf5; border-color: #a7f3d0; text-align: center; padding: 16px;">
-                            <div style="font-size: 14px; font-weight: 800; color: #047857; margin-bottom: 3px;">
-                                🎉 Order Delivered & Completed
-                            </div>
-                            <p style="font-size: 12px; color: #065f46; margin: 0;">
-                                Customer notified via WhatsApp. Total collected: PKR {{ number_format($selectedOrder->total, 0) }} ({{ ucwords(str_replace('_', ' ', $selectedOrder->payment_method ?: 'COD')) }})
-                            </p>
-                        </div>
-                    @elseif($selectedOrder->status === 'out_for_delivery')
-                        <!-- DISPATCHED STATE -->
-                        <div class="dispatch-box" style="background: #f0fdf4; border-color: #bbf7d0;">
-                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 4px;">
-                                <span style="font-size: 12px; font-weight: 700; color: #166534;">
-                                    🛵 Assigned Rider: <strong>{{ $selectedOrder->rider_name ?: 'Rider' }}</strong> ({{ $selectedOrder->rider_phone ?: '—' }})
-                                </span>
-                                <span style="font-size: 11px; color: #15803d; font-weight: 600;">
-                                    ⏱️ ETA: {{ $selectedOrder->estimated_minutes ? $selectedOrder->estimated_minutes . ' mins' : '20-30 mins' }}
-                                </span>
-                            </div>
-                            <button type="button" onclick="setOrderStatus('delivered')" class="btn btn-success" style="width: 100%; justify-content: center; font-weight: 800; padding: 10px; font-size: 13px;">
-                                ✓ Mark as Delivered & Complete Order
-                            </button>
-                        </div>
-                    @elseif($selectedOrder->status === 'cancelled')
-                        <!-- CANCELLED STATE -->
-                        <div class="dispatch-box" style="background: #fef2f2; border-color: #fecaca; text-align: center; padding: 14px;">
-                            <div style="font-size: 13px; font-weight: 800; color: #dc2626;">
-                                ❌ Order Cancelled
-                            </div>
-                        </div>
-                    @else
-                        <!-- PENDING / CONFIRMED / PREPARING STATE -->
-                        <div class="dispatch-box">
-                            <span class="notice">🛵 Assign a rider before marking as Dispatched</span>
-                            <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px; margin-bottom: 8px;">
-                                <select id="riderSelectBox" onchange="syncRiderDetails(this)" style="padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; background: #fff;">
-                                    <option value="">Select Rider ▾</option>
-                                    @foreach($riders as $rdr)
-                                        <option value="{{ $rdr->id }}" data-name="{{ $rdr->name }}" data-phone="{{ $rdr->phone }}" {{ $selectedOrder->rider_name === $rdr->name ? 'selected' : '' }}>
-                                            {{ $rdr->name }} ({{ $rdr->phone }})
-                                        </option>
-                                    @endforeach
-                                </select>
-                                <input type="text" id="etaInput" placeholder="30-40 mins" value="{{ $selectedOrder->estimated_minutes ? $selectedOrder->estimated_minutes . ' mins' : '30-40 mins' }}" onchange="document.getElementById('formRiderEta').value=parseInt(this.value)||30" style="padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; background: #fff;">
-                            </div>
-
-                            <button type="button" onclick="dispatchOrderNow()" class="btn btn-success" style="width: 100%; justify-content: center; font-weight: 700; padding: 9px;">
-                                🛵 Mark as Dispatched & Send WhatsApp
-                            </button>
-                        </div>
-                    @endif
-                </form>
+                @empty
+                    <div style="text-align: center; padding: 30px 10px; color: #94a3b8;">
+                        <p style="font-size: 11px;">No delivery riders added yet.</p>
+                    </div>
+                @endforelse
             </div>
-        @else
-            <div style="padding: 4rem 1rem; text-align: center; color: #94a3b8;">
-                <div style="font-size: 36px; margin-bottom: 8px;">📋</div>
-                <p>Select an order from the left list to view details and update its kitchen stage.</p>
-            </div>
-        @endif
-    </div>
 
-    <!-- COLUMN 3: RIDERS -->
-    <div class="panel-box">
-        <div class="panel-box-header">
-            <div class="panel-box-title">
-                <h3>Riders</h3>
-                <p>Active delivery team</p>
+            <div class="rider-actions-bottom">
+                <a href="{{ route('dashboard.riders', $restaurant->id) }}" class="btn-sub-action">
+                    <span>➕</span>
+                    <span>Add Rider</span>
+                </a>
+                <a href="{{ route('dashboard.customers', $restaurant->id) }}" class="btn-sub-action" style="color: #16a34a; border-color: #bbf7d0;">
+                    <span>💬</span>
+                    <span>Broadcast</span>
+                </a>
             </div>
-            <a href="{{ route('dashboard.riders', $restaurant->id) }}" class="btn btn-primary" style="padding: 5px 10px; font-size: 11px;">
-                + Add Rider
-            </a>
         </div>
 
-        <div style="display: flex; flex-direction: column; flex: 1;">
-            @forelse($riders->take(5) as $rider)
-            <div class="rider-row">
-                <div class="rider-info">
-                    <div class="rider-avatar">🛵</div>
-                    <div>
-                        <div class="rider-name">{{ $rider->name }}</div>
-                        <div class="rider-phone">{{ $rider->phone }}</div>
+    </div>
+
+    <!-- 3. BOTTOM 4 ANALYTICAL CARDS -->
+    <div class="bottom-analytics-grid">
+
+        <!-- Card 1: Order Status Overview Donut -->
+        <div class="panel-card">
+            <div class="panel-header">
+                <div class="panel-title">Order Status</div>
+                <span style="font-size: 11px; color: #94a3b8;">Today ▾</span>
+            </div>
+            <div class="donut-chart-container">
+                <div class="donut-circle-wrap">
+                    <svg width="100" height="100" viewBox="0 0 36 36">
+                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f1f5f9" stroke-width="3.8"/>
+                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#16a34a" stroke-width="3.8" stroke-dasharray="{{ $statusPercentages['delivered'] ?? 50 }}, 100"/>
+                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#7c3aed" stroke-width="3.8" stroke-dasharray="{{ $statusPercentages['preparing'] ?? 20 }}, 100" stroke-dashoffset="-{{ $statusPercentages['delivered'] ?? 50 }}"/>
+                    </svg>
+                    <div class="donut-center-text" style="position: absolute;">
+                        <h4>{{ $totalOrdersToday }}</h4>
+                        <p>Orders</p>
                     </div>
                 </div>
-                <div style="display: flex; gap: 4px;">
-                    <a href="{{ route('dashboard.riders', $restaurant->id) }}" style="text-decoration: none; font-size: 13px;" title="Edit">✏️</a>
-                    <form method="POST" action="{{ route('dashboard.delete-rider', [$restaurant->id, $rider->id]) }}" style="display:inline;" onsubmit="return confirm('Delete rider?')">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" style="background: none; border: none; cursor: pointer; font-size: 13px;" title="Delete">🗑️</button>
-                    </form>
-                </div>
-            </div>
-            @empty
-            <div style="padding: 2rem 0; text-align: center; color: #94a3b8; font-size: 12px;">
-                No riders added yet.<br>Click <strong>+ Add Rider</strong> to add delivery staff.
-            </div>
-            @endforelse
-        </div>
-
-        <div style="margin-top: 14px; text-align: center;">
-            <a href="{{ route('dashboard.riders', $restaurant->id) }}" style="font-size: 12px; font-weight: 700; color: #4f46e5; text-decoration: none;">
-                View All Riders →
-            </a>
-        </div>
-    </div>
-
-    <!-- COLUMN 4: MENU MANAGEMENT (INSTANT AVAILABILITY TOGGLE) -->
-    <div class="panel-box">
-        <div class="panel-box-header">
-            <div class="panel-box-title">
-                <h3>Menu Management</h3>
-                <p>Instant Stock Availability</p>
-            </div>
-            <a href="{{ route('dashboard.menu', $restaurant->id) }}" class="btn btn-primary" style="padding: 5px 10px; font-size: 11px;">
-                + Add Item
-            </a>
-        </div>
-
-        <div style="display: flex; flex-direction: column; gap: 2px; flex: 1;">
-            @forelse($menuItems->take(6) as $item)
-            <div class="menu-item-row">
-                <div class="menu-item-left">
-                    <div class="menu-item-img">🍕</div>
-                    <div>
-                        <div class="menu-item-name">{{ $item->name }}</div>
-                        <div class="menu-item-price">PKR {{ number_format($item->price, 0) }}</div>
+                <div class="legend-list">
+                    <div class="legend-item">
+                        <span><span class="legend-bullet" style="background: #16a34a;"></span>Delivered</span>
+                        <strong>{{ $statusCounts['delivered'] }} ({{ $statusPercentages['delivered'] }}%)</strong>
+                    </div>
+                    <div class="legend-item">
+                        <span><span class="legend-bullet" style="background: #7c3aed;"></span>Preparing</span>
+                        <strong>{{ $statusCounts['preparing'] }} ({{ $statusPercentages['preparing'] }}%)</strong>
+                    </div>
+                    <div class="legend-item">
+                        <span><span class="legend-bullet" style="background: #0284c7;"></span>Confirmed</span>
+                        <strong>{{ $statusCounts['confirmed'] }} ({{ $statusPercentages['confirmed'] }}%)</strong>
+                    </div>
+                    <div class="legend-item">
+                        <span><span class="legend-bullet" style="background: #f59e0b;"></span>Pending</span>
+                        <strong>{{ $statusCounts['pending'] }} ({{ $statusPercentages['pending'] }}%)</strong>
                     </div>
                 </div>
-
-                <div style="display: flex; align-items: center; gap: 6px;">
-                    <span style="font-size: 10px; font-weight: 700; color: {{ $item->is_available ? '#16a34a' : '#94a3b8' }};">
-                        {{ $item->is_available ? 'In Stock' : 'Out' }}
-                    </span>
-                    <form method="POST" action="{{ route('dashboard.toggle-item', [$restaurant->id, $item->id]) }}" style="display: inline;">
-                        @csrf
-                        <label class="switch" title="Toggle Stock">
-                            <input type="checkbox" onchange="this.form.submit()" {{ $item->is_available ? 'checked' : '' }}>
-                            <span class="slider"></span>
-                        </label>
-                    </form>
-                </div>
             </div>
-            @empty
-            <div style="padding: 2rem 0; text-align: center; color: #94a3b8; font-size: 12px;">
-                No menu items found.<br><a href="{{ route('dashboard.menu', $restaurant->id) }}" style="color: #4f46e5;">Upload CSV or Add Items</a>
+        </div>
+
+        <!-- Card 2: Orders Trend (Smooth Weekly Chart) -->
+        <div class="panel-card">
+            <div class="panel-header">
+                <div class="panel-title">Orders Trend</div>
+                <span style="font-size: 11px; color: #94a3b8;">This Week ▾</span>
             </div>
-            @endforelse
+            <div style="height: 120px; position: relative; margin-top: 10px;">
+                <svg viewBox="0 0 280 100" style="width: 100%; height: 100%; overflow: visible;">
+                    <defs>
+                        <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#818cf8" stop-opacity="0.4"/>
+                            <stop offset="100%" stop-color="#818cf8" stop-opacity="0.0"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M 0,80 Q 40,40 80,65 T 160,30 T 240,45 T 280,20 L 280,100 L 0,100 Z" fill="url(#chartGrad)"/>
+                    <path d="M 0,80 Q 40,40 80,65 T 160,30 T 240,45 T 280,20" fill="none" stroke="#6366f1" stroke-width="2.5"/>
+                    <circle cx="160" cy="30" r="4" fill="#6366f1" stroke="#fff" stroke-width="2"/>
+                </svg>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; margin-top: 6px;">
+                @foreach($weeklyTrend as $wt)
+                    <span>{{ $wt['day'] }}</span>
+                @endforeach
+            </div>
         </div>
 
-        <div style="margin-top: 14px; padding-top: 8px; border-top: 1px solid #f1f5f9; font-size: 11px; color: #16a34a; font-weight: 600; text-align: center;">
-            ⚡ Availability is updated in real-time for your WhatsApp bot
+        <!-- Card 3: Top Selling Items -->
+        <div class="panel-card">
+            <div class="panel-header">
+                <div class="panel-title">Top Selling Items</div>
+                <span style="font-size: 11px; color: #94a3b8;">Today ▾</span>
+            </div>
+            <div class="top-items-list">
+                @forelse($topSellingItems as $idx => $ti)
+                    <div class="top-item-row">
+                        <div class="top-item-rank-name">
+                            <span class="top-item-rank">{{ $idx + 1 }}</span>
+                            <span>🍽️ {{ $ti->item_name }}</span>
+                        </div>
+                        <span class="top-item-count">{{ $ti->total_qty }} orders</span>
+                    </div>
+                @empty
+                    <div style="text-align: center; padding: 20px 0; color: #94a3b8; font-size: 11px;">
+                        No item sales recorded today yet.
+                    </div>
+                @endforelse
+            </div>
         </div>
-    </div>
-</div>
 
-<!-- BOTTOM ALERT BANNER: CUSTOMER NOTIFICATIONS -->
-<div class="notif-banner">
-    <div class="notif-left">
-        <div class="notif-icon">🔔</div>
-        <div class="notif-text">
-            <h4>Customer Notifications</h4>
-            <p>
-                While order status is <strong>"Confirmed"</strong> or <strong>"Preparing"</strong>, the WhatsApp bot will only tell customer <strong>"Preparing in Kitchen"</strong>.<br>
-                When you mark as <strong>"Dispatched"</strong>, customer automatically receives WhatsApp message with rider details, order ID, and ETA.
-            </p>
+        <!-- Card 4: Recent Activity Feed -->
+        <div class="panel-card">
+            <div class="panel-header">
+                <div class="panel-title">Recent Activity</div>
+                <span style="font-size: 11px; color: #94a3b8;">Live Feed</span>
+            </div>
+            <div class="activity-feed-list">
+                @forelse($recentActivity as $act)
+                    <div class="activity-item">
+                        <div class="activity-dot">⚡</div>
+                        <div class="activity-text">
+                            <strong>#{{ $act->tracking_code }}</strong> is now <span class="status-pill {{ $act->status }}">{{ $act->status_label }}</span>
+                        </div>
+                        <div class="activity-time">{{ $act->created_at->diffForHumans(null, true, true) }}</div>
+                    </div>
+                @empty
+                    <div style="text-align: center; padding: 20px 0; color: #94a3b8; font-size: 11px;">
+                        No recent activity yet.
+                    </div>
+                @endforelse
+            </div>
         </div>
+
     </div>
 
-    <div>
-        <button onclick="alert('WhatsApp Bot notification system is active! Changing status triggers automated customer message.')" class="btn" style="background: #ffffff; border: 1px solid #fcd34d; color: #92400e; font-weight: 700; padding: 10px 16px;">
-            💬 Test Message
-        </button>
+    <!-- 4. BOTTOM NOTIFICATIONS ALERT BAR -->
+    <div class="notice-bar">
+        <div class="notice-content">
+            <div class="notice-icon">🔔</div>
+            <div class="notice-text">
+                <h4>Automated Customer Notifications</h4>
+                <p>When you update status to <strong>"Preparing"</strong> or <strong>"Dispatched"</strong>, the WhatsApp bot automatically alerts the customer with rider details, live tracking link, and ETA.</p>
+            </div>
+        </div>
+        <a href="{{ route('dashboard.connect-whatsapp', $restaurant->id) }}" class="btn-test-wa">
+            <span>🤖</span>
+            <span>Bot Connection Settings</span>
+        </a>
     </div>
+
 </div>
 
 <script>
-    function setOrderStatus(status) {
-        document.getElementById('selectedStatusInput').value = status;
-        document.getElementById('statusFlowForm').submit();
-    }
-
-    function syncRiderDetails(selectElem) {
-        const opt = selectElem.options[selectElem.selectedIndex];
-        if (opt && opt.dataset.name) {
-            document.getElementById('formRiderName').value = opt.dataset.name;
-            document.getElementById('formRiderPhone').value = opt.dataset.phone;
-        }
-    }
-
-    function dispatchOrderNow() {
-        document.getElementById('selectedStatusInput').value = 'out_for_delivery';
-        const selectBox = document.getElementById('riderSelectBox');
-        syncRiderDetails(selectBox);
-        document.getElementById('statusFlowForm').submit();
-    }
-
-    // ── Live Real-Time Feed Polling (every 6 seconds) ──
+    // ── Live Real-Time Feed Polling (every 5 seconds) ──
     let initialLatestId = {{ $orders->first()?->id ?? 0 }};
     let initialTodayCount = {{ $today->count() }};
 
@@ -554,7 +1163,6 @@
             .then(data => {
                 if (data.success) {
                     if (data.latest_order_id > initialLatestId || data.today_count !== initialTodayCount) {
-                        // Gently refresh to show new incoming orders
                         window.location.reload();
                     }
                 }
@@ -562,7 +1170,7 @@
             .catch(() => {});
     }
 
-    setInterval(pollLiveFeed, 6000);
+    setInterval(pollLiveFeed, 5000);
 </script>
 
 @endsection

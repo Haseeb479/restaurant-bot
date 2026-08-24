@@ -110,29 +110,83 @@ class DashboardController extends Controller
         return redirect('/');
     }
 
-    // ── Orders page (live) ─────────────────────────────────
+    // ── Orders page (live dashboard) ─────────────────────────
     public function orders(string $id)
     {
         $this->authCheck($id);
-        $r         = Restaurant::findOrFail($id);
-        $orders    = $r->orders()->with('items')->orderBy('created_at', 'desc')->paginate(20);
-        $today     = $r->todayOrders()->get();
-        $riders    = $r->riders()->where('is_active', true)->get();
-        $menuItems = $r->menuItems()->orderBy('sort_order')->take(8)->get();
+        $r = Restaurant::withCount(['menuItems' => fn($q) => $q->where('is_available', true)])->findOrFail($id);
+
+        $orders      = $r->orders()->with(['items', 'rider', 'customer'])->orderBy('created_at', 'desc')->paginate(20);
+        $todayOrders = $r->todayOrders()->with(['items', 'rider', 'customer'])->get();
+        $riders      = $r->riders()->get();
+        $menuItems   = $r->menuItems()->get();
 
         $selectedOrderId = request('order_id');
         $selectedOrder   = $selectedOrderId 
             ? $orders->firstWhere('id', $selectedOrderId) 
-            : $orders->first();
+            : ($orders->first() ?? null);
+
+        // KPI calculations
+        $liveOrders        = $todayOrders->whereIn('status', ['pending', 'confirmed', 'preparing', 'out_for_delivery']);
+        $liveOrdersCount   = $liveOrders->count();
+        $todayRevenue      = (float) $todayOrders->where('status', '!=', 'cancelled')->sum('total');
+        $activeRidersCount = $riders->where('is_active', true)->count();
+        $totalOrdersToday  = $todayOrders->count();
+        $menuItemsCount    = $r->menu_items_count ?? $menuItems->where('is_available', true)->count();
+
+        // Status breakdown
+        $statusCounts = [
+            'delivered' => $todayOrders->where('status', 'delivered')->count(),
+            'preparing' => $todayOrders->where('status', 'preparing')->count(),
+            'confirmed' => $todayOrders->where('status', 'confirmed')->count(),
+            'pending'   => $todayOrders->where('status', 'pending')->count(),
+            'cancelled' => $todayOrders->where('status', 'cancelled')->count(),
+        ];
+        $totalStatusSum    = max(1, array_sum($statusCounts));
+        $statusPercentages = array_map(fn($c) => round(($c / $totalStatusSum) * 100), $statusCounts);
+
+        // Weekly trend (last 7 days)
+        $weeklyTrend = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $d = now()->subDays($i);
+            $dayCount = $r->orders()->whereDate('created_at', $d->toDateString())->count();
+            $weeklyTrend[] = [
+                'day'   => $d->format('D'),
+                'date'  => $d->format('M d'),
+                'count' => $dayCount,
+            ];
+        }
+
+        // Top selling items
+        $topSellingItems = \App\Models\OrderItem::whereHas('order', fn($q) => $q->where('restaurant_id', $r->id))
+            ->selectRaw('item_name, sum(quantity) as total_qty')
+            ->groupBy('item_name')
+            ->orderByDesc('total_qty')
+            ->take(5)
+            ->get();
+
+        // Recent activity feed
+        $recentActivity = $orders->take(6);
 
         return view('dashboard.orders', [
-            'restaurant'    => $r,
-            'orders'        => $orders,
-            'today'         => $today,
-            'riders'        => $riders,
-            'menuItems'     => $menuItems,
-            'selectedOrder' => $selectedOrder,
-            'pendingCount'  => $today->where('status', 'pending')->count(),
+            'restaurant'        => $r,
+            'orders'            => $orders,
+            'today'             => $todayOrders,
+            'liveOrders'        => $liveOrders,
+            'liveOrdersCount'   => $liveOrdersCount,
+            'todayRevenue'      => $todayRevenue,
+            'activeRidersCount' => $activeRidersCount,
+            'totalOrdersToday'  => $totalOrdersToday,
+            'menuItemsCount'    => $menuItemsCount,
+            'riders'            => $riders,
+            'menuItems'         => $menuItems,
+            'selectedOrder'     => $selectedOrder,
+            'statusCounts'      => $statusCounts,
+            'statusPercentages' => $statusPercentages,
+            'weeklyTrend'       => $weeklyTrend,
+            'topSellingItems'   => $topSellingItems,
+            'recentActivity'    => $recentActivity,
+            'pendingCount'      => $todayOrders->where('status', 'pending')->count(),
         ]);
     }
 

@@ -445,42 +445,57 @@
 
 <!-- SIDEBAR -->
 <aside>
-    <div class="brand-header">
-        <div class="brand-box">
-            <div class="brand-avatar">{{ strtoupper(substr($currentRest->name ?? 'TB', 0, 2)) }}</div>
-            <div class="brand-info">
-                <h2>{{ Str::limit($currentRest->name ?? 'Tasty Bites', 15) }}</h2>
-                <span>Restaurant Owner</span>
+    <div style="padding: 22px 20px 14px; border-bottom: 1px solid rgba(255,255,255,0.06);">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+            <div style="width: 38px; height: 38px; border-radius: 12px; background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.4); display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                🤖
             </div>
+            <div>
+                <h2 style="font-size: 16px; font-weight: 800; color: #fff; letter-spacing: -0.3px;">RestoBot</h2>
+                <p style="font-size: 11px; color: #94a3b8;">WhatsApp Ordering System</p>
+            </div>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(51, 65, 85, 0.6); padding: 8px 12px; border-radius: 12px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 28px; height: 28px; border-radius: 8px; background: #6366f1; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800;">
+                    {{ strtoupper(substr($currentRest->name ?? 'RB', 0, 2)) }}
+                </div>
+                <div>
+                    <h4 style="font-size: 12px; font-weight: 700; color: #f1f5f9; line-height: 1.1;">{{ Str::limit($currentRest->name ?? 'My Restaurant', 13) }}</h4>
+                    <span style="font-size: 10px; color: #64748b;">Restaurant Owner</span>
+                </div>
+            </div>
+            <span style="color: #64748b; font-size: 10px;">▾</span>
         </div>
     </div>
 
     <div class="nav-section">
-        <a href="{{ route('dashboard.orders', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.orders') ? 'active' : '' }}">
+        <a href="{{ route('dashboard.orders', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.orders') && !request('view') ? 'active' : '' }}">
             <span class="icon">📊</span>
             <span>Dashboard</span>
         </a>
 
-        <a href="{{ route('dashboard.orders', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.orders') ? 'active' : '' }}">
-            <span class="icon">📋</span>
+        <a href="{{ route('dashboard.orders', $restId) }}" class="nav-item {{ request('view') === 'live' ? 'active' : '' }}">
+            <span class="icon">🛍️</span>
             <span>Live Orders</span>
-            @if(isset($pendingCount) && $pendingCount > 0)
-                <span class="badge-pill">{{ $pendingCount }} New</span>
+            @if(isset($liveOrdersCount) && $liveOrdersCount > 0)
+                <span class="badge-pill" style="background: #6366f1;">{{ $liveOrdersCount }}</span>
             @endif
         </a>
 
         <a href="{{ route('dashboard.history', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.history*') ? 'active' : '' }}">
-            <span class="icon">📦</span>
+            <span class="icon">📋</span>
             <span>Orders History</span>
         </a>
 
         <a href="{{ route('dashboard.menu', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.menu*') ? 'active' : '' }}">
-            <span class="icon">🍔</span>
+            <span class="icon">🍽️</span>
             <span>Menu Management</span>
         </a>
 
         <a href="{{ route('dashboard.riders', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.riders*') ? 'active' : '' }}">
-            <span class="icon">🛵</span>
+            <span class="icon">🚴</span>
             <span>Riders</span>
         </a>
 
@@ -494,6 +509,11 @@
             <span>Reports</span>
         </a>
 
+        <a href="{{ route('dashboard.history', $restId) }}" class="nav-item">
+            <span class="icon">💬</span>
+            <span>WhatsApp Logs</span>
+        </a>
+
         <a href="{{ route('dashboard.settings', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.settings*') ? 'active' : '' }}">
             <span class="icon">⚙️</span>
             <span>Settings</span>
@@ -504,9 +524,24 @@
             <span>Bot Settings</span>
         </a>
 
-        <form method="POST" action="{{ route('dashboard.logout', $restId) }}" style="margin-top: auto;">
+        <!-- Bot Status Box -->
+        <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(51, 65, 85, 0.7); border-radius: 14px; padding: 14px; margin: 16px 4px 10px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                <span style="font-size: 11px; font-weight: 700; color: #cbd5e1;">Bot Status</span>
+                <span style="display: flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; color: #10b981; background: rgba(16,185,129,0.15); padding: 2px 6px; border-radius: 99px;">
+                    <span style="width: 5px; height: 5px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                    Online
+                </span>
+            </div>
+            <p style="font-size: 10px; color: #64748b; margin-bottom: 10px;">Everything is working fine</p>
+            <a href="{{ route('dashboard.connect-whatsapp', $restId) }}" style="display: block; width: 100%; text-align: center; padding: 6px 10px; background: rgba(51,65,85,0.5); border: 1px solid rgba(71,85,105,0.5); border-radius: 8px; font-size: 10px; font-weight: 700; color: #cbd5e1; text-decoration: none;">
+                View Bot Activity ↗
+            </a>
+        </div>
+
+        <form method="POST" action="{{ route('dashboard.logout', $restId) }}" style="margin-top: 4px;">
             @csrf
-            <button type="submit" class="nav-item" style="width: 100%; background: none; border: none; cursor: pointer; text-align: left;">
+            <button type="submit" class="nav-item" style="width: 100%; background: none; border: none; cursor: pointer; text-align: left; color: #ef4444;">
                 <span class="icon">🚪</span>
                 <span>Logout</span>
             </button>
@@ -519,24 +554,31 @@
     <header>
         <div class="header-title">
             <h1>@yield('header_title', 'Dashboard')</h1>
-            <p>@yield('header_subtitle', 'Welcome back, ' . ($currentRest->name ?? 'Owner') . '!')</p>
+            <p>@yield('header_subtitle', 'Welcome back, ' . ($currentRest->name ?? 'Owner') . '! 👋')</p>
         </div>
 
         <div class="header-actions">
-            <div class="status-online-pill">
-                <span class="status-dot"></span>
+            <div class="status-online-pill" style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 6px 12px; border-radius: 99px; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                <span style="width: 7px; height: 7px; border-radius: 50%; background: #16a34a; display: inline-block;"></span>
                 <span>Online</span>
+            </div>
+
+            <div style="position: relative; width: 36px; height: 36px; border-radius: 10px; background: #f1f5f9; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer;">
+                🔔
+                <span style="position: absolute; top: -3px; right: -3px; width: 16px; height: 16px; border-radius: 50%; background: #ef4444; color: #fff; font-size: 9px; font-weight: 800; display: flex; align-items: center; justify-content: center;">3</span>
             </div>
 
             <div class="user-profile">
                 <div class="avatar">{{ strtoupper(substr($currentRest->name ?? 'TB', 0, 2)) }}</div>
                 <div class="user-info">
-                    <div class="user-name">{{ $currentRest->name ?? 'Restaurant Owner' }}</div>
+                    <div class="user-name">{{ $currentRest->name ?? 'Restaurant Owner' }} ▾</div>
                 </div>
-                <form method="POST" action="{{ route('dashboard.logout', $restId) }}" style="display:inline; margin-left:8px;">
-                    @csrf
-                    <button type="submit" class="logout-link" title="Sign out">🚪</button>
-                </form>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 12px; font-weight: 700; color: #334155;">
+                <span>📅</span>
+                <span>Today, {{ now()->format('M d') }}</span>
+                <span style="font-size: 10px; color: #94a3b8;">▾</span>
             </div>
         </div>
     </header>
