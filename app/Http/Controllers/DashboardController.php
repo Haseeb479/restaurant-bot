@@ -58,7 +58,7 @@ class DashboardController extends Controller
             return back()->withErrors(['password' => 'Wrong password. Please check and try again.']);
         }
 
-        if ($r->status === 'pending' || $r->registration_status === 'pending_review') {
+        if ($r->status === 'pending' || ($r->status !== 'active' && in_array($r->registration_status, ['pending_review', 'pending_plan', 'pending_payment']))) {
             return redirect()->route('onboarding.status', $r->id);
         }
 
@@ -68,6 +68,11 @@ class DashboardController extends Controller
 
         if (! $r->is_active) {
             return back()->withErrors(['password' => 'This restaurant account has been deactivated.']);
+        }
+
+        if ($r->status === 'active' && $r->registration_status !== 'approved') {
+            $r->registration_status = 'approved';
+            $r->save();
         }
 
         // Legacy rows stored the password in plaintext; upgrade to a hash the

@@ -62,7 +62,7 @@ $ownerLoginHandler = function (\Illuminate\Http\Request $req) {
             ->withErrors(['password' => 'Wrong restaurant name or password. Please check and try again.'], 'owner');
     }
 
-    if ($r->status === 'pending' || $r->registration_status === 'pending_review') {
+    if ($r->status === 'pending' || ($r->status !== 'active' && in_array($r->registration_status, ['pending_review', 'pending_plan', 'pending_payment']))) {
         return redirect()->route('onboarding.status', $r->id);
     }
 
@@ -76,6 +76,11 @@ $ownerLoginHandler = function (\Illuminate\Http\Request $req) {
         return back()
             ->withInput($req->only('restaurant_name'))
             ->withErrors(['password' => 'This restaurant account has been deactivated. Contact support.'], 'owner');
+    }
+
+    if ($r->status === 'active' && $r->registration_status !== 'approved') {
+        $r->registration_status = 'approved';
+        $r->save();
     }
 
     // Upgrade plaintext password to bcrypt hash on first login

@@ -16,20 +16,15 @@
             document.documentElement.setAttribute('data-theme', t);
 
             @if(session('admin_logged_in') !== true)
-            function checkAuthGuard() {
-                const isActive = sessionStorage.getItem('owner_authenticated_session') === 'active';
-                if (!isActive) {
+            // On fresh server render (which passed server-side authCheck), mark session active
+            sessionStorage.setItem('owner_authenticated_session', 'active');
+
+            // On Back/Forward Cache restore, verify session was not cleared by visiting login page
+            window.addEventListener('pageshow', function (event) {
+                if (sessionStorage.getItem('owner_authenticated_session') !== 'active') {
                     document.documentElement.style.display = 'none';
                     window.location.replace('{{ route("landing.owner-login-page") }}');
                 }
-            }
-
-            // Verify immediately on initial boot
-            checkAuthGuard();
-
-            // Verify on any back/forward browser history traversal
-            window.addEventListener('pageshow', function (event) {
-                checkAuthGuard();
             });
             @endif
         })();
