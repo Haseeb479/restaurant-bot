@@ -963,7 +963,7 @@
                         🌐 Live Track
                     </a>
 
-                    <a href="{{ route('dashboard.print-bill', [$restaurant->id, $selectedOrder->id]) }}" target="_blank" class="btn-action-secondary" title="Print Parcel Bill / Receipt" style="background: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; font-size: 12px; font-weight: 700; padding: 10px 14px; border-radius: 10px; display: inline-flex; align-items: center; gap: 5px; text-decoration: none; white-space: nowrap;">
+                    <a href="{{ route('dashboard.print-bill', [$restaurant->id, $selectedOrder->id]) }}" target="_blank" class="btn-action-secondary" title="Print Parcel Bill / Receipt">
                         🖨️ Print Bill
                     </a>
                 </div>
