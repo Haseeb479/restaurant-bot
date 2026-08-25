@@ -280,7 +280,11 @@
             color: #f8fafc !important;
         }
 
-        /* Other Pages (Menu, Settings, Customers, Reports) */
+        /* Other Pages (Menu, Settings, WhatsApp Connect, Customers, Reports, History) */
+        [data-theme="dark"] .card-panel,
+        [data-theme="dark"] .status-banner,
+        [data-theme="dark"] .metric-card,
+        [data-theme="dark"] .panel-card,
         [data-theme="dark"] .menu-card,
         [data-theme="dark"] .menu-item-box,
         [data-theme="dark"] .menu-item-card,
@@ -299,6 +303,101 @@
             border-color: #334155 !important;
             color: #f8fafc !important;
         }
+
+        [data-theme="dark"] .card-panel-header,
+        [data-theme="dark"] .panel-header {
+            border-bottom-color: #334155 !important;
+        }
+        [data-theme="dark"] .card-panel-header h3,
+        [data-theme="dark"] .status-banner-left h3,
+        [data-theme="dark"] .step-text h4,
+        [data-theme="dark"] .metric-value {
+            color: #f8fafc !important;
+        }
+        [data-theme="dark"] .card-panel-header p,
+        [data-theme="dark"] .status-banner-left p,
+        [data-theme="dark"] .step-text p,
+        [data-theme="dark"] .metric-title,
+        [data-theme="dark"] .metric-footer,
+        [data-theme="dark"] .form-hint {
+            color: #94a3b8 !important;
+        }
+        [data-theme="dark"] .metric-footer {
+            border-top-color: #334155 !important;
+        }
+
+        /* Metric Icon Boxes */
+        [data-theme="dark"] .metric-icon-box.blue { background: rgba(2, 132, 199, 0.2) !important; color: #38bdf8 !important; }
+        [data-theme="dark"] .metric-icon-box.green { background: rgba(22, 163, 74, 0.2) !important; color: #4ade80 !important; }
+        [data-theme="dark"] .metric-icon-box.purple { background: rgba(124, 58, 237, 0.2) !important; color: #a78bfa !important; }
+        [data-theme="dark"] .sub-badge.green { background: rgba(22, 163, 74, 0.15) !important; color: #4ade80 !important; }
+        [data-theme="dark"] .sub-badge.blue  { background: rgba(2, 132, 199, 0.15) !important; color: #38bdf8 !important; }
+
+        /* QR Code & Guide Steps */
+        [data-theme="dark"] .qr-box {
+            background: #131d2e !important;
+            border-color: #334155 !important;
+        }
+        [data-theme="dark"] .step-num {
+            background: #334155 !important;
+            color: #f8fafc !important;
+        }
+        [data-theme="dark"] div[style*="background: #ecfdf5"],
+        [data-theme="dark"] div[style*="background:#ecfdf5"],
+        [data-theme="dark"] div[style*="background: #f0fdf4"],
+        [data-theme="dark"] div[style*="background:#f0fdf4"] {
+            background: rgba(22, 163, 74, 0.15) !important;
+            border-color: rgba(22, 163, 74, 0.3) !important;
+            color: #4ade80 !important;
+        }
+
+        /* Settings Info Rows */
+        [data-theme="dark"] .info-row,
+        [data-theme="dark"] .detail-row {
+            border-color: #334155 !important;
+        }
+        [data-theme="dark"] .info-label { color: #94a3b8 !important; }
+        [data-theme="dark"] .info-value { color: #f8fafc !important; }
+
+        /* Data Tables */
+        [data-theme="dark"] .data-table {
+            color: #f8fafc !important;
+        }
+        [data-theme="dark"] .data-table thead th,
+        [data-theme="dark"] table thead th {
+            background-color: #182234 !important;
+            color: #94a3b8 !important;
+            border-color: #334155 !important;
+        }
+        [data-theme="dark"] .data-table tbody td,
+        [data-theme="dark"] table tbody td {
+            border-color: #334155 !important;
+            color: #cbd5e1 !important;
+        }
+        [data-theme="dark"] .data-table tbody td strong,
+        [data-theme="dark"] table tbody td strong {
+            color: #f8fafc !important;
+        }
+        [data-theme="dark"] .data-table tbody tr:hover,
+        [data-theme="dark"] table tbody tr:hover {
+            background-color: #26334d !important;
+        }
+        [data-theme="dark"] code {
+            background: #131d2e !important;
+            color: #818cf8 !important;
+            padding: 2px 6px;
+            border-radius: 6px;
+            border: 1px solid #334155;
+        }
+
+        /* Modals & Dialogs */
+        [data-theme="dark"] div[id^="modal-"] > div {
+            background: #1e293b !important;
+            border: 1px solid #334155 !important;
+            color: #f8fafc !important;
+        }
+
+        /* Category pills & badges */
         [data-theme="dark"] .cat-pill {
             background: #182234 !important;
             border-color: #334155 !important;
@@ -330,6 +429,19 @@
         }
         [data-theme="dark"] .legend-name {
             color: #cbd5e1 !important;
+        }
+
+        /* Pagination in dark mode */
+        [data-theme="dark"] .pagination a,
+        [data-theme="dark"] .pagination span {
+            background: #1e293b !important;
+            border-color: #334155 !important;
+            color: #94a3b8 !important;
+        }
+        [data-theme="dark"] .pagination .active span {
+            background: #4f46e5 !important;
+            color: #ffffff !important;
+            border-color: #4f46e5 !important;
         }
 
         /* SIDEBAR */
