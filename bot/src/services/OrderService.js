@@ -52,11 +52,6 @@ function cleanCustomerName(raw) {
     return name;
 }
 
-/**
- * Pull a usable customer contact number out of the value the AI wrote on the summary's
- * "Phone:" or "Contact:" line. Returns the fallback phone (sender WhatsApp number)
- * if no valid or custom phone was provided.
- */
 function cleanCustomerPhone(raw, fallbackPhone) {
     if (!raw) return fallbackPhone;
 
@@ -67,7 +62,15 @@ function cleanCustomerPhone(raw, fallbackPhone) {
     if (/^(same|same number|same no|whatsapp|wapp|n\/?a|none|unknown|yahi|yahi number)$/i.test(phone)) return fallbackPhone;
 
     // Digits only
-    const digits = phone.replace(/\D/g, '');
+    let digits = phone.replace(/\D/g, '');
+    if (digits.length === 12 && digits.startsWith('923')) {
+        digits = '0' + digits.slice(2);
+    } else if (digits.length === 14 && digits.startsWith('00923')) {
+        digits = '0' + digits.slice(4);
+    } else if (digits.length === 10 && digits.startsWith('3')) {
+        digits = '0' + digits;
+    }
+
     if (digits.length >= 10 && digits.length <= 15) {
         return digits;
     }
@@ -164,7 +167,19 @@ export class OrderService {
         // 4c. Customer contact number — read from summary's "Phone:" or "Contact:" line
         const phoneRe = /(?:^|\n)\s*\**\s*(?:phone|contact|mobile|cell|number|rabta)\s*\**\s*[:：]\s*([^\n\r]+)/i;
         const phoneMatch = finalSummaryMsg.match(phoneRe) || assistantMsgs.match(phoneRe);
-        const contactPhone = cleanCustomerPhone(phoneMatch?.[1], null);
+        let contactPhone = cleanCustomerPhone(phoneMatch?.[1], null);
+
+        // If no phone found in AI summary, search all user messages for any Pakistani mobile number:
+        if (!contactPhone) {
+            const userPhoneMatch = userMsgs.match(/(?:(?:\+|00)?92|0)?(3\d{2}[- ]?\d{7})/);
+            if (userPhoneMatch) {
+                contactPhone = cleanCustomerPhone(userPhoneMatch[0], null);
+            }
+        }
+
+        if (!contactPhone && session.contactPhone) {
+            contactPhone = cleanCustomerPhone(session.contactPhone, null);
+        }
 
 
         // 5. Payment method detection: check USER messages first
@@ -297,7 +312,17 @@ export class OrderService {
         const trackingCode = this.generateTrackingCode(session.restaurant?.name);
 
         // 1. Determine customer phone to store (given contact number or sender WhatsApp)
-        const finalCustomerPhone = parsed.contactPhone || customerPhone;
+        let finalCustomerPhone = parsed.contactPhone;
+        if (!finalCustomerPhone) {
+            const cleanDigits = String(customerPhone || '').replace(/\D/g, '');
+            if (cleanDigits.length === 12 && cleanDigits.startsWith('923')) {
+                finalCustomerPhone = '0' + cleanDigits.slice(2);
+            } else if (cleanDigits.length === 10 && cleanDigits.startsWith('3')) {
+                finalCustomerPhone = '0' + cleanDigits;
+            } else {
+                finalCustomerPhone = customerPhone;
+            }
+        }
 
         // Remember name and contact phone on the session so the owner alert
         // can show who ordered, and so follow-up orders don't have to re-ask.

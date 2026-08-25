@@ -303,22 +303,94 @@ document.addEventListener('DOMContentLoaded', function() {
     const mapContainer = document.getElementById('live-tracking-map');
     if (!mapContainer) return;
 
-    // City coordinates lookup
+    // Comprehensive Pakistan Cities & Districts Coordinates Lookup
     const cityCoords = {
-        'lahore': [31.5204, 74.3587],
-        'karachi': [24.8607, 67.0011],
-        'islamabad': [33.6844, 73.0479],
-        'rawalpindi': [33.5651, 73.0169],
-        'faisalabad': [31.4504, 73.1350],
+        'lodhran': [29.5405, 71.6336],
         'multan': [30.1575, 71.5249],
         'bahawalpur': [29.3544, 71.6911],
-        'peshawar': [34.0151, 71.5249],
+        'bahawalnagar': [29.9987, 73.2536],
+        'khanewal': [30.3017, 71.9321],
+        'vehari': [30.0452, 72.3489],
+        'rahim yar khan': [28.4212, 70.2989],
+        'sadiqabad': [28.3090, 70.1332],
+        'muzaffargarh': [30.0703, 71.1933],
+        'dera ghazi khan': [30.0561, 70.6403],
+        'dg khan': [30.0561, 70.6403],
+        'sahiwal': [30.6682, 73.1114],
+        'okara': [30.8081, 73.4458],
+        'pakpattan': [30.3410, 73.3866],
+        'kasur': [31.1179, 74.4466],
+        'sheikhupura': [31.7131, 73.9783],
+        'nankana sahib': [31.4500, 73.7000],
+        'faisalabad': [31.4504, 73.1350],
+        'jhang': [31.2781, 72.3317],
+        'toba tek singh': [30.9713, 72.4827],
+        'chiniot': [31.7200, 72.9789],
+        'sargodha': [32.0836, 72.6711],
+        'mianwali': [32.5839, 71.5370],
+        'khushab': [32.2955, 72.3525],
+        'bhakkar': [31.6253, 71.0657],
+        'layyah': [30.9613, 70.9398],
         'gujranwala': [32.1877, 74.1945],
-        'sialkot': [32.4945, 74.5229]
+        'sialkot': [32.4945, 74.5229],
+        'gujrat': [32.5742, 74.0754],
+        'mandi bahauddin': [32.5870, 73.4912],
+        'hafizabad': [32.0679, 73.6880],
+        'narowal': [32.0995, 74.8763],
+        'wazirabad': [32.4431, 74.1194],
+        'jhelum': [32.9405, 73.7276],
+        'chakwal': [32.9328, 72.8630],
+        'rawalpindi': [33.5651, 73.0169],
+        'islamabad': [33.6844, 73.0479],
+        'attock': [33.7667, 72.3667],
+        'lahore': [31.5204, 74.3587],
+        'karachi': [24.8607, 67.0011],
+        'hyderabad': [25.3960, 68.3578],
+        'sukkur': [27.7052, 68.8574],
+        'larkana': [27.5589, 68.2120],
+        'nawabshah': [26.2483, 68.4096],
+        'mirpur khas': [25.5276, 69.0159],
+        'jacobabad': [28.2819, 68.4386],
+        'shikarpur': [27.9556, 68.6382],
+        'peshawar': [34.0151, 71.5249],
+        'mardan': [34.1989, 72.0403],
+        'swat': [35.2227, 72.4258],
+        'mingora': [34.7717, 72.3602],
+        'abbottabad': [34.1688, 73.2215],
+        'mansehra': [34.3333, 73.2000],
+        'kohat': [33.5869, 71.4414],
+        'bannu': [32.9861, 70.6042],
+        'dera ismail khan': [31.8314, 70.9019],
+        'di khan': [31.8314, 70.9019],
+        'haripur': [33.9999, 72.9333],
+        'quetta': [30.1798, 66.9750],
+        'gwadar': [25.1216, 62.3254],
+        'turbat': [26.0031, 63.0544],
+        'khuzdar': [27.8167, 66.6167],
+        'hub': [25.0286, 66.8833],
+        'muzaffarabad': [34.3597, 73.4708],
+        'mirpur': [33.1484, 73.7519],
+        'gilgit': [35.9208, 74.3089],
+        'skardu': [35.2971, 75.6333]
     };
 
-    const restaurantCity = @json(strtolower(trim($order->restaurant->city ?? 'lahore')));
-    const baseOrigin = cityCoords[restaurantCity] || [31.5204, 74.3587];
+    function resolveCoords(str) {
+        if (!str) return null;
+        const lower = String(str).toLowerCase().trim();
+        for (const [c, coords] of Object.entries(cityCoords)) {
+            if (lower.includes(c)) return coords;
+        }
+        return null;
+    }
+
+    const restaurantCity = @json(strtolower(trim($order->restaurant->city ?? '')));
+    const restaurantAddr = @json(strtolower(trim($order->restaurant->address ?? '')));
+    const customerAddr   = @json(strtolower(trim($order->delivery_address ?? '')));
+
+    const baseOrigin = resolveCoords(restaurantCity) 
+        || resolveCoords(restaurantAddr) 
+        || resolveCoords(customerAddr) 
+        || [29.5405, 71.6336]; // Lodhran / South Punjab default fallback
 
     // Seeded offset based on order id to create a realistic 2.5 - 4.5 km route
     const orderId = {{ $order->id }};

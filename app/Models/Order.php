@@ -229,6 +229,22 @@ class Order extends Model
         $raw = explode('@', (string) $this->customer_phone)[0];
         $digits = preg_replace('/\D/', '', $raw);
 
+        // If current customer_phone looks like an internal WhatsApp LID (e.g. 4449... or non-Pakistani synthetic id)
+        // Check if the customer gave a real phone number in notes/chat:
+        if (! str_starts_with($digits, '03') && ! str_starts_with($digits, '923') && ! str_starts_with($digits, '0092')) {
+            if (! empty($this->notes) && preg_match('/(?:Phone|Contact|Mobile|Cell|Number|Rabta)\s*[:：]\s*([0-9+\- ]{10,16})/i', $this->notes, $m)) {
+                $notesDigits = preg_replace('/\D/', '', $m[1]);
+                if (str_starts_with($notesDigits, '923') && strlen($notesDigits) === 12) {
+                    $notesDigits = '0' . substr($notesDigits, 2);
+                } elseif (str_starts_with($notesDigits, '3') && strlen($notesDigits) === 10) {
+                    $notesDigits = '0' . $notesDigits;
+                }
+                if (str_starts_with($notesDigits, '03') && strlen($notesDigits) === 11) {
+                    return substr($notesDigits, 0, 4) . ' ' . substr($notesDigits, 4);
+                }
+            }
+        }
+
         if ($digits === '') {
             return $this->customer_phone ?? '';
         }

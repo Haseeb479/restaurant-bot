@@ -40,9 +40,35 @@ export class MessageRouter {
         if (msg.from === 'status@broadcast') return; // broadcast
         if (!msg.body?.trim())              return; // empty message
 
-        const customerPhone = msg.from.split('@')[0];
-        const botNumber     = this.client.info?.wid?.user;
-        const text          = msg.body.trim();
+        // ── Resolve the real diallable phone number ────────────────────────────
+        // msg.from is a WhatsApp JID. For personal accounts it is
+        // "923001234567@c.us" — the part before @ is the real MSISDN.
+        // For some accounts (newer WhatsApp or certain regions), the JID uses
+        // the "@lid" domain which is a WhatsApp internal anonymous identifier
+        // that is NOT a real phone number (e.g. "4449211900369@lid").
+        // In that case we fall back to msg.author (for group-forwarded) or
+        // the contact's number field resolved from the client.
+        let customerPhone;
+        const fromJid  = msg.from  || '';
+        const authorJid = msg.author || '';
+
+        if (fromJid.endsWith('@lid')) {
+            // @lid JID — try to resolve via the WhatsApp contact API
+            try {
+                const contact = await msg.getContact();
+                // contact.number is already the clean MSISDN without country code
+                // contact.id.user is the full number including country code
+                customerPhone = contact?.id?.user || contact?.number || fromJid.split('@')[0];
+            } catch (_) {
+                customerPhone = fromJid.split('@')[0];
+            }
+        } else {
+            // Normal @c.us JID — the part before @ is the real phone number
+            customerPhone = fromJid.split('@')[0] || authorJid.split('@')[0];
+        }
+
+        const botNumber = this.client.info?.wid?.user;
+        const text      = msg.body.trim();
 
         console.log(`\n📩 [${customerPhone}] → [${botNumber || 'BOT'}]: ${text}`);
 
