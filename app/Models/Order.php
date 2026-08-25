@@ -235,6 +235,53 @@ class Order extends Model
     }
 
     /**
+     * Return the customer's real diallable phone number for display on bills
+     * and the dashboard. WhatsApp JIDs come in two shapes from wwebjs:
+     *
+     *   "923001234567@c.us"  → "0300 1234567"
+     *   "923001234567"       → "0300 1234567"  (already stripped)
+     *
+     * Numbers that are NOT Pakistani (no 92 prefix) are returned cleaned but
+     * unchanged so international numbers still appear correctly.
+     */
+    public function getFormattedCustomerPhoneAttribute(): string
+    {
+        // Strip everything after @ (WhatsApp JID suffix like @c.us or @lid)
+        $raw = explode('@', (string) $this->customer_phone)[0];
+        $digits = preg_replace('/\D/', '', $raw);
+
+        if ($digits === '') {
+            return $this->customer_phone ?? '';
+        }
+
+        // Pakistani number formats:
+        // 1. 00923XXXXXXXXX (14 digits) -> 03XXXXXXXXX
+        if (str_starts_with($digits, '0092') && strlen($digits) === 14) {
+            $digits = '0' . substr($digits, 4);
+        }
+        // 2. 923XXXXXXXXX (12 digits) -> 03XXXXXXXXX
+        elseif (str_starts_with($digits, '92') && strlen($digits) === 12) {
+            $digits = '0' . substr($digits, 2);
+        }
+        // 3. 3XXXXXXXXX (10 digits) -> 03XXXXXXXXX
+        elseif (str_starts_with($digits, '3') && strlen($digits) === 10) {
+            $digits = '0' . $digits;
+        }
+
+        // If standard 11-digit Pakistani mobile (03XXXXXXXXX):
+        if (str_starts_with($digits, '03') && strlen($digits) === 11) {
+            return substr($digits, 0, 4) . ' ' . substr($digits, 4);
+        }
+
+        // If standard 10-digit or other format, return clean digits or spaced
+        if (strlen($digits) >= 7 && strlen($digits) <= 15) {
+            return $digits;
+        }
+
+        return $raw;
+    }
+
+    /**
      * The rider's phone is only useful while they are actually on the way, so it
      * stops being published the moment the order is closed.
      */

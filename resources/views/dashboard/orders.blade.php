@@ -869,7 +869,7 @@
                             <span>{{ $selectedOrder->customer->name ?? ($selectedOrder->customer_name ?: 'Guest Customer') }}</span>
                             <a href="https://wa.me/{{ preg_replace('/\D/', '', $selectedOrder->customer_phone) }}" target="_blank" style="color: #16a34a; text-decoration: none;" title="Open WhatsApp Chat">💬</a>
                         </div>
-                        <div class="info-col-sub">{{ $selectedOrder->customer_phone }}</div>
+                        <div class="info-col-sub">{{ $selectedOrder->formatted_customer_phone }}</div>
                     </div>
                     <div>
                         <div class="info-col-label">📍 Delivery Address</div>

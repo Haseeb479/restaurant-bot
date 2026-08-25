@@ -328,7 +328,7 @@
                 👤 {{ $order->customer_name ?: 'Valued Customer' }}
             </div>
             <div style="color: #475569; font-size: 12px; margin-top: 1px;">
-                📞 {{ $order->customer_phone }}
+                📞 {{ $order->formatted_customer_phone }}
             </div>
             <div class="parcel-addr">
                 {{ $order->delivery_address ?: $order->masked_delivery_address }}

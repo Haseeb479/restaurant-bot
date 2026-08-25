@@ -46,10 +46,32 @@ function cleanCustomerName(raw) {
     // Reject an unfilled placeholder ("[Customer Name]") or a generic token the
     // model echoed back instead of a real name.
     if (!name || name.includes('[') || name.includes(']')) return null;
-    if (/^(customer|name|naam|n\/?a|none|guest|unknown)$/i.test(name)) return null;
     if (name.length < 2 || name.length > 60) return null;
 
     return name;
+}
+
+/**
+ * Pull a usable customer contact number out of the value the AI wrote on the summary's
+ * "Phone:" or "Contact:" line. Returns the fallback phone (sender WhatsApp number)
+ * if no valid or custom phone was provided.
+ */
+function cleanCustomerPhone(raw, fallbackPhone) {
+    if (!raw) return fallbackPhone;
+
+    let phone = String(raw).split(/[,\n\r]/)[0].replace(/[*_`]/g, '').trim();
+    phone = phone.replace(/[.!?؟،]+$/u, '').trim();
+
+    if (!phone || phone.includes('[') || phone.includes(']')) return fallbackPhone;
+    if (/^(same|same number|same no|whatsapp|wapp|n\/?a|none|unknown|yahi|yahi number)$/i.test(phone)) return fallbackPhone;
+
+    // Digits only
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length >= 10 && digits.length <= 15) {
+        return digits;
+    }
+
+    return fallbackPhone;
 }
 
 /**
@@ -138,6 +160,11 @@ export class OrderService {
         const nameMatch = finalSummaryMsg.match(nameRe) || assistantMsgs.match(nameRe);
         const customerName = cleanCustomerName(nameMatch?.[1]) || session.customerName || null;
 
+        // 4c. Customer contact number — read from summary's "Phone:" or "Contact:" line
+        const phoneRe = /(?:^|\n)\s*\**\s*(?:phone|contact|mobile|cell|number|rabta)\s*\**\s*[:：]\s*([^\n\r]+)/i;
+        const phoneMatch = finalSummaryMsg.match(phoneRe) || assistantMsgs.match(phoneRe);
+        const contactPhone = cleanCustomerPhone(phoneMatch?.[1], null);
+
 
         // 5. Payment method detection: check USER messages first
         let paymentMethod = 'cash_on_delivery';
@@ -178,6 +205,7 @@ export class OrderService {
             total,
             deliveryAddress,
             customerName,
+            contactPhone,
             paymentMethod,
             items,
             notes,
@@ -267,10 +295,13 @@ export class OrderService {
         const parsed = this.parseOrderFromHistory(session);
         const trackingCode = this.generateTrackingCode(session.restaurant?.name);
 
-        // Remember the name on the session so the owner alert (sent right after
-        // this returns) can show who ordered, and so a follow-up order in the
-        // same conversation doesn't have to re-ask.
+        // 1. Determine customer phone to store (given contact number or sender WhatsApp)
+        const finalCustomerPhone = parsed.contactPhone || customerPhone;
+
+        // Remember name and contact phone on the session so the owner alert
+        // can show who ordered, and so follow-up orders don't have to re-ask.
         session.customerName = parsed.customerName;
+        session.contactPhone = finalCustomerPhone;
 
         try {
             // 1. Direct MySQL insert for 0ms reliability (all required columns included)
@@ -283,7 +314,7 @@ export class OrderService {
                  VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     restaurantId,
-                    customerPhone,
+                    finalCustomerPhone,
                     parsed.customerName,
                     parsed.deliveryAddress,
                     trackingCode,
@@ -299,7 +330,7 @@ export class OrderService {
 
             if (result && result.insertId) {
                 const orderId = result.insertId;
-                console.log(`✅ Order #${orderId} saved directly to MySQL — Tracking: ${trackingCode}, Total: Rs.${parsed.total}, Address: ${parsed.deliveryAddress}`);
+                console.log(`✅ Order #${orderId} saved directly to MySQL — Phone: ${finalCustomerPhone}, Tracking: ${trackingCode}, Total: Rs.${parsed.total}, Address: ${parsed.deliveryAddress}`);
 
                 // Insert itemized records into order_items table
                 if (parsed.items && parsed.items.length > 0) {
@@ -335,7 +366,7 @@ export class OrderService {
                        updated_at = VALUES(updated_at)`,
                     [
                         restaurantId,
-                        customerPhone,
+                        finalCustomerPhone,
                         parsed.customerName,
                         parsed.deliveryAddress,
                         parsed.total,

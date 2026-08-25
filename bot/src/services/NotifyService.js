@@ -57,11 +57,12 @@ export class NotifyService {
             .join('\n');
 
         const customerName = (session.customerName || '').trim();
+        const displayPhone = session.contactPhone || customerPhone;
 
         const ownerMsg =
             `🔔 *NEW ORDER — ${restaurant?.name || 'Restaurant'}* 🔔\n\n` +
             (customerName ? `🙋 *Name:* ${customerName}\n` : '') +
-            `📱 *Customer:* ${customerPhone}\n` +
+            `📱 *Customer:* ${displayPhone}` + (displayPhone !== customerPhone ? ` (WA: ${customerPhone})` : '') + `\n` +
             `🔖 *Tracking:* ${trackingCode}\n\n` +
             `📝 *Chat Summary:*\n${orderDetails}\n\n` +
             `🛒 Dashboard: ${process.env.APP_URL || 'http://localhost'}`;
