@@ -343,11 +343,7 @@
                 </div>
             @endif
 
-            @if($order->rider_notes || $order->notes)
-                <div style="margin-top: 6px; padding: 4px 6px; background: #ffffff; border-radius: 4px; border: 1px solid #e2e8f0; font-size: 11px; color: #b45309;">
-                    📝 <strong>Note:</strong> {{ $order->rider_notes ?: $order->notes }}
-                </div>
-            @endif
+
         </div>
 
         <!-- ITEMS TABLE -->
