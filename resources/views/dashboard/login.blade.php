@@ -143,6 +143,7 @@
                 <!-- Submit Button -->
                 <button
                     type="submit"
+                    onclick="sessionStorage.setItem('owner_authenticated_session', 'active')"
                     class="w-full py-3.5 bg-brand-600 hover:bg-brand-500 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-brand-600/25 hover:shadow-brand-600/35 transition active:scale-[0.99] flex items-center justify-center gap-2"
                 >
                     <span>Sign In to Dashboard</span>
@@ -189,6 +190,12 @@
             eyeClosed.classList.add('hidden');
         }
     }
+
+    // Reset authentication token whenever user is on the Login page (e.g. via Browser Back)
+    sessionStorage.removeItem('owner_authenticated_session');
+    window.addEventListener('pageshow', function() {
+        sessionStorage.removeItem('owner_authenticated_session');
+    });
     </script>
 </body>
 </html>

@@ -9,19 +9,30 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
 
-    <!-- Immediate theme initializer (no flicker) -->
+    <!-- Immediate theme initializer & Client-side Auth Guard -->
     <script>
         (function() {
             const t = localStorage.getItem('owner_theme') || 'light';
             document.documentElement.setAttribute('data-theme', t);
-        })();
 
-        // If page is restored from browser back-forward cache (BFCache), force fresh reload from server
-        window.addEventListener('pageshow', function (event) {
-            if (event.persisted) {
-                window.location.reload();
+            @if(session('admin_logged_in') !== true)
+            function checkAuthGuard() {
+                const isActive = sessionStorage.getItem('owner_authenticated_session') === 'active';
+                if (!isActive) {
+                    document.documentElement.style.display = 'none';
+                    window.location.replace('{{ route("landing.owner-login-page") }}');
+                }
             }
-        });
+
+            // Verify immediately on initial boot
+            checkAuthGuard();
+
+            // Verify on any back/forward browser history traversal
+            window.addEventListener('pageshow', function (event) {
+                checkAuthGuard();
+            });
+            @endif
+        })();
     </script>
 
     <!-- Fonts & Icons -->
@@ -958,7 +969,7 @@
             </a>
         </div>
 
-        <form method="POST" action="{{ route('dashboard.logout', $restId) }}" style="margin-top: 4px;">
+        <form method="POST" action="{{ route('dashboard.logout', $restId) }}" onsubmit="sessionStorage.removeItem('owner_authenticated_session')" style="margin-top: 4px;">
             @csrf
             <button type="submit" class="nav-item" style="width: 100%; background: none; border: none; cursor: pointer; text-align: left; color: #ef4444;">
                 <span class="icon">🚪</span>
