@@ -46,8 +46,8 @@
                         @endif
                     </td>
                     <td>
-                        <a href="/dashboard/{{ $r->id }}/login" class="btn btn-secondary" style="padding: 5px 12px; font-size: 12px;">
-                            Sign-in as Owner ↗
+                        <a href="{{ route('dashboard.orders', $r->id) }}" class="btn btn-secondary" style="padding: 5px 12px; font-size: 12px;">
+                            🏪 Open Dashboard ↗
                         </a>
                     </td>
                 </tr>

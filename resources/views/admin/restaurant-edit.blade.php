@@ -43,6 +43,17 @@
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
                 <div class="form-group">
+                    <label class="form-label">Owner Email Address</label>
+                    <input type="email" name="email" class="form-input" value="{{ old('email', $r->email) }}" placeholder="owner@example.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Change Owner Password (Optional)</label>
+                    <input type="text" name="owner_password" class="form-input" placeholder="Leave blank to keep existing password">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                <div class="form-group">
                     <label class="form-label">City</label>
                     <input type="text" name="city" class="form-input" value="{{ old('city', $r->city) }}">
                 </div>

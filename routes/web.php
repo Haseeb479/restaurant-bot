@@ -21,17 +21,37 @@ Route::get('/owner/login', function () {
     return redirect()->route('landing.owner-login-page');
 });
 
-// ── Owner Authentication Handler (searches by restaurant name) ──
+// ── Owner Authentication Handler (searches by restaurant name, email, or phone) ──
 $ownerLoginHandler = function (\Illuminate\Http\Request $req) {
     $req->validate([
         'restaurant_name' => 'required|string|max:255',
         'password'        => 'required|string',
     ]);
 
-    // Case-insensitive partial name search — find the closest active match
-    $r = \App\Models\Restaurant::where('is_active', true)
-        ->whereRaw('LOWER(name) LIKE ?', ['%' . strtolower(trim($req->restaurant_name)) . '%'])
-        ->orderByRaw('LENGTH(name) ASC') // prefer shorter/exact names first
+    $input  = trim((string) $req->restaurant_name);
+    $digits = preg_replace('/[^0-9]/', '', $input);
+
+    // Flexible multi-field lookup:
+    // 1. Exact or partial restaurant name
+    // 2. Exact email
+    // 3. Exact or partial WhatsApp / phone number
+    $r = \App\Models\Restaurant::where(function($q) use ($input, $digits) {
+            $q->whereRaw('LOWER(name) = ?', [strtolower($input)])
+              ->orWhereRaw('LOWER(name) LIKE ?', ['%' . strtolower($input) . '%'])
+              ->orWhere('email', $input);
+            if (strlen($digits) >= 7) {
+                $q->orWhere('whatsapp_number', 'LIKE', "%{$digits}%")
+                  ->orWhere('owner_phone', 'LIKE', "%{$digits}%");
+            }
+        })
+        ->orderByRaw("CASE 
+            WHEN LOWER(name) = ? THEN 1 
+            WHEN is_active = 1 AND LOWER(name) LIKE ? THEN 2
+            WHEN is_active = 1 THEN 3
+            ELSE 4 END", 
+            [strtolower($input), strtolower($input) . '%']
+        )
+        ->orderByRaw('LENGTH(name) ASC')
         ->first();
 
     if (!$r || !\App\Http\Controllers\DashboardController::passwordMatches(
@@ -61,7 +81,7 @@ $ownerLoginHandler = function (\Illuminate\Http\Request $req) {
 
     // Upgrade plaintext password to bcrypt hash on first login
     if (!\App\Http\Controllers\DashboardController::isHashed((string) $r->owner_password)) {
-        $r->owner_password = \Illuminate\Support\Facades\Hash::make($req->password);
+        $r->owner_password = \Illuminate\Support\Facades\Hash::make(trim($req->password));
         $r->save();
     }
 

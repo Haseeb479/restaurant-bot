@@ -40,16 +40,22 @@ class DashboardController extends Controller
     public function loginForm(string $slug)
     {
         $r = Restaurant::where('id', $slug)->firstOrFail();
+
+        // If authenticated SuperAdmin is visiting, directly open dashboard
+        if (session('admin_logged_in') === true) {
+            return redirect()->route('dashboard.orders', $r->id);
+        }
+
         return view('dashboard.login', compact('r'));
     }
 
     public function login(Request $request, string $slug)
     {
         $r        = Restaurant::findOrFail($slug);
-        $password = (string) $request->input('password', '');
+        $password = trim((string) $request->input('password', ''));
 
         if (! self::passwordMatches($password, $r->owner_password)) {
-            return back()->withErrors(['password' => 'Wrong password']);
+            return back()->withErrors(['password' => 'Wrong password. Please check and try again.']);
         }
 
         if ($r->status === 'pending' || $r->registration_status === 'pending_review') {
@@ -104,16 +110,17 @@ class DashboardController extends Controller
     public static function passwordMatches(string $plain, ?string $stored): bool
     {
         $stored = (string) $stored;
+        $plain  = (string) $plain;
 
         if ($plain === '' || $stored === '') {
             return false;
         }
 
         if (self::isHashed($stored)) {
-            return Hash::check($plain, $stored);
+            return Hash::check($plain, $stored) || Hash::check(trim($plain), $stored);
         }
 
-        return hash_equals($stored, $plain);
+        return hash_equals($stored, $plain) || hash_equals(trim($stored), trim($plain));
     }
 
     public function logout(string $id)

@@ -358,6 +358,7 @@ class AdminController extends Controller
         $this->adminAuth();
         $request->validate([
             'name'            => 'required|string|max:255',
+            'email'           => 'nullable|email|max:255',
             'whatsapp_number' => 'required|string|unique:restaurants,whatsapp_number,' . $r->id,
             'owner_phone'     => 'required|string',
             'manager_phone'   => 'nullable|string',
@@ -369,15 +370,20 @@ class AdminController extends Controller
             'greeting_message'=> 'nullable|string',
             'plan'            => 'required|string',
             'rate_limit_per_month' => 'nullable|integer|min:50',
+            'owner_password'  => 'nullable|string|min:4',
         ]);
 
         $r->fill($request->only([
-            'name', 'whatsapp_number', 'owner_phone', 'manager_phone',
+            'name', 'email', 'whatsapp_number', 'owner_phone', 'manager_phone',
             'city', 'address', 'delivery_areas', 'delivery_charge',
             'minimum_order', 'greeting_message', 'rate_limit_per_month',
         ]));
 
         $r->plan = $request->input('plan');
+
+        if ($request->filled('owner_password')) {
+            $r->owner_password = Hash::make(trim($request->input('owner_password')));
+        }
 
         // Bot feature flags
         $r->features = [
@@ -408,7 +414,7 @@ class AdminController extends Controller
     public function resetRestaurantPassword(Request $request, Restaurant $r)
     {
         $this->adminAuth();
-        $newPassword = $request->input('new_password') ?: Str::random(10);
+        $newPassword = trim((string) $request->input('new_password')) ?: Str::random(10);
         $r->owner_password = Hash::make($newPassword);
         $r->save();
 
