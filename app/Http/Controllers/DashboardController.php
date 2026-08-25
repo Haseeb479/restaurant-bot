@@ -81,12 +81,9 @@ class DashboardController extends Controller
 
         // New session ID on privilege change (prevents session fixation).
         $request->session()->regenerate();
-
-        session(["restaurant_{$r->id}" => true]);
-        // Anchors the "Current Login Session" reporting period (reports() reads
-        // this key; nothing set it before, so that filter silently fell back to
-        // start-of-day).
-        session(["restaurant_{$r->id}_login_time" => now()->toIso8601String()]);
+        $request->session()->put("restaurant_{$r->id}", true);
+        $request->session()->put("restaurant_{$r->id}_login_time", now()->toIso8601String());
+        $request->session()->save();
 
         return redirect()->route('dashboard.orders', $r->id);
     }

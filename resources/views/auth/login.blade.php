@@ -195,27 +195,6 @@
             eyeClosed.classList.add('hidden');
         }
     }
-
-    function flushServerSession() {
-        try {
-            if (navigator.sendBeacon) {
-                navigator.sendBeacon('{{ route("auth.flush-session") }}');
-            } else {
-                fetch('{{ route("auth.flush-session") }}', { method: 'POST', keepalive: true });
-            }
-        } catch (e) {}
-    }
-
-    // Flush active session on immediate mount
-    flushServerSession();
-
-    // If navigating back to login page from history cache, flush session and force reload
-    window.addEventListener('pageshow', function (event) {
-        flushServerSession();
-        if (event.persisted || (window.performance && window.performance.navigation && window.performance.navigation.type === 2)) {
-            window.location.reload();
-        }
-    });
     </script>
 </body>
 </html>

@@ -12,37 +12,13 @@ Route::get('/', function () {
 })->name('landing');
 
 // ── Dedicated Owner Sign In Page ──────────────────────────────
-// Arriving at the login page clears any active owner session so that clicking
-// the browser Forward button cannot re-enter the dashboard without re-authenticating.
-Route::get('/login', function (\Illuminate\Http\Request $req) {
-    $keys = array_keys($req->session()->all());
-    foreach ($keys as $k) {
-        if (str_starts_with($k, 'restaurant_')) {
-            $req->session()->forget($k);
-        }
-    }
+Route::get('/login', function () {
     return view('auth.login');
 })->name('landing.owner-login-page');
 
 Route::get('/owner/login', function () {
     return redirect()->route('landing.owner-login-page');
 });
-
-// ── Instant Beacon Session Flush Endpoint ──────────────────────
-// Fired by browser JavaScript whenever the login page is visible (including via Back button).
-// Guarantees active owner sessions are immediately terminated server-side.
-Route::match(['GET', 'POST'], '/auth/flush-session', function (\Illuminate\Http\Request $req) {
-    $keys = array_keys($req->session()->all());
-    foreach ($keys as $k) {
-        if (str_starts_with($k, 'restaurant_')) {
-            $req->session()->forget($k);
-        }
-    }
-    $req->session()->regenerate();
-    return response()->json(['status' => 'session_cleared'])
-        ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
-        ->header('Pragma', 'no-cache');
-})->name('auth.flush-session');
 
 // ── Owner Authentication Handler (searches by restaurant name, email, or phone) ──
 $ownerLoginHandler = function (\Illuminate\Http\Request $req) {
@@ -109,8 +85,9 @@ $ownerLoginHandler = function (\Illuminate\Http\Request $req) {
     }
 
     $req->session()->regenerate();
-    session(["restaurant_{$r->id}" => true]);
-    session(["restaurant_{$r->id}_login_time" => now()->toIso8601String()]);
+    $req->session()->put("restaurant_{$r->id}", true);
+    $req->session()->put("restaurant_{$r->id}_login_time", now()->toIso8601String());
+    $req->session()->save();
 
     return redirect()->route('dashboard.orders', $r->id);
 };
@@ -217,17 +194,6 @@ Route::get('register/status/{id}',   [OnboardingController::class, 'statusPage']
 
 // ── Restaurant owner dashboard ─────────────────────────────
 Route::prefix('dashboard/{id}')->group(function () {
-    Route::get('auth-status', function (string $id) {
-        $isSuperAdmin = session('admin_logged_in') === true;
-        $isOwner      = session("restaurant_{$id}") === true;
-        $r            = \App\Models\Restaurant::find($id);
-
-        if ((!$isSuperAdmin && !$isOwner) || !$r || (!$isSuperAdmin && !$r->is_active)) {
-            return response()->json(['authenticated' => false], 401);
-        }
-        return response()->json(['authenticated' => true]);
-    })->name('dashboard.auth-status');
-
     Route::get('login',                        [DashboardController::class, 'loginForm'])->name('dashboard.login');
     Route::post('login',                       [DashboardController::class, 'login'])->middleware('throttle:5,1');
     Route::post('logout',                      [DashboardController::class, 'logout'])->name('dashboard.logout');

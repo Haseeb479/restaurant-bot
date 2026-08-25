@@ -18,45 +18,10 @@
 
         // If page is restored from browser back-forward cache (BFCache), force fresh reload from server
         window.addEventListener('pageshow', function (event) {
-            const navEntries = (window.performance && window.performance.getEntriesByType) ? window.performance.getEntriesByType("navigation") : [];
-            const isBackForward = (navEntries.length > 0 && navEntries[0].type === "back_forward") || (window.performance && window.performance.navigation && window.performance.navigation.type === 2);
-            if (event.persisted || isBackForward) {
-                window.location.replace(window.location.href);
+            if (event.persisted) {
+                window.location.reload();
             }
         });
-
-        // Real-time Live Security Guard: verifies active server session
-        (function() {
-            const authUrl = '{{ route("dashboard.auth-status", $restaurant->id ?? ($r->id ?? request()->route("id"))) }}';
-            const loginUrl = '{{ route("landing.owner-login-page") }}';
-
-            function verifySession() {
-                fetch(authUrl, { cache: 'no-store' })
-                    .then(res => {
-                        if (!res.ok) throw new Error('Unauthenticated');
-                        return res.json();
-                    })
-                    .then(data => {
-                        if (!data.authenticated) throw new Error('Unauthenticated');
-                    })
-                    .catch(() => {
-                        document.documentElement.style.display = 'none';
-                        window.location.replace(loginUrl);
-                    });
-            }
-
-            verifySession();
-
-            window.addEventListener('pageshow', function () {
-                verifySession();
-            });
-
-            document.addEventListener('visibilitychange', function() {
-                if (document.visibilityState === 'visible') {
-                    verifySession();
-                }
-            });
-        })();
     </script>
 
     <!-- Fonts & Icons -->
