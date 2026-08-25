@@ -195,6 +195,13 @@
             eyeClosed.classList.add('hidden');
         }
     }
+
+    // If navigating back to login page from history cache, force reload to flush stale state
+    window.addEventListener('pageshow', function (event) {
+        if (event.persisted || (window.performance && window.performance.navigation && window.performance.navigation.type === 2)) {
+            window.location.reload();
+        }
+    });
     </script>
 </body>
 </html>

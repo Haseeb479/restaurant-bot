@@ -5,12 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Dashboard') — {{ $restaurant->name ?? ($r->name ?? 'Restaurant Owner') }}</title>
 
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
     <!-- Immediate theme initializer (no flicker) -->
     <script>
         (function() {
             const t = localStorage.getItem('owner_theme') || 'light';
             document.documentElement.setAttribute('data-theme', t);
         })();
+
+        // If page is restored from browser back-forward cache (BFCache), force fresh reload from server
+        window.addEventListener('pageshow', function (event) {
+            if (event.persisted || (window.performance && window.performance.navigation && window.performance.navigation.type === 2)) {
+                window.location.reload();
+            }
+        });
     </script>
 
     <!-- Fonts & Icons -->

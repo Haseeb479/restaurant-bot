@@ -189,6 +189,13 @@
             eyeClosed.classList.add('hidden');
         }
     }
+
+    // Force fresh state reload if navigating through history
+    window.addEventListener('pageshow', function (event) {
+        if (event.persisted || (window.performance && window.performance.navigation && window.performance.navigation.type === 2)) {
+            window.location.reload();
+        }
+    });
     </script>
 </body>
 </html>

@@ -12,8 +12,15 @@ Route::get('/', function () {
 })->name('landing');
 
 // ── Dedicated Owner Sign In Page ──────────────────────────────
-// No dropdown data needed — user types their restaurant name.
-Route::get('/login', function () {
+// Arriving at the login page clears any active owner session so that clicking
+// the browser Forward button cannot re-enter the dashboard without re-authenticating.
+Route::get('/login', function (\Illuminate\Http\Request $req) {
+    $keys = array_keys($req->session()->all());
+    foreach ($keys as $k) {
+        if (str_starts_with($k, 'restaurant_')) {
+            $req->session()->forget($k);
+        }
+    }
     return view('auth.login');
 })->name('landing.owner-login-page');
 
