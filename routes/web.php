@@ -28,6 +28,22 @@ Route::get('/owner/login', function () {
     return redirect()->route('landing.owner-login-page');
 });
 
+// ── Instant Beacon Session Flush Endpoint ──────────────────────
+// Fired by browser JavaScript whenever the login page is visible (including via Back button).
+// Guarantees active owner sessions are immediately terminated server-side.
+Route::match(['GET', 'POST'], '/auth/flush-session', function (\Illuminate\Http\Request $req) {
+    $keys = array_keys($req->session()->all());
+    foreach ($keys as $k) {
+        if (str_starts_with($k, 'restaurant_')) {
+            $req->session()->forget($k);
+        }
+    }
+    $req->session()->regenerate();
+    return response()->json(['status' => 'session_cleared'])
+        ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+        ->header('Pragma', 'no-cache');
+})->name('auth.flush-session');
+
 // ── Owner Authentication Handler (searches by restaurant name, email, or phone) ──
 $ownerLoginHandler = function (\Illuminate\Http\Request $req) {
     $req->validate([

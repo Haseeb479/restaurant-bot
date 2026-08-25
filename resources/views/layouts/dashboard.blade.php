@@ -18,8 +18,10 @@
 
         // If page is restored from browser back-forward cache (BFCache), force fresh reload from server
         window.addEventListener('pageshow', function (event) {
-            if (event.persisted || (window.performance && window.performance.navigation && window.performance.navigation.type === 2)) {
-                window.location.reload();
+            const navEntries = (window.performance && window.performance.getEntriesByType) ? window.performance.getEntriesByType("navigation") : [];
+            const isBackForward = (navEntries.length > 0 && navEntries[0].type === "back_forward") || (window.performance && window.performance.navigation && window.performance.navigation.type === 2);
+            if (event.persisted || isBackForward) {
+                window.location.replace(window.location.href);
             }
         });
     </script>
