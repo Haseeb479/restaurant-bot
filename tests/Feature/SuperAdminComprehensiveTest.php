@@ -22,7 +22,7 @@ class SuperAdminComprehensiveTest extends TestCase
     public function test_super_admin_requires_authentication(): void
     {
         $response = $this->get(route('admin.dashboard'));
-        $response->assertRedirect(route('admin.login'));
+        $response->assertForbidden();
     }
 
     public function test_super_admin_can_login(): void

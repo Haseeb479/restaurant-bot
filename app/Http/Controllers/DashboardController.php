@@ -1289,10 +1289,8 @@ class DashboardController extends Controller
         $isSuperAdmin = session('admin_logged_in') === true;
         $isOwner      = session("restaurant_{$id}") === true;
 
-        // Not logged in → redirect to unified login landing page
-        if (! $isSuperAdmin && ! $isOwner) {
-            redirect('/')->throwResponse();
-        }
+        // 1. Must be logged in as Super Admin OR the specific restaurant owner
+        abort_unless($isSuperAdmin || $isOwner, 403, 'Please login to access this dashboard.');
 
         // 2. Restaurant must exist in the database
         $r = \App\Models\Restaurant::find($id);

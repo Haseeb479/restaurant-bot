@@ -13,9 +13,9 @@ class SmokeTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_root_redirects_to_the_admin_login(): void
+    public function test_root_renders_unified_portal_for_guests(): void
     {
-        $this->get('/')->assertRedirect('/admin/login');
+        $this->get('/')->assertOk();
     }
 
     public function test_admin_login_page_renders_for_guests(): void

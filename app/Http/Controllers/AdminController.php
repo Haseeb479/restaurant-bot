@@ -22,9 +22,7 @@ class AdminController extends Controller
 
     private function adminAuth(): void
     {
-        if (! session('admin_logged_in')) {
-            redirect()->route('admin.login')->throwResponse();
-        }
+        abort_unless(session('admin_logged_in'), 403, 'Unauthorized super admin access.');
     }
 
     // ── Authentication & Master Security ───────────────────────
@@ -1319,6 +1317,11 @@ class AdminController extends Controller
 
             Setting::put(self::ADMIN_PASSWORD_KEY, Hash::make((string) $request->input('new_password')));
             AuditLog::log('admin.password_changed', 'Changed Super Admin master password');
+
+            $request->session()->forget('admin_logged_in');
+            $request->session()->forget('admin_logged_in_at');
+
+            return redirect()->route('admin.login')->with('success', 'Super Admin password updated. Please log in with your new password.');
         }
 
         // IP Whitelisting & Regional

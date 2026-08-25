@@ -46,6 +46,7 @@ function cleanCustomerName(raw) {
     // Reject an unfilled placeholder ("[Customer Name]") or a generic token the
     // model echoed back instead of a real name.
     if (!name || name.includes('[') || name.includes(']')) return null;
+    if (/^(customer|name|naam|n\/?a|none|guest|unknown)$/i.test(name)) return null;
     if (name.length < 2 || name.length > 60) return null;
 
     return name;
