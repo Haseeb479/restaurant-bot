@@ -243,6 +243,12 @@ class DashboardController extends Controller
             $updateData['estimated_minutes'] = (int) $validated['estimated_minutes'];
         }
 
+        if ($status === 'out_for_delivery' || $request->filled('rider_name') || $request->filled('rider_phone')) {
+            if (empty($order->rider_token)) {
+                $updateData['rider_token'] = Order::generateRiderToken();
+            }
+        }
+
         $order->update($updateData);
 
         // Build Live Web Tracking Link
@@ -271,6 +277,25 @@ class DashboardController extends Controller
                 'restaurant_id' => $r->id,
                 'order_id'      => $order->id,
                 'recipient'     => 'customer',
+            ]);
+        }
+
+        // If dispatched to a rider, notify rider on WhatsApp with Rider Delivery Portal Link
+        if ($status === 'out_for_delivery' && ! empty($order->rider_phone) && ! empty($order->rider_token)) {
+            $riderPortalUrl = url('/rider/deliver/' . $order->rider_token);
+            $riderMsg = "🛵 *New Delivery Assigned!*\n\n"
+                . "Order: *#{$order->tracking_code}*\n"
+                . "Customer: *{$order->customer_name}*\n"
+                . "Phone: {$order->formatted_customer_phone}\n"
+                . "Address: " . ($order->delivery_address ?: 'Check chat notes') . "\n"
+                . "Bill to Collect: *Rs. " . number_format($order->total, 0) . "* (" . ucwords(str_replace('_', ' ', $order->payment_method ?: 'COD')) . ")\n\n"
+                . "📍 *Tap to start GPS Delivery & Navigation:*\n"
+                . $riderPortalUrl;
+
+            BotControlClient::sendMessage($order->rider_phone, $riderMsg, [
+                'restaurant_id' => $r->id,
+                'order_id'      => $order->id,
+                'recipient'     => 'rider',
             ]);
         }
 

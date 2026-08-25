@@ -27,15 +27,22 @@ class Order extends Model
         'rider_name',
         'rider_phone',
         'rider_notes',
+        'rider_token',
+        'rider_lat',
+        'rider_lng',
+        'rider_location_updated_at',
     ];
 
     protected $casts = [
-        'is_paid'            => 'boolean',
-        'owner_notified'     => 'boolean',
-        'customer_notified'  => 'boolean',
-        'subtotal'           => 'decimal:2',
-        'delivery_charge'    => 'decimal:2',
-        'total'              => 'decimal:2',
+        'is_paid'                   => 'boolean',
+        'owner_notified'            => 'boolean',
+        'customer_notified'         => 'boolean',
+        'subtotal'                  => 'decimal:2',
+        'delivery_charge'           => 'decimal:2',
+        'total'                     => 'decimal:2',
+        'rider_lat'                 => 'decimal:7',
+        'rider_lng'                 => 'decimal:7',
+        'rider_location_updated_at' => 'datetime',
     ];
 
     // ─── Relationships ────────────────────────────────────────────────────────
@@ -288,5 +295,24 @@ class Order extends Model
     public function showsRiderContact(): bool
     {
         return $this->status === 'out_for_delivery' && trim((string) $this->rider_phone) !== '';
+    }
+
+    /**
+     * Generate a cryptographically secure token for rider mobile web portal.
+     */
+    public static function generateRiderToken(): string
+    {
+        return bin2hex(random_bytes(24));
+    }
+
+    /**
+     * Check if the order has active GPS coordinates streamed recently (within last 30 minutes).
+     */
+    public function hasLiveGps(): bool
+    {
+        return ! is_null($this->rider_lat) &&
+               ! is_null($this->rider_lng) &&
+               ! is_null($this->rider_location_updated_at) &&
+               $this->rider_location_updated_at->gt(now()->subMinutes(30));
     }
 }

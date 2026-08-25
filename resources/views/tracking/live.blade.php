@@ -402,60 +402,93 @@ document.addEventListener('DOMContentLoaded', function() {
 
     map.fitBounds(polyline.getBounds(), { padding: [35, 35] });
 
-    // Rider Position Interpolation
-    let riderProgress = 0.1;
-    if (orderStatus === 'out_for_delivery') {
-        riderProgress = 0.55;
+    // Check if real GPS coordinates exist on initial load
+    const initialLiveGps = @json($order->hasLiveGps());
+    const initialRiderLat = @json($order->rider_lat ? (float)$order->rider_lat : null);
+    const initialRiderLng = @json($order->rider_lng ? (float)$order->rider_lng : null);
+
+    // Rider Position Initializer
+    let currentRiderLat = originLat + (latOffset * 0.1);
+    let currentRiderLng = originLng + (lngOffset * 0.1);
+
+    if (initialLiveGps && initialRiderLat && initialRiderLng) {
+        currentRiderLat = initialRiderLat;
+        currentRiderLng = initialRiderLng;
+    } else if (orderStatus === 'out_for_delivery') {
+        currentRiderLat = originLat + (latOffset * 0.55);
+        currentRiderLng = originLng + (lngOffset * 0.55);
     } else if (orderStatus === 'delivered') {
-        riderProgress = 1.0;
-    } else if (orderStatus === 'preparing') {
-        riderProgress = 0.2;
+        currentRiderLat = destLat;
+        currentRiderLng = destLng;
     }
 
-    const currentRiderLat = originLat + (latOffset * riderProgress);
-    const currentRiderLng = originLng + (lngOffset * riderProgress);
     const riderMarker = L.marker([currentRiderLat, currentRiderLng], { icon: riderIcon }).addTo(map);
 
-    if (orderStatus === 'delivered') {
-        if (distTextElem) distTextElem.textContent = totalDistKm + ' km (Delivered)';
-    } else if (orderStatus === 'out_for_delivery') {
-        const remainingKm = Math.max(0.3, (totalDistKm * (1 - riderProgress))).toFixed(1);
-        if (distTextElem) distTextElem.textContent = remainingKm + ' km away • On the way 🛵';
+    function updateRiderDistanceDisplay(rLat, rLng, isLiveGps) {
+        if (!distTextElem) return;
+        if (orderStatus === 'delivered') {
+            distTextElem.textContent = totalDistKm + ' km (Delivered 🎉)';
+            return;
+        }
 
-        // Animate rider gently along route
-        let step = 0;
-        setInterval(() => {
-            step = (step + 1) % 100;
-            const liveProg = 0.45 + (Math.sin(step / 15) * 0.15);
-            const liveLat = originLat + (latOffset * liveProg);
-            const liveLng = originLng + (lngOffset * liveProg);
-            riderMarker.setLatLng([liveLat, liveLng]);
-        }, 1200);
-    } else {
-        if (distTextElem) distTextElem.textContent = totalDistKm + ' km Total Distance';
+        const remainingKm = parseFloat(calcDistance(rLat, rLng, destLat, destLng));
+        if (isLiveGps) {
+            distTextElem.innerHTML = `<span style="color: #10b981;">📡 Live GPS:</span> ${remainingKm} km away (~${Math.max(1, Math.round(remainingKm * 3))} mins)`;
+        } else if (orderStatus === 'out_for_delivery') {
+            distTextElem.textContent = remainingKm + ' km away • On the way 🛵';
+        } else {
+            distTextElem.textContent = totalDistKm + ' km Total Distance';
+        }
     }
+
+    updateRiderDistanceDisplay(currentRiderLat, currentRiderLng, initialLiveGps);
+
+    // Expose update function for live polling
+    window.updateRiderLivePosition = function(lat, lng) {
+        riderMarker.setLatLng([lat, lng]);
+        updateRiderDistanceDisplay(lat, lng, true);
+    };
 });
 </script>
 @endif
 
-<!-- Live Polling Script (Checks status every 8 seconds) -->
+<!-- Live Polling Script (Polls status & rider GPS every 4-6 seconds) -->
 @if($order && !in_array($order->status, ['delivered', 'cancelled']))
 <script>
+(function() {
     const STATUS_URL      = @json(route('order.track.status', $order->tracking_code));
-    const CURRENT_STATUS  = @json($order->status);
+    let currentStatus   = @json($order->status);
 
-    const pollInterval = setInterval(async () => {
+    async function pollLiveTracker() {
         try {
-            const res = await fetch(STATUS_URL, { headers: { 'Accept': 'application/json' } });
+            const res = await fetch(STATUS_URL, { 
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } 
+            });
             if (!res.ok) return;
 
             const data = await res.json();
-            if (data.status && data.status !== CURRENT_STATUS) {
-                clearInterval(pollInterval);
+            
+            // If status changed (e.g. out_for_delivery -> delivered), reload page
+            if (data.status && data.status !== currentStatus) {
                 window.location.reload();
+                return;
             }
-        } catch (e) {}
-    }, 8000);
+
+            // If real-time GPS coordinates are streaming from the rider's phone
+            if (data.has_live_gps && data.rider_lat && data.rider_lng) {
+                if (typeof window.updateRiderLivePosition === 'function') {
+                    window.updateRiderLivePosition(data.rider_lat, data.rider_lng);
+                }
+            }
+        } catch (e) {
+            console.log('Live tracking polling tick retry');
+        }
+    }
+
+    // Poll faster (every 4 seconds) during active delivery to make rider movement smooth
+    const pollIntervalMs = currentStatus === 'out_for_delivery' ? 4000 : 7000;
+    setInterval(pollLiveTracker, pollIntervalMs);
+})();
 </script>
 @endif
 

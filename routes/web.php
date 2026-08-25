@@ -86,8 +86,19 @@ Route::get('track/{code}/status', function (string $code) {
         'status'         => $order->status,
         'status_label'   => $order->status_label,
         'status_message' => $order->status_message,
+        'has_live_gps'   => $order->hasLiveGps(),
+        'rider_lat'      => $order->hasLiveGps() ? (float) $order->rider_lat : null,
+        'rider_lng'      => $order->hasLiveGps() ? (float) $order->rider_lng : null,
+        'rider_updated'  => $order->rider_location_updated_at?->diffForHumans(),
     ])->header('Cache-Control', 'no-store');
 })->middleware('throttle:60,1')->name('order.track.status');
+
+// ── Rider Live GPS Delivery Portal ─────────────────────────
+Route::prefix('rider/deliver/{token}')->group(function () {
+    Route::get('/',              [\App\Http\Controllers\RiderPortalController::class, 'show'])->name('rider.deliver.show');
+    Route::post('location',      [\App\Http\Controllers\RiderPortalController::class, 'updateLocation'])->middleware('throttle:120,1')->name('rider.deliver.location');
+    Route::post('complete',      [\App\Http\Controllers\RiderPortalController::class, 'completeDelivery'])->name('rider.deliver.complete');
+});
 
 // ── Restaurant self-service onboarding ───────────────────────
 Route::get('restaurant/register', [RestaurantController::class, 'showRegistrationForm'])
