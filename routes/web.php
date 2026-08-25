@@ -6,16 +6,25 @@ use App\Http\Controllers\RestaurantController;
 use App\Http\Controllers\OnboardingController;
 use Illuminate\Support\Facades\Route;
 
-// ── Home — Unified login landing page ───────────────────────
+// ── Home — Foodio Modern SaaS Promotional Landing Page ────────
 Route::get('/', function () {
+    return view('landing');
+})->name('landing');
+
+// ── Dedicated Owner Sign In Page ──────────────────────────────
+Route::get('/login', function () {
     $restaurants = \App\Models\Restaurant::where('is_active', true)
         ->orderBy('name')
         ->get(['id', 'name', 'city']);
-    return view('auth.landing', compact('restaurants'));
-})->name('landing');
+    return view('auth.login', compact('restaurants'));
+})->name('landing.owner-login-page');
 
-// ── Owner login from the unified landing page ────────────────
-Route::post('/login/owner', function (\Illuminate\Http\Request $req) {
+Route::get('/owner/login', function () {
+    return redirect()->route('landing.owner-login-page');
+});
+
+// ── Owner Authentication Handler ───────────────────────────────
+$ownerLoginHandler = function (\Illuminate\Http\Request $req) {
     $req->validate([
         'restaurant_id' => 'required|integer',
         'password'      => 'required|string',
@@ -59,7 +68,10 @@ Route::post('/login/owner', function (\Illuminate\Http\Request $req) {
     session(["restaurant_{$r->id}_login_time" => now()->toIso8601String()]);
 
     return redirect()->route('dashboard.orders', $r->id);
-})->middleware('throttle:5,1')->name('landing.owner-login');
+};
+
+Route::post('/login', $ownerLoginHandler)->middleware('throttle:5,1');
+Route::post('/login/owner', $ownerLoginHandler)->middleware('throttle:5,1')->name('landing.owner-login');
 
 // ── Live Order Tracking (Public Web Portal - Free) ─────────
 // Throttled: tracking codes are the only secret protecting order details, so
