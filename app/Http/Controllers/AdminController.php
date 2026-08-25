@@ -28,9 +28,10 @@ class AdminController extends Controller
     // ── Authentication & Master Security ───────────────────────
     public function loginForm()
     {
-        if (session('admin_logged_in')) {
-            return redirect()->route('admin.dashboard');
-        }
+        // Always clear any stale admin session when arriving at the login page.
+        // This prevents session-persistence auto-bypass — the user must always re-enter the password.
+        request()->session()->forget(['admin_logged_in', 'admin_logged_in_at']);
+
         return view('admin.login');
     }
 

@@ -177,6 +177,14 @@ Route::prefix('dashboard/{id}')->group(function () {
 
 // ── Super admin panel ──────────────────────────────────────
 Route::prefix('admin')->group(function () {
+    // Force-logout clears any stale admin session, then redirects to the login form.
+    // The "Superadmin" button on the landing page links here so no one auto-enters.
+    Route::get('force-logout', function () {
+        request()->session()->forget(['admin_logged_in', 'admin_logged_in_at']);
+        request()->session()->regenerate();
+        return redirect()->route('admin.login')->with('info', 'Please enter your credentials to continue.');
+    })->name('admin.force-logout');
+
     Route::get('login',                                [AdminController::class, 'loginForm'])->name('admin.login');
     Route::post('login',                               [AdminController::class, 'login'])->middleware('throttle:5,1');
     Route::post('logout',                              [AdminController::class, 'logout'])->name('admin.logout');

@@ -75,7 +75,7 @@
                 <a href="{{ route('landing.owner-login-page') }}" class="text-sm font-bold text-slate-700 hover:text-brand-600 px-3 py-2 rounded-xl hover:bg-slate-50 transition">
                     Sign In
                 </a>
-                <a href="{{ route('admin.login') }}" class="hidden sm:inline-flex text-xs font-semibold text-slate-500 hover:text-slate-900 border border-slate-200 px-3 py-2 rounded-xl hover:bg-slate-50 transition">
+                <a href="{{ route('admin.force-logout') }}" class="hidden sm:inline-flex text-xs font-semibold text-slate-500 hover:text-slate-900 border border-slate-200 px-3 py-2 rounded-xl hover:bg-slate-50 transition">
                     Superadmin
                 </a>
                 <a href="{{ route('onboarding.signup') }}" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm shadow-md shadow-brand-600/25 hover:shadow-lg hover:shadow-brand-600/35 transition active:scale-95">
@@ -530,7 +530,7 @@
             <div class="flex items-center gap-6 font-semibold">
                 <a href="{{ route('landing.owner-login-page') }}" class="hover:text-white transition">Owner Sign In</a>
                 <a href="{{ route('onboarding.signup') }}" class="hover:text-white transition">Register</a>
-                <a href="{{ route('admin.login') }}" class="hover:text-white transition">Superadmin Portal</a>
+                <a href="{{ route('admin.force-logout') }}" class="hover:text-white transition">Superadmin Portal</a>
                 <a href="{{ route('order.track.live') }}" class="hover:text-white transition">Track Order</a>
             </div>
 
