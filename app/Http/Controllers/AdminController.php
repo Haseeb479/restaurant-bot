@@ -6,7 +6,7 @@ use App\Models\{
     Restaurant, Order, Conversation, Setting, SubscriptionPlan,
     Invoice, SupportTicket, SupportTicketMessage, Announcement,
     BlacklistedNumber, Feedback, AuditLog, MenuTemplate,
-    MenuTemplateItem, ApiKey, Category, MenuItem
+    MenuTemplateItem, ApiKey, Category, MenuItem, Subscription, Payment
 };
 use App\Support\BotControlClient;
 use Illuminate\Http\Request;
@@ -236,17 +236,39 @@ class AdminController extends Controller
     public function pendingRestaurants()
     {
         $this->adminAuth();
-        $pendingRestaurants = Restaurant::where('status', 'pending')->latest()->get();
+        $pendingRestaurants = Restaurant::with(['subscriptionPlan', 'payments'])
+            ->where(function($q) {
+                $q->where('status', 'pending')
+                  ->orWhere('registration_status', 'pending_review');
+            })
+            ->latest()
+            ->get();
         return view('admin.restaurants-pending', compact('pendingRestaurants'));
     }
 
     public function approveRestaurant(Restaurant $r)
     {
         $this->adminAuth();
-        $r->status           = 'active';
-        $r->is_active        = true;
-        $r->rejection_reason = null;
+        $r->status              = 'active';
+        $r->registration_status = 'approved';
+        $r->is_active           = true;
+        $r->rejection_reason    = null;
+        $r->approved_at         = now();
+        $r->plan_expires_at     = now()->addMonth();
         $r->save();
+
+        $planId = $r->plan_id ?: (SubscriptionPlan::where('slug', $r->plan)->value('id') ?: SubscriptionPlan::first()?->id);
+        if ($planId) {
+            Subscription::updateOrCreate(
+                ['restaurant_id' => $r->id],
+                [
+                    'plan_id'    => $planId,
+                    'status'     => 'active',
+                    'starts_at'  => now(),
+                    'expires_at' => now()->addMonth(),
+                ]
+            );
+        }
 
         AuditLog::log('restaurant.approved', "Approved restaurant: {$r->name} (#{$r->id})");
 
@@ -258,10 +280,13 @@ class AdminController extends Controller
         $this->adminAuth();
         $reason = $request->input('reason', 'Application did not meet verification criteria.');
 
-        $r->status           = 'rejected';
-        $r->is_active        = false;
-        $r->rejection_reason = $reason;
+        $r->status              = 'rejected';
+        $r->registration_status = 'rejected';
+        $r->is_active           = false;
+        $r->rejection_reason    = $reason;
         $r->save();
+
+        Subscription::where('restaurant_id', $r->id)->update(['status' => 'cancelled']);
 
         BotControlClient::invalidateCache($r->id, $r->whatsapp_number);
         AuditLog::log('restaurant.rejected', "Rejected restaurant: {$r->name} (#{$r->id}). Reason: {$reason}");

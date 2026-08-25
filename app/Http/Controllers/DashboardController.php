@@ -52,6 +52,18 @@ class DashboardController extends Controller
             return back()->withErrors(['password' => 'Wrong password']);
         }
 
+        if ($r->status === 'pending' || $r->registration_status === 'pending_review') {
+            return redirect()->route('onboarding.status', $r->id);
+        }
+
+        if ($r->status === 'rejected') {
+            return back()->withErrors(['password' => 'Your application was rejected. Reason: ' . ($r->rejection_reason ?: 'Contact support.')]);
+        }
+
+        if (! $r->is_active) {
+            return back()->withErrors(['password' => 'This restaurant account has been deactivated.']);
+        }
+
         // Legacy rows stored the password in plaintext; upgrade to a hash the
         // first time the owner logs in successfully. This is what lets the
         // plaintext→hash migration happen without locking anyone out.

@@ -16,6 +16,8 @@ class Restaurant extends Model
      */
     protected $fillable = [
         'name',
+        'owner_name',
+        'email',
         'whatsapp_number',
         'owner_phone',
         'city',
@@ -36,8 +38,14 @@ class Restaurant extends Model
         'bot_last_seen_at',
         'last_error',
         'last_error_at',
+        'plan',
+        'plan_id',
+        'payment_status',
+        'registration_status',
+        'payment_id',
         'status',
         'rejection_reason',
+        'approved_at',
         'features',
         'ai_config',
         'rate_limit_per_month',
@@ -50,6 +58,7 @@ class Restaurant extends Model
         'delivery_charge'      => 'decimal:2',
         'minimum_order'        => 'decimal:2',
         'plan_expires_at'      => 'datetime',
+        'approved_at'          => 'datetime',
         'bot_last_seen_at'     => 'datetime',
         'deactivated_at'       => 'datetime',
         'last_error_at'        => 'datetime',
@@ -118,6 +127,26 @@ class Restaurant extends Model
     public function todayOrders(): HasMany
     {
         return $this->hasMany(Order::class)->whereDate('created_at', today());
+    }
+
+    public function subscriptionPlan(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(SubscriptionPlan::class, 'plan_id');
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class)->latest();
+    }
+
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class)->latest();
+    }
+
+    public function activeSubscription(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Subscription::class)->where('status', 'active')->latestOfMany();
     }
 
     public function isPlanActive(): bool

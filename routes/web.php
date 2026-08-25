@@ -3,6 +3,7 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\RestaurantController;
+use App\Http\Controllers\OnboardingController;
 use Illuminate\Support\Facades\Route;
 
 // ── Home — Unified login landing page ───────────────────────
@@ -29,6 +30,16 @@ Route::post('/login/owner', function (\Illuminate\Http\Request $req) {
         return back()
             ->withInput($req->only('restaurant_id'))
             ->withErrors(['password' => 'Wrong restaurant or password.'], 'owner');
+    }
+
+    if ($r->status === 'pending' || $r->registration_status === 'pending_review') {
+        return redirect()->route('onboarding.status', $r->id);
+    }
+
+    if ($r->status === 'rejected') {
+        return back()
+            ->withInput($req->only('restaurant_id'))
+            ->withErrors(['password' => 'Your application was rejected. Reason: ' . ($r->rejection_reason ?: 'Contact support.')], 'owner');
     }
 
     if (!$r->is_active) {
@@ -100,11 +111,20 @@ Route::prefix('rider/deliver/{token}')->group(function () {
     Route::post('complete',      [\App\Http\Controllers\RiderPortalController::class, 'completeDelivery'])->name('rider.deliver.complete');
 });
 
-// ── Restaurant self-service onboarding ───────────────────────
-Route::get('restaurant/register', [RestaurantController::class, 'showRegistrationForm'])
-    ->name('restaurant.register');
-Route::post('restaurant/register', [RestaurantController::class, 'register'])
-    ->middleware('throttle:5,10');
+// ── SaaS Multi-Step Restaurant Onboarding & Payment Flow ───
+Route::get('register',               [OnboardingController::class, 'step1Form'])->name('onboarding.signup');
+Route::get('get-started',            [OnboardingController::class, 'step1Form'])->name('onboarding.get-started');
+Route::get('restaurant/register',    [OnboardingController::class, 'step1Form'])->name('restaurant.register');
+Route::post('register',              [OnboardingController::class, 'step1Submit'])->middleware('throttle:10,1')->name('onboarding.signup.submit');
+Route::post('restaurant/register',   [OnboardingController::class, 'step1Submit'])->middleware('throttle:10,1');
+
+Route::get('register/plan/{id}',     [OnboardingController::class, 'step2PlanForm'])->name('onboarding.plan');
+Route::post('register/plan/{id}',    [OnboardingController::class, 'step2PlanSubmit'])->name('onboarding.plan.submit');
+
+Route::get('register/payment/{id}',  [OnboardingController::class, 'step3PaymentForm'])->name('onboarding.payment');
+Route::post('register/payment/{id}', [OnboardingController::class, 'step3PaymentSubmit'])->name('onboarding.payment.submit');
+
+Route::get('register/status/{id}',   [OnboardingController::class, 'statusPage'])->name('onboarding.status');
 
 // ── Restaurant owner dashboard ─────────────────────────────
 Route::prefix('dashboard/{id}')->group(function () {
