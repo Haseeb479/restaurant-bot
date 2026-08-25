@@ -83,7 +83,6 @@ class DashboardController extends Controller
         $request->session()->regenerate();
         $request->session()->put("restaurant_{$r->id}", true);
         $request->session()->put("restaurant_{$r->id}_login_time", now()->toIso8601String());
-        $request->session()->save();
 
         return redirect()->route('dashboard.orders', $r->id);
     }
@@ -1338,7 +1337,14 @@ class DashboardController extends Controller
         $isOwner      = session("restaurant_{$id}") === true;
 
         // 1. Must be logged in as Super Admin OR the specific restaurant owner
-        abort_unless($isSuperAdmin || $isOwner, 403, 'Please login to access this dashboard.');
+        if (!$isSuperAdmin && !$isOwner) {
+            // Redirect to the dashboard-specific login page (or general login)
+            $r = \App\Models\Restaurant::find($id);
+            if ($r) {
+                abort(redirect()->route('dashboard.login', $id));
+            }
+            abort(redirect()->route('landing.owner-login-page'));
+        }
 
         // 2. Restaurant must exist in the database
         $r = \App\Models\Restaurant::find($id);

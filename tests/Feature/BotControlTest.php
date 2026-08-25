@@ -75,8 +75,8 @@ class BotControlTest extends TestCase
         Http::fake();
         $r = $this->restaurant('Unauthed Bot Kitchen');
 
-        $this->getJson(route('dashboard.bot-status', $r->id))->assertForbidden();
-        $this->postJson(route('dashboard.bot-restart', $r->id))->assertForbidden();
+        $this->getJson(route('dashboard.bot-status', $r->id))->assertStatus(302);
+        $this->postJson(route('dashboard.bot-restart', $r->id))->assertStatus(302);
 
         // The control server must never even be contacted for a rejected caller.
         Http::assertNothingSent();
@@ -88,7 +88,7 @@ class BotControlTest extends TestCase
         $this->owner();
         $theirs = $this->restaurant('Other Bot Kitchen');
 
-        $this->getJson(route('dashboard.bot-status', $theirs->id))->assertForbidden();
+        $this->getJson(route('dashboard.bot-status', $theirs->id))->assertStatus(302);
         Http::assertNothingSent();
     }
 

@@ -87,7 +87,6 @@ $ownerLoginHandler = function (\Illuminate\Http\Request $req) {
     $req->session()->regenerate();
     $req->session()->put("restaurant_{$r->id}", true);
     $req->session()->put("restaurant_{$r->id}_login_time", now()->toIso8601String());
-    $req->session()->save();
 
     return redirect()->route('dashboard.orders', $r->id);
 };

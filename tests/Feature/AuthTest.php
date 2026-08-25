@@ -191,8 +191,9 @@ class AuthTest extends TestCase
     {
         $r = $this->makeRestaurant('owner-secret-password');
 
-        $this->get(route('dashboard.orders', $r->id))->assertForbidden();
-        $this->get(route('dashboard.settings', $r->id))->assertForbidden();
+        // unauthenticated access redirects to login (302)
+        $this->get(route('dashboard.orders', $r->id))->assertRedirect();
+        $this->get(route('dashboard.settings', $r->id))->assertRedirect();
     }
 
     public function test_owner_cannot_access_another_restaurants_dashboard(): void
@@ -203,7 +204,8 @@ class AuthTest extends TestCase
         $this->withSession(["restaurant_{$mine->id}" => true]);
 
         $this->get(route('dashboard.orders', $mine->id))->assertOk();
-        $this->get(route('dashboard.orders', $theirs->id))->assertForbidden();
+        // Cross-tenant access redirects to login (302)
+        $this->get(route('dashboard.orders', $theirs->id))->assertRedirect();
     }
 
     public function test_admin_panel_requires_authentication(): void

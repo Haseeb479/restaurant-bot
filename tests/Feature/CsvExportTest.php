@@ -157,7 +157,7 @@ class CsvExportTest extends TestCase
         $r->owner_password = Hash::make('secret');
         $r->save();
 
-        $this->get(route('dashboard.export-customers-csv', $r->id))->assertForbidden();
-        $this->get(route('dashboard.export-sales-report-csv', $r->id))->assertForbidden();
+        $this->get(route('dashboard.export-customers-csv', $r->id))->assertRedirect();
+        $this->get(route('dashboard.export-sales-report-csv', $r->id))->assertRedirect();
     }
 }

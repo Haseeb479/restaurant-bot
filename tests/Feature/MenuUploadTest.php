@@ -229,7 +229,7 @@ class MenuUploadTest extends TestCase
 
         $this->post(route('dashboard.upload-menu-file', $r->id), [
             'menu_file' => $this->jpeg('menu.jpg'),
-        ])->assertForbidden();
+        ])->assertRedirect();
 
         $this->assertSame([], $this->newFiles());
         $this->assertNull($r->fresh()->menu_file);
@@ -242,7 +242,7 @@ class MenuUploadTest extends TestCase
 
         $this->post(route('dashboard.upload-menu-file', $theirs->id), [
             'menu_file' => $this->jpeg('menu.jpg'),
-        ])->assertForbidden();
+        ])->assertRedirect();
 
         $this->assertSame([], $this->newFiles());
         $this->assertNull($theirs->fresh()->menu_file);
