@@ -563,9 +563,9 @@
                 <span>Online</span>
             </div>
 
-            <div style="position: relative; width: 36px; height: 36px; border-radius: 10px; background: #f1f5f9; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer;">
+            <div id="notif-bell-wrap" title="Pending orders awaiting action" style="position: relative; width: 36px; height: 36px; border-radius: 10px; background: #f1f5f9; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer;" onclick="window.location.href='{{ route('dashboard.orders', $restId) }}'">
                 🔔
-                <span style="position: absolute; top: -3px; right: -3px; width: 16px; height: 16px; border-radius: 50%; background: #ef4444; color: #fff; font-size: 9px; font-weight: 800; display: flex; align-items: center; justify-content: center;">3</span>
+                <span id="notif-badge" style="position: absolute; top: -4px; right: -4px; min-width: 17px; height: 17px; border-radius: 99px; background: #ef4444; color: #fff; font-size: 9px; font-weight: 800; display: none; align-items: center; justify-content: center; padding: 0 3px; border: 2px solid #f8fafc;">0</span>
             </div>
 
             <div class="user-profile">
@@ -593,6 +593,63 @@
         @yield('content')
     </main>
 </div>
+<!-- Live Notification Bell Poller -->
+@if(isset($restId))
+<script>
+(function() {
+    const badge  = document.getElementById('notif-badge');
+    const bell   = document.getElementById('notif-bell-wrap');
+    if (!badge || !bell) return;
+
+    let lastCount = null;
+
+    function updateBell(pending) {
+        if (pending > 0) {
+            badge.textContent = pending > 99 ? '99+' : pending;
+            badge.style.display = 'flex';
+            // Pulse animation on new orders
+            if (lastCount !== null && pending > lastCount) {
+                bell.style.animation = 'bellShake 0.5s ease';
+                setTimeout(() => bell.style.animation = '', 600);
+            }
+        } else {
+            badge.style.display = 'none';
+        }
+        lastCount = pending;
+    }
+
+    // CSS for bell shake animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes bellShake {
+            0%,100% { transform: rotate(0); }
+            20%      { transform: rotate(-18deg); }
+            40%      { transform: rotate(18deg); }
+            60%      { transform: rotate(-12deg); }
+            80%      { transform: rotate(8deg); }
+        }
+    `;
+    document.head.appendChild(style);
+
+    async function pollPendingOrders() {
+        try {
+            const res  = await fetch('/dashboard/{{ $restId }}/orders/live-feed', {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data.success && typeof data.pending_count !== 'undefined') {
+                updateBell(data.pending_count);
+            }
+        } catch (e) { /* offline / retry next tick */ }
+    }
+
+    // Initial poll immediately, then every 8 seconds
+    pollPendingOrders();
+    setInterval(pollPendingOrders, 8000);
+})();
+</script>
+@endif
 
 </body>
 </html>

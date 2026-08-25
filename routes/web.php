@@ -108,6 +108,7 @@ Route::prefix('dashboard/{id}')->group(function () {
     Route::post('bot/restart',                 [DashboardController::class, 'botRestart'])->middleware('throttle:6,1')->name('dashboard.bot-restart');
     Route::get('orders',                       [DashboardController::class, 'orders'])->name('dashboard.orders');
     Route::get('orders/live-feed',             [DashboardController::class, 'liveOrdersFeed'])->name('dashboard.orders.live-feed');
+    Route::get('orders/{order}/print-bill',     [DashboardController::class, 'printBill'])->name('dashboard.print-bill');
     Route::post('orders/{order}/status',       [DashboardController::class, 'updateStatus'])->name('dashboard.update-status');
     Route::get('menu',                         [DashboardController::class, 'menu'])->name('dashboard.menu');
     Route::post('menu/category',               [DashboardController::class, 'storeCategory'])->name('dashboard.store-category');

@@ -318,6 +318,21 @@ class DashboardController extends Controller
             ->with('success', "Order #{$order->tracking_code} marked as " . ucwords(str_replace('_', ' ', $status)) . "!");
     }
 
+    // ── Print Bill / Thermal Parcel Receipt ──────────────────
+    public function printBill(string $id, Order $order)
+    {
+        $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
+        abort_if($order->restaurant_id !== $r->id, 403);
+
+        $order->load(['items', 'rider']);
+
+        return view('dashboard.print-bill', [
+            'restaurant' => $r,
+            'order'      => $order,
+        ]);
+    }
+
     // ── Menu management ────────────────────────────────────
     public function menu(string $id)
     {

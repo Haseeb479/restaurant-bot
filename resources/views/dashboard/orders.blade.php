@@ -962,6 +962,10 @@
                     <a href="{{ route('order.track.live', $selectedOrder->tracking_code) }}" target="_blank" class="btn-action-secondary" title="View Customer Live Tracking Page">
                         🌐 Live Track
                     </a>
+
+                    <a href="{{ route('dashboard.print-bill', [$restaurant->id, $selectedOrder->id]) }}" target="_blank" class="btn-action-secondary" title="Print Parcel Bill / Receipt" style="background: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; font-size: 12px; font-weight: 700; padding: 10px 14px; border-radius: 10px; display: inline-flex; align-items: center; gap: 5px; text-decoration: none; white-space: nowrap;">
+                        🖨️ Print Bill
+                    </a>
                 </div>
             @else
                 <div style="text-align: center; padding: 80px 20px; color: #94a3b8;">
