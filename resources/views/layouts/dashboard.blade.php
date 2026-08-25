@@ -1,9 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Dashboard') — {{ $restaurant->name ?? ($r->name ?? 'Restaurant Owner') }}</title>
+
+    <!-- Immediate theme initializer (no flicker) -->
+    <script>
+        (function() {
+            const t = localStorage.getItem('owner_theme') || 'light';
+            document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
 
     <!-- Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,6 +30,23 @@
             --border-color: #e2e8f0;
             --text-main: #0f172a;
             --text-muted: #64748b;
+            --input-bg: #ffffff;
+            --header-bg: #ffffff;
+        }
+
+        [data-theme="dark"] {
+            --sidebar-bg: #0b0f19;
+            --sidebar-hover: rgba(255, 255, 255, 0.08);
+            --sidebar-active: #6366f1;
+            --sidebar-text: #94a3b8;
+            --sidebar-text-active: #ffffff;
+            --main-bg: #0f172a;
+            --card-bg: #1e293b;
+            --border-color: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --input-bg: #0f172a;
+            --header-bg: #1e293b;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -34,6 +59,133 @@
             display: flex;
             font-size: 13px;
             line-height: 1.5;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        /* ── Dark Mode Element Overrides ────────────────── */
+        [data-theme="dark"] header {
+            background: var(--header-bg) !important;
+            border-bottom: 1px solid var(--border-color) !important;
+        }
+        [data-theme="dark"] .header-title h1,
+        [data-theme="dark"] .user-name {
+            color: #f8fafc !important;
+        }
+        [data-theme="dark"] .header-title p {
+            color: #94a3b8 !important;
+        }
+        [data-theme="dark"] .date-pill {
+            background: #1e293b !important;
+            border-color: #334155 !important;
+            color: #f8fafc !important;
+        }
+        [data-theme="dark"] .stat-card,
+        [data-theme="dark"] .panel-card,
+        [data-theme="dark"] .card,
+        [data-theme="dark"] .dashboard-card,
+        [data-theme="dark"] .content-card,
+        [data-theme="dark"] .order-details-card,
+        [data-theme="dark"] .modal-content,
+        [data-theme="dark"] .modal-container,
+        [data-theme="dark"] .modal-card,
+        [data-theme="dark"] .orders-col,
+        [data-theme="dark"] .table-card,
+        [data-theme="dark"] .bg-white {
+            background-color: var(--card-bg) !important;
+            border-color: var(--border-color) !important;
+            color: var(--text-main) !important;
+        }
+        [data-theme="dark"] .stat-val,
+        [data-theme="dark"] .panel-title,
+        [data-theme="dark"] h1, [data-theme="dark"] h2, [data-theme="dark"] h3, [data-theme="dark"] h4,
+        [data-theme="dark"] strong {
+            color: #f8fafc !important;
+        }
+        [data-theme="dark"] .stat-label,
+        [data-theme="dark"] .stat-footer,
+        [data-theme="dark"] .info-col-label,
+        [data-theme="dark"] .text-muted,
+        [data-theme="dark"] .stat-sub {
+            color: #94a3b8 !important;
+        }
+        [data-theme="dark"] .panel-header {
+            border-bottom-color: #334155 !important;
+        }
+        [data-theme="dark"] .live-order-item,
+        [data-theme="dark"] .order-card,
+        [data-theme="dark"] .customer-info-box,
+        [data-theme="dark"] .order-summary-box,
+        [data-theme="dark"] .tracking-box,
+        [data-theme="dark"] .activity-item,
+        [data-theme="dark"] .rider-card,
+        [data-theme="dark"] .menu-item-row,
+        [data-theme="dark"] .category-pill,
+        [data-theme="dark"] .settings-card,
+        [data-theme="dark"] .report-card {
+            background: #182234 !important;
+            border-color: #334155 !important;
+            color: #f8fafc !important;
+        }
+        [data-theme="dark"] .live-order-item:hover,
+        [data-theme="dark"] .live-order-item.active {
+            background: #223249 !important;
+            border-color: #6366f1 !important;
+        }
+        [data-theme="dark"] input,
+        [data-theme="dark"] select,
+        [data-theme="dark"] textarea {
+            background-color: #0f172a !important;
+            color: #f8fafc !important;
+            border-color: #334155 !important;
+        }
+        [data-theme="dark"] input::placeholder,
+        [data-theme="dark"] textarea::placeholder {
+            color: #64748b !important;
+        }
+        [data-theme="dark"] table th {
+            background-color: #182234 !important;
+            color: #94a3b8 !important;
+            border-color: #334155 !important;
+        }
+        [data-theme="dark"] table td {
+            border-color: #334155 !important;
+            color: #f8fafc !important;
+        }
+        [data-theme="dark"] table tr:hover {
+            background-color: #26334d !important;
+        }
+        [data-theme="dark"] .rider-item-card,
+        [data-theme="dark"] .quick-action-item,
+        [data-theme="dark"] .top-item-row,
+        [data-theme="dark"] .donut-chart-container,
+        [data-theme="dark"] .filter-pills-bar,
+        [data-theme="dark"] .tab-btn {
+            background: #182234 !important;
+            border-color: #334155 !important;
+            color: #f8fafc !important;
+        }
+        [data-theme="dark"] .btn-sub-action,
+        [data-theme="dark"] .btn-action-secondary,
+        [data-theme="dark"] .btn-secondary,
+        [data-theme="dark"] .btn-light {
+            background: #0f172a !important;
+            border-color: #334155 !important;
+            color: #f8fafc !important;
+        }
+        [data-theme="dark"] #notif-bell-wrap,
+        [data-theme="dark"] .theme-toggle-btn {
+            background: #1e293b !important;
+            border-color: #334155 !important;
+            color: #f8fafc !important;
+        }
+        [data-theme="dark"] .theme-toggle-btn:hover {
+            background: #2d3d54 !important;
+        }
+        [data-theme="dark"] #dispatchModal > div,
+        [data-theme="dark"] .modal-box {
+            background: #1e293b !important;
+            border-color: #334155 !important;
+            color: #f8fafc !important;
         }
 
         /* SIDEBAR */
@@ -558,6 +710,12 @@
         </div>
 
         <div class="header-actions">
+            <!-- Dark / Light Mode Toggle -->
+            <button type="button" class="theme-toggle-btn" onclick="toggleOwnerTheme()" title="Toggle Dark/Light Theme" style="background: var(--card-bg); border: 1px solid var(--border-color); padding: 7px 12px; border-radius: 10px; color: var(--text-main); cursor: pointer; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
+                <span id="themeIcon">🌙</span>
+                <span id="themeText" style="font-size: 11.5px;">Dark</span>
+            </button>
+
             <div class="status-online-pill" style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 6px 12px; border-radius: 99px; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px;">
                 <span style="width: 7px; height: 7px; border-radius: 50%; background: #16a34a; display: inline-block;"></span>
                 <span>Online</span>
@@ -575,7 +733,7 @@
                 </div>
             </div>
 
-            <div style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 12px; font-weight: 700; color: #334155;">
+            <div class="date-pill" style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 12px; font-weight: 700; color: #334155;">
                 <span>📅</span>
                 <span>Today, {{ now()->format('M d') }}</span>
                 <span style="font-size: 10px; color: #94a3b8;">▾</span>
@@ -650,6 +808,37 @@
 })();
 </script>
 @endif
+
+<script>
+// ── Owner Dashboard Dark Mode Toggle & Persistence ──────────────────
+function initOwnerTheme() {
+    const savedTheme = localStorage.getItem('owner_theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateOwnerThemeButton(savedTheme);
+}
+
+function toggleOwnerTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('owner_theme', newTheme);
+    updateOwnerThemeButton(newTheme);
+}
+
+function updateOwnerThemeButton(theme) {
+    const icon = document.getElementById('themeIcon');
+    const text = document.getElementById('themeText');
+    if (theme === 'dark') {
+        if (icon) icon.textContent = '☀️';
+        if (text) text.textContent = 'Light';
+    } else {
+        if (icon) icon.textContent = '🌙';
+        if (text) text.textContent = 'Dark';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', initOwnerTheme);
+</script>
 
 </body>
 </html>
