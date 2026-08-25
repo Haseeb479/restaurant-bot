@@ -334,11 +334,11 @@
                 {{ $order->delivery_address ?: $order->masked_delivery_address }}
             </div>
 
-            @if($order->rider_name || $order->rider?->name)
+            @if($order->rider_name)
                 <div style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed #cbd5e1; font-size: 11.5px; color: #0f172a;">
-                    🛵 <strong>Rider:</strong> {{ $order->rider_name ?: $order->rider?->name }}
-                    @if($order->rider_phone || $order->rider?->phone)
-                        ({{ $order->rider_phone ?: $order->rider?->phone }})
+                    🛵 <strong>Rider:</strong> {{ $order->rider_name }}
+                    @if($order->rider_phone)
+                        ({{ $order->rider_phone }})
                     @endif
                 </div>
             @endif

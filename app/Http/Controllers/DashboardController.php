@@ -325,7 +325,7 @@ class DashboardController extends Controller
         $r = Restaurant::findOrFail($id);
         abort_if($order->restaurant_id !== $r->id, 403);
 
-        $order->load(['items', 'rider']);
+        $order->load(['items']);   // rider info is stored as plain columns (rider_name, rider_phone)
 
         return view('dashboard.print-bill', [
             'restaurant' => $r,
