@@ -12,33 +12,35 @@ Route::get('/', function () {
 })->name('landing');
 
 // ── Dedicated Owner Sign In Page ──────────────────────────────
+// No dropdown data needed — user types their restaurant name.
 Route::get('/login', function () {
-    $restaurants = \App\Models\Restaurant::where('is_active', true)
-        ->orderBy('name')
-        ->get(['id', 'name', 'city']);
-    return view('auth.login', compact('restaurants'));
+    return view('auth.login');
 })->name('landing.owner-login-page');
 
 Route::get('/owner/login', function () {
     return redirect()->route('landing.owner-login-page');
 });
 
-// ── Owner Authentication Handler ───────────────────────────────
+// ── Owner Authentication Handler (searches by restaurant name) ──
 $ownerLoginHandler = function (\Illuminate\Http\Request $req) {
     $req->validate([
-        'restaurant_id' => 'required|integer',
-        'password'      => 'required|string',
+        'restaurant_name' => 'required|string|max:255',
+        'password'        => 'required|string',
     ]);
 
-    $r = \App\Models\Restaurant::find($req->restaurant_id);
+    // Case-insensitive partial name search — find the closest active match
+    $r = \App\Models\Restaurant::where('is_active', true)
+        ->whereRaw('LOWER(name) LIKE ?', ['%' . strtolower(trim($req->restaurant_name)) . '%'])
+        ->orderByRaw('LENGTH(name) ASC') // prefer shorter/exact names first
+        ->first();
 
     if (!$r || !\App\Http\Controllers\DashboardController::passwordMatches(
         (string) $req->password,
         (string) $r->owner_password
     )) {
         return back()
-            ->withInput($req->only('restaurant_id'))
-            ->withErrors(['password' => 'Wrong restaurant or password.'], 'owner');
+            ->withInput($req->only('restaurant_name'))
+            ->withErrors(['password' => 'Wrong restaurant name or password. Please check and try again.'], 'owner');
     }
 
     if ($r->status === 'pending' || $r->registration_status === 'pending_review') {
@@ -47,17 +49,17 @@ $ownerLoginHandler = function (\Illuminate\Http\Request $req) {
 
     if ($r->status === 'rejected') {
         return back()
-            ->withInput($req->only('restaurant_id'))
+            ->withInput($req->only('restaurant_name'))
             ->withErrors(['password' => 'Your application was rejected. Reason: ' . ($r->rejection_reason ?: 'Contact support.')], 'owner');
     }
 
     if (!$r->is_active) {
         return back()
-            ->withInput($req->only('restaurant_id'))
-            ->withErrors(['password' => 'This restaurant account has been deactivated.'], 'owner');
+            ->withInput($req->only('restaurant_name'))
+            ->withErrors(['password' => 'This restaurant account has been deactivated. Contact support.'], 'owner');
     }
 
-    // Upgrade plaintext password to hash on first login
+    // Upgrade plaintext password to bcrypt hash on first login
     if (!\App\Http\Controllers\DashboardController::isHashed((string) $r->owner_password)) {
         $r->owner_password = \Illuminate\Support\Facades\Hash::make($req->password);
         $r->save();
@@ -70,8 +72,40 @@ $ownerLoginHandler = function (\Illuminate\Http\Request $req) {
     return redirect()->route('dashboard.orders', $r->id);
 };
 
-Route::post('/login', $ownerLoginHandler)->middleware('throttle:5,1');
+Route::post('/login',       $ownerLoginHandler)->middleware('throttle:5,1');
 Route::post('/login/owner', $ownerLoginHandler)->middleware('throttle:5,1')->name('landing.owner-login');
+
+// ── Forgot Password Flow ────────────────────────────────────────
+Route::get('/forgot-password', function () {
+    return view('auth.forgot-password');
+})->name('owner.forgot-password');
+
+Route::post('/forgot-password', function (\Illuminate\Http\Request $req) {
+    $req->validate([
+        'restaurant_name' => 'required|string|max:255',
+        'email'           => 'required|email|max:255',
+        'phone'           => 'required|string|max:20',
+    ]);
+
+    // Look up the restaurant to give a vague but honest response
+    // (always return success to prevent enumeration attacks)
+    $r = \App\Models\Restaurant::whereRaw('LOWER(name) LIKE ?', ['%' . strtolower(trim($req->restaurant_name)) . '%'])
+        ->where('email', trim($req->email))
+        ->first();
+
+    if ($r) {
+        // Log a reset request in audit log for admin action
+        try {
+            \App\Models\AuditLog::log(
+                'owner.password_reset_request',
+                "Password reset requested for restaurant: {$r->name} (ID: {$r->id}). Contact: {$req->phone}"
+            );
+        } catch (\Throwable $e) {}
+    }
+
+    // Always show success — do not reveal whether the restaurant/email exists
+    return back()->with('reset_sent', true);
+})->middleware('throttle:3,5')->name('owner.forgot-password.submit');
 
 // ── Live Order Tracking (Public Web Portal - Free) ─────────
 // Throttled: tracking codes are the only secret protecting order details, so

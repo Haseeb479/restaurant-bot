@@ -176,8 +176,8 @@ class SaaSOnboardingWorkflowTest extends TestCase
         ]);
 
         $response = $this->post(route('landing.owner-login'), [
-            'restaurant_id' => $restaurant->id,
-            'password'      => 'password123',
+            'restaurant_name' => $restaurant->name,
+            'password'        => 'password123',
         ]);
 
         $response->assertRedirect(route('dashboard.orders', $restaurant->id));
@@ -205,8 +205,8 @@ class SaaSOnboardingWorkflowTest extends TestCase
 
         // Attempting login blocks owner
         $loginRes = $this->post(route('landing.owner-login'), [
-            'restaurant_id' => $restaurant->id,
-            'password'      => 'password123',
+            'restaurant_name' => $restaurant->name,
+            'password'        => 'password123',
         ]);
 
         $loginRes->assertSessionHasErrors('password', null, 'owner');
@@ -221,10 +221,11 @@ class SaaSOnboardingWorkflowTest extends TestCase
         ]);
 
         $response = $this->post(route('landing.owner-login'), [
-            'restaurant_id' => $restaurant->id,
-            'password'      => 'password123',
+            'restaurant_name' => $restaurant->name,
+            'password'        => 'password123',
         ]);
 
         $response->assertRedirect(route('onboarding.status', $restaurant->id));
     }
 }
+
