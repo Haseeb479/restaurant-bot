@@ -24,6 +24,39 @@
                 window.location.replace(window.location.href);
             }
         });
+
+        // Real-time Live Security Guard: verifies active server session
+        (function() {
+            const authUrl = '{{ route("dashboard.auth-status", $restaurant->id ?? ($r->id ?? request()->route("id"))) }}';
+            const loginUrl = '{{ route("landing.owner-login-page") }}';
+
+            function verifySession() {
+                fetch(authUrl, { cache: 'no-store' })
+                    .then(res => {
+                        if (!res.ok) throw new Error('Unauthenticated');
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (!data.authenticated) throw new Error('Unauthenticated');
+                    })
+                    .catch(() => {
+                        document.documentElement.style.display = 'none';
+                        window.location.replace(loginUrl);
+                    });
+            }
+
+            verifySession();
+
+            window.addEventListener('pageshow', function () {
+                verifySession();
+            });
+
+            document.addEventListener('visibilitychange', function() {
+                if (document.visibilityState === 'visible') {
+                    verifySession();
+                }
+            });
+        })();
     </script>
 
     <!-- Fonts & Icons -->

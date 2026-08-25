@@ -217,6 +217,17 @@ Route::get('register/status/{id}',   [OnboardingController::class, 'statusPage']
 
 // ── Restaurant owner dashboard ─────────────────────────────
 Route::prefix('dashboard/{id}')->group(function () {
+    Route::get('auth-status', function (string $id) {
+        $isSuperAdmin = session('admin_logged_in') === true;
+        $isOwner      = session("restaurant_{$id}") === true;
+        $r            = \App\Models\Restaurant::find($id);
+
+        if ((!$isSuperAdmin && !$isOwner) || !$r || (!$isSuperAdmin && !$r->is_active)) {
+            return response()->json(['authenticated' => false], 401);
+        }
+        return response()->json(['authenticated' => true]);
+    })->name('dashboard.auth-status');
+
     Route::get('login',                        [DashboardController::class, 'loginForm'])->name('dashboard.login');
     Route::post('login',                       [DashboardController::class, 'login'])->middleware('throttle:5,1');
     Route::post('logout',                      [DashboardController::class, 'logout'])->name('dashboard.logout');

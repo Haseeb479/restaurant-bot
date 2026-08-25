@@ -190,8 +190,21 @@
         }
     }
 
+    function flushServerSession() {
+        try {
+            if (navigator.sendBeacon) {
+                navigator.sendBeacon('{{ route("auth.flush-session") }}');
+            } else {
+                fetch('{{ route("auth.flush-session") }}', { method: 'POST', keepalive: true });
+            }
+        } catch (e) {}
+    }
+
+    flushServerSession();
+
     // Force fresh state reload if navigating through history
     window.addEventListener('pageshow', function (event) {
+        flushServerSession();
         if (event.persisted || (window.performance && window.performance.navigation && window.performance.navigation.type === 2)) {
             window.location.reload();
         }
