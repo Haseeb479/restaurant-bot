@@ -385,7 +385,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const restaurantCity = @json(strtolower(trim($order->restaurant->city ?? '')));
     const restaurantAddr = @json(strtolower(trim($order->restaurant->address ?? '')));
-    const customerAddr   = @json(strtolower(trim($order->delivery_address ?? '')));
+    const customerAddr   = @json(strtolower(trim($order->masked_delivery_address ?? '')));
 
     const baseOrigin = resolveCoords(restaurantCity) 
         || resolveCoords(restaurantAddr) 
@@ -451,13 +451,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Add Markers
-    L.marker([originLat, originLng], { icon: restIcon }).addTo(map).bindPopup('<b>Kitchen Origin</b><br>' + @json($order->restaurant->name));
-    L.marker([destLat, destLng], { icon: destIcon }).addTo(map).bindPopup('<b>Delivery Destination</b><br>' + @json($order->customer_name ?: 'Customer'));
+    const restMarker = L.marker([originLat, originLng], { icon: restIcon }).addTo(map).bindPopup('<b>Kitchen Origin</b><br>' + @json($order->restaurant->name));
+    const destMarker = L.marker([destLat, destLng], { icon: destIcon }).addTo(map).bindPopup('<b>Delivery Destination</b><br>' + @json($order->customer_name ?: 'Customer'));
 
     // Route Polyline Points with intermediate waypoints
     const midLat = originLat + (latOffset * 0.45) + 0.003;
     const midLng = originLng + (lngOffset * 0.6) - 0.002;
-    const routePoints = [
+    let routePoints = [
         [originLat, originLng],
         [originLat + latOffset*0.2, originLng + lngOffset*0.1],
         [midLat, midLng],
@@ -472,12 +472,45 @@ document.addEventListener('DOMContentLoaded', function() {
         dashArray: orderStatus === 'delivered' ? null : '8, 8'
     }).addTo(map);
 
-    map.fitBounds(polyline.getBounds(), { padding: [35, 35] });
+    @php
+        $geocodingAddress = '';
+        if ($order && $order->masked_delivery_address) {
+            $geocodingAddress = trim(str_replace(['•••', 'hidden'], '', $order->masked_delivery_address));
+        }
+        $geocodingCity = ($order && $order->restaurant && $order->restaurant->city) ? $order->restaurant->city : 'Pakistan';
+        $hasLiveGps = $order ? $order->hasLiveGps() : false;
+        $initialRiderLat = ($order && $order->rider_lat) ? (float) $order->rider_lat : null;
+        $initialRiderLng = ($order && $order->rider_lng) ? (float) $order->rider_lng : null;
+    @endphp
+
+    // Try precise geocoding for customer address if given
+    const rawDeliveryAddr = @json($geocodingAddress);
+    if (rawDeliveryAddr && rawDeliveryAddr.length > 3) {
+        const queryCity = @json($geocodingCity);
+        const searchQuery = encodeURIComponent(rawDeliveryAddr + ', ' + queryCity + ', Pakistan');
+        fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + searchQuery, { headers: { 'Accept': 'application/json' } })
+            .then(r => r.json())
+            .then(data => {
+                if (data && data[0] && data[0].lat && data[0].lon) {
+                    const realDestLat = parseFloat(data[0].lat);
+                    const realDestLng = parseFloat(data[0].lon);
+                    destMarker.setLatLng([realDestLat, realDestLng]);
+                    const newRoute = [
+                        [originLat, originLng],
+                        [(originLat + realDestLat)/2 + 0.002, (originLng + realDestLng)/2 - 0.002],
+                        [realDestLat, realDestLng]
+                    ];
+                    polyline.setLatLngs(newRoute);
+                    map.fitBounds(polyline.getBounds(), { padding: [35, 35] });
+                }
+            })
+            .catch(() => {});
+    }
 
     // Check if real GPS coordinates exist on initial load
-    const initialLiveGps = @json($order->hasLiveGps());
-    const initialRiderLat = @json($order->rider_lat ? (float)$order->rider_lat : null);
-    const initialRiderLng = @json($order->rider_lng ? (float)$order->rider_lng : null);
+    const initialLiveGps = @json($hasLiveGps);
+    const initialRiderLat = @json($initialRiderLat);
+    const initialRiderLng = @json($initialRiderLng);
 
     // Rider Position Initializer
     let currentRiderLat = originLat + (latOffset * 0.1);

@@ -250,6 +250,7 @@ class DashboardController extends Controller
         }
 
         $order->update($updateData);
+        $order->refresh();
 
         // Build Live Web Tracking Link
         $trackingUrl = url('/track/' . $order->tracking_code);
@@ -281,8 +282,14 @@ class DashboardController extends Controller
         }
 
         // If dispatched to a rider, notify rider on WhatsApp with Rider Delivery Portal Link
-        if ($status === 'out_for_delivery' && ! empty($order->rider_phone) && ! empty($order->rider_token)) {
-            $riderPortalUrl = url('/rider/deliver/' . $order->rider_token);
+        if ($status === 'out_for_delivery' && ! empty($order->rider_phone)) {
+            $riderToken = $order->rider_token;
+            if (empty($riderToken)) {
+                $riderToken = Order::generateRiderToken();
+                $order->update(['rider_token' => $riderToken]);
+            }
+
+            $riderPortalUrl = url('/rider/deliver/' . $riderToken);
             $riderMsg = "🛵 *New Delivery Assigned!*\n\n"
                 . "Order: *#{$order->tracking_code}*\n"
                 . "Customer: *{$order->customer_name}*\n"

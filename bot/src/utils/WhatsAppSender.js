@@ -8,10 +8,20 @@ export async function sendWhatsAppText(client, phoneOrJid, message) {
         return false;
     }
 
-    const clean = String(phoneOrJid).replace(/[^0-9]/g, '');
+    let clean = String(phoneOrJid).replace(/[^0-9]/g, '');
     if (!clean) return false;
 
-    // Build list of target candidate JIDs (testing @lid, @c.us, and resolved IDs)
+    // Normalize Pakistani mobile numbers to international format (923XXXXXXXXX)
+    let intlNumber = clean;
+    if (clean.length === 11 && clean.startsWith('03')) {
+        intlNumber = '92' + clean.slice(1);
+    } else if (clean.length === 10 && clean.startsWith('3')) {
+        intlNumber = '92' + clean;
+    } else if (clean.length === 14 && clean.startsWith('0092')) {
+        intlNumber = clean.slice(2);
+    }
+
+    // Build list of target candidate JIDs (testing @c.us, @lid, and resolved IDs)
     const candidates = [];
 
     // If input already has @lid or @c.us
@@ -22,18 +32,18 @@ export async function sendWhatsAppText(client, phoneOrJid, message) {
     // Try resolving registered number via WhatsApp API
     try {
         if (typeof client.getNumberId === 'function') {
-            const numberDetails = await client.getNumberId(clean);
+            const numberDetails = (await client.getNumberId(intlNumber)) || (await client.getNumberId(clean));
             if (numberDetails && numberDetails._serialized) {
-                candidates.push(numberDetails._serialized);
+                candidates.unshift(numberDetails._serialized);
             }
         }
     } catch (e) {
         console.debug('getNumberId notice:', e.message);
     }
 
-    // Add both standard @c.us and WhatsApp privacy @lid formats
-    if (!candidates.includes(`${clean}@lid`)) candidates.push(`${clean}@lid`);
+    if (!candidates.includes(`${intlNumber}@c.us`)) candidates.push(`${intlNumber}@c.us`);
     if (!candidates.includes(`${clean}@c.us`)) candidates.push(`${clean}@c.us`);
+    if (!candidates.includes(`${clean}@lid`)) candidates.push(`${clean}@lid`);
 
     // 1. Try sending to candidate JIDs
     for (const targetId of candidates) {

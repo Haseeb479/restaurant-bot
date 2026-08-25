@@ -1,14 +1,4 @@
-import { randomInt } from 'crypto';
 import { getDbPool } from './Database.js';
-
-/**
- * Crockford Base32 — omits I, L, O and U so a code can't be misread (1/I, 0/O).
- * Must match Order::TRACKING_CODE_ALPHABET in app/Models/Order.php.
- */
-const TRACKING_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
-
-/** 16 symbols x 5 bits = 80 bits of entropy. */
-const TRACKING_LENGTH = 16;
 
 /** Up to 3 A–Z initials from the restaurant name, for human recognisability. */
 function trackingPrefix(restaurantName) {
@@ -20,15 +10,6 @@ function trackingPrefix(restaurantName) {
         .slice(0, 3);
 
     return initials || 'ORD';
-}
-
-/** CSPRNG-backed suffix (`crypto.randomInt`, not `Math.random`). */
-function randomTrackingSuffix() {
-    let code = '';
-    for (let i = 0; i < TRACKING_LENGTH; i++) {
-        code += TRACKING_ALPHABET[randomInt(TRACKING_ALPHABET.length)];
-    }
-    return code;
 }
 
 /**
@@ -285,22 +266,25 @@ export class OrderService {
     }
 
     /**
-     * Generate a unique tracking code, e.g. `FEZ-7K2MQX9P4TVBNH3R`.
+     * Generate a unique short tracking code, e.g. `FZ1048` or `ORD5821`.
      *
      * Must stay in sync with Order::generateTrackingCode() on the Laravel side
      * (app/Models/Order.php) — both paths write to the same `tracking_code`
      * column and customers look codes up through either.
-     *
-     * The previous implementation was `TRK-${prefix}-${1000 + Math.random()*9000}`,
-     * which had two distinct problems:
-     *   1. Only 9,000 possible codes, from a non-cryptographic PRNG. A tracking
-     *      code is a bearer token for the customer's name, phone and address, so
-     *      the whole space could be enumerated in minutes.
-     *   2. `tracking_code` is UNIQUE, so with 9,000 values collisions start
-     *      breaking real orders after only ~120 of them (birthday bound).
      */
-    generateTrackingCode(restaurantName) {
-        return `${trackingPrefix(restaurantName)}-${randomTrackingSuffix()}`;
+    async generateTrackingCode(restaurantId, restaurantName) {
+        const prefix = trackingPrefix(restaurantName);
+        try {
+            const db = getDbPool();
+            const [rows] = await db.query('SELECT COUNT(*) as count FROM orders WHERE restaurant_id = ?', [restaurantId || 1]);
+            const existingCount = rows[0]?.count || 0;
+            const offset = (((Number(restaurantId || 1) * 37) % 100) + 10);
+            const num = existingCount + offset + 1;
+            return `${prefix}${String(num).padStart(4, '0')}`;
+        } catch (e) {
+            const fallback = Math.floor(1000 + Math.random() * 9000);
+            return `${prefix}${fallback}`;
+        }
     }
 
     /**
@@ -309,7 +293,7 @@ export class OrderService {
     async save(customerPhone, session) {
         const restaurantId = session.restaurant?.id || 1;
         const parsed = this.parseOrderFromHistory(session);
-        const trackingCode = this.generateTrackingCode(session.restaurant?.name);
+        const trackingCode = await this.generateTrackingCode(restaurantId, session.restaurant?.name);
 
         // 1. Determine customer phone to store (given contact number or sender WhatsApp)
         let finalCustomerPhone = parsed.contactPhone;
