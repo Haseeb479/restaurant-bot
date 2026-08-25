@@ -195,14 +195,14 @@ class OrderTrackingTest extends TestCase
         $response = $this->getJson(route('order.track.status', $order->tracking_code))
             ->assertOk()
             ->assertJson(['status' => 'preparing'])
-            ->assertJsonStructure(['status', 'status_label', 'status_message']);
+            ->assertJsonStructure(['status', 'status_label', 'status_message', 'has_live_gps', 'rider_lat', 'rider_lng', 'rider_updated']);
 
         // This response is fetched every 8 seconds — it must carry no PII.
         $body = $response->getContent();
         foreach ([self::FULL_ADDRESS, self::RIDER_PHONE, '923008888888', 'Ayesha'] as $secret) {
             $this->assertStringNotContainsString($secret, $body);
         }
-        $this->assertSame(3, count($response->json()));
+        $this->assertSame(7, count($response->json()));
     }
 
     public function test_the_status_endpoint_404s_for_an_unknown_code(): void

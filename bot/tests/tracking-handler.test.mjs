@@ -13,12 +13,13 @@ import { TrackingHandler } from '../src/handlers/TrackingHandler.js';
  * So: whenever the generator changes, this file must fail.
  */
 describe('TrackingHandler.isTrackingCode', () => {
-    // Sampled from the real alphabet `0123456789ABCDEFGHJKMNPQRSTVWXYZ`.
+    // New short format: 2–3 letter prefix + 4–6 digits (e.g. FZ1234, ORD5821)
     const CURRENT = [
-        'F-7VAWB4PGKWV5J9DP',   // an actual code from the orders table
-        'FEZ-0123456789ABCDEF',
-        'ORD-ZZZZZZZZZZZZZZZZ',
-        'ABCDE-HJKMNPQRSTVWXYZ0',
+        'FZ1234',
+        'FB5001',
+        'ORD5821',
+        'AB9999',
+        'XYZ10042',
     ];
 
     for (const code of CURRENT) {
@@ -28,15 +29,22 @@ describe('TrackingHandler.isTrackingCode', () => {
     }
 
     test('recognises the current format typed in lower case', () => {
-        assert.equal(TrackingHandler.isTrackingCode('f-7vawb4pgkwv5j9dp'), true);
+        assert.equal(TrackingHandler.isTrackingCode('fz1234'), true);
     });
 
     test('recognises it with surrounding whitespace', () => {
-        assert.equal(TrackingHandler.isTrackingCode('  F-7VAWB4PGKWV5J9DP \n'), true);
+        assert.equal(TrackingHandler.isTrackingCode('  FZ1234 \n'), true);
     });
 
-    // Orders placed before the change still carry these.
-    const LEGACY = ['TRK-FEZ-8379', 'TRK-FEZ-1000', 'JC-2026-00042', 'FEZ-001'];
+    // Orders placed before the new short-code change still carry these formats.
+    const LEGACY = [
+        'TRK-FEZ-8379',
+        'TRK-FEZ-1000',
+        'JC-2026-00042',
+        'FEZ-001',
+        'F-FBPJBPM1WJY6WYS5',    // previous 16-char long format
+        'FEZ-0123456789ABCDEF',   // previous long format
+    ];
 
     for (const code of LEGACY) {
         test(`still recognises the legacy format: ${code}`, () => {
@@ -51,9 +59,9 @@ describe('TrackingHandler.isTrackingCode', () => {
         ['a phone number',       '03001234567'],
         ['a price',              'Rs. 1200'],
         ['an address',           'House 12, Gulberg, Lahore'],
-        ['too short a suffix',   'FEZ-7VAWB4PGKWV5J9D'],
-        ['too long a suffix',    'FEZ-7VAWB4PGKWV5J9DPQ'],
-        ['a prefix that is too long', 'ABCDEF-7VAWB4PGKWV5J9DP'],
+        ['too short',            'FZ123'],
+        ['too long',             'ABCD1234567'],
+        ['prefix too long',      'ABCD1234'],
         ['empty',                ''],
         ['whitespace only',      '   '],
     ];
@@ -63,18 +71,6 @@ describe('TrackingHandler.isTrackingCode', () => {
             assert.equal(TrackingHandler.isTrackingCode(text), false);
         });
     }
-
-    test('excludes I, L, O and U — the alphabet omits them deliberately', () => {
-        // Substituting a single excluded letter must stop it matching, otherwise
-        // a typo'd code would be looked up instead of answered as chat.
-        for (const letter of ['I', 'L', 'O', 'U']) {
-            const code = `FEZ-${letter}VAWB4PGKWV5J9DP`;
-            assert.equal(
-                TrackingHandler.isTrackingCode(code), false,
-                `${code} should not match — ${letter} is not in the alphabet`
-            );
-        }
-    });
 
     test('survives a null or undefined body', () => {
         assert.equal(TrackingHandler.isTrackingCode(null), false);

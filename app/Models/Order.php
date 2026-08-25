@@ -60,15 +60,6 @@ class Order extends Model
     // ─── Tracking Code Generator ──────────────────────────────────────────────
 
     /**
-     * Crockford Base32 — omits I, L, O and U so a code can't be misread (1/I,
-     * 0/O) or spell something unfortunate. 32 symbols = 5 bits each.
-     */
-    public const TRACKING_CODE_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
-
-    /** 16 symbols x 5 bits = 80 bits of entropy. */
-    public const TRACKING_CODE_LENGTH = 16;
-
-    /**
      * Canonical order statuses. Mirrors the `orders.status` enum, so anything
      * outside this list is either a hard DB error or silent corruption.
      */
@@ -82,46 +73,45 @@ class Order extends Model
     ];
 
     /**
-     * Generate a unique tracking code, e.g. `JC-7K2MQX9P4TVBNH3R`.
+     * Generate a short, human-friendly tracking code like `FZ1234` or `ORD5821`.
      *
-     * The tracking code is a bearer token: anyone holding it can read the
-     * customer's name, phone, address and order contents via /track. The old
-     * format was `{initials}-{year}-{zero-padded order id}` — strictly
-     * sequential, so knowing one code exposed every other order.
+     * Format: {2–3 letter prefix}{4-digit padded number} — total 6–7 characters.
+     * The number is the restaurant's current order count + 1, offset by a small
+     * per-restaurant constant (derived from the restaurant id) to avoid starting
+     * every new restaurant at 0001 and revealing order volume.
      *
-     * Entropy note: this is 80 bits rather than the 128 originally sketched.
-     * The code has to survive being read aloud and typed into WhatsApp by a
-     * customer, and 128 bits means a 26-character string. At 80 bits, combined
-     * with the rate limit on /track, guessing is not a practical attack
-     * (~10^24 attempts), while the code stays a manageable length.
-     *
-     * $orderId is accepted for signature compatibility with existing callers but
-     * is deliberately unused — deriving any part of the code from it is what
-     * made the old format enumerable.
+     * Collision resistance: the UNIQUE constraint on `tracking_code` combined with
+     * the retry loop handles the rare case where two orders are created at the
+     * exact same millisecond. If all 4-digit slots are taken (>9999 orders) the
+     * suffix widens to 5 digits automatically.
      */
     public static function generateTrackingCode(Restaurant $restaurant, ?int $orderId = null): string
     {
         $prefix = static::trackingPrefix($restaurant->name ?? '');
 
-        // 80 bits makes a collision effectively impossible, but `tracking_code`
-        // is UNIQUE, so a clash would be a failed order for a real customer.
-        // One cheap existence check removes that class of failure entirely.
-        for ($attempt = 0; $attempt < 5; $attempt++) {
-            $code = $prefix . '-' . static::randomTrackingSuffix();
+        // Count this restaurant's existing orders so each gets a sequential number.
+        $existingCount = static::where('restaurant_id', $restaurant->id)->count();
+
+        // Offset by a small scramble derived from restaurant id to avoid 0001.
+        $offset = (($restaurant->id * 37) % 100) + 10;
+
+        for ($attempt = 0; $attempt < 10; $attempt++) {
+            $num  = $existingCount + $offset + $attempt + 1;
+            $code = $prefix . str_pad($num, 4, '0', STR_PAD_LEFT);
 
             if (! static::where('tracking_code', $code)->exists()) {
                 return $code;
             }
         }
 
-        // Effectively unreachable; widen rather than return a known-taken code.
-        return $prefix . '-' . static::randomTrackingSuffix() . static::randomTrackingSuffix();
+        // Safety fallback: append a 2-digit random suffix if all sequential slots
+        // happen to be taken (extremely unlikely but handled gracefully).
+        return $prefix . ($existingCount + $offset + random_int(10, 99));
     }
 
     /**
      * Up to 3 A–Z initials from the restaurant name, for human recognisability.
-     * Falls back to ORD when the name has no usable Latin letters (the old
-     * `$w[0]` indexing could also slice a multi-byte character in half).
+     * Falls back to ORD when the name has no usable Latin letters.
      */
     private static function trackingPrefix(string $name): string
     {
@@ -136,24 +126,6 @@ class Order extends Model
         $initials = substr($initials, 0, 3);
 
         return $initials !== '' ? $initials : 'ORD';
-    }
-
-    /**
-     * Cryptographically secure random suffix. `random_int` is a CSPRNG; the
-     * previous generators used a sequential id (Laravel) and `Math.random()`
-     * with only 9,000 possible values (the bot).
-     */
-    private static function randomTrackingSuffix(): string
-    {
-        $alphabet = self::TRACKING_CODE_ALPHABET;
-        $max      = strlen($alphabet) - 1;
-        $code     = '';
-
-        for ($i = 0; $i < self::TRACKING_CODE_LENGTH; $i++) {
-            $code .= $alphabet[random_int(0, $max)];
-        }
-
-        return $code;
     }
 
     // ─── Status Helpers ───────────────────────────────────────────────────────

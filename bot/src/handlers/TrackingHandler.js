@@ -1,24 +1,21 @@
 import { getDbPool } from '../services/Database.js';
 
 /**
- * Codes issued since the tracking-code hardening (finding H-04): a 1–5 letter
- * restaurant prefix, a dash, then 16 characters of Crockford-style base32
- * (I, L, O and U are omitted so nothing is misread aloud or over the phone).
+ * Codes issued with the new short format: 2–3 letter restaurant prefix followed
+ * immediately by 4–6 digits. E.g. `FZ1234`, `ORD5821`, `FB10042`.
  *
- * Must stay in step with `Order::TRACKING_CODE_ALPHABET` / `TRACKING_CODE_LENGTH`
- * (app/Models/Order.php) and `TRACKING_ALPHABET` / `TRACKING_LENGTH`
- * (bot/src/services/OrderService.js). Widening the alphabet without widening this
- * pattern silently stops the bot recognising the codes it just handed out.
+ * Must stay in step with `Order::generateTrackingCode()` (app/Models/Order.php).
  */
-const CURRENT_CODE = /^[A-Z]{1,5}-[0-9A-HJKMNP-TV-Z]{16}$/;
+const CURRENT_CODE = /^[A-Z]{2,3}\d{4,6}$/;
 
 /**
- * Shapes issued *before* that change. Real orders still carry them, so they stay
+ * Shapes issued *before* this change. Real orders still carry them, so they stay
  * recognised — the DB lookup below matches on the literal string either way.
  */
 const LEGACY_CODES = [
-    /^[A-Z]{1,5}-\d{4}-\d{2,6}$/, // JC-2026-00042
-    /^[A-Z]{2,4}-\d{3,6}$/,       // FEZ-001
+    /^[A-Z]{1,5}-[0-9A-HJKMNP-TV-Z]{16}$/, // F-FBPJBPM1WJY6WYS5 (previous long format)
+    /^[A-Z]{1,5}-\d{4}-\d{2,6}$/,           // JC-2026-00042
+    /^[A-Z]{2,4}-\d{3,6}$/,                 // FEZ-001
 ];
 
 /**
