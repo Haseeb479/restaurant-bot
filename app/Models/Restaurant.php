@@ -36,17 +36,26 @@ class Restaurant extends Model
         'bot_last_seen_at',
         'last_error',
         'last_error_at',
+        'status',
+        'rejection_reason',
+        'features',
+        'ai_config',
+        'rate_limit_per_month',
+        'api_key',
     ];
 
     protected $casts = [
-        'is_active'        => 'boolean',
-        'is_open'          => 'boolean',
-        'delivery_charge'  => 'decimal:2',
-        'minimum_order'    => 'decimal:2',
-        'plan_expires_at'  => 'datetime',
-        'bot_last_seen_at' => 'datetime',
-        'deactivated_at'   => 'datetime',
-        'last_error_at'    => 'datetime',
+        'is_active'            => 'boolean',
+        'is_open'              => 'boolean',
+        'delivery_charge'      => 'decimal:2',
+        'minimum_order'        => 'decimal:2',
+        'plan_expires_at'      => 'datetime',
+        'bot_last_seen_at'     => 'datetime',
+        'deactivated_at'       => 'datetime',
+        'last_error_at'        => 'datetime',
+        'features'             => 'array',
+        'ai_config'            => 'array',
+        'rate_limit_per_month' => 'integer',
     ];
 
     protected $hidden = ['owner_password'];
@@ -89,6 +98,21 @@ class Restaurant extends Model
     public function activeDeals(): HasMany
     {
         return $this->hasMany(Deal::class)->activeNow();
+    }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class)->latest();
+    }
+
+    public function feedbacks(): HasMany
+    {
+        return $this->hasMany(Feedback::class)->latest();
+    }
+
+    public function supportTickets(): HasMany
+    {
+        return $this->hasMany(SupportTicket::class)->latest();
     }
 
     public function todayOrders(): HasMany

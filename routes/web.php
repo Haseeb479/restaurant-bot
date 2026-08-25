@@ -133,21 +133,87 @@ Route::prefix('dashboard/{id}')->group(function () {
 
 // ── Super admin panel ──────────────────────────────────────
 Route::prefix('admin')->group(function () {
-    Route::get('login',                        [AdminController::class, 'loginForm'])->name('admin.login');
-    Route::post('login',                       [AdminController::class, 'login'])->middleware('throttle:5,1');
-    Route::post('logout',                      [AdminController::class, 'logout'])->name('admin.logout');
-    Route::get('/',                            [AdminController::class, 'dashboard'])->name('admin.dashboard');
-    Route::get('restaurants',                  [AdminController::class, 'restaurants'])->name('admin.restaurants');
-    Route::get('restaurant/create',            [AdminController::class, 'createRestaurant'])->name('admin.create-restaurant');
-    Route::post('restaurant',                  [AdminController::class, 'storeRestaurant'])->name('admin.store-restaurant');
-    Route::post('restaurant/{r}/toggle',       [AdminController::class, 'toggleRestaurant'])->name('admin.toggle-restaurant');
-    Route::post('restaurant/{r}/plan',         [AdminController::class, 'extendPlan'])->name('admin.extend-plan');
-    Route::post('restaurant/{r}/clear-error',  [AdminController::class, 'clearError'])->name('admin.clear-error');
-    Route::get('analytics',                    [AdminController::class, 'analytics'])->name('admin.analytics');
-    Route::get('system-health',                [AdminController::class, 'systemHealth'])->name('admin.system-health');
-    Route::get('orders',                       [AdminController::class, 'allOrders'])->name('admin.orders');
-    Route::get('users',                        [AdminController::class, 'users'])->name('admin.users');
-    Route::get('logs',                         [AdminController::class, 'logs'])->name('admin.logs');
-    Route::get('settings',                     [AdminController::class, 'settings'])->name('admin.settings');
-    Route::post('settings',                    [AdminController::class, 'updateSettings'])->name('admin.update-settings');
+    Route::get('login',                                [AdminController::class, 'loginForm'])->name('admin.login');
+    Route::post('login',                               [AdminController::class, 'login'])->middleware('throttle:5,1');
+    Route::post('logout',                              [AdminController::class, 'logout'])->name('admin.logout');
+    Route::get('/',                                    [AdminController::class, 'dashboard'])->name('admin.dashboard');
+
+    // 1. Restaurant Management
+    Route::get('restaurants',                          [AdminController::class, 'restaurants'])->name('admin.restaurants');
+    Route::get('restaurants/pending',                  [AdminController::class, 'pendingRestaurants'])->name('admin.restaurants.pending');
+    Route::post('restaurant/{r}/approve',              [AdminController::class, 'approveRestaurant'])->name('admin.restaurant.approve');
+    Route::post('restaurant/{r}/reject',               [AdminController::class, 'rejectRestaurant'])->name('admin.restaurant.reject');
+    Route::get('restaurant/create',                    [AdminController::class, 'createRestaurant'])->name('admin.create-restaurant');
+    Route::post('restaurant',                          [AdminController::class, 'storeRestaurant'])->name('admin.store-restaurant');
+    Route::get('restaurant/{r}/edit',                  [AdminController::class, 'editRestaurant'])->name('admin.restaurant.edit');
+    Route::post('restaurant/{r}/update',                [AdminController::class, 'updateRestaurant'])->name('admin.restaurant.update');
+    Route::post('restaurant/{r}/reset-password',       [AdminController::class, 'resetRestaurantPassword'])->name('admin.restaurant.reset-password');
+    Route::post('restaurant/{r}/reset-bot',            [AdminController::class, 'resetRestaurantBot'])->name('admin.restaurant.reset-bot');
+    Route::post('restaurant/{r}/toggle',               [AdminController::class, 'toggleRestaurant'])->name('admin.toggle-restaurant');
+    Route::post('restaurant/{r}/plan',                 [AdminController::class, 'extendPlan'])->name('admin.extend-plan');
+    Route::delete('restaurant/{r}',                    [AdminController::class, 'deleteRestaurant'])->name('admin.restaurant.delete');
+    Route::get('restaurant/{r}/analytics',             [AdminController::class, 'restaurantAnalytics'])->name('admin.restaurant.analytics');
+
+    // 2. Bot Features & Settings
+    Route::get('bot-settings',                         [AdminController::class, 'botSettings'])->name('admin.bot-settings');
+    Route::post('bot-settings',                        [AdminController::class, 'updateBotSettings'])->name('admin.bot-settings.update');
+    Route::get('bot-templates',                        [AdminController::class, 'botTemplates'])->name('admin.bot-templates');
+    Route::post('bot-templates',                       [AdminController::class, 'updateBotTemplates'])->name('admin.bot-templates.update');
+    Route::get('bot-commands',                         [AdminController::class, 'botCommands'])->name('admin.bot-commands');
+    Route::post('bot-commands',                        [AdminController::class, 'updateBotCommands'])->name('admin.bot-commands.update');
+    Route::get('menu-templates',                       [AdminController::class, 'menuTemplates'])->name('admin.menu-templates');
+    Route::post('menu-templates',                      [AdminController::class, 'storeMenuTemplate'])->name('admin.menu-templates.store');
+    Route::post('menu-templates/{template}/clone/{r}', [AdminController::class, 'cloneMenuTemplateToRestaurant'])->name('admin.menu-templates.clone');
+    Route::delete('menu-templates/{template}',         [AdminController::class, 'deleteMenuTemplate'])->name('admin.menu-templates.delete');
+
+    // 3. Analytics & Custom Reports
+    Route::get('analytics',                            [AdminController::class, 'analytics'])->name('admin.analytics');
+    Route::get('reports/custom',                       [AdminController::class, 'customReports'])->name('admin.reports.custom');
+    Route::get('reports/export-csv',                   [AdminController::class, 'exportReportsCsv'])->name('admin.reports.export-csv');
+
+    // 4. Billing, Plans & Pakistani Payment Gateways
+    Route::get('billing',                              [AdminController::class, 'billing'])->name('admin.billing');
+    Route::post('billing/plans',                       [AdminController::class, 'storePlan'])->name('admin.billing.plans.store');
+    Route::post('billing/plans/{plan}/update',         [AdminController::class, 'updatePlan'])->name('admin.billing.plans.update');
+    Route::delete('billing/plans/{plan}',              [AdminController::class, 'deletePlan'])->name('admin.billing.plans.delete');
+    Route::post('billing/payment-methods',             [AdminController::class, 'updatePaymentMethods'])->name('admin.billing.payment-methods.update');
+    Route::post('billing/invoices',                    [AdminController::class, 'createInvoice'])->name('admin.billing.invoices.store');
+    Route::post('billing/invoices/{invoice}/status',   [AdminController::class, 'updateInvoiceStatus'])->name('admin.billing.invoices.status');
+
+    // 5. Support & Moderation
+    Route::get('support',                              [AdminController::class, 'supportTickets'])->name('admin.support');
+    Route::get('support/{ticket}',                     [AdminController::class, 'viewSupportTicket'])->name('admin.support.detail');
+    Route::post('support/{ticket}/reply',              [AdminController::class, 'replySupportTicket'])->name('admin.support.reply');
+    Route::post('support/{ticket}/status',             [AdminController::class, 'updateSupportTicketStatus'])->name('admin.support.status');
+    Route::get('moderation',                           [AdminController::class, 'moderation'])->name('admin.moderation');
+    Route::post('moderation/blacklist',                [AdminController::class, 'addToBlacklist'])->name('admin.moderation.blacklist.store');
+    Route::delete('moderation/blacklist/{blacklistedNumber}', [AdminController::class, 'removeFromBlacklist'])->name('admin.moderation.blacklist.delete');
+    Route::post('moderation/filter-words',             [AdminController::class, 'updateFilterWords'])->name('admin.moderation.filter-words.update');
+    Route::get('announcements',                        [AdminController::class, 'announcements'])->name('admin.announcements');
+    Route::post('announcements',                       [AdminController::class, 'storeAnnouncement'])->name('admin.announcements.store');
+    Route::delete('announcements/{announcement}',      [AdminController::class, 'deleteAnnouncement'])->name('admin.announcements.delete');
+    Route::get('feedback',                             [AdminController::class, 'feedback'])->name('admin.feedback');
+    Route::post('feedback/{feedback}/reviewed',        [AdminController::class, 'markFeedbackReviewed'])->name('admin.feedback.reviewed');
+
+    // 6. Advanced Platform Controls & System
+    Route::get('system-health',                        [AdminController::class, 'systemHealth'])->name('admin.system-health');
+    Route::post('system/optimize',                     [AdminController::class, 'optimizeDatabase'])->name('admin.system.optimize');
+    Route::post('system/clean-logs',                   [AdminController::class, 'cleanLogsAndSessions'])->name('admin.system.clean-logs');
+    Route::post('system/backup',                       [AdminController::class, 'createBackupDump'])->name('admin.system.backup');
+    Route::get('api-keys',                             [AdminController::class, 'apiKeys'])->name('admin.api-keys');
+    Route::post('api-keys',                            [AdminController::class, 'generateApiKey'])->name('admin.api-keys.store');
+    Route::delete('api-keys/{apiKey}',                 [AdminController::class, 'revokeApiKey'])->name('admin.api-keys.delete');
+    Route::get('email-templates',                      [AdminController::class, 'emailTemplates'])->name('admin.email-templates');
+    Route::post('email-templates',                     [AdminController::class, 'updateEmailTemplates'])->name('admin.email-templates.update');
+    Route::get('policies',                             [AdminController::class, 'policies'])->name('admin.policies');
+    Route::post('policies',                            [AdminController::class, 'updatePolicies'])->name('admin.policies.update');
+    Route::get('audit-logs',                           [AdminController::class, 'auditLogs'])->name('admin.audit-logs');
+
+    // Core Orders, Users, Logs & Settings
+    Route::get('orders',                               [AdminController::class, 'allOrders'])->name('admin.orders');
+    Route::get('users',                                [AdminController::class, 'users'])->name('admin.users');
+    Route::get('logs',                                 [AdminController::class, 'logs'])->name('admin.logs');
+    Route::get('settings',                             [AdminController::class, 'settings'])->name('admin.settings');
+    Route::post('settings',                            [AdminController::class, 'updateSettings'])->name('admin.update-settings');
+    Route::post('settings/2fa',                        [AdminController::class, 'toggle2FA'])->name('admin.settings.2fa');
 });

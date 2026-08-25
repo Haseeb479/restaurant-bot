@@ -1,84 +1,104 @@
 @extends('layouts.admin')
-@section('title', 'Settings')
-@section('header_title', 'Platform Settings')
-@section('header_subtitle', 'Configure master administrator credentials, pricing plans, and system parameters')
+@section('title', 'Super Admin Settings')
+@section('header_title', 'Super Admin & Security Settings')
+@section('header_subtitle', 'Master password rotation, 2-Factor Authentication PIN, and platform configuration')
 
 @section('content')
-
-<div style="max-width: 800px;">
-    <div class="panel-card" style="margin-bottom: 24px;">
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 22px; max-width: 950px;">
+    <!-- Master Password Rotation -->
+    <div class="panel-card">
         <div class="panel-header">
             <div class="panel-title">
-                <h3>Super Admin Security</h3>
-                <p>Master password to log in to the Super Admin platform</p>
+                <h3>Master Password Rotation</h3>
+                <p>Change your Super Admin account master password</p>
             </div>
         </div>
 
         <form method="POST" action="{{ route('admin.update-settings') }}">
             @csrf
-
-            <div style="margin-bottom: 16px;">
-                <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">
-                    Current Master Password
-                </label>
-                <div style="position: relative;">
-                    <input type="password" id="current_password" name="current_password" style="width: 100%; padding: 10px 44px 10px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 13px; outline: none; background: #f8fafc; box-sizing: border-box;" placeholder="••••••••">
-                    <button type="button" onclick="togglePw('current_password', this)" tabindex="-1" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:17px;color:#94a3b8;padding:2px;" aria-label="Show/hide password">👁</button>
-                </div>
+            <div class="form-group">
+                <label class="form-label">Current Master Password *</label>
+                <input type="password" name="current_password" class="form-input" required placeholder="Enter current password">
             </div>
 
-            <div style="margin-bottom: 20px;">
-                <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">
-                    New Master Password
-                </label>
-                <div style="position: relative;">
-                    <input type="password" id="new_password" name="new_password" style="width: 100%; padding: 10px 44px 10px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 13px; outline: none; background: #f8fafc; box-sizing: border-box;" placeholder="Enter new password (min 6 characters)">
-                    <button type="button" onclick="togglePw('new_password', this)" tabindex="-1" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:17px;color:#94a3b8;padding:2px;" aria-label="Show/hide password">👁</button>
-                </div>
+            <div class="form-group">
+                <label class="form-label">New Master Password *</label>
+                <input type="password" name="new_password" class="form-input" required minlength="8" placeholder="Minimum 8 characters">
             </div>
 
-            <button type="submit" class="btn btn-primary">
-                💾 Update Security Settings
-            </button>
+            <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 16px 0;">
+
+            <div class="form-group">
+                <label class="form-label">Platform Timezone</label>
+                <input type="text" name="timezone" class="form-input" value="{{ $timezone }}" placeholder="e.g. Asia/Karachi">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Currency Symbol</label>
+                <input type="text" name="currency_symbol" class="form-input" value="{{ $currency }}" placeholder="Rs.">
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">Update Credentials & Settings</button>
         </form>
     </div>
 
-    <!-- SAAS PRICING CONFIGURATION -->
-    <div class="panel-card">
-        <div class="panel-header">
-            <div class="panel-title">
-                <h3>Default SaaS Package Pricing</h3>
-                <p>Monthly subscription fees charged to restaurant clients</p>
+    <!-- 2-Factor Authentication & IP Whitelisting -->
+    <div>
+        <!-- 2FA Box -->
+        <div class="panel-card">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <h3>Two-Factor Authentication (2FA)</h3>
+                    <p>Enforce an extra security PIN on Super Admin login</p>
+                </div>
             </div>
+
+            <form method="POST" action="{{ route('admin.settings.2fa') }}">
+                @csrf
+                <div class="form-group">
+                    <label class="form-label">2FA Status</label>
+                    <select name="enable" class="form-select" onchange="togglePinInput(this.value)">
+                        <option value="0" {{ !$twoFaEnabled ? 'selected' : '' }}>Disabled (Password Only)</option>
+                        <option value="1" {{ $twoFaEnabled ? 'selected' : '' }}>Enabled (Password + Security PIN)</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="pinGroup" style="{{ $twoFaEnabled ? '' : 'display:none;' }}">
+                    <label class="form-label">Security PIN (4 to 8 digits) *</label>
+                    <input type="password" name="pin" class="form-input" value="{{ $storedPin }}" placeholder="e.g. 849201">
+                    <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">You will be prompted for this PIN alongside your password upon login.</div>
+                </div>
+
+                <button type="submit" class="btn btn-secondary" style="width: 100%; justify-content: center;">Save 2FA Security</button>
+            </form>
         </div>
 
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Package Plan</th>
-                    <th>Default Price (PKR/month)</th>
-                    <th>Included Features</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><span class="badge badge-gray">TRIAL</span></td>
-                    <td><strong>Free (0 PKR)</strong></td>
-                    <td>14-day free trial with standard bot features</td>
-                </tr>
-                <tr>
-                    <td><span class="badge badge-blue">BASIC</span></td>
-                    <td><strong>3,000 PKR</strong></td>
-                    <td>Unlimited orders, menu sync, rider assignment</td>
-                </tr>
-                <tr>
-                    <td><span class="badge badge-green">PRO</span></td>
-                    <td><strong>7,000 PKR</strong></td>
-                    <td>Everything in Basic + Google Sheets sync + Priority support</td>
-                </tr>
-            </tbody>
-        </table>
+        <!-- IP Whitelisting -->
+        <div class="panel-card">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <h3>IP Access Whitelist</h3>
+                    <p>Restrict Super Admin access to specific IP addresses (Optional)</p>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ route('admin.update-settings') }}">
+                @csrf
+                <div class="form-group">
+                    <label class="form-label">Allowed IP Addresses (Comma-separated)</label>
+                    <input type="text" name="ip_whitelist" class="form-input" value="{{ $ipWhitelist }}" placeholder="Leave blank to allow any IP">
+                    <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">Current your IP: <code>{{ request()->ip() }}</code></div>
+                </div>
+
+                <button type="submit" class="btn btn-secondary" style="width: 100%; justify-content: center;">Save IP Restrictions</button>
+            </form>
+        </div>
     </div>
 </div>
 
+<script>
+function togglePinInput(val) {
+    document.getElementById('pinGroup').style.display = val === '1' ? 'block' : 'none';
+}
+</script>
 @endsection

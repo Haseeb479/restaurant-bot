@@ -1,143 +1,181 @@
 @extends('layouts.admin')
-@section('title', 'Analytics')
-@section('header_title', 'Platform Analytics & Revenue')
-@section('header_subtitle', 'SaaS package MRR, platform-wide order trends, and restaurant performance')
+@section('title', 'Platform Analytics')
+@section('header_title', 'Platform Analytics & Deep Dive')
+@section('header_subtitle', 'Volume trends, revenue growth, and comparative restaurant benchmarks')
 
 @section('content')
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<!-- TOP SUMMARY CARDS -->
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+<!-- High Level KPI Metrics -->
+<div class="metric-grid">
     <div class="metric-card">
         <div class="metric-header">
-            <span class="metric-title">Monthly SaaS Revenue</span>
-            <div class="metric-icon-box green">💰</div>
+            <span class="metric-title">Today's Order GMV</span>
+            <div class="metric-icon blue">💰</div>
         </div>
-        <div class="metric-value">PKR {{ number_format($mrr, 0) }}</div>
-        <div class="metric-footer">
-            <span class="sub-badge green">● Active MRR</span>
-            <span>Based on Basic/Pro packages</span>
-        </div>
+        <div class="metric-value">Rs. {{ number_format($totalRevenueToday) }}</div>
+        <div class="metric-footer">{{ $totalOrdersToday }} orders received today</div>
     </div>
 
     <div class="metric-card">
         <div class="metric-header">
-            <span class="metric-title">Orders This Month</span>
-            <div class="metric-icon-box blue">📦</div>
+            <span class="metric-title">Month-To-Date GMV</span>
+            <div class="metric-icon green">📈</div>
         </div>
-        <div class="metric-value">{{ number_format($totalOrdersMonth) }}</div>
-        <div class="metric-footer">
-            <span class="sub-badge blue">● Today: {{ number_format($totalOrdersToday) }}</span>
-            <span>Platform-wide</span>
-        </div>
+        <div class="metric-value">Rs. {{ number_format($totalRevenueMonth) }}</div>
+        <div class="metric-footer">{{ number_format($totalOrdersMonth) }} orders across all tenants</div>
     </div>
 
     <div class="metric-card">
         <div class="metric-header">
-            <span class="metric-title">Subscription Plans</span>
-            <div class="metric-icon-box orange">📊</div>
-        </div>
-        <div class="metric-value">{{ $proCount }} Pro / {{ $basicCount }} Basic</div>
-        <div class="metric-footer">
-            <span class="sub-badge orange">{{ $trialCount }} Trial</span>
-            <span>Active restaurants</span>
-        </div>
-    </div>
-
-    <div class="metric-card">
-        <div class="metric-header">
-            <span class="metric-title">WhatsApp Chats</span>
-            <div class="metric-icon-box purple">💬</div>
+            <span class="metric-title">Bot Conversations</span>
+            <div class="metric-icon purple">💬</div>
         </div>
         <div class="metric-value">{{ number_format($totalConversations) }}</div>
+        <div class="metric-footer">Total customer interaction sessions</div>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-header">
+            <span class="metric-title">Export Reports</span>
+            <div class="metric-icon orange">📑</div>
+        </div>
+        <div class="metric-value" style="font-size: 16px; margin: 6px 0;">CSV & Custom</div>
         <div class="metric-footer">
-            <span class="sub-badge green">● AI Bot Active</span>
-            <span>Total customer interactions</span>
+            <a href="{{ route('admin.reports.custom') }}" style="color: #4f46e5; text-decoration: none; font-weight: 700;">Open Custom Generator →</a>
         </div>
     </div>
 </div>
 
-<!-- 14-DAY ORDERS TREND CHART -->
-<div class="panel-card" style="margin-bottom: 24px;">
-    <div class="panel-header">
-        <div class="panel-title">
-            <h3>14-Day Order Volume Growth</h3>
-            <p>Total daily WhatsApp orders processed platform-wide</p>
-        </div>
-    </div>
-    <div style="height: 280px;">
-        <canvas id="growthChart"></canvas>
-    </div>
-</div>
-
-<!-- RESTAURANTS PERFORMANCE BREAKDOWN -->
+<!-- 14-Day Growth & GMV Trends Chart -->
 <div class="panel-card">
     <div class="panel-header">
         <div class="panel-title">
-            <h3>Restaurant Activity Breakdown</h3>
-            <p>Comparison of customer chats, orders, and food catalog size per restaurant</p>
+            <h3>14-Day Platform Orders & Revenue Trend</h3>
+            <p>Interactive multi-axis growth graph</p>
         </div>
     </div>
+    <div style="position: relative; height: 280px; width: 100%;">
+        <canvas id="platformAnalyticsChart"></canvas>
+    </div>
+</div>
 
-    <div style="overflow-x: auto;">
+<!-- Comparative Restaurant Performance Benchmark -->
+<div class="panel-card">
+    <div class="panel-header">
+        <div class="panel-title">
+            <h3>Comparative Performance Benchmark</h3>
+            <p>Comparing tenant GMV, order completion rates, and sales contribution</p>
+        </div>
+    </div>
+    <div class="table-responsive">
         <table class="data-table">
             <thead>
                 <tr>
+                    <th>Rank</th>
                     <th>Restaurant</th>
-                    <th>Plan</th>
-                    <th>Today Orders</th>
-                    <th>Month Orders</th>
-                    <th>Customer Conversations</th>
-                    <th>Menu Items</th>
+                    <th>City</th>
+                    <th>Total Orders</th>
+                    <th>Total Revenue</th>
+                    <th>Order Success Rate</th>
+                    <th style="text-align: right;">Action</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach($restaurants as $r)
-                <tr>
-                    <td><strong>{{ $r->name }}</strong> ({{ $r->city ?: 'Pakistan' }})</td>
-                    <td><span class="badge badge-blue" style="text-transform: uppercase;">{{ $r->plan }}</span></td>
-                    <td><strong>{{ $r->today_orders }}</strong></td>
-                    <td><strong>{{ $r->month_orders }}</strong></td>
-                    <td>{{ $r->conversations_count }} chats</td>
-                    <td>{{ $r->menu_items_count }} items</td>
-                </tr>
-                @endforeach
+                @forelse($benchmark as $idx => $b)
+                    <tr>
+                        <td>
+                            @if($idx === 0)
+                                🥇
+                            @elseif($idx === 1)
+                                🥈
+                            @elseif($idx === 2)
+                                🥉
+                            @else
+                                #{{ $idx + 1 }}
+                            @endif
+                        </td>
+                        <td><strong>{{ $b['name'] }}</strong></td>
+                        <td>{{ $b['city'] ?: 'N/A' }}</td>
+                        <td>{{ number_format($b['orders']) }}</td>
+                        <td style="font-weight: 800; color: #10b981;">Rs. {{ number_format($b['revenue']) }}</td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="flex: 1; max-width: 100px; height: 6px; background: var(--border-color); border-radius: 99px; overflow: hidden;">
+                                    <div style="height: 100%; width: {{ $b['success_rate'] }}%; background: {{ $b['success_rate'] > 80 ? '#10b981' : '#f97316' }};"></div>
+                                </div>
+                                <span style="font-size: 11.5px; font-weight: 700;">{{ $b['success_rate'] }}%</span>
+                            </div>
+                        </td>
+                        <td style="text-align: right;">
+                            <a href="{{ route('admin.restaurant.analytics', $b['id']) }}" class="btn btn-secondary btn-sm">Deep Stats →</a>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 20px;">No benchmark data available.</td>
+                    </tr>
+                @endforelse
             </tbody>
         </table>
     </div>
 </div>
 
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const ctx = document.getElementById('growthChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: {!! json_encode($chartLabels) !!},
-            datasets: [{
-                label: 'Orders Processed',
-                data: {!! json_encode($chartData) !!},
-                borderColor: '#4f46e5',
-                backgroundColor: 'rgba(79, 70, 229, 0.08)',
-                borderWidth: 2.5,
-                tension: 0.35,
-                fill: true,
-                pointRadius: 4,
-                pointBackgroundColor: '#4f46e5'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
-                x: { grid: { display: false } }
+    const ctx = document.getElementById('platformAnalyticsChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: {!! json_encode($chartLabels) !!},
+                datasets: [
+                    {
+                        label: 'Total Orders',
+                        data: {!! json_encode($chartData) !!},
+                        borderColor: '#4f46e5',
+                        backgroundColor: 'rgba(79, 70, 229, 0.08)',
+                        tension: 0.35,
+                        fill: true,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Gross Merchandise Value (PKR)',
+                        data: {!! json_encode($chartRev) !!},
+                        borderColor: '#10b981',
+                        backgroundColor: 'transparent',
+                        borderDash: [5, 5],
+                        tension: 0.35,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        beginAtZero: true,
+                        grid: { color: 'rgba(150, 150, 150, 0.1)' }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        beginAtZero: true,
+                        grid: { drawOnChartArea: false }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
             }
-        }
-    });
+        });
+    }
 });
 </script>
-
+@endpush
 @endsection

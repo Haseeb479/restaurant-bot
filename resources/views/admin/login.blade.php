@@ -244,6 +244,15 @@
                 </div>
             </div>
 
+            @if(\App\Models\Setting::get('admin_2fa_enabled', '0') === '1')
+            <div class="form-group">
+                <label class="form-label">2FA Security PIN *</label>
+                <div class="input-wrap">
+                    <input type="password" id="two_fa_pin" name="two_fa_pin" required placeholder="Enter Security PIN">
+                </div>
+            </div>
+            @endif
+
             <button type="submit" class="btn-submit">Sign In to Super Admin →</button>
         </form>
 

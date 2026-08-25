@@ -1,111 +1,140 @@
 @extends('layouts.admin')
-@section('title', 'Restaurants')
+@section('title', 'Restaurants Directory')
 @section('header_title', 'Restaurants Management')
-@section('header_subtitle', 'Manage registered restaurants, bot status, and subscription plans')
+@section('header_subtitle', 'View, manage, edit credentials and monitor restaurant status')
 
 @section('content')
-
-<div class="panel-card" style="margin-bottom: 24px;">
+<div class="panel-card">
     <div class="panel-header">
         <div class="panel-title">
-            <h3>All Registered Restaurants ({{ $restaurants->count() }})</h3>
-            <p>Live tenant directory and bot connection controls</p>
+            <h3>Registered Restaurants</h3>
+            <p>Filter by status, search by phone or name, configure details</p>
         </div>
-        <div style="display: flex; gap: 10px;">
-            <input type="text" id="restSearch" placeholder="🔍 Search restaurants..." onkeyup="filterRestaurants()" style="padding: 8px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 13px; outline: none; width: 220px;">
+        <div style="display: flex; gap: 8px;">
+            <a href="{{ route('admin.restaurants.pending') }}" class="btn btn-secondary">
+                <span>⏳</span><span>Pending Approvals</span>
+            </a>
             <a href="{{ route('admin.create-restaurant') }}" class="btn btn-primary">
-                + Add Restaurant
+                <span>➕</span><span>Register New</span>
             </a>
         </div>
     </div>
 
-    <div style="overflow-x: auto;">
-        <table class="data-table" id="restTable">
+    <!-- Filters & Search Bar -->
+    <form method="GET" action="{{ route('admin.restaurants') }}" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; margin-bottom: 18px;">
+        <input type="text" name="search" class="form-input" placeholder="Search by name, phone, WhatsApp number, city..." value="{{ request('search') }}">
+        
+        <select name="status" class="form-select">
+            <option value="">All Statuses</option>
+            <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active Only</option>
+            <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending Approval</option>
+            <option value="suspended" {{ request('status') === 'suspended' ? 'selected' : '' }}>Suspended / Inactive</option>
+            <option value="rejected" {{ request('status') === 'rejected' ? 'selected' : '' }}>Rejected</option>
+        </select>
+
+        <select name="plan" class="form-select">
+            <option value="">All Plans</option>
+            @foreach($plans as $p)
+                <option value="{{ $p->slug }}" {{ request('plan') === $p->slug ? 'selected' : '' }}>{{ $p->name }}</option>
+            @endforeach
+        </select>
+
+        <div style="display: flex; gap: 6px;">
+            <button type="submit" class="btn btn-secondary">Filter</button>
+            <a href="{{ route('admin.restaurants') }}" class="btn btn-secondary" title="Reset">✕</a>
+        </div>
+    </form>
+
+    <!-- Table -->
+    <div class="table-responsive">
+        <table class="data-table">
             <thead>
                 <tr>
-                    <th>#</th>
                     <th>Restaurant</th>
-                    <th>City & Phone</th>
-                    <th>Plan</th>
-                    <th>Status</th>
-                    <th>Bot Connection</th>
-                    <th>Menu Items</th>
-                    <th>Month Orders</th>
-                    <th>Actions</th>
+                    <th>WhatsApp / Bot</th>
+                    <th>City & Pricing</th>
+                    <th>Plan & Status</th>
+                    <th>Activity</th>
+                    <th style="text-align: right;">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($restaurants as $r)
-                <tr class="rest-row">
-                    <td><strong>{{ $r->id }}</strong></td>
-                    <td>
-                        <div style="font-weight: 800; color: #0f172a;">{{ $r->name }}</div>
-                        <div style="font-size: 11px; color: #64748b;">{{ $r->whatsapp_number }}</div>
-                    </td>
-                    <td>
-                        <div>{{ $r->city ?: 'Pakistan' }}</div>
-                        <div style="font-size: 11px; color: #64748b;">👤 {{ $r->owner_phone }}</div>
-                    </td>
-                    <td>
-                        <span class="badge badge-blue" style="text-transform: uppercase;">
-                            {{ $r->plan }}
-                        </span>
-                    </td>
-                    <td>
-                        @if($r->is_active)
-                            <span class="badge badge-green">● Active</span>
-                        @else
-                            <span class="badge badge-red">○ Inactive</span>
-                        @endif
-                    </td>
-                    <td>
-                        @if($r->bot_status === 'connected')
-                            <span class="badge badge-green">🟢 Connected</span>
-                        @elseif($r->bot_status === 'qr_pending')
-                            <span class="badge badge-yellow">🟡 Scan QR</span>
-                        @else
-                            <span class="badge badge-red">🔴 Disconnected</span>
-                        @endif
-                    </td>
-                    <td>{{ $r->menu_items_count }} items</td>
-                    <td><strong>{{ $r->month_orders_count }}</strong></td>
-                    <td>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <form method="POST" action="{{ route('admin.toggle-restaurant', $r->id) }}" style="display: inline;">
-                                @csrf
-                                <label class="switch" title="Activate / Deactivate">
-                                    <input type="checkbox" onchange="this.form.submit()" {{ $r->is_active ? 'checked' : '' }}>
-                                    <span class="slider"></span>
-                                </label>
-                            </form>
+                    <tr>
+                        <td>
+                            <div style="font-weight: 700; font-size: 13.5px;">{{ $r->name }}</div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">Owner: {{ $r->owner_phone }}</div>
+                        </td>
+                        <td>
+                            <div><code>{{ $r->whatsapp_number }}</code></div>
+                            <div style="margin-top: 3px;">
+                                @if($r->bot_status === 'connected')
+                                    <span class="badge badge-green">🟢 Connected</span>
+                                @elseif($r->bot_status === 'qr_pending')
+                                    <span class="badge badge-yellow">🟡 QR Ready</span>
+                                @else
+                                    <span class="badge badge-gray">⚪ Disconnected</span>
+                                @endif
+                            </div>
+                        </td>
+                        <td>
+                            <div>{{ $r->city ?: 'N/A' }}</div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">Deliv: Rs. {{ number_format($r->delivery_charge) }} | Min: Rs. {{ number_format($r->minimum_order) }}</div>
+                        </td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span class="badge badge-blue">{{ strtoupper($r->plan ?: 'starter') }}</span>
+                                @if($r->status === 'pending')
+                                    <span class="badge badge-yellow">Pending</span>
+                                @elseif($r->status === 'rejected')
+                                    <span class="badge badge-red">Rejected</span>
+                                @elseif($r->is_active)
+                                    <span class="badge badge-green">Active</span>
+                                @else
+                                    <span class="badge badge-red">Suspended</span>
+                                @endif
+                            </div>
+                            <div style="font-size: 10.5px; color: var(--text-secondary); margin-top: 3px;">
+                                {{ $r->plan_expires_at ? 'Exp: ' . $r->plan_expires_at->format('d M Y') : 'Lifetime / Trial' }}
+                            </div>
+                        </td>
+                        <td>
+                            <div style="font-size: 12px;"><strong>{{ $r->orders_count }}</strong> orders ({{ $r->month_orders_count }} this mo)</div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">{{ $r->menu_items_count }} items • {{ $r->conversations_count }} chats</div>
+                        </td>
+                        <td style="text-align: right;">
+                            <div style="display: inline-flex; gap: 5px;">
+                                <a href="{{ route('admin.restaurant.edit', $r->id) }}" class="btn btn-secondary btn-sm" title="Edit & Bot Settings">✏️ Edit</a>
+                                <a href="{{ route('admin.restaurant.analytics', $r->id) }}" class="btn btn-secondary btn-sm" title="Analytics">📊</a>
+                                
+                                <form method="POST" action="{{ route('admin.toggle-restaurant', $r->id) }}" style="display:inline;">
+                                    @csrf
+                                    <button class="btn btn-secondary btn-sm" type="submit" title="{{ $r->is_active ? 'Suspend Restaurant' : 'Reactivate Restaurant' }}">
+                                        {{ $r->is_active ? '⏸️' : '▶️' }}
+                                    </button>
+                                </form>
 
-                            <a href="/dashboard/{{ $r->id }}/orders" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;">
-                                Open Dashboard ↗
-                            </a>
-                        </div>
-                    </td>
-                </tr>
+                                <form method="POST" action="{{ route('admin.restaurant.delete', $r->id) }}" style="display:inline;" onsubmit="return confirm('Are you sure you want to permanently delete {{ addslashes($r->name) }} and all associated data?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button class="btn btn-danger btn-sm" type="submit" title="Delete">🗑️</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
                 @empty
-                <tr>
-                    <td colspan="9" style="text-align: center; color: #94a3b8; padding: 2rem;">
-                        No restaurants registered yet. Click <strong>+ Add Restaurant</strong> to register your first tenant.
-                    </td>
-                </tr>
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 24px; color: var(--text-secondary);">
+                            No restaurants found matching your criteria.
+                        </td>
+                    </tr>
                 @endforelse
             </tbody>
         </table>
     </div>
+
+    <div style="margin-top: 18px;">
+        {{ $restaurants->links() }}
+    </div>
 </div>
-
-<script>
-function filterRestaurants() {
-    const input = document.getElementById('restSearch').value.toLowerCase();
-    const rows = document.querySelectorAll('.rest-row');
-    rows.forEach(row => {
-        const text = row.innerText.toLowerCase();
-        row.style.display = text.includes(input) ? '' : 'none';
-    });
-}
-</script>
-
 @endsection
