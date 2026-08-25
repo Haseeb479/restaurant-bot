@@ -944,11 +944,9 @@
                             <button type="submit" class="btn-action-primary" style="background: #7c3aed;">🍳 Mark as Preparing</button>
                         </form>
                     @elseif($selectedOrder->status === 'preparing')
-                        <form method="POST" action="{{ route('dashboard.update-status', [$restaurant->id, $selectedOrder->id]) }}" style="flex: 1; display: flex;">
-                            @csrf
-                            <input type="hidden" name="status" value="out_for_delivery">
-                            <button type="submit" class="btn-action-primary" style="background: #0284c7;">🚴 Dispatch to Rider</button>
-                        </form>
+                        <button type="button" class="btn-action-primary" style="background: #0284c7;" onclick="openDispatchModal('{{ $selectedOrder->id }}', '{{ $selectedOrder->tracking_code }}', '{{ addslashes($selectedOrder->customer_name) }}', '{{ addslashes($selectedOrder->delivery_address ?: $selectedOrder->masked_delivery_address) }}')">
+                            🚴 Dispatch to Rider
+                        </button>
                     @elseif($selectedOrder->status === 'out_for_delivery')
                         <form method="POST" action="{{ route('dashboard.update-status', [$restaurant->id, $selectedOrder->id]) }}" style="flex: 1; display: flex;">
                             @csrf
@@ -1152,7 +1150,129 @@
 
 </div>
 
+<!-- 5. DISPATCH TO RIDER MODAL -->
+<div id="dispatchModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center; padding: 16px;">
+    <div style="background: #ffffff; border-radius: 20px; width: 500px; max-width: 100%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); border: 1px solid #e2e8f0; overflow: hidden; animation: modalFadeIn 0.2s ease;">
+        <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #ffffff; padding: 20px 24px; display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 40px; height: 40px; border-radius: 12px; background: rgba(255, 255, 255, 0.2); display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                    🛵
+                </div>
+                <div>
+                    <h3 style="font-size: 16px; font-weight: 800; line-height: 1.2;">Dispatch to Rider</h3>
+                    <p style="font-size: 12px; color: #e0f2fe; margin-top: 2px;">Order <strong id="dispatchOrderCode"></strong> • <span id="dispatchCustomerName"></span></p>
+                </div>
+            </div>
+            <button type="button" onclick="closeDispatchModal()" style="background: none; border: none; color: #ffffff; font-size: 22px; cursor: pointer; line-height: 1; padding: 4px;">✕</button>
+        </div>
+
+        <form id="dispatchForm" method="POST" action="" style="padding: 22px 24px;">
+            @csrf
+            <input type="hidden" name="status" value="out_for_delivery">
+
+            <!-- Rider Selection -->
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">Select Delivery Rider *</label>
+                
+                @if($riders->isNotEmpty())
+                    <select id="riderSelect" class="form-control" style="padding: 10px 14px; border-radius: 10px; border: 1px solid #cbd5e1; width: 100%; font-size: 13px; margin-bottom: 10px;" onchange="handleRiderSelect(this)">
+                        <option value="">-- Choose from Registered Fleet --</option>
+                        @foreach($riders as $rider)
+                            <option value="{{ $rider->name }}" data-phone="{{ $rider->phone }}">
+                                {{ $rider->name }} ({{ $rider->phone }}) {{ $rider->is_active ? '• Active' : '• Inactive' }}
+                            </option>
+                        @endforeach
+                        <option value="__custom__">➕ Enter Other / Third-Party Rider</option>
+                    </select>
+                @endif
+
+                <div id="customRiderFields" style="{{ $riders->isNotEmpty() ? 'display: none;' : '' }}">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                        <div>
+                            <label style="display: block; font-size: 11px; color: #64748b; margin-bottom: 4px;">Rider Name *</label>
+                            <input type="text" id="inputRiderName" name="rider_name" class="form-control" placeholder="e.g. Ali Khan" style="padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; width: 100%; font-size: 12.5px;" required>
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 11px; color: #64748b; margin-bottom: 4px;">Rider Phone Number</label>
+                            <input type="text" id="inputRiderPhone" name="rider_phone" class="form-control" placeholder="e.g. 03001234567" style="padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; width: 100%; font-size: 12.5px;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ETA & Notes -->
+            <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 12px; margin-bottom: 16px;">
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">Estimated Mins</label>
+                    <input type="number" name="estimated_minutes" class="form-control" value="25" min="5" max="180" style="padding: 10px 14px; border-radius: 10px; border: 1px solid #cbd5e1; width: 100%; font-size: 13px;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">Rider Notes (Optional)</label>
+                    <input type="text" name="rider_notes" class="form-control" placeholder="e.g. Call before ringing bell" style="padding: 10px 14px; border-radius: 10px; border: 1px solid #cbd5e1; width: 100%; font-size: 13px;">
+                </div>
+            </div>
+
+            <!-- Delivery Address Snapshot -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; margin-bottom: 18px; font-size: 12px; color: #64748b;">
+                <span style="font-weight: 700; color: #0f172a;">📍 Delivering to:</span>
+                <span id="dispatchAddress"></span>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" onclick="closeDispatchModal()" style="padding: 10px 18px; border-radius: 10px; border: 1px solid #cbd5e1; background: #f8fafc; color: #334155; font-size: 13px; font-weight: 700; cursor: pointer;">Cancel</button>
+                <button type="submit" style="padding: 10px 22px; border-radius: 10px; border: none; background: #0284c7; color: #ffffff; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);">Confirm & Dispatch 🛵</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
+    function openDispatchModal(orderId, orderCode, customerName, address) {
+        document.getElementById('dispatchOrderCode').textContent = '#' + orderCode;
+        document.getElementById('dispatchCustomerName').textContent = customerName;
+        document.getElementById('dispatchAddress').textContent = address || 'Address provided in WhatsApp chat';
+        document.getElementById('dispatchForm').action = '/dashboard/{{ $restaurant->id }}/orders/' + orderId + '/status';
+        
+        const riderSelect = document.getElementById('riderSelect');
+        const customFields = document.getElementById('customRiderFields');
+        const nameInput = document.getElementById('inputRiderName');
+        const phoneInput = document.getElementById('inputRiderPhone');
+
+        if (riderSelect && riderSelect.options.length > 2) {
+            riderSelect.selectedIndex = 1; // default to first registered rider
+            const opt = riderSelect.options[1];
+            nameInput.value = opt.value;
+            phoneInput.value = opt.getAttribute('data-phone') || '';
+            customFields.style.display = 'none';
+        } else {
+            if (customFields) customFields.style.display = 'block';
+        }
+
+        document.getElementById('dispatchModal').style.display = 'flex';
+    }
+
+    function handleRiderSelect(select) {
+        const customFields = document.getElementById('customRiderFields');
+        const nameInput = document.getElementById('inputRiderName');
+        const phoneInput = document.getElementById('inputRiderPhone');
+
+        if (select.value === '__custom__' || !select.value) {
+            customFields.style.display = 'block';
+            nameInput.value = '';
+            phoneInput.value = '';
+            nameInput.focus();
+        } else {
+            customFields.style.display = 'none';
+            nameInput.value = select.value;
+            const opt = select.options[select.selectedIndex];
+            phoneInput.value = opt.getAttribute('data-phone') || '';
+        }
+    }
+
+    function closeDispatchModal() {
+        document.getElementById('dispatchModal').style.display = 'none';
+    }
+
     // ── Live Real-Time Feed Polling (every 5 seconds) ──
     let initialLatestId = {{ $orders->first()?->id ?? 0 }};
     let initialTodayCount = {{ $today->count() }};

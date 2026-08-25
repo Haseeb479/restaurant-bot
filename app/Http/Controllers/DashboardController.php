@@ -464,6 +464,15 @@ class DashboardController extends Controller
         $this->authCheck($id);
         $r = Restaurant::findOrFail($id); // scoped: only the authenticated restaurant
 
+        // Quick toggle for is_open status banner
+        if ($request->has('toggle_open_only')) {
+            $newState = $request->has('is_open') || $request->input('toggle_open_only') === 'open';
+            $r->update(['is_open' => $newState]);
+            $this->invalidateBotCache($r);
+            $msg = $newState ? '🟢 Restaurant is now OPEN for orders!' : '⏸️ Restaurant is now CLOSED.';
+            return back()->with('success', $msg);
+        }
+
         // Previously this took `$request->only([...])` with no validation at all,
         // so a duplicate whatsapp_number hit the UNIQUE constraint as a 500 and
         // google_sheet_webhook was an unchecked SSRF target.
@@ -496,9 +505,7 @@ class DashboardController extends Controller
 
         // These settings (opening state, delivery charge, minimum order) are read
         // by the bot on every message, so push the change through instead of
-        // waiting on its cache. This line used to be TenantResolver::clearCache(),
-        // which forgot a cache key derived from the removed Meta `wa_phone_id` —
-        // nothing wrote that key, so it invalidated nothing at all.
+        // waiting on its cache.
         $this->invalidateBotCache($r);
         return back()->with('success', 'Settings saved!');
     }

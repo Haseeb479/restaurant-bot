@@ -127,6 +127,7 @@
 <!-- RESTAURANT STATUS BANNER -->
 <form method="POST" action="{{ route('dashboard.update-settings', $restaurant->id) }}">
     @csrf
+    <input type="hidden" name="toggle_open_only" value="{{ $restaurant->is_open ? 'closed' : 'open' }}">
 
     <div class="status-banner">
         <div class="status-banner-left">
@@ -138,7 +139,7 @@
             <span class="badge-status {{ $restaurant->is_open ? 'delivered' : 'cancelled' }}" style="font-size: 12px; padding: 5px 12px;">
                 ● {{ $restaurant->is_open ? 'OPEN FOR ORDERS' : 'CLOSED' }}
             </span>
-            <label class="switch" style="width: 44px; height: 24px;" title="Toggle Open/Closed">
+            <label class="switch" style="width: 44px; height: 24px; cursor: pointer;" title="Toggle Open/Closed">
                 <input type="checkbox" name="is_open" value="1" onchange="this.form.submit()" {{ $restaurant->is_open ? 'checked' : '' }}>
                 <span class="slider" style="border-radius: 999px;"></span>
             </label>
