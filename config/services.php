@@ -35,9 +35,9 @@ return [
         ],
     ],
 
-    // The 'whatsapp' block that used to sit here held the Meta Cloud API
-    // verify token, read only by the deleted webhook controller. The product
-    // runs on the whatsapp-web.js bot, which authenticates by QR scan — see
-    // BOT_INTERNAL_TOKEN in config/app.php for the bot's own shared secret.
+    'evolution' => [
+        'base_url' => env('EVOLUTION_BASE_URL', 'http://127.0.0.1:8080'),
+        'api_key'  => env('EVOLUTION_API_KEY', 'foodio_evolution_secret_key_2026'),
+    ],
 
 ];
