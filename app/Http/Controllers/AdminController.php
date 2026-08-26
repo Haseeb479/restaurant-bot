@@ -78,7 +78,11 @@ class AdminController extends Controller
         $twoFaEnabled = Setting::get('admin_2fa_enabled', '0') === '1';
         $storedPin    = Setting::get('admin_2fa_pin', '');
         if ($twoFaEnabled && $storedPin !== '') {
-            if ($pin !== $storedPin) {
+            $pinIsValid = DashboardController::isHashed($storedPin)
+                ? Hash::check($pin, $storedPin)
+                : hash_equals($storedPin, $pin);
+
+            if (! $pinIsValid) {
                 return back()->withErrors([
                     'two_fa_pin' => 'Invalid 2FA Security PIN.',
                 ]);
@@ -1378,7 +1382,8 @@ class AdminController extends Controller
 
         Setting::put('admin_2fa_enabled', $enable ? '1' : '0');
         if ($enable) {
-            Setting::put('admin_2fa_pin', $pin);
+            // Store the PIN as a bcrypt hash — never persist plaintext credentials.
+            Setting::put('admin_2fa_pin', Hash::make($pin));
         }
 
         AuditLog::log('admin.2fa_toggled', 'Toggled 2FA security status to ' . ($enable ? 'ENABLED' : 'DISABLED'));
