@@ -56,7 +56,7 @@ class SecurityPhase1AuthTest extends TestCase
         ]);
 
         $response->assertRedirect('/login');
-        $response->assertSessionHasErrors(['password' => 'Wrong restaurant name or password. Please check and try again.']);
+        $response->assertSessionHasErrors(['password' => 'Wrong restaurant name or password. Please check and try again.'], null, 'owner');
         $this->assertNull(session('restaurant_1'));
     }
 
@@ -68,7 +68,7 @@ class SecurityPhase1AuthTest extends TestCase
         ]);
 
         $response->assertRedirect('/login');
-        $response->assertSessionHasErrors(['password' => 'Wrong restaurant name or password. Please check and try again.']);
+        $response->assertSessionHasErrors(['password' => 'Wrong restaurant name or password. Please check and try again.'], null, 'owner');
     }
 
     public function test_auth_001_owner_login_is_rate_limited(): void
