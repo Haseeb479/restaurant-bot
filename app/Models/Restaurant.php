@@ -50,6 +50,9 @@ class Restaurant extends Model
         'ai_config',
         'rate_limit_per_month',
         'api_key',
+        'evolution_instance_id',
+        'evolution_status',
+        'bot_phone_number',
     ];
 
     protected $casts = [

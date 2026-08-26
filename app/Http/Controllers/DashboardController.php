@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Models\{Restaurant, Order, Category, MenuItem, Rider};
 use App\Rules\SafeWebhookUrl;
 use App\Support\BotControlClient;
+use App\Support\BotEvolutionClient;
 use App\Support\CsvSanitizer;
 use App\Support\WebhookUrlValidator;
 use Illuminate\Http\Request;
@@ -294,11 +295,19 @@ class DashboardController extends Controller
         ];
 
         if (isset($messages[$status])) {
-            BotControlClient::sendMessage($order->customer_phone, $messages[$status], [
+            $sent = BotEvolutionClient::sendMessage($r, $order->customer_phone, $messages[$status], [
                 'restaurant_id' => $r->id,
                 'order_id'      => $order->id,
                 'recipient'     => 'customer',
             ]);
+
+            if (! $sent) {
+                BotControlClient::sendMessage($order->customer_phone, $messages[$status], [
+                    'restaurant_id' => $r->id,
+                    'order_id'      => $order->id,
+                    'recipient'     => 'customer',
+                ]);
+            }
         }
 
         // If dispatched to a rider, notify rider on WhatsApp with Rider Delivery Portal Link
@@ -319,11 +328,19 @@ class DashboardController extends Controller
                 . "📍 *Tap to start GPS Delivery & Navigation:*\n"
                 . $riderPortalUrl;
 
-            BotControlClient::sendMessage($order->rider_phone, $riderMsg, [
+            $sentRider = BotEvolutionClient::sendMessage($r, $order->rider_phone, $riderMsg, [
                 'restaurant_id' => $r->id,
                 'order_id'      => $order->id,
                 'recipient'     => 'rider',
             ]);
+
+            if (! $sentRider) {
+                BotControlClient::sendMessage($order->rider_phone, $riderMsg, [
+                    'restaurant_id' => $r->id,
+                    'order_id'      => $order->id,
+                    'recipient'     => 'rider',
+                ]);
+            }
         }
 
         // Live Google Sheet Webhook Push (if configured)
@@ -599,75 +616,130 @@ class DashboardController extends Controller
     }
 
     /**
-     * Same-origin proxy for the bot's pairing status and QR code.
-     *
-     * The connect page used to have the browser fetch `http://<host>:3000/qr-status`
-     * directly, which forced the control server to be world-reachable with
-     * `Access-Control-Allow-Origin: *` and no auth — anyone who could load that
-     * port got a QR code they could scan to seize the WhatsApp account. The QR now
-     * only ever leaves the server through this authenticated route.
+     * Dedicated per-restaurant WhatsApp pairing status and QR/Pairing code.
      */
     public function botStatus(string $id)
     {
         $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
 
-        $status = BotControlClient::status();
+        // 1. Try EvolutionAPI dedicated instance
+        $evoState = BotEvolutionClient::getConnectionState($r);
+        if ($evoState !== null) {
+            $isConnected = in_array($evoState['state'], ['open', 'connected']);
 
-        if ($status === null) {
             return response()->json([
-                'success' => false,
-                'status'  => 'unreachable',
-                'message' => 'The WhatsApp bot process is not running.',
-            ], 503);
+                'success'    => true,
+                'status'     => $isConnected ? 'connected' : ($r->bot_status ?: 'qr_pending'),
+                'is_open'    => $isConnected,
+                'bot_number' => $r->whatsapp_number,
+                'instance'   => $evoState['instanceName'],
+            ]);
         }
 
-        // One bot process serves one WhatsApp account. If it is already paired to
-        // another restaurant, this owner must not see its QR (scanning it would
-        // hijack that account) and must not be able to restart it out from under
-        // them. The super-admin is exempt because they operate the process.
-        if (! $this->botBelongsTo($status, $id)) {
+        // 2. Fallback to legacy single-bot proxy if Evolution is offline
+        $status = BotControlClient::status();
+        if ($status !== null && $this->botBelongsTo($status, $id)) {
             return response()->json([
-                'success' => false,
-                'status'  => 'linked_elsewhere',
-                'message' => 'This bot process is currently linked to another restaurant. Contact support to get your own bot instance.',
-            ], 409);
+                'success'    => true,
+                'status'     => $status['status'] ?? 'unknown',
+                'qr'         => $status['qr'] ?? null,
+                'bot_number' => $status['bot_number'] ?? null,
+            ]);
         }
 
         return response()->json([
-            'success'    => true,
-            'status'     => $status['status'] ?? 'unknown',
-            // `qr` is the rendered data-URL image. The raw QR payload the bot also
-            // held is deliberately not exposed anywhere.
-            'qr'         => $status['qr'] ?? null,
-            'bot_number' => $status['bot_number'] ?? null,
-        ]);
+            'success' => false,
+            'status'  => 'disconnected',
+            'message' => 'WhatsApp bot is ready for pairing.',
+        ], 200);
     }
 
     /**
-     * Ask the bot to drop its session and show a fresh pairing QR.
+     * Generate 8-digit WhatsApp pairing code for the restaurant.
+     */
+    public function botPairingCode(Request $request, string $id)
+    {
+        $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
+
+        $phone = $request->input('phone') ?: $r->whatsapp_number ?: $r->owner_phone;
+        if (empty($phone)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please provide a valid WhatsApp number.',
+            ], 422);
+        }
+
+        $result = BotEvolutionClient::getPairingCode($r, (string) $phone);
+
+        if ($result && ! empty($result['pairingCode'])) {
+            $r->update(['bot_phone_number' => $phone]);
+
+            return response()->json([
+                'success'      => true,
+                'pairing_code' => $result['pairingCode'],
+                'code'         => $result['pairingCode'],
+                'message'      => 'Enter this pairing code in WhatsApp Linked Devices.',
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Could not generate pairing code. You can also scan the QR code.',
+        ], 500);
+    }
+
+    /**
+     * Get QR code for this specific restaurant's Evolution instance.
+     */
+    public function botQrCode(string $id)
+    {
+        $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
+
+        $qrData = BotEvolutionClient::getQrCode($r);
+
+        if ($qrData && ! empty($qrData['base64'])) {
+            return response()->json([
+                'success' => true,
+                'qr'      => $qrData['base64'],
+                'code'    => $qrData['code'] ?? null,
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'QR code is not ready or instance is already connected.',
+        ], 200);
+    }
+
+    /**
+     * Restart instance to reset session and produce fresh QR / pairing code.
      */
     public function botRestart(string $id)
     {
         $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
 
-        $status = BotControlClient::status();
-
-        if ($status !== null && ! $this->botBelongsTo($status, $id)) {
+        // 1. Restart Evolution instance
+        $okEvo = BotEvolutionClient::restartInstance($r);
+        if ($okEvo) {
+            $r->update(['bot_status' => 'disconnected', 'evolution_status' => 'disconnected']);
             return response()->json([
-                'success' => false,
-                'status'  => 'linked_elsewhere',
-                'message' => 'This bot process is linked to another restaurant, so it cannot be restarted from here.',
-            ], 409);
+                'success' => true,
+                'message' => 'WhatsApp instance restarted. You can now reconnect.',
+            ]);
         }
 
-        $ok = BotControlClient::restart();
-
+        // 2. Legacy fallback
+        $okLegacy = BotControlClient::restart();
         return response()->json([
-            'success' => $ok,
-            'message' => $ok
-                ? 'Bot restart requested. A fresh QR code will appear shortly.'
+            'success' => $okLegacy,
+            'message' => $okLegacy
+                ? 'Bot restart requested.'
                 : 'Could not reach the WhatsApp bot process.',
-        ], $ok ? 200 : 503);
+        ], $okLegacy ? 200 : 503);
     }
 
     /**

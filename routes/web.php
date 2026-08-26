@@ -196,16 +196,20 @@ Route::post('register/payment/{id}', [OnboardingController::class, 'step3Payment
 
 Route::get('register/status/{id}',   [OnboardingController::class, 'statusPage'])->name('onboarding.status');
 
+// ── EvolutionAPI Webhook Receiver (Incoming WhatsApp Messages & Status Events) ──
+Route::post('webhook/whatsapp', [\App\Http\Controllers\WhatsAppWebhookController::class, 'handle'])
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class])
+    ->name('webhook.whatsapp');
+
 // ── Restaurant owner dashboard ─────────────────────────────
 Route::prefix('dashboard/{id}')->group(function () {
     Route::get('login',                        [DashboardController::class, 'loginForm'])->name('dashboard.login');
     Route::post('login',                       [DashboardController::class, 'login'])->middleware('throttle:5,1');
     Route::post('logout',                      [DashboardController::class, 'logout'])->name('dashboard.logout');
     Route::get('connect-whatsapp',             [DashboardController::class, 'connectWhatsapp'])->name('dashboard.connect-whatsapp');
-    // Same-origin proxy to the bot's control server. The connect page polls these
-    // instead of talking to port 3000 from the browser, which is what lets that
-    // server bind to loopback only. See App\Support\BotControlClient.
     Route::get('bot/status',                   [DashboardController::class, 'botStatus'])->middleware('throttle:60,1')->name('dashboard.bot-status');
+    Route::get('bot/qr',                       [DashboardController::class, 'botQrCode'])->middleware('throttle:60,1')->name('dashboard.bot-qr');
+    Route::post('bot/pairing-code',            [DashboardController::class, 'botPairingCode'])->middleware('throttle:10,1')->name('dashboard.bot-pairing-code');
     Route::post('bot/restart',                 [DashboardController::class, 'botRestart'])->middleware('throttle:6,1')->name('dashboard.bot-restart');
     Route::get('orders',                       [DashboardController::class, 'orders'])->name('dashboard.orders');
     Route::get('orders/live-feed',             [DashboardController::class, 'liveOrdersFeed'])->name('dashboard.orders.live-feed');
