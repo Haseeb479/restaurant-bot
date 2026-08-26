@@ -398,9 +398,15 @@ class DashboardController extends Controller
     {
         $this->authCheck($id);
         $r = Restaurant::findOrFail($id);
+
+        $request->validate([
+            'name'       => 'required|string|max:255',
+            'sort_order' => 'nullable|integer',
+        ]);
+
         $r->categories()->create([
-            'name'       => $request->input('name'),
-            'sort_order' => $request->input('sort_order', 0),
+            'name'       => trim($request->input('name')),
+            'sort_order' => (int) $request->input('sort_order', 0),
         ]);
         return back()->with('success', 'Category added!');
     }
@@ -410,6 +416,13 @@ class DashboardController extends Controller
     {
         $this->authCheck($id);
         $r = Restaurant::findOrFail($id);
+
+        $request->validate([
+            'name'        => 'required|string|max:255',
+            'category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('restaurant_id', $r->id)],
+            'price'       => 'nullable|numeric|min:0|max:1000000',
+            'description' => 'nullable|string|max:1000',
+        ]);
 
         $hasSizes = $request->has('sizes') && is_array($request->input('sizes'));
 
@@ -433,8 +446,8 @@ class DashboardController extends Controller
 
         $r->menuItems()->create([
             'category_id' => $request->input('category_id'),
-            'name'        => $request->input('name'),
-            'description' => $request->input('description'),
+            'name'        => trim($request->input('name')),
+            'description' => $request->input('description') ? trim($request->input('description')) : null,
             'price'       => $basePrice,
             'sizes'       => $sizes, // null if no size variants
         ]);
