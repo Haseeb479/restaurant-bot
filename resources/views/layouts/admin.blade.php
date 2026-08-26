@@ -440,6 +440,25 @@
         .metric-icon.purple { background: rgba(168, 85, 247, 0.12); color: #a855f7; }
         .metric-icon.red    { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
 
+        /* GRID LAYOUTS */
+        .admin-grid-2-1 {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 22px;
+        }
+        .admin-grid-half {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 1024px) {
+            .admin-grid-2-1, .admin-grid-half {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+        }
+
         /* BUTTONS */
         .btn {
             display: inline-flex;
@@ -530,13 +549,124 @@
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
         }
 
-        /* MOBILE RESPONSIVENESS */
+        /* ── MOBILE RESPONSIVENESS & BOTTOM NAV ── */
+        .sidebar-close-btn {
+            display: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            font-size: 14px;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 95;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+
+        .mobile-bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 64px;
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-top: 1px solid var(--border-color);
+            z-index: 85;
+            padding: 4px 8px;
+            justify-content: space-around;
+            align-items: center;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.04);
+        }
+
+        [data-theme="dark"] .mobile-bottom-nav {
+            background: rgba(15, 23, 42, 0.94);
+            border-top-color: var(--border-color);
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .mob-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-size: 10px;
+            font-weight: 700;
+            padding: 6px 10px;
+            border-radius: 12px;
+            transition: all 0.15s ease;
+            position: relative;
+            min-width: 52px;
+        }
+
+        .mob-nav-item .mob-icon {
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        .mob-nav-item.active {
+            color: #4f46e5;
+            background: rgba(79, 70, 229, 0.08);
+        }
+
+        [data-theme="dark"] .mob-nav-item.active {
+            color: #818cf8;
+            background: rgba(99, 102, 241, 0.15);
+        }
+
+        .mob-badge {
+            position: absolute;
+            top: 2px;
+            right: 6px;
+            background: #ef4444;
+            color: #fff;
+            font-size: 9px;
+            font-weight: 800;
+            padding: 1px 5px;
+            border-radius: 99px;
+            min-width: 15px;
+            text-align: center;
+            border: 1.5px solid #fff;
+        }
+        [data-theme="dark"] .mob-badge {
+            border-color: #0f172a;
+        }
+
         @media (max-width: 1024px) {
             aside {
                 transform: translateX(-100%);
+                z-index: 1000;
+                width: 280px;
+                box-shadow: none;
             }
             aside.mobile-open {
                 transform: translateX(0);
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            }
+            .sidebar-backdrop.active {
+                display: block;
+                opacity: 1;
+            }
+            .sidebar-close-btn {
+                display: flex;
             }
             .main-wrapper {
                 margin-left: 0;
@@ -545,9 +675,74 @@
                 display: inline-flex;
             }
         }
+
+        @media (max-width: 768px) {
+            header {
+                height: 60px;
+                padding: 0 16px;
+            }
+            .header-title h1 {
+                font-size: 15px;
+            }
+            .header-title p {
+                display: none;
+            }
+            main {
+                padding: 16px 14px 85px !important;
+            }
+            .mobile-bottom-nav {
+                display: flex;
+            }
+            .user-profile {
+                padding-left: 6px;
+                border-left: none;
+            }
+            .user-meta {
+                display: none;
+            }
+            .theme-toggle-btn #themeText {
+                display: none;
+            }
+            .theme-toggle-btn {
+                padding: 6px 9px;
+            }
+            .panel-card {
+                padding: 16px 14px;
+                border-radius: 14px;
+                margin-bottom: 16px;
+            }
+            .panel-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            .metric-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+            .data-table th, .data-table td {
+                padding: 9px 8px;
+                font-size: 11.5px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .metric-grid {
+                grid-template-columns: 1fr;
+            }
+            header {
+                padding: 0 12px;
+            }
+            .header-actions {
+                gap: 8px;
+            }
+        }
     </style>
 </head>
 <body>
+
+<!-- SIDEBAR BACKDROP FOR MOBILE -->
+<div id="adminSidebarBackdrop" class="sidebar-backdrop" onclick="toggleSidebar()"></div>
 
 <!-- SIDEBAR -->
 <aside id="adminSidebar">
@@ -559,6 +754,7 @@
                 <span>Super Admin</span>
             </div>
         </div>
+        <button type="button" class="sidebar-close-btn" onclick="toggleSidebar()" title="Close menu">✕</button>
     </div>
 
     <div class="nav-section">
@@ -708,6 +904,38 @@
 
         @yield('content')
     </main>
+
+    <!-- MOBILE BOTTOM NAVIGATION BAR -->
+    <nav class="mobile-bottom-nav">
+        <a href="{{ route('admin.dashboard') }}" class="mob-nav-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+            <span class="mob-icon">📊</span>
+            <span>Dashboard</span>
+        </a>
+
+        <a href="{{ route('admin.restaurants') }}" class="mob-nav-item {{ request()->routeIs('admin.restaurants') ? 'active' : '' }}">
+            <span class="mob-icon">🏪</span>
+            <span>Stores</span>
+        </a>
+
+        <a href="{{ route('admin.restaurants.pending') }}" class="mob-nav-item {{ request()->routeIs('admin.restaurants.pending') ? 'active' : '' }}">
+            <span class="mob-icon">⏳</span>
+            <span>Pending</span>
+            @php $pCount = \App\Models\Restaurant::where('status', 'pending')->count(); @endphp
+            @if($pCount > 0)
+                <span class="mob-badge">{{ $pCount }}</span>
+            @endif
+        </a>
+
+        <a href="{{ route('admin.analytics') }}" class="mob-nav-item {{ request()->routeIs('admin.analytics') ? 'active' : '' }}">
+            <span class="mob-icon">📈</span>
+            <span>Stats</span>
+        </a>
+
+        <button type="button" class="mob-nav-item" onclick="toggleSidebar()" style="background: none; border: none; cursor: pointer;">
+            <span class="mob-icon">⚙️</span>
+            <span>More</span>
+        </button>
+    </nav>
 </div>
 
 <script>
@@ -740,10 +968,23 @@ function updateThemeButton(theme) {
 
 function toggleSidebar() {
     const sb = document.getElementById('adminSidebar');
+    const bd = document.getElementById('adminSidebarBackdrop');
     if (sb) sb.classList.toggle('mobile-open');
+    if (bd) bd.classList.toggle('active');
 }
 
-document.addEventListener('DOMContentLoaded', initTheme);
+// Auto-close mobile sidebar when clicking a nav item on mobile
+document.addEventListener('DOMContentLoaded', function() {
+    initTheme();
+    const navItems = document.querySelectorAll('#adminSidebar .nav-item');
+    navItems.forEach(item => {
+        item.addEventListener('click', function() {
+            if (window.innerWidth <= 1024) {
+                toggleSidebar();
+            }
+        });
+    });
+});
 </script>
 
 @stack('scripts')

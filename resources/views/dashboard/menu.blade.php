@@ -458,6 +458,24 @@
     box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
 }
 .size-input-row { display: flex; gap: 8px; align-items: center; }
+
+@media (max-width: 768px) {
+    .modal-box {
+        padding: 18px 16px;
+        border-radius: 16px;
+    }
+    .cat-pill {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+}
+@media (max-width: 480px) {
+    .category-block > div:first-child {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+}
 </style>
 
 <script>

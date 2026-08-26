@@ -574,6 +574,7 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            transition: margin-left 0.25s ease;
         }
 
         /* TOPBAR */
@@ -588,6 +589,31 @@
             position: sticky;
             top: 0;
             z-index: 90;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .mobile-menu-toggle {
+            display: none;
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: var(--main-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .mobile-menu-toggle:active {
+            transform: scale(0.95);
         }
 
         .header-title h1 {
@@ -606,7 +632,108 @@
         .header-actions {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 12px;
+        }
+
+        .sidebar-close-btn {
+            display: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            font-size: 14px;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 95;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+
+        /* MOBILE BOTTOM NAVIGATION BAR */
+        .mobile-bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 64px;
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-top: 1px solid var(--border-color);
+            z-index: 85;
+            padding: 4px 8px;
+            justify-content: space-around;
+            align-items: center;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.04);
+        }
+
+        [data-theme="dark"] .mobile-bottom-nav {
+            background: rgba(15, 23, 42, 0.94);
+            border-top-color: var(--border-color);
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .mob-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            text-decoration: none;
+            color: var(--text-muted);
+            font-size: 10px;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 12px;
+            transition: all 0.15s ease;
+            position: relative;
+            min-width: 54px;
+        }
+
+        .mob-nav-item .mob-icon {
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        .mob-nav-item.active {
+            color: #4f46e5;
+            background: rgba(79, 70, 229, 0.08);
+        }
+
+        [data-theme="dark"] .mob-nav-item.active {
+            color: #818cf8;
+            background: rgba(99, 102, 241, 0.15);
+        }
+
+        .mob-badge {
+            position: absolute;
+            top: 2px;
+            right: 8px;
+            background: #ef4444;
+            color: #fff;
+            font-size: 9px;
+            font-weight: 800;
+            padding: 1px 5px;
+            border-radius: 99px;
+            min-width: 15px;
+            text-align: center;
+            border: 1.5px solid #fff;
+        }
+        [data-theme="dark"] .mob-badge {
+            border-color: #0f172a;
         }
 
         .status-online-pill {
@@ -854,10 +981,112 @@
         input:checked + .slider { background: #16a34a; }
         input:checked + .slider:before { transform: translateX(16px); }
 
+        /* ── RESPONSIVE MOBILE & TABLET BREAKPOINTS ── */
         @media (max-width: 1024px) {
-            aside { width: 70px; }
-            aside .brand-info, aside .nav-item span, aside .badge-pill { display: none; }
-            .main-wrapper { margin-left: 70px; }
+            aside {
+                width: 280px;
+                transform: translateX(-100%);
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: none;
+                z-index: 1000;
+            }
+            aside.mobile-open {
+                transform: translateX(0);
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            }
+            .sidebar-backdrop.active {
+                display: block;
+                opacity: 1;
+            }
+            .sidebar-close-btn {
+                display: flex;
+            }
+            .mobile-menu-toggle {
+                display: inline-flex;
+            }
+            .main-wrapper {
+                margin-left: 0 !important;
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            header {
+                height: 60px;
+                padding: 0 16px;
+            }
+            .header-title h1 {
+                font-size: 15px;
+            }
+            .header-title p {
+                display: none;
+            }
+            main {
+                padding: 16px 14px 85px !important;
+            }
+            .mobile-bottom-nav {
+                display: flex;
+            }
+            .user-profile {
+                padding-left: 6px;
+                border-left: none;
+            }
+            .user-info {
+                display: none;
+            }
+            .date-pill {
+                display: none !important;
+            }
+            .status-online-pill span:last-child {
+                display: none;
+            }
+            .status-online-pill {
+                padding: 6px;
+            }
+            .theme-toggle-btn #themeText {
+                display: none;
+            }
+            .theme-toggle-btn {
+                padding: 6px 9px;
+            }
+            .panel-card, .card, .dashboard-card {
+                padding: 16px 14px;
+                border-radius: 16px;
+                margin-bottom: 16px;
+            }
+            .panel-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            .data-table th, .data-table td {
+                padding: 10px 10px;
+                font-size: 12px;
+            }
+            .metric-grid, .stats-row {
+                gap: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            header {
+                padding: 0 12px;
+            }
+            .header-actions {
+                gap: 8px;
+            }
+            .avatar {
+                width: 32px;
+                height: 32px;
+                font-size: 12px;
+            }
+            .stat-val, .metric-value {
+                font-size: 20px;
+            }
+            .btn {
+                padding: 7px 12px;
+                font-size: 11.5px;
+            }
         }
     </style>
 </head>
@@ -868,17 +1097,23 @@
     $restId = $currentRest?->id ?? 1;
 @endphp
 
+<!-- SIDEBAR BACKDROP FOR MOBILE -->
+<div id="sidebarBackdrop" class="sidebar-backdrop" onclick="toggleOwnerSidebar()"></div>
+
 <!-- SIDEBAR -->
-<aside>
-    <div style="padding: 22px 20px 14px; border-bottom: 1px solid rgba(255,255,255,0.06);">
-        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-            <div style="width: 38px; height: 38px; border-radius: 12px; background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.4); display: flex; align-items: center; justify-content: center; font-size: 20px;">
-                🤖
+<aside id="ownerSidebar">
+    <div style="padding: 20px 18px 14px; border-bottom: 1px solid rgba(255,255,255,0.06);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 38px; height: 38px; border-radius: 12px; background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.4); display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                    🤖
+                </div>
+                <div>
+                    <h2 style="font-size: 16px; font-weight: 800; color: #fff; letter-spacing: -0.3px;">RestoBot</h2>
+                    <p style="font-size: 11px; color: #94a3b8;">WhatsApp Ordering System</p>
+                </div>
             </div>
-            <div>
-                <h2 style="font-size: 16px; font-weight: 800; color: #fff; letter-spacing: -0.3px;">RestoBot</h2>
-                <p style="font-size: 11px; color: #94a3b8;">WhatsApp Ordering System</p>
-            </div>
+            <button type="button" class="sidebar-close-btn" onclick="toggleOwnerSidebar()" title="Close menu">✕</button>
         </div>
 
         <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(51, 65, 85, 0.6); padding: 8px 12px; border-radius: 12px;">
@@ -901,7 +1136,7 @@
             <span>Dashboard</span>
         </a>
 
-        <a href="{{ route('dashboard.orders', $restId) }}" class="nav-item {{ request('view') === 'live' ? 'active' : '' }}">
+        <a href="{{ route('dashboard.orders', $restId) }}?view=live" class="nav-item {{ request('view') === 'live' ? 'active' : '' }}">
             <span class="icon">🛍️</span>
             <span>Live Orders</span>
             @if(isset($liveOrdersCount) && $liveOrdersCount > 0)
@@ -977,9 +1212,12 @@
 <!-- MAIN CONTENT WRAPPER -->
 <div class="main-wrapper">
     <header>
-        <div class="header-title">
-            <h1>@yield('header_title', 'Dashboard')</h1>
-            <p>@yield('header_subtitle', 'Welcome back, ' . ($currentRest->name ?? 'Owner') . '! 👋')</p>
+        <div class="header-left">
+            <button type="button" class="mobile-menu-toggle" onclick="toggleOwnerSidebar()" aria-label="Open Menu">☰</button>
+            <div class="header-title">
+                <h1>@yield('header_title', 'Dashboard')</h1>
+                <p>@yield('header_subtitle', 'Welcome back, ' . ($currentRest->name ?? 'Owner') . '! 👋')</p>
+            </div>
         </div>
 
         <div class="header-actions">
@@ -1023,6 +1261,37 @@
 
         @yield('content')
     </main>
+
+    <!-- MOBILE BOTTOM NAVIGATION BAR -->
+    <nav class="mobile-bottom-nav">
+        <a href="{{ route('dashboard.orders', $restId) }}" class="mob-nav-item {{ request()->routeIs('dashboard.orders') && !request('view') ? 'active' : '' }}">
+            <span class="mob-icon">📊</span>
+            <span>Dashboard</span>
+        </a>
+
+        <a href="{{ route('dashboard.orders', $restId) }}?view=live" class="mob-nav-item {{ request('view') === 'live' ? 'active' : '' }}">
+            <span class="mob-icon">🛍️</span>
+            <span>Live</span>
+            @if(isset($liveOrdersCount) && $liveOrdersCount > 0)
+                <span class="mob-badge">{{ $liveOrdersCount }}</span>
+            @endif
+        </a>
+
+        <a href="{{ route('dashboard.history', $restId) }}" class="mob-nav-item {{ request()->routeIs('dashboard.history*') ? 'active' : '' }}">
+            <span class="mob-icon">📋</span>
+            <span>Orders</span>
+        </a>
+
+        <a href="{{ route('dashboard.menu', $restId) }}" class="mob-nav-item {{ request()->routeIs('dashboard.menu*') ? 'active' : '' }}">
+            <span class="mob-icon">🍽️</span>
+            <span>Menu</span>
+        </a>
+
+        <button type="button" class="mob-nav-item" onclick="toggleOwnerSidebar()" style="background: none; border: none; cursor: pointer;">
+            <span class="mob-icon">⚙️</span>
+            <span>More</span>
+        </button>
+    </nav>
 </div>
 <!-- Live Notification Bell Poller -->
 @if(isset($restId))
@@ -1110,7 +1379,26 @@ function updateOwnerThemeButton(theme) {
     }
 }
 
-document.addEventListener('DOMContentLoaded', initOwnerTheme);
+// ── Mobile Sidebar Drawer Toggle ────────────────────────────────────
+function toggleOwnerSidebar() {
+    const sb = document.getElementById('ownerSidebar');
+    const bd = document.getElementById('sidebarBackdrop');
+    if (sb) sb.classList.toggle('mobile-open');
+    if (bd) bd.classList.toggle('active');
+}
+
+// Auto-close mobile sidebar when clicking a nav item on mobile
+document.addEventListener('DOMContentLoaded', function() {
+    initOwnerTheme();
+    const navItems = document.querySelectorAll('#ownerSidebar .nav-item');
+    navItems.forEach(item => {
+        item.addEventListener('click', function() {
+            if (window.innerWidth <= 1024) {
+                toggleOwnerSidebar();
+            }
+        });
+    });
+});
 </script>
 
 </body>

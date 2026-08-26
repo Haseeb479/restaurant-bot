@@ -714,13 +714,38 @@
 
     @media (max-width: 1200px) {
         .stats-row { grid-template-columns: repeat(3, 1fr); }
-        .middle-grid { grid-template-columns: 1fr; }
+        .middle-grid { grid-template-columns: 1fr; gap: 16px; }
         .bottom-analytics-grid { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 768px) {
-        .stats-row { grid-template-columns: 1fr 1fr; }
-        .bottom-analytics-grid { grid-template-columns: 1fr; }
-        .notice-bar { flex-direction: column; align-items: flex-start; }
+        .dashboard-container { gap: 16px; }
+        .stats-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .stat-card { padding: 14px; border-radius: 14px; }
+        .stat-val { font-size: 20px; }
+        .stat-icon-wrap { width: 34px; height: 34px; font-size: 16px; border-radius: 10px; }
+        .stat-footer { font-size: 10.5px; padding-top: 8px; }
+        .bottom-analytics-grid { grid-template-columns: 1fr; gap: 14px; }
+        .notice-bar { flex-direction: column; align-items: flex-start; gap: 10px; padding: 12px 14px; }
+        .notice-bar a { width: 100%; justify-content: center; }
+        .panel-card { padding: 16px 14px; border-radius: 16px; }
+        .live-order-item { padding: 12px; border-radius: 14px; }
+        .order-actions-bar { flex-direction: column; width: 100%; }
+        .order-actions-bar .btn-action-primary,
+        .order-actions-bar .btn-action-secondary { width: 100%; justify-content: center; padding: 10px; }
+        .customer-info-box { padding: 12px; gap: 10px; flex-direction: column; }
+        .assigned-rider-box { padding: 12px; }
+        .route-map-preview { height: 110px; }
+        #dispatchModal > div {
+            width: calc(100% - 24px) !important;
+            max-width: 480px !important;
+            padding: 20px 16px !important;
+            border-radius: 18px !important;
+        }
+    }
+    @media (max-width: 480px) {
+        .stats-row { grid-template-columns: 1fr; }
+        .panel-title { font-size: 14px; }
+        .order-detail-title { flex-direction: column; align-items: flex-start; gap: 6px; }
     }
 </style>
 

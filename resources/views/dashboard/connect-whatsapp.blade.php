@@ -96,7 +96,11 @@
     }
 
     @media (max-width: 900px) {
-        .qr-grid { grid-template-columns: 1fr; }
+        .qr-grid { grid-template-columns: 1fr; gap: 16px; }
+        .card-panel { padding: 16px 14px; border-radius: 16px; }
+        .qr-box { padding: 24px 16px; min-height: 260px; }
+        .btn-action-row { flex-direction: column; }
+        .btn-action-row button, .btn-action-row a { width: 100%; justify-content: center; }
     }
 </style>
 

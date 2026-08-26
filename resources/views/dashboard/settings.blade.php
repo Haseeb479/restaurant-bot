@@ -122,6 +122,19 @@
     @media (max-width: 1024px) {
         .settings-grid { grid-template-columns: 1fr; }
     }
+    @media (max-width: 768px) {
+        .status-banner {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 16px 14px;
+            border-radius: 16px;
+        }
+        .settings-card {
+            padding: 16px 14px;
+            border-radius: 16px;
+        }
+    }
 </style>
 
 <!-- RESTAURANT STATUS BANNER -->

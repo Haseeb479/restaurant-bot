@@ -115,7 +115,7 @@
 @endif
 
 <!-- Middle Section: Orders & Revenue Trends + Top Performers -->
-<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 22px;">
+<div class="admin-grid-2-1">
     <!-- 7-Day Trend Chart -->
     <div class="panel-card" style="margin-bottom: 0;">
         <div class="panel-header">
@@ -160,7 +160,7 @@
 </div>
 
 <!-- Bottom Section: Quick Links & Recent Admin Activity Audit Trail -->
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+<div class="admin-grid-half">
     <!-- Recent Activity Audit Logs -->
     <div class="panel-card" style="margin-bottom: 0;">
         <div class="panel-header">
