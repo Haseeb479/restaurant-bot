@@ -204,19 +204,23 @@ class BotEvolutionClient
         $instanceName = self::instanceName($restaurant);
         $cleanNumber  = preg_replace('/[^0-9]/', '', $to);
 
-        // Normalize Pakistani phone number
-        if (str_starts_with($cleanNumber, '03') && strlen($cleanNumber) === 11) {
-            $cleanNumber = '92' . substr($cleanNumber, 1);
-        } elseif (str_starts_with($cleanNumber, '3') && strlen($cleanNumber) === 10) {
-            $cleanNumber = '92' . $cleanNumber;
+        // Normalize Pakistani phone number if not a JID
+        if (! str_contains($to, '@')) {
+            if (str_starts_with($cleanNumber, '03') && strlen($cleanNumber) === 11) {
+                $cleanNumber = '92' . substr($cleanNumber, 1);
+            } elseif (str_starts_with($cleanNumber, '3') && strlen($cleanNumber) === 10) {
+                $cleanNumber = '92' . $cleanNumber;
+            }
         }
 
+        $targetRecipient = str_contains($to, '@') ? $to : $cleanNumber;
+
         $response = self::send('post', "/message/sendText/{$instanceName}", [
-            'number'  => $cleanNumber,
+            'number'  => $targetRecipient,
             'text'    => $message,
             'options' => [
-                'delay'     => 1200,
-                'presence'  => 'composing',
+                'delay'       => 1000,
+                'presence'    => 'composing',
                 'linkPreview' => true,
             ],
         ]);

@@ -107,14 +107,18 @@ class WhatsAppWebhookController extends Controller
 
         // Extract customer phone number
         $customerPhone = preg_replace('/[^0-9]/', '', explode('@', $remoteJid)[0]);
-        if ($customerPhone === '') {
+        if ($customerPhone === '' && ! str_contains($remoteJid, '@')) {
             return;
         }
 
-        // Extract message text content
+        // Extract message text content from various WhatsApp message types
         $text = trim((string) (
             $messageObj['conversation']
             ?? $messageObj['extendedTextMessage']['text']
+            ?? $messageObj['imageMessage']['caption']
+            ?? $messageObj['videoMessage']['caption']
+            ?? $messageObj['buttonsResponseMessage']['selectedButtonId']
+            ?? $messageObj['listResponseMessage']['singleSelectReply']['selectedRowId']
             ?? $messageObj['text']
             ?? ''
         ));
@@ -123,15 +127,17 @@ class WhatsAppWebhookController extends Controller
             return;
         }
 
-        // Check if message is a tracking code (e.g. TRK1234 or ORD5678)
-        if (preg_match('/^[A-Za-z]{2,4}\d{4,6}$/', $text) || preg_match('/^(track|status|order)\s+([A-Za-z0-9-]+)$/i', $text, $m)) {
-            $trackingCode = strtoupper(trim(isset($m[2]) ? $m[2] : $text));
-            $this->handleTrackingInquiry($restaurant, $customerPhone, $trackingCode);
-            return;
-        }
+        Log::info("Evolution Webhook: Incoming message for {$restaurant->name} from [{$remoteJid}]: {$text}");
 
-        // Basic auto-greeting / order link response
-        $this->handleGreetingOrMenu($restaurant, $customerPhone, $text);
+        // Target recipient: use remoteJid directly to ensure 100% reply delivery for @lid & standard accounts
+        $recipientJid = $remoteJid ?: $customerPhone;
+
+        app(\App\Services\WhatsAppAiBotService::class)->handle(
+            $restaurant,
+            $customerPhone ?: $recipientJid,
+            $recipientJid,
+            $text
+        );
     }
 
     /**
