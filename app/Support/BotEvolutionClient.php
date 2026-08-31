@@ -309,7 +309,7 @@ class BotEvolutionClient
         if ($localPath && is_readable($localPath)) {
             $fileContents = file_get_contents($localPath);
             if ($fileContents !== false) {
-                $mediaData = 'data:' . $mime . ';base64,' . base64_encode($fileContents);
+                $mediaData = base64_encode($fileContents);
             }
         }
 
