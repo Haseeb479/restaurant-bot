@@ -221,6 +221,7 @@ Route::prefix('dashboard/{id}')->group(function () {
     Route::post('menu/upload-csv',             [DashboardController::class, 'uploadMenuCsv'])->name('dashboard.upload-menu-csv');
     Route::post('menu/upload-file',            [DashboardController::class, 'uploadMenuFile'])->name('dashboard.upload-menu-file');
     Route::post('menu/upload-image',           [DashboardController::class, 'uploadMenuFile'])->name('dashboard.upload-menu-image');
+    Route::get('menu/sample-csv',              [DashboardController::class, 'downloadSampleCsv'])->name('dashboard.sample-menu-csv');
     Route::post('menu/item/{item}/toggle',     [DashboardController::class, 'toggleItem'])->name('dashboard.toggle-item');
     Route::match(['put', 'post'], 'menu/item/{item}/update', [DashboardController::class, 'updateItem'])->name('dashboard.update-item');
     Route::delete('menu/item/{item}',          [DashboardController::class, 'deleteItem'])->name('dashboard.delete-item');
