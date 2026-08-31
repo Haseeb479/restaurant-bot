@@ -20,11 +20,20 @@ class WhatsAppWebhookController extends Controller
      */
     public function handle(Request $request): JsonResponse
     {
-        $event    = (string) $request->input('event', '');
-        $instance = (string) ($request->input('instance') ?? $request->input('instanceName', ''));
-        $data     = (array) $request->input('data', []);
+        $event    = strtolower((string) ($request->input('event') ?? $request->input('type') ?? ''));
+        $instance = (string) (
+            $request->input('instance')
+            ?? $request->input('instanceName')
+            ?? $request->input('data.instance')
+            ?? $request->input('data.instanceName')
+            ?? $request->header('instance')
+            ?? $request->header('x-instance')
+            ?? ''
+        );
+        $data     = (array) ($request->input('data') ?? $request->all());
 
         if ($instance === '') {
+            Log::info("Evolution Webhook: Missing instance in payload: " . json_encode($request->all()));
             return response()->json(['status' => 'ignored', 'reason' => 'missing_instance'], 200);
         }
 
