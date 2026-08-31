@@ -227,25 +227,30 @@ class DashboardController extends Controller
 
         $activeRevenue = (float) $today->where('status', '!=', 'cancelled')->sum('total');
 
-        $ordersData = $liveOrders->map(function ($o) {
+        $ordersData = $liveOrders->map(function ($o) use ($r) {
             return [
-                'id'            => $o->id,
-                'tracking_code' => $o->tracking_code,
-                'status'        => $o->status,
-                'status_label'  => $o->status_label,
-                'total'         => $o->total,
-                'customer_name' => $o->customer_name ?: 'Guest',
-                'customer_phone'=> substr($o->customer_phone ?? 'N/A', -6),
-                'created_at_humans' => $o->created_at->diffForHumans(null, true, true),
-                'rider_name'    => $o->rider_name,
-                'rider_phone'   => $o->rider_phone,
-                'delivery_address' => $o->delivery_address,
-                'estimated_minutes' => $o->estimated_minutes,
-                'items'         => $o->items->map(fn($i) => [
+                'id'                  => $o->id,
+                'tracking_code'       => $o->tracking_code,
+                'status'              => $o->status,
+                'status_label'        => $o->status_label,
+                'total'               => (float) $o->total,
+                'customer_name'       => $o->customer_name ?: 'Guest',
+                'customer_phone'      => substr($o->customer_phone ?? 'N/A', -6),
+                'full_customer_phone' => $o->customer_phone ?: '',
+                'created_at_humans'   => $o->created_at->diffForHumans(null, true, true),
+                'created_at_time'     => $o->created_at->format('h:i A'),
+                'created_at_ago'      => $o->created_at->diffForHumans(),
+                'rider_name'          => $o->rider_name,
+                'rider_phone'         => $o->rider_phone,
+                'delivery_address'    => $o->delivery_address,
+                'estimated_minutes'   => $o->estimated_minutes,
+                'payment_method'      => $o->payment_method ?: 'cash_on_delivery',
+                'delivery_fee'        => (float) ($r->delivery_charge ?? 0),
+                'items'               => $o->items->map(fn($i) => [
                     'name'     => $i->name ?? $i->item_name,
-                    'quantity' => $i->quantity,
-                    'subtotal' => $i->subtotal,
-                ]),
+                    'quantity' => (int) $i->quantity,
+                    'subtotal' => (float) $i->subtotal,
+                ])->values()->all(),
             ];
         });
 
