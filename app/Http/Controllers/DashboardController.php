@@ -216,11 +216,11 @@ class DashboardController extends Controller
     {
         $this->authCheck($id);
         $r     = Restaurant::findOrFail($id);
-        $today = $r->todayOrders()->with(['items', 'customer'])->get();
+        $today = $r->todayOrders()->with(['items'])->get();
 
         // Only return active orders (not delivered/cancelled) for the live list
         $liveOrders = $r->orders()
-            ->with(['items', 'customer'])
+            ->with(['items'])
             ->whereIn('status', ['pending', 'confirmed', 'preparing', 'out_for_delivery'])
             ->orderBy('created_at', 'desc')
             ->get();
@@ -234,7 +234,7 @@ class DashboardController extends Controller
                 'status'        => $o->status,
                 'status_label'  => $o->status_label,
                 'total'         => $o->total,
-                'customer_name' => $o->customer?->name ?? ($o->customer_name ?: 'Guest'),
+                'customer_name' => $o->customer_name ?: 'Guest',
                 'customer_phone'=> substr($o->customer_phone ?? 'N/A', -6),
                 'created_at_humans' => $o->created_at->diffForHumans(null, true, true),
                 'rider_name'    => $o->rider_name,
