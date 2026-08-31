@@ -22,6 +22,11 @@
         <button onclick="openModal('modal-menu-flyer')" class="btn" style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #047857; font-weight: 600; padding: 10px 14px; border-radius: 10px;">
             🖼️ Menu Flyer
         </button>
+        @if($categories->count() > 0 || $restaurant->menuItems()->count() > 0)
+            <button onclick="openModal('modal-clear-menu')" class="btn" style="background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; font-weight: 600; padding: 10px 14px; border-radius: 10px;" title="Reset and delete all menu items to start fresh">
+                🗑️ Clear Menu
+            </button>
+        @endif
     </div>
 </div>
 
@@ -126,8 +131,18 @@
                                     @endif
                                 </div>
 
-                                <!-- Card Footer: Delete Action -->
-                                <div style="display: flex; justify-content: flex-end; border-top: 1px solid #f1f5f9; pt-2; margin-top: 8px;">
+                                <!-- Card Footer: Edit & Delete Actions -->
+                                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 8px; margin-top: 8px;">
+                                    <button
+                                        type="button"
+                                        onclick="openEditItemModal({{ json_encode($item) }})"
+                                        style="background: none; border: none; color: #2563eb; font-size: 12px; font-weight: 600; cursor: pointer; padding: 4px 8px; border-radius: 6px; display: flex; align-items: center; gap: 4px;"
+                                        onmouseover="this.style.background='#eff6ff'"
+                                        onmouseout="this.style.background='none'"
+                                    >
+                                        ✏️ Edit
+                                    </button>
+
                                     <form method="POST" action="/dashboard/{{ $restaurant->id }}/menu/item/{{ $item->id }}" onsubmit="return confirm('Delete {{ $item->name }}?')">
                                         @csrf
                                         @method('DELETE')
@@ -250,22 +265,22 @@
 
 <!-- 3. Modal: Bulk CSV / Excel Upload -->
 <div id="modal-bulk-csv" class="modal-backdrop" style="display: none;">
-    <div class="modal-box" style="max-width: 480px;">
+    <div class="modal-box" style="max-width: 500px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
             <h3 style="font-size: 17px; font-weight: 700; color: #0f172a;">📊 Bulk Import Menu (CSV / Excel)</h3>
             <button onclick="closeModal('modal-bulk-csv')" class="modal-close">&times;</button>
         </div>
 
         <p style="font-size: 13px; color: #64748b; margin-bottom: 16px;">
-            Upload your CSV file exported from Excel or Google Sheets. Categories, items, prices, and size variants will be imported automatically.
+            Upload your CSV or Excel file. Our smart parser automatically detects categories, section banners (e.g. <code>── STARTERS ──</code>), dish names, prices, and size variants!
         </p>
 
-        <div style="background: #f1f5f9; border-radius: 10px; padding: 12px; margin-bottom: 16px; font-size: 12px; color: #475569;">
-            <strong>Expected Columns:</strong><br>
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; margin-bottom: 16px; font-size: 12px; color: #475569;">
+            <strong>Flexible Columns Supported:</strong><br>
             <code>Category, Item Name, Price, Sizes, Description</code>
             <div style="margin-top: 8px;">
                 <a href="{{ route('dashboard.sample-menu-csv', $restaurant->id) }}" style="color: #2563eb; font-weight: 600; text-decoration: underline;">
-                    📥 Download Ready-to-Use Sample Template
+                    📥 Download Sample Template
                 </a>
             </div>
         </div>
@@ -277,6 +292,14 @@
                 <input type="file" name="csv_file" accept=".csv,.xlsx,.xls,.txt,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required class="form-input" style="padding: 8px;">
             </div>
 
+            <!-- Replace Option -->
+            <div style="margin-bottom: 16px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 10px 12px;">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: #9a3412; cursor: pointer;">
+                    <input type="checkbox" name="replace_menu" value="1" checked style="width: 16px; height: 16px;">
+                    <span>Replace existing menu (cleans up old items before import)</span>
+                </label>
+            </div>
+
             <div style="display: flex; justify-content: flex-end; gap: 10px;">
                 <button type="button" onclick="closeModal('modal-bulk-csv')" class="btn" style="border: 1px solid #cbd5e1;">Cancel</button>
                 <button type="submit" class="btn btn-primary">Start Import</button>
@@ -285,20 +308,20 @@
     </div>
 </div>
 
-<!-- 4. Modal: Menu Document / Flyer / PDF / Excel -->
+<!-- 4. Modal: Menu Document / Flyer / PDF / Image -->
 <div id="modal-menu-flyer" class="modal-backdrop" style="display: none;">
     <div class="modal-box" style="max-width: 480px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <h3 style="font-size: 17px; font-weight: 700; color: #0f172a;">📎 Menu Flyer / Document / PDF</h3>
+            <h3 style="font-size: 17px; font-weight: 700; color: #0f172a;">🖼️ Menu Flyer / Poster (WhatsApp Photo)</h3>
             <button onclick="closeModal('modal-menu-flyer')" class="modal-close">&times;</button>
         </div>
 
-        <p style="font-size: 13px; color: #64748b; margin-bottom: 16px;">
-            Upload your official menu file in <strong>any format (PDF, Excel, Word, or JPG/PNG Picture)</strong>. When customers ask for the menu on WhatsApp, the bot automatically sends this document directly to their chat!
-        </p>
+        <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 12px; margin-bottom: 16px; font-size: 12px; color: #065f46;">
+            💡 <strong>WhatsApp Bot Integration:</strong> When customers ask for the menu on WhatsApp, the bot automatically sends this flyer image directly into the chat!
+        </div>
 
         @php
-            $activeFile = $restaurant->menu_file ?: $restaurant->menu_image;
+            $activeFile = $restaurant->menu_image ?: $restaurant->menu_file;
             $fileName   = $restaurant->menu_file_name ?: basename($activeFile);
             $fileType   = $restaurant->menu_file_type ?: 'image';
         @endphp
@@ -306,25 +329,21 @@
         @if($activeFile)
             <div style="margin-bottom: 16px; background: #f8fafc; padding: 14px; border-radius: 12px; border: 1px solid #e2e8f0;">
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    @if($fileType === 'pdf')
-                        <div style="width: 44px; height: 44px; background: #fee2e2; color: #b91c1c; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px;">📄</div>
-                    @elseif($fileType === 'excel')
-                        <div style="width: 44px; height: 44px; background: #ecfdf5; color: #047857; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px;">📊</div>
-                    @elseif($fileType === 'image')
-                        <img src="/{{ ltrim($activeFile, '/') }}" alt="Menu Flyer" style="width: 44px; height: 44px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1;">
+                    @if($fileType === 'image' || in_array(strtolower(pathinfo($activeFile, PATHINFO_EXTENSION)), ['jpg', 'jpeg', 'png', 'webp']))
+                        <img src="/{{ ltrim($activeFile, '/') }}" alt="Menu Flyer" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1;">
                     @else
-                        <div style="width: 44px; height: 44px; background: #eff6ff; color: #1d4ed8; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px;">📝</div>
+                        <div style="width: 50px; height: 50px; background: #fee2e2; color: #b91c1c; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px;">📄</div>
                     @endif
 
                     <div style="flex: 1; overflow: hidden;">
                         <span style="font-size: 11px; color: #166534; font-weight: 700; background: #dcfce7; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">
-                            ✓ Active {{ ucfirst($fileType) }}
+                            ✓ Active Flyer
                         </span>
                         <div style="font-size: 13px; font-weight: 600; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;">
                             {{ $fileName }}
                         </div>
                         <a href="/{{ ltrim($activeFile, '/') }}" target="_blank" style="font-size: 11px; color: #2563eb; text-decoration: underline;">
-                            Open / Download File ↗
+                            View Full Flyer ↗
                         </a>
                     </div>
                 </div>
@@ -334,14 +353,95 @@
         <form method="POST" action="{{ route('dashboard.upload-menu-file', $restaurant->id) }}" enctype="multipart/form-data">
             @csrf
             <div style="margin-bottom: 16px;">
-                <label class="form-label">Select File (PDF, Excel, Word, or Image)</label>
-                <input type="file" name="menu_file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,image/jpeg,image/png,image/webp" required class="form-input" style="padding: 8px;">
-                <span style="font-size: 11px; color: #94a3b8; margin-top: 4px; display: block;">Supports: .pdf, .xlsx, .xls, .csv, .docx, .png, .jpg (Max 20MB)</span>
+                <label class="form-label">Upload New Menu Photo / Flyer</label>
+                <input type="file" name="menu_file" accept="image/jpeg,image/png,image/webp,application/pdf" required class="form-input" style="padding: 8px;">
+                <span style="font-size: 11px; color: #94a3b8; margin-top: 4px; display: block;">Recommended: JPG, PNG, WEBP, or PDF Flyer (Max 20MB)</span>
             </div>
 
             <div style="display: flex; justify-content: flex-end; gap: 10px;">
                 <button type="button" onclick="closeModal('modal-menu-flyer')" class="btn" style="border: 1px solid #cbd5e1;">Cancel</button>
                 <button type="submit" class="btn btn-success">Upload & Activate</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 5. Modal: Edit Food Item -->
+<div id="modal-edit-item" class="modal-backdrop" style="display: none;">
+    <div class="modal-box">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="font-size: 17px; font-weight: 700; color: #0f172a;">✏️ Edit Food Item</h3>
+            <button onclick="closeModal('modal-edit-item')" class="modal-close">&times;</button>
+        </div>
+
+        <form id="form-edit-item" method="POST" action="">
+            @csrf
+            @method('POST')
+            <div style="margin-bottom: 14px;">
+                <label class="form-label">Category</label>
+                <select name="category_id" id="edit-item-category-select" class="form-input" required>
+                    @foreach($categories as $cat)
+                        <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div style="margin-bottom: 14px;">
+                <label class="form-label">Item Name</label>
+                <input type="text" name="name" id="edit-item-name" class="form-input" required>
+            </div>
+
+            <div style="margin-bottom: 14px;">
+                <label class="form-label">Description (Optional)</label>
+                <input type="text" name="description" id="edit-item-description" class="form-input">
+            </div>
+
+            <!-- Single Price -->
+            <div id="edit-single-price-section" style="margin-bottom: 14px;">
+                <label class="form-label">Price (Rs.)</label>
+                <input type="number" name="price" id="edit-item-price" class="form-input" step="1">
+            </div>
+
+            <!-- Sizes Toggle -->
+            <div style="margin-bottom: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px;">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #334155; cursor: pointer;">
+                    <input type="checkbox" id="edit-has-sizes" onchange="toggleEditModalSizes()" style="width: 16px; height: 16px;">
+                    This item has size variants (Small / Medium / Large)
+                </label>
+
+                <!-- Sizes Builder Container -->
+                <div id="edit-sizes-builder" style="display: none; margin-top: 12px;">
+                    <div id="edit-sizes-rows-container" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;"></div>
+                    <button type="button" onclick="addEditSizeRow()" style="background: #eff6ff; border: 1px dashed #bfdbfe; color: #1d4ed8; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; width: 100%;">
+                        + Add Another Size Variant
+                    </button>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button type="button" onclick="closeModal('modal-edit-item')" class="btn" style="border: 1px solid #cbd5e1;">Cancel</button>
+                <button type="submit" class="btn btn-primary">Update Item</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 6. Modal: Clear Menu Confirmation -->
+<div id="modal-clear-menu" class="modal-backdrop" style="display: none;">
+    <div class="modal-box" style="max-width: 420px; text-align: center;">
+        <div style="font-size: 40px; margin-bottom: 12px;">⚠️</div>
+        <h3 style="font-size: 18px; font-weight: 800; color: #0f172a; margin-bottom: 8px;">Clear Entire Menu?</h3>
+        <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 20px;">
+            This will permanently delete all food items and categories for <strong>{{ $restaurant->name }}</strong> so you can import or build a fresh menu.
+        </p>
+
+        <form method="POST" action="{{ route('dashboard.clear-menu', $restaurant->id) }}">
+            @csrf
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button type="button" onclick="closeModal('modal-clear-menu')" class="btn" style="border: 1px solid #cbd5e1;">Cancel</button>
+                <button type="submit" class="btn" style="background: #dc2626; color: #ffffff; font-weight: 700; border: none; padding: 10px 18px; border-radius: 10px;">
+                    Yes, Clear All Items
+                </button>
             </div>
         </form>
     </div>
@@ -489,7 +589,6 @@
 
     // Category Filter Pills
     function filterCategory(catId) {
-        // Update pill active class
         document.querySelectorAll('.cat-pill').forEach(el => el.classList.remove('active-pill'));
         if (catId === 'all') {
             document.getElementById('tab-all').classList.add('active-pill');
@@ -507,7 +606,7 @@
         openModal('modal-add-item');
     }
 
-    // Sizes Builder in Modal
+    // Sizes Builder in Add Modal
     function toggleModalSizes() {
         const checkbox = document.getElementById('modal-has-sizes');
         const builder  = document.getElementById('modal-sizes-builder');
@@ -537,6 +636,74 @@
 
     function removeSizeRow(btn) {
         btn.closest('.size-input-row').remove();
+    }
+
+    // Edit Item Modal Handlers
+    let editSizeRowIndex = 0;
+
+    function openEditItemModal(item) {
+        const form = document.getElementById('form-edit-item');
+        form.action = `/dashboard/{{ $restaurant->id }}/menu/item/${item.id}/update`;
+
+        document.getElementById('edit-item-name').value = item.name || '';
+        document.getElementById('edit-item-category-select').value = item.category_id || '';
+        document.getElementById('edit-item-description').value = item.description || '';
+        document.getElementById('edit-item-price').value = item.price || 0;
+
+        const hasSizes = Array.isArray(item.sizes) && item.sizes.length > 0;
+        const checkbox = document.getElementById('edit-has-sizes');
+        checkbox.checked = hasSizes;
+
+        const container = document.getElementById('edit-sizes-rows-container');
+        container.innerHTML = '';
+
+        if (hasSizes) {
+            item.sizes.forEach((s, idx) => {
+                const row = document.createElement('div');
+                row.className = 'size-input-row';
+                row.innerHTML = `
+                    <input type="text" name="sizes[${idx}][size]" value="${s.size || ''}" placeholder="Size" class="form-input" style="width: 90px; text-transform: uppercase;">
+                    <input type="number" name="sizes[${idx}][price]" value="${s.price || 0}" placeholder="Price" class="form-input" style="flex: 1;">
+                    <button type="button" onclick="removeSizeRow(this)" style="background: none; border: none; color: #ef4444; font-size: 18px; cursor: pointer;">&times;</button>
+                `;
+                container.appendChild(row);
+            });
+            editSizeRowIndex = item.sizes.length;
+        } else {
+            editSizeRowIndex = 0;
+        }
+
+        toggleEditModalSizes();
+        openModal('modal-edit-item');
+    }
+
+    function toggleEditModalSizes() {
+        const checkbox = document.getElementById('edit-has-sizes');
+        const builder  = document.getElementById('edit-sizes-builder');
+        const singleSec= document.getElementById('edit-single-price-section');
+        if (checkbox.checked) {
+            builder.style.display = 'block';
+            singleSec.style.display = 'none';
+            if (document.getElementById('edit-sizes-rows-container').children.length === 0) {
+                addEditSizeRow();
+            }
+        } else {
+            builder.style.display = 'none';
+            singleSec.style.display = 'block';
+        }
+    }
+
+    function addEditSizeRow() {
+        const container = document.getElementById('edit-sizes-rows-container');
+        const row = document.createElement('div');
+        row.className = 'size-input-row';
+        row.innerHTML = `
+            <input type="text" name="sizes[${editSizeRowIndex}][size]" placeholder="Size (e.g. M)" class="form-input" style="width: 90px; text-transform: uppercase;">
+            <input type="number" name="sizes[${editSizeRowIndex}][price]" placeholder="Price (Rs.)" class="form-input" style="flex: 1;">
+            <button type="button" onclick="removeSizeRow(this)" style="background: none; border: none; color: #ef4444; font-size: 18px; cursor: pointer;">&times;</button>
+        `;
+        container.appendChild(row);
+        editSizeRowIndex++;
     }
 </script>
 

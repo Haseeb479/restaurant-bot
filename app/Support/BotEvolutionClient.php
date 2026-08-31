@@ -236,7 +236,98 @@ class BotEvolutionClient
         ]);
 
         if ($response === null || ! $response->successful()) {
-            Log::warning("EvolutionAPI: Failed sending WhatsApp message from [{$instanceName}] to [{$cleanNumber}]", $logContext + [
+            Log::warning("EvolutionAPI: Failed sending WhatsApp message from [{$instanceName}] to [{$targetRecipient}]", $logContext + [
+                'http_status' => $response?->status(),
+                'response'    => $response?->json(),
+            ]);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Send an image or document (e.g. Menu Flyer) to WhatsApp customer.
+     *
+     * @param  array<string, mixed>  $logContext
+     */
+    public static function sendMedia(Restaurant $restaurant, string $to, string $filePathOrUrl, string $caption = '', array $logContext = []): bool
+    {
+        if ($to === '' || $filePathOrUrl === '') {
+            return false;
+        }
+
+        $instanceName = self::instanceName($restaurant);
+
+        // Normalize recipient
+        if (str_ends_with($to, '@s.whatsapp.net')) {
+            $digits = preg_replace('/[^0-9]/', '', explode('@', $to)[0]);
+            if (str_starts_with($digits, '03') && strlen($digits) === 11) {
+                $targetRecipient = '92' . substr($digits, 1);
+            } elseif (str_starts_with($digits, '3') && strlen($digits) === 10) {
+                $targetRecipient = '92' . $digits;
+            } else {
+                $targetRecipient = $digits;
+            }
+        } elseif (str_contains($to, '@')) {
+            $targetRecipient = $to;
+        } else {
+            $digits = preg_replace('/[^0-9]/', '', $to);
+            if (str_starts_with($digits, '03') && strlen($digits) === 11) {
+                $targetRecipient = '92' . substr($digits, 1);
+            } elseif (str_starts_with($digits, '3') && strlen($digits) === 10) {
+                $targetRecipient = '92' . $digits;
+            } else {
+                $targetRecipient = $digits;
+            }
+        }
+
+        $fileName = basename($filePathOrUrl);
+        $ext      = strtolower(pathinfo($filePathOrUrl, PATHINFO_EXTENSION));
+
+        $mimeMap = [
+            'jpg'  => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png'  => 'image/png',
+            'webp' => 'image/webp',
+            'gif'  => 'image/gif',
+            'pdf'  => 'application/pdf',
+        ];
+        $mime = $mimeMap[$ext] ?? 'application/octet-stream';
+        $mediaType = str_starts_with($mime, 'image/') ? 'image' : 'document';
+
+        // If local file exists, convert to Base64 for 100% reliable direct transfer
+        $mediaData = $filePathOrUrl;
+        $localPath = null;
+        if (file_exists($filePathOrUrl)) {
+            $localPath = $filePathOrUrl;
+        } elseif (file_exists(public_path(ltrim($filePathOrUrl, '/')))) {
+            $localPath = public_path(ltrim($filePathOrUrl, '/'));
+        }
+
+        if ($localPath && is_readable($localPath)) {
+            $fileContents = file_get_contents($localPath);
+            if ($fileContents !== false) {
+                $mediaData = 'data:' . $mime . ';base64,' . base64_encode($fileContents);
+            }
+        }
+
+        $response = self::send('post', "/message/sendMedia/{$instanceName}", [
+            'number'    => $targetRecipient,
+            'mediatype' => $mediaType,
+            'mimetype'  => $mime,
+            'caption'   => $caption,
+            'media'     => $mediaData,
+            'fileName'  => $fileName,
+            'options'   => [
+                'delay'    => 1000,
+                'presence' => 'composing',
+            ],
+        ], 30);
+
+        if ($response === null || ! $response->successful()) {
+            Log::warning("EvolutionAPI: Failed sending media from [{$instanceName}] to [{$targetRecipient}]", $logContext + [
                 'http_status' => $response?->status(),
                 'response'    => $response?->json(),
             ]);

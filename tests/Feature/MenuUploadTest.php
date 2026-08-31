@@ -247,4 +247,112 @@ class MenuUploadTest extends TestCase
         $this->assertSame([], $this->newFiles());
         $this->assertNull($theirs->fresh()->menu_file);
     }
+
+    public function test_csv_with_section_banners_and_metadata_extracts_correct_categories_and_items(): void
+    {
+        $r = $this->owner();
+
+        // Exact structure of the user's uploaded menu CSV
+        $csv = ",,,,,,,\n" .
+               ",RESTAURANT MENU,,,,,,\n" .
+               ",Good Food • Good Mood | 100% Fresh & Tasty,,,,,,\n" .
+               ",,,,,,,\n" .
+               ",Category,Item Name,Price (₹),,Category,Item Count,Avg Price (₹)\n" .
+               ",──  STARTERS  ──,,,,Starters,5,₹140.00\n" .
+               ",Starters,Veg Spring Roll,₹90.00,,Rolls & Wraps,4,₹107.50\n" .
+               ",Starters,Chicken Spring Roll,₹120.00,,Main Course,7,₹181.43\n" .
+               ",──  ROLLS & WRAPS  ──,,,,,\n" .
+               ",Rolls & Wraps,Veg Roll,₹80.00,,,,\n" .
+               ",Rolls & Wraps,Chicken Roll,₹120.00,,,,\n" .
+               ",Total Items,4,,,,,\n" .
+               ",Average Item Price,₹102.50,,,,,\n";
+
+        $this->post(route('dashboard.upload-menu-csv', $r->id), [
+            'csv_file' => UploadedFile::fake()->createWithContent('complex_menu.csv', $csv),
+        ])->assertRedirect();
+
+        $fresh = $r->fresh();
+        $categories = $fresh->categories()->with('items')->get();
+
+        $this->assertCount(2, $categories, 'Should create Starters and Rolls & Wraps categories');
+        $this->assertSame(['Starters', 'Rolls & Wraps'], $categories->pluck('name')->values()->toArray());
+
+        $starters = $categories->firstWhere('name', 'Starters');
+        $this->assertCount(2, $starters->items);
+        $this->assertTrue($starters->items->contains('name', 'Veg Spring Roll'));
+        $this->assertSame(90.0, (float)$starters->items->firstWhere('name', 'Veg Spring Roll')->price);
+
+        // Metadata rows must NOT be added as items
+        $this->assertFalse($fresh->menuItems()->where('name', 'like', '%Total%')->exists());
+        $this->assertFalse($fresh->menuItems()->where('name', 'like', '%Average%')->exists());
+        $this->assertFalse($fresh->menuItems()->where('name', 'like', '%──%')->exists());
+    }
+
+    public function test_replace_menu_option_clears_old_items(): void
+    {
+        $r = $this->owner();
+
+        // Create an old category and item
+        $oldCat = $r->categories()->create(['name' => 'Old Category']);
+        $r->menuItems()->create([
+            'category_id' => $oldCat->id,
+            'name'        => 'Old Burger',
+            'price'       => 100,
+        ]);
+
+        $this->assertCount(1, $r->menuItems);
+
+        $newCsv = "Category,Item Name,Price\nPizzas,Fajita Pizza,800\n";
+
+        $this->post(route('dashboard.upload-menu-csv', $r->id), [
+            'csv_file'     => UploadedFile::fake()->createWithContent('new.csv', $newCsv),
+            'replace_menu' => '1',
+        ])->assertRedirect();
+
+        $fresh = $r->fresh();
+        $this->assertCount(1, $fresh->menuItems);
+        $this->assertSame('Fajita Pizza', $fresh->menuItems->first()->name);
+        $this->assertFalse($fresh->menuItems()->where('name', 'Old Burger')->exists());
+    }
+
+    public function test_update_item_endpoint_modifies_food_item(): void
+    {
+        $r = $this->owner();
+        $cat = $r->categories()->create(['name' => 'Burgers']);
+        $item = $r->menuItems()->create([
+            'category_id' => $cat->id,
+            'name'        => 'Classic Burger',
+            'price'       => 300,
+        ]);
+
+        $this->post("/dashboard/{$r->id}/menu/item/{$item->id}/update", [
+            'name'        => 'Mega Classic Burger',
+            'category_id' => $cat->id,
+            'price'       => 450,
+            'description' => 'Updated juicy beef patty',
+        ])->assertRedirect();
+
+        $item->refresh();
+        $this->assertSame('Mega Classic Burger', $item->name);
+        $this->assertSame(450.0, (float)$item->price);
+        $this->assertSame('Updated juicy beef patty', $item->description);
+    }
+
+    public function test_clear_menu_endpoint_deletes_all_items(): void
+    {
+        $r = $this->owner();
+        $cat = $r->categories()->create(['name' => 'Burgers']);
+        $r->menuItems()->create([
+            'category_id' => $cat->id,
+            'name'        => 'Classic Burger',
+            'price'       => 300,
+        ]);
+
+        $this->post(route('dashboard.clear-menu', $r->id))->assertRedirect();
+
+        $fresh = $r->fresh();
+        $this->assertCount(0, $fresh->menuItems);
+        $this->assertCount(0, $fresh->categories);
+    }
 }
+

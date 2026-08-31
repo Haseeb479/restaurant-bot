@@ -487,6 +487,50 @@ class DashboardController extends Controller
         return back()->with('success', "Item {$item->name} {$statusText}!");
     }
 
+    public function updateItem(Request $request, string $id, MenuItem $item)
+    {
+        $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
+        abort_if($item->restaurant_id !== $r->id, 403);
+
+        $request->validate([
+            'name'        => 'required|string|max:255',
+            'category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('restaurant_id', $r->id)],
+            'price'       => 'nullable|numeric|min:0|max:1000000',
+            'description' => 'nullable|string|max:1000',
+        ]);
+
+        $hasSizes = $request->has('sizes') && is_array($request->input('sizes'));
+
+        $sizes = null;
+        if ($hasSizes) {
+            $sizes = collect($request->input('sizes'))
+                ->filter(fn($s) => !empty($s['size']) && !empty($s['price']))
+                ->values()
+                ->map(fn($s) => [
+                    'size'  => strtoupper(trim($s['size'])),
+                    'price' => (float) $s['price'],
+                ])
+                ->toArray();
+
+            if (empty($sizes)) $sizes = null;
+        }
+
+        $basePrice = ($sizes && !empty($sizes[0]['price'])) ? $sizes[0]['price'] : ($request->input('price') ?? $item->price);
+
+        $item->update([
+            'category_id'  => $request->input('category_id') ?: $item->category_id,
+            'name'         => trim($request->input('name')),
+            'description'  => $request->input('description') ? trim($request->input('description')) : null,
+            'price'        => $basePrice,
+            'sizes'        => $sizes,
+        ]);
+
+        $this->invalidateBotCache($r);
+
+        return back()->with('success', "Item {$item->name} updated successfully!");
+    }
+
     public function deleteItem(string $id, MenuItem $item)
     {
         $this->authCheck($id);
@@ -497,6 +541,20 @@ class DashboardController extends Controller
         $this->invalidateBotCache($r);
 
         return back()->with('success', 'Item deleted!');
+    }
+
+    public function clearMenu(Request $request, string $id)
+    {
+        $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
+
+        $itemCount = $r->menuItems()->count();
+        $r->menuItems()->delete();
+        $r->categories()->delete();
+
+        $this->invalidateBotCache($r);
+
+        return back()->with('success', "🎉 Menu cleared successfully! Removed {$itemCount} items.");
     }
 
     // ── Rider Management (Owner Dashboard) ─────────────────
@@ -779,6 +837,12 @@ class DashboardController extends Controller
             return back()->withErrors(['csv_file' => 'That file type is not allowed. Please upload a .csv, .xls or .xlsx file.']);
         }
 
+        // Option to wipe old menu before importing fresh
+        if ($request->boolean('replace_menu')) {
+            $r->menuItems()->delete();
+            $r->categories()->delete();
+        }
+
         $items         = $this->extractMenuItemsFromFile($stored['fullPath'], $stored['extension']);
         $importedCount = $this->importItemsToDatabase($r, $items);
 
@@ -790,7 +854,7 @@ class DashboardController extends Controller
         ]);
         $this->invalidateBotCache($r);
 
-        return back()->with('success', "🎉 Successfully imported {$importedCount} menu items! All items are now categorized and visible on your menu page below.");
+        return back()->with('success', "🎉 Successfully imported {$importedCount} menu items across your categories! All items are now active.");
     }
 
     // ── Upload Menu File / Poster / Document (PDF, Excel, Images, Docs) ──
@@ -836,6 +900,10 @@ class DashboardController extends Controller
         if ($fileType === 'image') {
             $updateData['menu_image'] = $relativePath;
         } elseif ($fileType === 'excel') {
+            if ($request->boolean('replace_menu')) {
+                $r->menuItems()->delete();
+                $r->categories()->delete();
+            }
             // If it's an Excel/CSV file, also automatically import items into the database!
             $items = $this->extractMenuItemsFromFile($stored['fullPath'], $extension);
             $this->importItemsToDatabase($r, $items);
@@ -844,7 +912,7 @@ class DashboardController extends Controller
         $r->update($updateData);
         $this->invalidateBotCache($r);
 
-        return back()->with('success', "🎉 Menu file ({$originalName}) uploaded successfully! Items are now active on your menu.");
+        return back()->with('success', "🎉 Menu file ({$originalName}) uploaded successfully! The bot will send this flyer when customers ask for the menu.");
     }
 
     /**
@@ -954,71 +1022,178 @@ class DashboardController extends Controller
             }
         } else {
             // CSV / TSV / TXT parsing
-            $handle = fopen($fullPath, 'r');
-            if ($handle) {
-                // Try reading header
-                $header = fgetcsv($handle);
-                $colMap = ['category' => 0, 'name' => 1, 'price' => 2, 'sizes' => 3, 'desc' => 4];
-
-                if ($header) {
-                    $headerLower = array_map(fn($h) => strtolower(trim((string)$h)), $header);
-                    foreach ($headerLower as $idx => $col) {
-                        if (str_contains($col, 'cat') || str_contains($col, 'section') || str_contains($col, 'type')) $colMap['category'] = $idx;
-                        elseif (str_contains($col, 'item') || str_contains($col, 'name') || str_contains($col, 'dish') || str_contains($col, 'product')) $colMap['name'] = $idx;
-                        elseif (str_contains($col, 'price') || str_contains($col, 'rate') || str_contains($col, 'rs') || str_contains($col, 'amount')) $colMap['price'] = $idx;
-                        elseif (str_contains($col, 'size') || str_contains($col, 'variant') || str_contains($col, 'portion')) $colMap['sizes'] = $idx;
-                        elseif (str_contains($col, 'desc') || str_contains($col, 'detail') || str_contains($col, 'info')) $colMap['desc'] = $idx;
-                    }
-                }
-
-                $currentCategory = 'General';
-                while (($row = fgetcsv($handle)) !== false) {
-                    if (empty($row) || count($row) < 2) continue;
-
-                    $catCell   = isset($row[$colMap['category']]) ? trim((string)$row[$colMap['category']]) : '';
-                    $nameCell  = isset($row[$colMap['name']]) ? trim((string)$row[$colMap['name']]) : '';
-                    $priceCell = isset($row[$colMap['price']]) ? trim((string)$row[$colMap['price']]) : '';
-                    $sizesCell = isset($row[$colMap['sizes']]) ? trim((string)$row[$colMap['sizes']]) : '';
-                    $descCell  = isset($row[$colMap['desc']]) ? trim((string)$row[$colMap['desc']]) : '';
-
-                    if (empty($nameCell)) continue;
-                    if (!empty($catCell)) $currentCategory = $catCell;
-
-                    $basePrice = (float) preg_replace('/[^0-9.]/', '', $priceCell);
-
-                    $sizes = null;
-                    if (!empty($sizesCell)) {
-                        $parts = preg_split('/[,|\/]/', $sizesCell);
-                        $parsedSizes = [];
-                        foreach ($parts as $part) {
-                            if (str_contains($part, ':')) {
-                                [$sName, $sPrice] = explode(':', $part, 2);
-                                $cleanPrice = (float) preg_replace('/[^0-9.]/', '', $sPrice);
-                                if ($cleanPrice > 0) {
-                                    $parsedSizes[] = [
-                                        'size'  => strtoupper(trim($sName)),
-                                        'price' => $cleanPrice,
-                                    ];
-                                }
-                            }
-                        }
-                        if (!empty($parsedSizes)) {
-                            $sizes = $parsedSizes;
-                            if ($basePrice <= 0 && !empty($sizes[0]['price'])) {
-                                $basePrice = $sizes[0]['price'];
-                            }
-                        }
-                    }
-
-                    $items[] = [
-                        'category'    => $currentCategory,
-                        'name'        => $nameCell,
-                        'price'       => $basePrice,
-                        'sizes'       => $sizes,
-                        'description' => $descCell ?: null,
-                    ];
+            $rows = [];
+            if (($handle = fopen($fullPath, 'r')) !== false) {
+                while (($data = fgetcsv($handle)) !== false) {
+                    $rows[] = $data;
                 }
                 fclose($handle);
+            }
+
+            if (empty($rows)) {
+                return [];
+            }
+
+            // 1. Scan first 30 rows for table header
+            $headerRowIndex = -1;
+            $colMap = ['category' => -1, 'name' => -1, 'price' => -1, 'sizes' => -1, 'desc' => -1];
+
+            for ($r = 0; $r < min(count($rows), 30); $r++) {
+                $row = $rows[$r];
+                if (!is_array($row)) continue;
+
+                $rowLower = array_map(fn($c) => strtolower(trim((string)$c)), $row);
+
+                $nameIdx  = -1;
+                $priceIdx = -1;
+
+                foreach ($rowLower as $idx => $cell) {
+                    $c = trim($cell);
+                    if ($c === '') continue;
+
+                    // Skip summary headers on right side of sheet
+                    if (str_contains($c, 'count') || str_contains($c, 'avg') || str_contains($c, 'average') || str_contains($c, 'total')) {
+                        continue;
+                    }
+
+                    if ($nameIdx === -1 && ($c === 'name' || str_contains($c, 'item') || str_contains($c, 'dish') || str_contains($c, 'product'))) {
+                        $nameIdx = $idx;
+                    }
+                    if ($priceIdx === -1 && (str_contains($c, 'price') || str_contains($c, 'rate') || str_contains($c, 'rs') || str_contains($c, '₹') || str_contains($c, 'pkr') || str_contains($c, 'amount') || str_contains($c, 'cost'))) {
+                        $priceIdx = $idx;
+                    }
+                }
+
+                if ($nameIdx !== -1 && $priceIdx !== -1) {
+                    $headerRowIndex = $r;
+                    $colMap['name']  = $nameIdx;
+                    $colMap['price'] = $priceIdx;
+
+                    foreach ($rowLower as $idx => $cell) {
+                        $c = trim($cell);
+                        if ($idx !== $nameIdx && $idx !== $priceIdx && $c !== '') {
+                            if (str_contains($c, 'count') || str_contains($c, 'avg') || str_contains($c, 'average') || str_contains($c, 'total')) {
+                                continue;
+                            }
+                            if ($colMap['category'] === -1 && (str_contains($c, 'cat') || str_contains($c, 'section') || str_contains($c, 'type') || str_contains($c, 'group'))) {
+                                $colMap['category'] = $idx;
+                            } elseif ($colMap['sizes'] === -1 && (str_contains($c, 'size') || str_contains($c, 'variant') || str_contains($c, 'portion'))) {
+                                $colMap['sizes'] = $idx;
+                            } elseif ($colMap['desc'] === -1 && (str_contains($c, 'desc') || str_contains($c, 'detail') || str_contains($c, 'info'))) {
+                                $colMap['desc'] = $idx;
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+
+            // Fallback default column indices if no header row found
+            if ($headerRowIndex === -1) {
+                $startRow = 0;
+                $colMap['category'] = 0;
+                $colMap['name']     = 1;
+                $colMap['price']    = 2;
+                $colMap['sizes']    = 3;
+                $colMap['desc']     = 4;
+            } else {
+                $startRow = $headerRowIndex + 1;
+            }
+
+            $currentCategory = 'General';
+
+            for ($r = $startRow; $r < count($rows); $r++) {
+                $row = $rows[$r];
+                if (!is_array($row) || empty(array_filter($row, fn($c) => trim((string)$c) !== ''))) {
+                    continue;
+                }
+
+                $catCell   = $colMap['category'] !== -1 && isset($row[$colMap['category']]) ? trim((string)$row[$colMap['category']]) : '';
+                $nameCell  = $colMap['name'] !== -1 && isset($row[$colMap['name']]) ? trim((string)$row[$colMap['name']]) : '';
+                $priceCell = $colMap['price'] !== -1 && isset($row[$colMap['price']]) ? trim((string)$row[$colMap['price']]) : '';
+                $sizesCell = $colMap['sizes'] !== -1 && isset($row[$colMap['sizes']]) ? trim((string)$row[$colMap['sizes']]) : '';
+                $descCell  = $colMap['desc'] !== -1 && isset($row[$colMap['desc']]) ? trim((string)$row[$colMap['desc']]) : '';
+
+                // Combine row cells to check for section banner across merged cells
+                $rowJoined = trim(implode(' ', array_filter($row, fn($c) => trim((string)$c) !== '')));
+
+                // Check for section banner row (e.g. ── STARTERS ──, — TANDOORI —, === MAIN COURSE ===, [DRINKS])
+                if (preg_match('/^[—─=\-\*~_\[\s]+(.+?)[—─=\-\*~_\]\s]+$/u', $rowJoined, $bannerMatch) ||
+                    preg_match('/^[—─=\-\*~_\[\s]+(.+?)[—─=\-\*~_\]\s]+$/u', $nameCell, $bannerMatch)) {
+                    $bannerTitle = trim($bannerMatch[1]);
+                    // Ignore summary titles like RESTAURANT MENU or TOTAL
+                    if (!preg_match('/^(restaurant\s*menu|good\s*food|menu|summary|total|overview)/i', $bannerTitle) && strlen($bannerTitle) >= 2) {
+                        $currentCategory = ucwords(strtolower($bannerTitle));
+                    }
+                    continue;
+                }
+
+                // Check for metadata / summary rows in item columns
+                $trimmedName = trim($nameCell);
+                $trimmedCat  = trim($catCell);
+
+                if (preg_match('/^(total\s*items?|total\s*menu|average\s*item|avg\s*price|lowest\s*price|highest\s*price|summary|restaurant\s*menu|good\s*food|item\s*count)\b/i', $trimmedName) ||
+                    preg_match('/^(total\s*items?|total\s*menu|average\s*item|avg\s*price|lowest\s*price|highest\s*price|summary|restaurant\s*menu|good\s*food|item\s*count)\b/i', $trimmedCat)) {
+                    continue;
+                }
+
+                if ($nameCell === '' || is_numeric($nameCell) || is_numeric(str_replace(',', '', $nameCell))) {
+                    continue;
+                }
+
+                // If explicit category is given in category column and not decorative
+                if ($catCell !== '') {
+                    $cleanCat = trim(preg_replace('/[—─=\-\*~_\[\]]+/u', '', $catCell));
+                    if ($cleanCat !== '' && !is_numeric($cleanCat) && !preg_match('/^(total|average|lowest|highest|summary|restaurant\s*menu)/i', $cleanCat)) {
+                        $currentCategory = ucwords(strtolower($cleanCat));
+                    }
+                }
+
+                // Clean price
+                $cleanPriceStr = preg_replace('/[^0-9.]/', '', $priceCell);
+                $basePrice = (float) $cleanPriceStr;
+
+                // Parse sizes
+                $sizes = null;
+                if ($sizesCell !== '') {
+                    $parts = preg_split('/[,|\/]/', $sizesCell);
+                    $parsedSizes = [];
+                    foreach ($parts as $part) {
+                        if (str_contains($part, ':')) {
+                            [$sName, $sPrice] = explode(':', $part, 2);
+                            $cleanNum = (float) preg_replace('/[^0-9.]/', '', $sPrice);
+                            if ($cleanNum > 0) {
+                                $parsedSizes[] = [
+                                    'size'  => strtoupper(trim($sName)),
+                                    'price' => $cleanNum,
+                                ];
+                            }
+                        }
+                    }
+                    if (!empty($parsedSizes)) {
+                        $sizes = $parsedSizes;
+                        if ($basePrice <= 0 && !empty($sizes[0]['price'])) {
+                            $basePrice = $sizes[0]['price'];
+                        }
+                    }
+                }
+
+                // Skip items with 0 price if no sizes
+                if ($basePrice <= 0 && $sizes === null) {
+                    // Check if it's a category header masquerading as an item
+                    if (strlen($nameCell) >= 2 && strlen($nameCell) <= 40 && !is_numeric($nameCell) && !str_contains($nameCell, 'Rs') && !str_contains($nameCell, '₹') && !preg_match('/^(total|average|summary|count)/i', $nameCell)) {
+                        $currentCategory = ucwords(strtolower($nameCell));
+                    }
+                    continue;
+                }
+
+                $items[] = [
+                    'category'    => $currentCategory,
+                    'name'        => $nameCell,
+                    'price'       => $basePrice,
+                    'sizes'       => $sizes,
+                    'description' => $descCell ?: null,
+                ];
             }
         }
 

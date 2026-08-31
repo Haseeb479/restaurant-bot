@@ -93,7 +93,27 @@ class WhatsAppAiBotService
             }
         }
 
-        // 7. Send reply back through EvolutionAPI
+        // 7. If customer asked for menu and a visual menu flyer/image exists, send it!
+        $isMenuRequest = (bool) preg_match('/menu|dikhao|prices|kya hai|list|card|items|منو|مینو|pdf|sheet|flyer|photo|document|picture/i', $text);
+        if ($isMenuRequest) {
+            $menuFile = $restaurant->menu_image ?: $restaurant->menu_file;
+            if ($menuFile) {
+                $fullMenuPath = public_path(ltrim($menuFile, '/'));
+                if (file_exists($fullMenuPath)) {
+                    $ext = strtolower(pathinfo($fullMenuPath, PATHINFO_EXTENSION));
+                    if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif', 'pdf'], true)) {
+                        BotEvolutionClient::sendMedia(
+                            $restaurant,
+                            $recipientJid,
+                            $fullMenuPath,
+                            "📋 *{$restaurant->name} Menu*"
+                        );
+                    }
+                }
+            }
+        }
+
+        // 8. Send text reply back through EvolutionAPI
         BotEvolutionClient::sendMessage($restaurant, $recipientJid, $reply);
     }
 
