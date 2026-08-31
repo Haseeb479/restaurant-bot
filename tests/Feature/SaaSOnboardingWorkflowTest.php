@@ -212,20 +212,87 @@ class SaaSOnboardingWorkflowTest extends TestCase
         $loginRes->assertSessionHasErrors('password', null, 'owner');
     }
 
-    public function test_pending_owner_login_redirects_to_status_screen(): void
+    public function test_step2_plan_screen_renders_non_zero_prices(): void
     {
-        $restaurant = $this->createRestaurant([
-            'status'              => 'pending',
-            'registration_status' => 'pending_review',
-            'is_active'           => false,
+        $restaurant = $this->createRestaurant();
+
+        SubscriptionPlan::create([
+            'name'                 => 'Pro Business',
+            'slug'                 => 'pro',
+            'price_monthly'        => 3500,
+            'price_yearly'         => 35000,
+            'max_orders_per_month' => 1500,
+            'max_menu_items'       => 150,
+            'is_active'            => true,
         ]);
 
-        $response = $this->post(route('landing.owner-login'), [
-            'restaurant_name' => $restaurant->name,
-            'password'        => 'password123',
+        $response = $this->get(route('onboarding.plan', $restaurant->id));
+        $response->assertOk();
+        $response->assertSee('Rs. 3,500');
+    }
+
+    public function test_payment_submission_supports_form_field_aliases(): void
+    {
+        $plan = SubscriptionPlan::create([
+            'name'                 => 'Pro Business',
+            'slug'                 => 'pro',
+            'price_monthly'        => 3500,
+            'price_yearly'         => 35000,
+            'max_orders_per_month' => 1500,
+            'max_menu_items'       => 150,
+            'is_active'            => true,
+        ]);
+
+        $restaurant = $this->createRestaurant([
+            'plan_id'             => $plan->id,
+            'plan'                => 'pro',
+            'status'              => 'pending',
+            'registration_status' => 'pending_payment',
+        ]);
+
+        // Submit with aliases: payment_gateway and transaction_ref
+        $response = $this->post(route('onboarding.payment.submit', $restaurant->id), [
+            'payment_gateway' => 'easypaisa',
+            'transaction_ref' => '09000786534909',
         ]);
 
         $response->assertRedirect(route('onboarding.status', $restaurant->id));
+
+        $this->assertDatabaseHas('payments', [
+            'restaurant_id'     => $restaurant->id,
+            'payment_method'    => 'easypaisa',
+            'payment_reference' => '09000786534909',
+            'amount'            => 3500,
+            'status'            => 'completed',
+        ]);
+    }
+
+    public function test_approved_restaurant_is_redirected_away_from_payment_screen(): void
+    {
+        $restaurant = $this->createRestaurant([
+            'status'              => 'active',
+            'registration_status' => 'approved',
+            'is_active'           => true,
+        ]);
+
+        $response = $this->get(route('onboarding.payment', $restaurant->id));
+        $response->assertRedirect(route('onboarding.status', $restaurant->id));
+    }
+
+    public function test_approved_restaurant_status_screen_authenticates_owner_session(): void
+    {
+        $restaurant = $this->createRestaurant([
+            'status'              => 'active',
+            'registration_status' => 'approved',
+            'is_active'           => true,
+        ]);
+
+        $response = $this->get(route('onboarding.status', $restaurant->id));
+        $response->assertOk();
+        $this->assertTrue(session("restaurant_{$restaurant->id}"));
+
+        // Can immediately load dashboard without re-entering password
+        $this->get(route('dashboard.orders', $restaurant->id))->assertOk();
     }
 }
 

@@ -150,9 +150,15 @@ class OnboardingController extends Controller
     public function step3PaymentForm($id)
     {
         $restaurant = Restaurant::with('subscriptionPlan')->findOrFail($id);
+
+        // If restaurant is already approved, skip payment and go directly to status / dashboard
+        if ($restaurant->status === 'active' || $restaurant->registration_status === 'approved') {
+            return redirect()->route('onboarding.status', $restaurant->id);
+        }
+
         $plan = $restaurant->subscriptionPlan ?: SubscriptionPlan::first();
         $interval = session('billing_interval', 'monthly');
-        $amount = ($interval === 'yearly' && $plan->price_yearly > 0) ? $plan->price_yearly : $plan->price_monthly;
+        $amount = ($interval === 'yearly' && $plan->price_yearly > 0) ? (float) $plan->price_yearly : (float) $plan->price_monthly;
 
         return view('onboarding.step3-payment', compact('restaurant', 'plan', 'interval', 'amount'));
     }
@@ -166,13 +172,22 @@ class OnboardingController extends Controller
         $restaurant = Restaurant::with('subscriptionPlan')->findOrFail($id);
         $plan = $restaurant->subscriptionPlan ?: SubscriptionPlan::first();
 
+        // Support both field name conventions from HTML form
+        $method = $request->input('payment_method') ?: $request->input('payment_gateway');
+        $ref    = $request->input('payment_reference') ?: $request->input('transaction_ref');
+
+        $request->merge([
+            'payment_method'    => $method,
+            'payment_reference' => $ref,
+        ]);
+
         $request->validate([
             'payment_method'    => 'required|string|in:stripe,jazzcash,easypaisa,bank_transfer',
             'payment_reference' => 'nullable|string|max:100',
         ]);
 
         $interval = session('billing_interval', 'monthly');
-        $amount = ($interval === 'yearly' && $plan->price_yearly > 0) ? $plan->price_yearly : $plan->price_monthly;
+        $amount = ($interval === 'yearly' && $plan->price_yearly > 0) ? (float) $plan->price_yearly : (float) $plan->price_monthly;
 
         $reference = $request->input('payment_reference') ?: ('PAY-' . strtoupper(Str::random(10)));
         $stripeId  = $request->payment_method === 'stripe' ? ('ch_' . Str::random(24)) : null;
@@ -225,6 +240,15 @@ class OnboardingController extends Controller
     public function statusPage($id)
     {
         $restaurant = Restaurant::with(['subscriptionPlan', 'payments'])->findOrFail($id);
+
+        // If approved by Super Admin, automatically authenticate owner session
+        if ($restaurant->status === 'active' || $restaurant->registration_status === 'approved') {
+            session([
+                "restaurant_{$restaurant->id}" => true,
+                "restaurant_{$restaurant->id}_login_time" => now()->toIso8601String(),
+            ]);
+        }
+
         return view('onboarding.status', compact('restaurant'));
     }
 }

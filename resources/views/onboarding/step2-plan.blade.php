@@ -131,7 +131,7 @@
                             <div class="my-6">
                                 <div class="flex items-baseline gap-1">
                                     <span class="text-xs text-slate-400 font-bold">PKR</span>
-                                    <span class="text-4xl font-black text-slate-900">Rs. {{ number_format($plan->price_pkr) }}</span>
+                                    <span class="text-4xl font-black text-slate-900">Rs. {{ number_format((float) ($plan->price_monthly ?? $plan->price_pkr ?? 0)) }}</span>
                                     <span class="text-xs text-slate-500 font-medium">/ month</span>
                                 </div>
                             </div>

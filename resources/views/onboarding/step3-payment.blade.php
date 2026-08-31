@@ -115,7 +115,7 @@
                     <div class="grid grid-cols-2 gap-3" id="payment-methods">
                         
                         <label class="cursor-pointer">
-                            <input type="radio" name="payment_gateway" value="easypaisa" class="peer sr-only" checked onchange="switchMethod('easypaisa')">
+                            <input type="radio" name="payment_method" value="easypaisa" class="peer sr-only" checked onchange="switchMethod('easypaisa')">
                             <div class="p-4 rounded-2xl border-2 border-slate-200 peer-checked:border-brand-500 peer-checked:bg-brand-50/50 text-center transition">
                                 <div class="text-2xl mb-1">🟢</div>
                                 <div class="font-bold text-xs text-slate-900">EasyPaisa</div>
@@ -124,7 +124,7 @@
                         </label>
 
                         <label class="cursor-pointer">
-                            <input type="radio" name="payment_gateway" value="jazzcash" class="peer sr-only" onchange="switchMethod('jazzcash')">
+                            <input type="radio" name="payment_method" value="jazzcash" class="peer sr-only" onchange="switchMethod('jazzcash')">
                             <div class="p-4 rounded-2xl border-2 border-slate-200 peer-checked:border-brand-500 peer-checked:bg-brand-50/50 text-center transition">
                                 <div class="text-2xl mb-1">🔴</div>
                                 <div class="font-bold text-xs text-slate-900">JazzCash</div>
@@ -133,7 +133,7 @@
                         </label>
 
                         <label class="cursor-pointer">
-                            <input type="radio" name="payment_gateway" value="stripe" class="peer sr-only" onchange="switchMethod('stripe')">
+                            <input type="radio" name="payment_method" value="stripe" class="peer sr-only" onchange="switchMethod('stripe')">
                             <div class="p-4 rounded-2xl border-2 border-slate-200 peer-checked:border-brand-500 peer-checked:bg-brand-50/50 text-center transition">
                                 <div class="text-2xl mb-1">💳</div>
                                 <div class="font-bold text-xs text-slate-900">Credit / Debit</div>
@@ -142,7 +142,7 @@
                         </label>
 
                         <label class="cursor-pointer">
-                            <input type="radio" name="payment_gateway" value="bank_transfer" class="peer sr-only" onchange="switchMethod('bank_transfer')">
+                            <input type="radio" name="payment_method" value="bank_transfer" class="peer sr-only" onchange="switchMethod('bank_transfer')">
                             <div class="p-4 rounded-2xl border-2 border-slate-200 peer-checked:border-brand-500 peer-checked:bg-brand-50/50 text-center transition">
                                 <div class="text-2xl mb-1">🏛️</div>
                                 <div class="font-bold text-xs text-slate-900">Bank Transfer</div>
@@ -155,7 +155,7 @@
                     <!-- Dynamic Details Box -->
                     <div id="method-instructions" class="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-xs text-slate-700 space-y-2">
                         <div class="font-bold text-slate-900 text-sm mb-1" id="instruction-title">EasyPaisa Account Details</div>
-                        <p id="instruction-body">Send <strong>Rs. {{ number_format($plan->price_pkr) }}</strong> to EasyPaisa Account: <strong>0300-1234567</strong> (Foodio Technologies).</p>
+                        <p id="instruction-body">Send <strong>Rs. {{ number_format($amount) }}</strong> to EasyPaisa Account: <strong>0300-1234567</strong> (Foodio Technologies).</p>
                     </div>
 
                     <!-- Transaction / Ref Input -->
@@ -163,8 +163,8 @@
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2" id="ref-label">Transaction ID (TID) / Reference Number *</label>
                         <input
                             type="text"
-                            name="transaction_ref"
-                            value="{{ old('transaction_ref') }}"
+                            name="payment_reference"
+                            value="{{ old('payment_reference', old('transaction_ref')) }}"
                             placeholder="e.g. 10293847561 or Bank Slip ID"
                             required
                             class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white transition"
@@ -194,7 +194,7 @@
                         </div>
                         <div class="flex justify-between">
                             <span>Billing Cycle:</span>
-                            <span class="text-slate-900 font-semibold">1 Month</span>
+                            <span class="text-slate-900 font-semibold">{{ ucfirst($interval) }}</span>
                         </div>
                         <div class="flex justify-between">
                             <span>Platform Fee:</span>
@@ -202,7 +202,7 @@
                         </div>
                         <div class="flex justify-between border-t border-slate-100 pt-3 text-sm font-black text-slate-900">
                             <span>Total Due:</span>
-                            <span class="text-brand-600">Rs. {{ number_format($plan->price_pkr) }}</span>
+                            <span class="text-brand-600">Rs. {{ number_format($amount) }}</span>
                         </div>
                     </div>
                 </div>
@@ -229,19 +229,19 @@
     const instructions = {
         easypaisa: {
             title: "EasyPaisa Account Details",
-            body: "Send <strong>Rs. {{ number_format($plan->price_pkr) }}</strong> to EasyPaisa Account: <strong>0300-1234567</strong> (Foodio Technologies). Enter the 11-digit TID from your SMS below."
+            body: "Send <strong>Rs. {{ number_format($amount) }}</strong> to EasyPaisa Account: <strong>0300-1234567</strong> (Foodio Technologies). Enter the 11-digit TID from your SMS below."
         },
         jazzcash: {
             title: "JazzCash Account Details",
-            body: "Send <strong>Rs. {{ number_format($plan->price_pkr) }}</strong> to JazzCash Account: <strong>0300-7654321</strong> (Foodio Technologies). Enter the TID from your SMS below."
+            body: "Send <strong>Rs. {{ number_format($amount) }}</strong> to JazzCash Account: <strong>0300-7654321</strong> (Foodio Technologies). Enter the TID from your SMS below."
         },
         stripe: {
             title: "Card Payment Reference",
-            body: "Visa / Mastercard processing. Enter your card transaction reference or approval code below."
+            body: "Visa / Mastercard processing for <strong>Rs. {{ number_format($amount) }}</strong>. Enter your card transaction reference or approval code below."
         },
         bank_transfer: {
             title: "Direct Bank Transfer (IBAN / Raast)",
-            body: "Transfer to Bank Alfalah: <strong>PK36ALFH0001001234567890</strong> (Title: Foodio Tech). Enter the IBFT Reference Number below."
+            body: "Transfer <strong>Rs. {{ number_format($amount) }}</strong> to Bank Alfalah: <strong>PK36ALFH0001001234567890</strong> (Title: Foodio Tech). Enter the IBFT Reference Number below."
         }
     };
 

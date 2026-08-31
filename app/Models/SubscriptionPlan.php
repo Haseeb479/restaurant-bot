@@ -28,4 +28,13 @@ class SubscriptionPlan extends Model
         'is_active'            => 'boolean',
         'is_popular'           => 'boolean',
     ];
+
+    protected $appends = [
+        'price_pkr',
+    ];
+
+    public function getPricePkrAttribute(): float
+    {
+        return (float) ($this->price_monthly ?: 0);
+    }
 }
