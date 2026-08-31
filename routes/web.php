@@ -212,6 +212,7 @@ Route::prefix('dashboard/{id}')->group(function () {
     Route::post('bot/pairing-code',            [DashboardController::class, 'botPairingCode'])->middleware('throttle:10,1')->name('dashboard.bot-pairing-code');
     Route::post('bot/restart',                 [DashboardController::class, 'botRestart'])->middleware('throttle:6,1')->name('dashboard.bot-restart');
     Route::get('orders',                       [DashboardController::class, 'orders'])->name('dashboard.orders');
+    Route::get('live-orders',                  [DashboardController::class, 'liveOrders'])->name('dashboard.live-orders');
     Route::get('orders/live-feed',             [DashboardController::class, 'liveOrdersFeed'])->name('dashboard.orders.live-feed');
     Route::get('orders/{order}/print-bill',     [DashboardController::class, 'printBill'])->name('dashboard.print-bill');
     Route::post('orders/{order}/status',       [DashboardController::class, 'updateStatus'])->name('dashboard.update-status');

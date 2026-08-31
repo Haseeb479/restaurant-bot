@@ -1131,12 +1131,12 @@
     </div>
 
     <div class="nav-section">
-        <a href="{{ route('dashboard.orders', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.orders') && !request('view') ? 'active' : '' }}">
+        <a href="{{ route('dashboard.orders', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.orders') ? 'active' : '' }}">
             <span class="icon">📊</span>
             <span>Dashboard</span>
         </a>
 
-        <a href="{{ route('dashboard.orders', $restId) }}?view=live" class="nav-item {{ request('view') === 'live' ? 'active' : '' }}">
+        <a href="{{ route('dashboard.live-orders', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.live-orders*') ? 'active' : '' }}">
             <span class="icon">🛍️</span>
             <span>Live Orders</span>
             @if(isset($liveOrdersCount) && $liveOrdersCount > 0)

@@ -211,6 +211,49 @@ class DashboardController extends Controller
         ]);
     }
 
+    // ── Dedicated Live Kitchen & Orders Control Center ─────
+    public function liveOrders(string $id)
+    {
+        $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
+
+        $todayOrders = $r->todayOrders()->with('items')->get();
+        $riders      = $r->riders()->get();
+
+        // Only active live orders
+        $liveOrders = $r->orders()
+            ->with('items')
+            ->whereIn('status', ['pending', 'confirmed', 'preparing', 'out_for_delivery'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $selectedOrderId = request('order_id');
+        $selectedOrder   = $selectedOrderId 
+            ? $liveOrders->firstWhere('id', $selectedOrderId) 
+            : ($liveOrders->first() ?? null);
+
+        $liveOrdersCount   = $liveOrders->count();
+        $pendingCount      = $todayOrders->where('status', 'pending')->count();
+        $preparingCount    = $todayOrders->where('status', 'preparing')->count();
+        $dispatchedCount   = $todayOrders->where('status', 'out_for_delivery')->count();
+        $todayRevenue      = (float) $todayOrders->where('status', '!=', 'cancelled')->sum('total');
+        $activeRidersCount = $riders->where('is_active', true)->count();
+
+        return view('dashboard.live-orders', [
+            'restaurant'        => $r,
+            'orders'            => $liveOrders,
+            'liveOrders'        => $liveOrders,
+            'liveOrdersCount'   => $liveOrdersCount,
+            'pendingCount'      => $pendingCount,
+            'preparingCount'    => $preparingCount,
+            'dispatchedCount'   => $dispatchedCount,
+            'todayRevenue'      => $todayRevenue,
+            'activeRidersCount' => $activeRidersCount,
+            'riders'            => $riders,
+            'selectedOrder'     => $selectedOrder,
+        ]);
+    }
+
     // ── Live JSON Feed for Real-Time Dashboard Updates ────
     public function liveOrdersFeed(string $id)
     {
