@@ -215,11 +215,39 @@ class DashboardController extends Controller
     public function liveOrdersFeed(string $id)
     {
         $this->authCheck($id);
-        $r      = Restaurant::findOrFail($id);
-        $orders = $r->orders()->with('items')->orderBy('created_at', 'desc')->paginate(20);
-        $today  = $r->todayOrders()->get();
+        $r     = Restaurant::findOrFail($id);
+        $today = $r->todayOrders()->with(['items', 'customer'])->get();
+
+        // Only return active orders (not delivered/cancelled) for the live list
+        $liveOrders = $r->orders()
+            ->with(['items', 'customer'])
+            ->whereIn('status', ['pending', 'confirmed', 'preparing', 'out_for_delivery'])
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         $activeRevenue = (float) $today->where('status', '!=', 'cancelled')->sum('total');
+
+        $ordersData = $liveOrders->map(function ($o) {
+            return [
+                'id'            => $o->id,
+                'tracking_code' => $o->tracking_code,
+                'status'        => $o->status,
+                'status_label'  => $o->status_label,
+                'total'         => $o->total,
+                'customer_name' => $o->customer?->name ?? ($o->customer_name ?: 'Guest'),
+                'customer_phone'=> substr($o->customer_phone ?? 'N/A', -6),
+                'created_at_humans' => $o->created_at->diffForHumans(null, true, true),
+                'rider_name'    => $o->rider_name,
+                'rider_phone'   => $o->rider_phone,
+                'delivery_address' => $o->delivery_address,
+                'estimated_minutes' => $o->estimated_minutes,
+                'items'         => $o->items->map(fn($i) => [
+                    'name'     => $i->name ?? $i->item_name,
+                    'quantity' => $i->quantity,
+                    'subtotal' => $i->subtotal,
+                ]),
+            ];
+        });
 
         return response()->json([
             'success'         => true,
@@ -228,7 +256,8 @@ class DashboardController extends Controller
             'revenue'         => $activeRevenue,
             'active_count'    => $today->whereIn('status', ['pending', 'confirmed', 'preparing', 'out_for_delivery'])->count(),
             'delivered_count' => $today->where('status', 'delivered')->count(),
-            'latest_order_id' => $orders->first()?->id ?? 0,
+            'latest_order_id' => $liveOrders->first()?->id ?? 0,
+            'orders'          => $ordersData,
         ]);
     }
 
@@ -381,6 +410,15 @@ class DashboardController extends Controller
                     \Log::warning('Google Sheet update push failed: ' . $e->getMessage());
                 }
             }
+        }
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success'      => true,
+                'status'       => $order->status,
+                'status_label' => $order->status_label,
+                'message'      => "Order #{$order->tracking_code} marked as " . ucwords(str_replace('_', ' ', $status)) . '!',
+            ]);
         }
 
         return redirect()->route('dashboard.orders', ['id' => $r->id, 'order_id' => $order->id])

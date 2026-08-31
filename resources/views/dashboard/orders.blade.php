@@ -758,7 +758,7 @@
             <div class="stat-top">
                 <div>
                     <div class="stat-label">Live Orders</div>
-                    <div class="stat-val">{{ $liveOrdersCount }}</div>
+                    <div class="stat-val" id="kpi-live-orders">{{ $liveOrdersCount }}</div>
                 </div>
                 <div class="stat-icon-wrap purple">🛍️</div>
             </div>
@@ -773,7 +773,7 @@
             <div class="stat-top">
                 <div>
                     <div class="stat-label">Today's Revenue</div>
-                    <div class="stat-val">PKR {{ number_format($todayRevenue) }}</div>
+                    <div class="stat-val" id="kpi-revenue">PKR {{ number_format($todayRevenue) }}</div>
                 </div>
                 <div class="stat-icon-wrap green">📈</div>
             </div>
@@ -837,15 +837,16 @@
             <div class="panel-header">
                 <div class="panel-title">
                     <span>Live Orders</span>
-                    <span class="badge-count">{{ $liveOrdersCount }}</span>
+                    <span class="badge-count" id="live-orders-badge">{{ $liveOrdersCount }}</span>
                 </div>
                 <span style="font-size: 11px; color: #94a3b8;">Real-time incoming</span>
             </div>
 
-            <div class="live-orders-list">
+            <div class="live-orders-list" id="live-orders-list">
                 @forelse($orders as $o)
                     <a href="{{ route('dashboard.orders', [$restaurant->id, 'order_id' => $o->id]) }}" 
-                       class="live-order-item {{ ($selectedOrder && $selectedOrder->id === $o->id) ? 'active' : '' }}">
+                       class="live-order-item {{ ($selectedOrder && $selectedOrder->id === $o->id) ? 'active' : '' }}"
+                       data-order-id="{{ $o->id }}">
                         <div class="wa-avatar-box">💬</div>
                         <div class="order-meta-info">
                             <div class="order-meta-top">
@@ -853,7 +854,7 @@
                                 <span class="order-time-text">{{ $o->created_at->diffForHumans(null, true, true) }}</span>
                             </div>
                             <div class="order-customer-text">
-                                👤 {{ $o->customer->name ?? ($o->customer_name ?: 'Guest') }} ({{ substr($o->customer_phone ?? 'N/A', -6) }})
+                                👤 {{ $o->customer?->name ?? ($o->customer_name ?: 'Guest') }} ({{ substr($o->customer_phone ?? 'N/A', -6) }})
                             </div>
                             <div class="order-item-footer">
                                 <span class="status-pill {{ $o->status }}">{{ $o->status_label }}</span>
@@ -862,7 +863,7 @@
                         </div>
                     </a>
                 @empty
-                    <div style="text-align: center; padding: 40px 10px; color: #94a3b8;">
+                    <div style="text-align: center; padding: 40px 10px; color: #94a3b8;" id="empty-orders-state">
                         <div style="font-size: 32px; margin-bottom: 8px;">🍽️</div>
                         <p style="font-weight: 700;">No live orders right now</p>
                         <p style="font-size: 11px; margin-top: 4px;">Orders placed on WhatsApp appear here instantly.</p>
@@ -883,7 +884,7 @@
                         <h3>Order #{{ $selectedOrder->tracking_code }}</h3>
                         <p>Placed at {{ $selectedOrder->created_at->format('h:i A') }} • {{ $selectedOrder->created_at->diffForHumans() }}</p>
                     </div>
-                    <span class="status-pill {{ $selectedOrder->status }}" style="font-size: 11px; padding: 4px 12px;">{{ $selectedOrder->status_label }}</span>
+                    <span class="status-pill {{ $selectedOrder->status }}" id="selected-order-status-pill" style="font-size: 11px; padding: 4px 12px;">{{ $selectedOrder->status_label }}</span>
                 </div>
 
                 <!-- Customer info & Address -->
@@ -955,29 +956,27 @@
                 </div>
 
                 <!-- Action Buttons: Real-Time Status Transitions -->
-                <div class="action-btn-row">
+                <div class="action-btn-row" id="action-btn-row">
                     @if($selectedOrder->status === 'pending')
-                        <form method="POST" action="{{ route('dashboard.update-status', [$restaurant->id, $selectedOrder->id]) }}" style="flex: 1; display: flex;">
-                            @csrf
-                            <input type="hidden" name="status" value="confirmed">
-                            <button type="submit" class="btn-action-primary">✓ Mark as Confirmed</button>
-                        </form>
+                        <button type="button" class="btn-action-primary"
+                            onclick="ajaxUpdateStatus('{{ route('dashboard.update-status', [$restaurant->id, $selectedOrder->id]) }}', 'confirmed', this)">
+                            ✓ Mark as Confirmed
+                        </button>
                     @elseif($selectedOrder->status === 'confirmed')
-                        <form method="POST" action="{{ route('dashboard.update-status', [$restaurant->id, $selectedOrder->id]) }}" style="flex: 1; display: flex;">
-                            @csrf
-                            <input type="hidden" name="status" value="preparing">
-                            <button type="submit" class="btn-action-primary" style="background: #7c3aed;">🍳 Mark as Preparing</button>
-                        </form>
+                        <button type="button" class="btn-action-primary" style="background: #7c3aed;"
+                            onclick="ajaxUpdateStatus('{{ route('dashboard.update-status', [$restaurant->id, $selectedOrder->id]) }}', 'preparing', this)">
+                            🍳 Mark as Preparing
+                        </button>
                     @elseif($selectedOrder->status === 'preparing')
-                        <button type="button" class="btn-action-primary" style="background: #0284c7;" onclick="openDispatchModal('{{ $selectedOrder->id }}', '{{ $selectedOrder->tracking_code }}', '{{ addslashes($selectedOrder->customer_name) }}', '{{ addslashes($selectedOrder->delivery_address ?: $selectedOrder->masked_delivery_address) }}')">
+                        <button type="button" class="btn-action-primary" style="background: #0284c7;"
+                            onclick="openDispatchModal('{{ $selectedOrder->id }}', '{{ $selectedOrder->tracking_code }}', '{{ addslashes($selectedOrder->customer_name) }}', '{{ addslashes($selectedOrder->delivery_address ?: $selectedOrder->masked_delivery_address) }}')">
                             🚴 Dispatch to Rider
                         </button>
                     @elseif($selectedOrder->status === 'out_for_delivery')
-                        <form method="POST" action="{{ route('dashboard.update-status', [$restaurant->id, $selectedOrder->id]) }}" style="flex: 1; display: flex;">
-                            @csrf
-                            <input type="hidden" name="status" value="delivered">
-                            <button type="submit" class="btn-action-primary" style="background: #16a34a;">✅ Mark as Delivered</button>
-                        </form>
+                        <button type="button" class="btn-action-primary" style="background: #16a34a;"
+                            onclick="ajaxUpdateStatus('{{ route('dashboard.update-status', [$restaurant->id, $selectedOrder->id]) }}', 'delivered', this)">
+                            ✅ Mark as Delivered
+                        </button>
                     @else
                         <div style="flex: 1; text-align: center; font-weight: 700; color: #64748b; padding: 10px; background: #f8fafc; border-radius: 10px;">
                             Order is {{ ucfirst($selectedOrder->status) }}
@@ -1302,23 +1301,199 @@
         document.getElementById('dispatchModal').style.display = 'none';
     }
 
-    // ── Live Real-Time Feed Polling (every 5 seconds) ──
-    let initialLatestId = {{ $orders->first()?->id ?? 0 }};
-    let initialTodayCount = {{ $today->count() }};
+    // ── Live Orders: In-Place AJAX Update Engine ──────────────────────────
+    const RESTAURANT_ID     = '{{ $restaurant->id }}';
+    const SELECTED_ORDER_ID = {{ $selectedOrder?->id ?? 'null' }};
+    const LIVE_FEED_URL     = '/dashboard/' + RESTAURANT_ID + '/orders/live-feed';
+    const CSRF_TOKEN        = document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}';
 
-    function pollLiveFeed() {
-        fetch('/dashboard/{{ $restaurant->id }}/orders/live-feed')
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    if (data.latest_order_id > initialLatestId || data.today_count !== initialTodayCount) {
-                        window.location.reload();
-                    }
+    // Status labels & next-action map
+    const STATUS_NEXT = {
+        pending:         { label: 'Pending',         next: 'confirmed',        btnText: '✓ Mark as Confirmed',      color: '#2563eb' },
+        confirmed:       { label: 'Confirmed',        next: 'preparing',        btnText: '🍳 Mark as Preparing',     color: '#7c3aed' },
+        preparing:       { label: 'Preparing',        next: 'out_for_delivery', btnText: '🚴 Dispatch to Rider',     color: '#0284c7' },
+        out_for_delivery:{ label: 'Out for Delivery', next: 'delivered',        btnText: '✅ Mark as Delivered',     color: '#16a34a' },
+        delivered:       { label: 'Delivered',        next: null,               btnText: null,                       color: '#16a34a' },
+        cancelled:       { label: 'Cancelled',        next: null,               btnText: null,                       color: '#ef4444' },
+    };
+
+    // ── AJAX: Update order status without page reload ──
+    async function ajaxUpdateStatus(url, status, btn) {
+        if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept':       'application/json',
+                    'X-CSRF-TOKEN': CSRF_TOKEN,
+                },
+                body: JSON.stringify({ status }),
+            });
+
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message || 'Failed');
+
+            // Flash success toast
+            showToast('✅ ' + (data.message || 'Status updated!'), 'success');
+
+            // Update status pill in header
+            const pill = document.getElementById('selected-order-status-pill');
+            if (pill) {
+                pill.textContent = data.status_label;
+                pill.className   = 'status-pill ' + data.status;
+            }
+
+            // Update corresponding list item pill
+            const listItem = document.querySelector(`[data-order-id="${SELECTED_ORDER_ID}"] .status-pill`);
+            if (listItem) {
+                listItem.textContent = data.status_label;
+                listItem.className   = 'status-pill ' + data.status;
+            }
+
+            // Replace the action button row
+            const actionRow = document.getElementById('action-btn-row');
+            if (actionRow) {
+                const info = STATUS_NEXT[data.status];
+                if (info && info.next && info.next !== 'out_for_delivery') {
+                    actionRow.querySelector('.btn-action-primary').textContent = info.btnText;
+                    actionRow.querySelector('.btn-action-primary').style.background = info.color;
+                    actionRow.querySelector('.btn-action-primary').setAttribute(
+                        'onclick',
+                        `ajaxUpdateStatus('${url}', '${info.next}', this)`
+                    );
+                } else if (info && info.next === 'out_for_delivery') {
+                    // Dispatch needs the modal — reload just the action row
+                    actionRow.querySelector('.btn-action-primary').textContent = info.btnText;
+                    actionRow.querySelector('.btn-action-primary').style.background = info.color;
+                } else {
+                    // Final status — show done state
+                    const finalLabel = info ? info.label : data.status_label;
+                    actionRow.querySelector('.btn-action-primary')?.remove();
+                    const done = document.createElement('div');
+                    done.style.cssText = 'flex:1;text-align:center;font-weight:700;color:#64748b;padding:10px;background:#f8fafc;border-radius:10px;';
+                    done.textContent   = 'Order is ' + finalLabel;
+                    actionRow.insertBefore(done, actionRow.firstChild);
                 }
-            })
-            .catch(() => {});
+            }
+
+        } catch (e) {
+            showToast('❌ Error: ' + e.message, 'error');
+            if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+        }
     }
 
+    // ── Toast notification ──
+    function showToast(msg, type = 'success') {
+        let t = document.getElementById('live-toast');
+        if (!t) {
+            t = document.createElement('div');
+            t.id = 'live-toast';
+            t.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,0.15);transition:opacity 0.3s;max-width:320px;';
+            document.body.appendChild(t);
+        }
+        t.style.background = type === 'success' ? '#0f172a' : '#dc2626';
+        t.style.color       = '#fff';
+        t.textContent       = msg;
+        t.style.opacity     = '1';
+        clearTimeout(t._timer);
+        t._timer = setTimeout(() => { t.style.opacity = '0'; }, 3500);
+    }
+
+    // ── Render order row HTML ──
+    function renderOrderRow(o) {
+        const statusClass = o.status || 'pending';
+        const isActive    = (o.id === SELECTED_ORDER_ID);
+        return `<a href="/dashboard/${RESTAURANT_ID}/orders?order_id=${o.id}"
+                   class="live-order-item ${isActive ? 'active' : ''}"
+                   data-order-id="${o.id}">
+            <div class="wa-avatar-box">💬</div>
+            <div class="order-meta-info">
+                <div class="order-meta-top">
+                    <span class="order-code-text">#${o.tracking_code}</span>
+                    <span class="order-time-text">${o.created_at_humans}</span>
+                </div>
+                <div class="order-customer-text">👤 ${escHtml(o.customer_name)} (${escHtml(o.customer_phone)})</div>
+                <div class="order-item-footer">
+                    <span class="status-pill ${statusClass}">${escHtml(o.status_label)}</span>
+                    <span class="order-price-bold">PKR ${Number(o.total).toLocaleString()}</span>
+                </div>
+            </div>
+        </a>`;
+    }
+
+    function escHtml(s) {
+        return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ── In-place live feed polling (every 5 seconds) ──
+    async function pollLiveFeed() {
+        try {
+            const res  = await fetch(LIVE_FEED_URL, {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+            if (!data.success) return;
+
+            // Update KPI cards
+            const kpiLive = document.getElementById('kpi-live-orders');
+            const kpiBadge = document.getElementById('live-orders-badge');
+            const kpiRev  = document.getElementById('kpi-revenue');
+
+            if (kpiLive)  kpiLive.textContent  = data.active_count ?? 0;
+            if (kpiBadge) kpiBadge.textContent  = data.active_count ?? 0;
+            if (kpiRev)   kpiRev.textContent    = 'PKR ' + Number(data.revenue ?? 0).toLocaleString();
+
+            // Update orders list in-place
+            const list   = document.getElementById('live-orders-list');
+            const orders = data.orders ?? [];
+
+            if (list) {
+                if (orders.length === 0) {
+                    list.innerHTML = `<div style="text-align:center;padding:40px 10px;color:#94a3b8;" id="empty-orders-state">
+                        <div style="font-size:32px;margin-bottom:8px;">🍽️</div>
+                        <p style="font-weight:700;">No live orders right now</p>
+                        <p style="font-size:11px;margin-top:4px;">Orders placed on WhatsApp appear here instantly.</p>
+                    </div>`;
+                } else {
+                    // Check if the set of IDs or any status changed
+                    const existingIds = [...list.querySelectorAll('[data-order-id]')].map(el => parseInt(el.dataset.orderId));
+                    const newIds      = orders.map(o => o.id);
+                    const hasNew      = newIds.some(id => !existingIds.includes(id));
+                    const hasGone     = existingIds.some(id => !newIds.includes(id));
+
+                    if (hasNew || hasGone) {
+                        // Re-render the full list only when count changed
+                        list.innerHTML = orders.map(renderOrderRow).join('');
+                        if (hasNew && existingIds.length > 0) {
+                            showToast('🔔 New order arrived!', 'success');
+                            // Bell shake from layout
+                            const bell = document.getElementById('notif-bell');
+                            if (bell) { bell.style.animation = 'bellShake 0.6s'; setTimeout(() => bell.style.animation = '', 700); }
+                        }
+                    } else {
+                        // Update only status pills of individual rows
+                        orders.forEach(o => {
+                            const row  = list.querySelector(`[data-order-id="${o.id}"]`);
+                            if (!row) return;
+                            const pill = row.querySelector('.status-pill');
+                            if (pill && pill.textContent !== o.status_label) {
+                                pill.textContent = o.status_label;
+                                pill.className   = 'status-pill ' + o.status;
+                            }
+                            const time = row.querySelector('.order-time-text');
+                            if (time) time.textContent = o.created_at_humans;
+                        });
+                    }
+                }
+            }
+        } catch (_) { /* offline — retry next tick */ }
+    }
+
+    // Poll immediately then every 5 seconds
+    pollLiveFeed();
     setInterval(pollLiveFeed, 5000);
 </script>
 
