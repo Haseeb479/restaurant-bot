@@ -40,4 +40,8 @@ return [
         'api_key'  => env('EVOLUTION_API_KEY', 'foodio_evolution_secret_key_2026'),
     ],
 
+    'groq' => [
+        'key' => env('GROQ_API_KEY'),
+    ],
+
 ];
