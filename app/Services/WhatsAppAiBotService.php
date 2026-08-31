@@ -238,21 +238,22 @@ PROMPT;
 
         // Priority 1: Items from DB (with categories and sizes)
         $categories = $restaurant->categories()
-            ->with(['menuItems' => fn ($q) => $q->where('is_available', true)->with('sizes')])
+            ->with(['items' => fn ($q) => $q->where('is_available', true)])
             ->get();
 
         $menuLines = '';
         foreach ($categories as $cat) {
-            if ($cat->menuItems->isEmpty()) {
+            $catItems = $cat->items ?? collect();
+            if ($catItems->isEmpty()) {
                 continue;
             }
             $menuLines .= "\n[Category: {$cat->name}]\n";
-            foreach ($cat->menuItems as $item) {
+            foreach ($catItems as $item) {
                 $line = "{$item->name}";
                 // Include size variants if they exist
-                if ($item->sizes && $item->sizes->isNotEmpty()) {
-                    $parts = $item->sizes->map(fn ($s) => "{$s->size}: Rs." . number_format($s->price, 0))->join(' / ');
-                    $line .= " — {$parts}";
+                if (!empty($item->sizes) && is_array($item->sizes)) {
+                    $parts = array_map(fn ($s) => "{$s['size']}: Rs." . number_format($s['price'] ?? 0, 0), $item->sizes);
+                    $line .= " — " . implode(' / ', $parts);
                 } else {
                     $line .= " — Rs." . number_format((float) $item->price, 0);
                 }
@@ -265,14 +266,14 @@ PROMPT;
 
         // Fallback: flat list without categories
         if ($menuLines === '') {
-            $items = $restaurant->menuItems()->where('is_available', true)->with('sizes')->get();
+            $items = $restaurant->menuItems()->where('is_available', true)->get();
             if ($items->isNotEmpty()) {
                 $menuLines = "\nMENU:\n";
                 foreach ($items as $item) {
                     $line = "{$item->name}";
-                    if ($item->sizes && $item->sizes->isNotEmpty()) {
-                        $parts = $item->sizes->map(fn ($s) => "{$s->size}: Rs." . number_format($s->price, 0))->join(' / ');
-                        $line .= " — {$parts}";
+                    if (!empty($item->sizes) && is_array($item->sizes)) {
+                        $parts = array_map(fn ($s) => "{$s['size']}: Rs." . number_format($s['price'] ?? 0, 0), $item->sizes);
+                        $line .= " — " . implode(' / ', $parts);
                     } else {
                         $line .= " — Rs." . number_format((float) $item->price, 0);
                     }

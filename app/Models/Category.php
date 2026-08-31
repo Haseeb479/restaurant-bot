@@ -15,4 +15,9 @@ class Category extends Model
     {
         return $this->hasMany(MenuItem::class)->where('is_available', true)->orderBy('sort_order');
     }
+
+    public function menuItems(): HasMany
+    {
+        return $this->items();
+    }
 }
