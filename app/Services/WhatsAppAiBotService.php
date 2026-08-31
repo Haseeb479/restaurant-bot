@@ -23,8 +23,12 @@ use Illuminate\Support\Facades\Log;
 class WhatsAppAiBotService
 {
     private const GROQ_API_URL  = 'https://api.groq.com/openai/v1/chat/completions';
-    private const PRIMARY_MODEL = 'llama-3.3-70b-versatile';
-    private const FAST_MODEL    = 'llama-3.1-8b-instant';
+    private const MODELS        = [
+        'openai/gpt-oss-120b',
+        'openai/gpt-oss-20b',
+        'qwen/qwen3.8-27b',
+        'groq/compound',
+    ];
     private const SESSION_TTL   = 45; // minutes
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -109,7 +113,7 @@ class WhatsAppAiBotService
             return null;
         }
 
-        foreach ([self::PRIMARY_MODEL, self::FAST_MODEL] as $model) {
+        foreach (self::MODELS as $model) {
             try {
                 $response = Http::withToken($apiKey)
                     ->timeout(15)

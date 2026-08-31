@@ -202,18 +202,28 @@ class BotEvolutionClient
         }
 
         $instanceName = self::instanceName($restaurant);
-        $cleanNumber  = preg_replace('/[^0-9]/', '', $to);
 
-        // Normalize Pakistani phone number if not a JID
-        if (! str_contains($to, '@')) {
-            if (str_starts_with($cleanNumber, '03') && strlen($cleanNumber) === 11) {
-                $cleanNumber = '92' . substr($cleanNumber, 1);
-            } elseif (str_starts_with($cleanNumber, '3') && strlen($cleanNumber) === 10) {
-                $cleanNumber = '92' . $cleanNumber;
+        if (str_ends_with($to, '@s.whatsapp.net')) {
+            $digits = preg_replace('/[^0-9]/', '', explode('@', $to)[0]);
+            if (str_starts_with($digits, '03') && strlen($digits) === 11) {
+                $targetRecipient = '92' . substr($digits, 1);
+            } elseif (str_starts_with($digits, '3') && strlen($digits) === 10) {
+                $targetRecipient = '92' . $digits;
+            } else {
+                $targetRecipient = $digits;
+            }
+        } elseif (str_contains($to, '@')) {
+            $targetRecipient = $to;
+        } else {
+            $digits = preg_replace('/[^0-9]/', '', $to);
+            if (str_starts_with($digits, '03') && strlen($digits) === 11) {
+                $targetRecipient = '92' . substr($digits, 1);
+            } elseif (str_starts_with($digits, '3') && strlen($digits) === 10) {
+                $targetRecipient = '92' . $digits;
+            } else {
+                $targetRecipient = $digits;
             }
         }
-
-        $targetRecipient = str_contains($to, '@') ? $to : $cleanNumber;
 
         $response = self::send('post', "/message/sendText/{$instanceName}", [
             'number'  => $targetRecipient,
