@@ -156,21 +156,31 @@
             <p>Connect WhatsApp number <strong>{{ $restaurant->whatsapp_number }}</strong> to take customer orders</p>
         </div>
 
-        <!-- TABS: PAIRING CODE vs QR SCAN -->
+        <!-- TABS: QR SCAN vs PAIRING CODE -->
         <div class="tabs-nav">
-            <button type="button" class="tab-btn active" id="tab-pairing-btn" onclick="switchTab('pairing')">
-                🔢 8-Digit Pairing Code (Recommended)
+            <button type="button" class="tab-btn active" id="tab-qr-btn" onclick="switchTab('qr')">
+                📷 Scan QR Code (Fastest)
             </button>
-            <button type="button" class="tab-btn" id="tab-qr-btn" onclick="switchTab('qr')">
-                📷 Scan QR Code
+            <button type="button" class="tab-btn" id="tab-pairing-btn" onclick="switchTab('pairing')">
+                🔢 8-Digit Pairing Code
             </button>
         </div>
 
-        <!-- 1. PAIRING CODE SECTION -->
-        <div id="section-pairing" class="pairing-box">
+        <!-- 1. QR CODE SECTION (Default) -->
+        <div id="section-qr" class="pairing-box" style="display: flex;">
+            <div id="qr-loading" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+                <div style="width: 36px; height: 36px; border: 3px solid #e2e8f0; border-top-color: #4f46e5; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                <span style="font-size: 13px; color: #64748b; font-weight: 600;">Fetching live WhatsApp QR code...</span>
+            </div>
+
+            <img id="qr-image" src="" alt="WhatsApp QR Code" style="display: none; width: 250px; height: 250px; border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.08); background: #fff; padding: 10px;">
+        </div>
+
+        <!-- 2. PAIRING CODE SECTION -->
+        <div id="section-pairing" class="pairing-box" style="display: none;">
             <div id="pairing-initial" style="width: 100%; max-width: 360px;">
                 <p style="font-size: 13px; color: #475569; margin-bottom: 14px;">
-                    Link instantly without camera scan. Enter your WhatsApp number to receive an 8-digit code:
+                    Link without camera scan. Enter your WhatsApp number to receive an 8-digit code:
                 </p>
                 <div style="display: flex; gap: 8px; margin-bottom: 12px;">
                     <input type="text" id="pairing-phone" value="{{ $restaurant->whatsapp_number }}" placeholder="923001234567"
@@ -194,9 +204,9 @@
                 </button>
             </div>
 
-            <!-- Connected state -->
-            <div id="pairing-connected" style="display: none; flex-direction: column; align-items: center; text-align: center; gap: 10px;">
-                <div style="width: 60px; height: 60px; background: #dcfce7; color: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px;">
+            <!-- Connected State Display -->
+            <div id="pairing-connected" style="display: none; flex-direction: column; align-items: center; text-align: center;">
+                <div style="width: 54px; height: 54px; border-radius: 50%; background: #dcfce7; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; font-size: 26px; color: #16a34a;">
                     ✓
                 </div>
                 <h3 style="font-size: 18px; font-weight: 800; color: #166534;">WhatsApp Bot is Connected!</h3>
@@ -210,16 +220,6 @@
                     </button>
                 </div>
             </div>
-        </div>
-
-        <!-- 2. QR CODE SECTION -->
-        <div id="section-qr" class="pairing-box" style="display: none;">
-            <div id="qr-loading" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
-                <div style="width: 36px; height: 36px; border: 3px solid #e2e8f0; border-top-color: #4f46e5; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                <span style="font-size: 13px; color: #64748b; font-weight: 600;">Fetching live QR code for this restaurant...</span>
-            </div>
-
-            <img id="qr-image" src="" alt="WhatsApp QR Code" style="display: none; width: 240px; height: 240px; border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.08); background: #fff; padding: 10px;">
         </div>
 
         <div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
@@ -286,16 +286,17 @@
     const RESTART_URL      = @json(route('dashboard.bot-restart', $restaurant->id, false));
     const CSRF_TOKEN       = @json(csrf_token());
 
-    let currentTab = 'pairing';
+    let currentTab = 'qr';
     let pollInterval = null;
+    let qrPollInterval = null;
 
     function switchTab(tab) {
         currentTab = tab;
-        document.getElementById('tab-pairing-btn').classList.toggle('active', tab === 'pairing');
         document.getElementById('tab-qr-btn').classList.toggle('active', tab === 'qr');
+        document.getElementById('tab-pairing-btn').classList.toggle('active', tab === 'pairing');
 
-        document.getElementById('section-pairing').style.display = tab === 'pairing' ? 'flex' : 'none';
         document.getElementById('section-qr').style.display = tab === 'qr' ? 'flex' : 'none';
+        document.getElementById('section-pairing').style.display = tab === 'pairing' ? 'flex' : 'none';
 
         if (tab === 'qr') {
             fetchQrCode();
@@ -327,7 +328,6 @@
             const data = await res.json().catch(() => ({}));
 
             if (data.success && data.pairing_code) {
-                // Format code with dash in middle for easy readability
                 const raw = data.pairing_code;
                 const formatted = raw.length === 8 ? raw.slice(0, 4) + ' - ' + raw.slice(4) : raw;
                 document.getElementById('pairing-code-text').innerText = formatted;
@@ -337,7 +337,7 @@
             }
         } catch (err) {
             document.getElementById('pairing-code-text').innerText = 'ERROR';
-            alert('Could not reach server. Please check your connection.');
+            alert('Could not reach server: ' + (err.message || 'Please check connection'));
         }
     }
 
@@ -350,9 +350,18 @@
                 const img = document.getElementById('qr-image');
                 img.src = data.qr;
                 img.style.display = 'block';
-                document.getElementById('qr-loading').style.display = 'none';
+                const loading = document.getElementById('qr-loading');
+                if (loading) loading.style.display = 'none';
+
+                // Stop rapid polling once QR is loaded; refresh every 20s
+                if (qrPollInterval) {
+                    clearInterval(qrPollInterval);
+                    qrPollInterval = setInterval(fetchQrCode, 20000);
+                }
             }
-        } catch (e) {}
+        } catch (e) {
+            console.warn('QR fetch retry:', e);
+        }
     }
 
     async function checkBotStatus() {
@@ -386,12 +395,16 @@
         }
     }
 
-    // Initial check and start status poll
+    // Initial checks and polling
     checkBotStatus();
     pollInterval = setInterval(checkBotStatus, 5000);
 
+    fetchQrCode();
+    qrPollInterval = setInterval(fetchQrCode, 2500);
+
     window.addEventListener('beforeunload', () => {
         if (pollInterval) clearInterval(pollInterval);
+        if (qrPollInterval) clearInterval(qrPollInterval);
     });
 </script>
 
