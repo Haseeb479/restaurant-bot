@@ -23,6 +23,7 @@ if [ -n "$DATABASE_URL" ] || [ -n "$DB_URL" ] || [ "$DB_CONNECTION" = "pgsql" ];
     ACTIVE_URL="${DATABASE_URL:-$DB_URL}"
     echo "🗄️ [Foodio] Using configured PostgreSQL database..."
     sed -i "s/^DB_CONNECTION=.*/DB_CONNECTION=${DB_CONN}/" /var/www/html/.env || echo "DB_CONNECTION=${DB_CONN}" >> /var/www/html/.env
+    sed -i "s/^DB_PORT=.*/DB_PORT=5432/" /var/www/html/.env || echo "DB_PORT=5432" >> /var/www/html/.env
     if [ -n "$ACTIVE_URL" ]; then
         sed -i "s|^DATABASE_URL=.*|DATABASE_URL=${ACTIVE_URL}|" /var/www/html/.env || echo "DATABASE_URL=${ACTIVE_URL}" >> /var/www/html/.env
         sed -i "s|^DB_URL=.*|DB_URL=${ACTIVE_URL}|" /var/www/html/.env || echo "DB_URL=${ACTIVE_URL}" >> /var/www/html/.env
