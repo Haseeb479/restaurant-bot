@@ -94,6 +94,7 @@ async function initBot(cleanSession = false) {
                     '--no-zygote',
                     '--single-process',
                 ],
+                executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
             },
         });
 

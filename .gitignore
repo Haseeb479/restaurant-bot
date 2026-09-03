@@ -20,6 +20,7 @@ storage/logs/*.log
 # Dependencies
 /node_modules/
 /vendor/
+cloudflared.exe
 
 # Database Files
 database/*.sqlite
