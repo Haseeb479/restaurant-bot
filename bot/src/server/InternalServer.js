@@ -171,11 +171,12 @@ export class InternalServer {
             return;
         }
 
-        const server = http.createServer(async (req, res) => {
-            // No CORS headers on purpose. Nothing in a browser talks to this
-            // server any more — the dashboard polls Laravel, which proxies here
-            // server-side. `Access-Control-Allow-Origin: *` would re-open exactly
-            // the hole this lockdown closes.
+            // Allow local health check probes (e.g. Render / Docker monitoring)
+            if ((req.method === 'HEAD' || req.method === 'GET') && (req.url === '/' || req.url === '/health')) {
+                res.writeHead(200, { 'Content-Type': 'text/plain' });
+                res.end('OK');
+                return;
+            }
 
             if (!tokenMatches(req.headers['x-bot-token'])) {
                 // Deliberately terse: no hint about which part was wrong, and no

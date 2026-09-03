@@ -863,12 +863,29 @@ class DashboardController extends Controller
         $qrData = BotEvolutionClient::getQrCode($r);
 
         if ($qrData && ! empty($qrData['base64'])) {
+            $base64 = $qrData['base64'];
+            if (! str_starts_with($base64, 'data:image')) {
+                $base64 = 'data:image/png;base64,' . $base64;
+            }
+
             return response()->json([
                 'success' => true,
-                'qr'      => $qrData['base64'],
+                'qr'      => $base64,
                 'code'    => $qrData['code'] ?? null,
             ]);
         }
+
+        // Fallback: check legacy single-bot process if running
+        try {
+            $legacy = BotControlClient::status();
+            if ($legacy && ! empty($legacy['qr'])) {
+                return response()->json([
+                    'success' => true,
+                    'qr'      => $legacy['qr'],
+                    'code'    => null,
+                ]);
+            }
+        } catch (\Throwable) {}
 
         return response()->json([
             'success' => false,
