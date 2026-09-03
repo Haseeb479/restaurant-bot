@@ -1,4 +1,4 @@
-FROM php:8.3-fpm-bookworm
+FROM php:8.4-fpm-bookworm
 
 LABEL maintainer="Haseeb Tariq"
 LABEL description="Foodio Restaurant WhatsApp Bot & Dashboard for Render"
@@ -57,7 +57,7 @@ WORKDIR /var/www/html
 
 # 4. Install PHP dependencies
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
+RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --ignore-platform-reqs
 
 # 5. Install Node dependencies
 COPY package.json package-lock.json* ./
@@ -67,7 +67,7 @@ RUN npm ci --omit=dev || npm install --omit=dev
 COPY . .
 
 # 7. Complete Composer autoloader
-RUN composer dump-autoload --optimize --no-dev
+RUN composer dump-autoload --optimize --no-dev --ignore-platform-reqs
 
 # 8. Build Vite frontend assets
 RUN npm run build || true
