@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-kacst \
     fonts-freefont-ttf \
     libsqlite3-dev \
+    libpq-dev \
     libpng-dev \
     libjpeg-dev \
     libfreetype6-dev \
@@ -36,6 +37,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         pdo \
         pdo_sqlite \
         pdo_mysql \
+        pdo_pgsql \
         bcmath \
         gd \
         zip \

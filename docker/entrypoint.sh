@@ -17,10 +17,25 @@ if [ ! -f /var/www/html/.env ]; then
     cp /var/www/html/.env.example /var/www/html/.env
 fi
 
-# Force SQLite in .env for all-in-one container deployment
-echo "🗄️ [Foodio] Configuring SQLite database..."
-sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=sqlite/' /var/www/html/.env || echo "DB_CONNECTION=sqlite" >> /var/www/html/.env
-sed -i 's|^DB_DATABASE=.*|DB_DATABASE=/var/www/html/database/database.sqlite|' /var/www/html/.env || echo "DB_DATABASE=/var/www/html/database/database.sqlite" >> /var/www/html/.env
+# Detect database configuration
+if [ -n "$DATABASE_URL" ] || [ -n "$DB_URL" ] || [ "$DB_CONNECTION" = "pgsql" ]; then
+    DB_CONN="${DB_CONNECTION:-pgsql}"
+    ACTIVE_URL="${DATABASE_URL:-$DB_URL}"
+    echo "🗄️ [Foodio] Using configured PostgreSQL database..."
+    sed -i "s/^DB_CONNECTION=.*/DB_CONNECTION=${DB_CONN}/" /var/www/html/.env || echo "DB_CONNECTION=${DB_CONN}" >> /var/www/html/.env
+    if [ -n "$ACTIVE_URL" ]; then
+        sed -i "s|^DATABASE_URL=.*|DATABASE_URL=${ACTIVE_URL}|" /var/www/html/.env || echo "DATABASE_URL=${ACTIVE_URL}" >> /var/www/html/.env
+        sed -i "s|^DB_URL=.*|DB_URL=${ACTIVE_URL}|" /var/www/html/.env || echo "DB_URL=${ACTIVE_URL}" >> /var/www/html/.env
+    fi
+else
+    echo "🗄️ [Foodio] Using default SQLite database..."
+    sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=sqlite/' /var/www/html/.env || echo "DB_CONNECTION=sqlite" >> /var/www/html/.env
+    sed -i 's|^DB_DATABASE=.*|DB_DATABASE=/var/www/html/database/database.sqlite|' /var/www/html/.env || echo "DB_DATABASE=/var/www/html/database/database.sqlite" >> /var/www/html/.env
+    mkdir -p /var/www/html/database
+    touch /var/www/html/database/database.sqlite
+    chmod -R 777 /var/www/html/database
+fi
+
 sed -i 's/^SESSION_DRIVER=.*/SESSION_DRIVER=file/' /var/www/html/.env || true
 sed -i 's/^CACHE_STORE=.*/CACHE_STORE=file/' /var/www/html/.env || true
 
@@ -51,15 +66,11 @@ echo "🛡️ [Foodio] Configuring ADMIN_PASSWORD..."
 sed -i "s/^ADMIN_PASSWORD=.*/ADMIN_PASSWORD=${ADMIN_PASS}/" /var/www/html/.env || echo "ADMIN_PASSWORD=${ADMIN_PASS}" >> /var/www/html/.env
 export ADMIN_PASSWORD="${ADMIN_PASS}"
 
-# Ensure SQLite database file exists and is writable
-mkdir -p /var/www/html/database
-touch /var/www/html/database/database.sqlite
-chmod -R 777 /var/www/html/database
-
 # Prepare storage and session dirs with full permissions
 mkdir -p /var/www/html/storage/framework/{sessions,views,cache} /var/www/html/storage/logs /var/www/html/bootstrap/cache /var/www/html/.wwebjs_auth
-chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/.wwebjs_auth
-chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/.wwebjs_auth
+touch /var/www/html/storage/logs/laravel.log
+chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/.wwebjs_auth /var/www/html/database 2>/dev/null || true
+chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/.wwebjs_auth /var/www/html/database 2>/dev/null || true
 
 # Create storage symlink
 php /var/www/html/artisan storage:link || true
@@ -73,6 +84,10 @@ php /var/www/html/artisan db:seed --force || echo "🌱 Database already seeded.
 
 # Clear cached config so runtime environment variables apply
 php /var/www/html/artisan optimize:clear || true
+
+# Re-apply full permissions right before handing over to Nginx and PHP-FPM
+chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/.wwebjs_auth /var/www/html/database 2>/dev/null || true
+chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/.wwebjs_auth /var/www/html/database 2>/dev/null || true
 
 # Test Nginx configuration
 nginx -t || echo "⚠️ Nginx config test finished"
