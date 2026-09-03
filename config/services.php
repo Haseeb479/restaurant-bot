@@ -36,7 +36,7 @@ return [
     ],
 
     'evolution' => [
-        'base_url' => env('EVOLUTION_BASE_URL', 'http://127.0.0.1:8080'),
+        'base_url' => env('EVOLUTION_BASE_URL', env('EVOLUTION_API_URL', 'http://127.0.0.1:8080')),
         'api_key'  => env('EVOLUTION_API_KEY', 'foodio_evolution_secret_key_2026'),
     ],
 
