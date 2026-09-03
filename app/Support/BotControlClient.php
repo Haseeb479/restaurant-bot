@@ -69,10 +69,16 @@ class BotControlClient
             return false;
         }
 
-        $response = self::send('post', '/send-message', [
-            'to'      => $to,
-            'message' => $message,
-        ]);
+        try {
+            $response = self::send('post', '/send-message', [
+                'to'      => $to,
+                'message' => $message,
+            ]);
+        } catch (\Illuminate\Http\Client\ConnectionException) {
+            Log::warning('Bot unreachable — could not send WhatsApp message', $logContext);
+
+            return false;
+        }
 
         if ($response === null || ! $response->successful()) {
             Log::warning('Bot could not send WhatsApp message', $logContext + [
@@ -90,10 +96,14 @@ class BotControlClient
     {
         // Non-blocking by design: the bot also expires this cache on a short TTL,
         // so a miss here only delays the update, it does not lose it.
-        self::send('post', '/invalidate-cache', [
-            'restaurant_id' => $restaurantId,
-            'bot_number'    => $botNumber,
-        ], 1);
+        try {
+            self::send('post', '/invalidate-cache', [
+                'restaurant_id' => $restaurantId,
+                'bot_number'    => $botNumber,
+            ], 1);
+        } catch (\Illuminate\Http\Client\ConnectionException) {
+            // Intentionally swallowed — non-blocking fire-and-forget call.
+        }
     }
 
     private static function token(): string
@@ -125,6 +135,10 @@ class BotControlClient
                 ->withOptions(['allow_redirects' => false])
                 ->acceptJson()
                 ->{$method}(self::baseUrl() . $path, $payload);
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            // Re-throw so callers can distinguish "bot is unreachable" from
+            // other failures and surface a proper 503 / log accordingly.
+            throw $e;
         } catch (\Throwable $e) {
             // The bot not running is a normal state, not an error worth a stack
             // trace on every poll.

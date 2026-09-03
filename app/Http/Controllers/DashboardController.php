@@ -782,8 +782,26 @@ class DashboardController extends Controller
         }
 
         // 2. Fallback to legacy single-bot proxy if Evolution is offline
-        $status = BotControlClient::status();
-        if ($status !== null && $this->botBelongsTo($status, $id)) {
+        try {
+            $status = BotControlClient::status();
+        } catch (\Illuminate\Http\Client\ConnectionException) {
+            return response()->json([
+                'success' => false,
+                'status'  => 'unreachable',
+                'message' => 'The WhatsApp bot process is not running.',
+            ], 503);
+        }
+
+        if ($status !== null) {
+            // Bot is running but paired to a different restaurant — withhold QR
+            if (! $this->botBelongsTo($status, $id)) {
+                return response()->json([
+                    'success' => false,
+                    'status'  => 'linked_elsewhere',
+                    'message' => 'The bot is already linked to another restaurant.',
+                ], 409);
+            }
+
             return response()->json([
                 'success'    => true,
                 'status'     => $status['status'] ?? 'unknown',
@@ -866,7 +884,28 @@ class DashboardController extends Controller
         $this->authCheck($id);
         $r = Restaurant::findOrFail($id);
 
-        // 1. Restart Evolution instance
+        // 1. Guard: if the legacy single-bot process is paired to a DIFFERENT restaurant,
+        //    refuse immediately — restarting it would drop that tenant's WhatsApp session.
+        //    We check this first so no HTTP call to any /restart endpoint is made.
+        try {
+            $legacyStatus = BotControlClient::status();
+
+            if ($legacyStatus !== null && ! $this->botBelongsTo($legacyStatus, $id)) {
+                return response()->json([
+                    'success' => false,
+                    'status'  => 'linked_elsewhere',
+                    'message' => 'The bot is currently linked to another restaurant.',
+                ], 409);
+            }
+        } catch (\Illuminate\Http\Client\ConnectionException) {
+            return response()->json([
+                'success' => false,
+                'status'  => 'unreachable',
+                'message' => 'The WhatsApp bot process is not running.',
+            ], 503);
+        }
+
+        // 2. Restart Evolution instance (per-restaurant, inherently isolated)
         $okEvo = BotEvolutionClient::restartInstance($r);
         if ($okEvo) {
             $r->update(['bot_status' => 'disconnected', 'evolution_status' => 'disconnected']);
@@ -876,8 +915,17 @@ class DashboardController extends Controller
             ]);
         }
 
-        // 2. Legacy fallback
-        $okLegacy = BotControlClient::restart();
+        // 3. Legacy fallback — restart the shared bot process
+        try {
+            $okLegacy = BotControlClient::restart();
+        } catch (\Illuminate\Http\Client\ConnectionException) {
+            return response()->json([
+                'success' => false,
+                'status'  => 'unreachable',
+                'message' => 'The WhatsApp bot process is not running.',
+            ], 503);
+        }
+
         return response()->json([
             'success' => $okLegacy,
             'message' => $okLegacy
