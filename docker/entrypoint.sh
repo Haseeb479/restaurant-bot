@@ -45,6 +45,12 @@ if [ -n "$GROQ_API_KEY" ]; then
     sed -i "s/^GROQ_API_KEY=.*/GROQ_API_KEY=${GROQ_API_KEY}/" /var/www/html/.env || echo "GROQ_API_KEY=${GROQ_API_KEY}" >> /var/www/html/.env
 fi
 
+# Ensure ADMIN_PASSWORD is set (default: admin123, or user specified)
+ADMIN_PASS="${ADMIN_PASSWORD:-admin123}"
+echo "🛡️ [Foodio] Configuring ADMIN_PASSWORD..."
+sed -i "s/^ADMIN_PASSWORD=.*/ADMIN_PASSWORD=${ADMIN_PASS}/" /var/www/html/.env || echo "ADMIN_PASSWORD=${ADMIN_PASS}" >> /var/www/html/.env
+export ADMIN_PASSWORD="${ADMIN_PASS}"
+
 # Ensure SQLite database file exists and is writable
 mkdir -p /var/www/html/database
 touch /var/www/html/database/database.sqlite
