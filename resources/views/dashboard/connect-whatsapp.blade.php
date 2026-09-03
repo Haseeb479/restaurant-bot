@@ -280,10 +280,10 @@
 </div>
 
 <script>
-    const STATUS_URL       = @json(route('dashboard.bot-status', $restaurant->id));
-    const PAIRING_CODE_URL = @json(route('dashboard.bot-pairing-code', $restaurant->id));
-    const QR_URL           = @json(route('dashboard.bot-qr', $restaurant->id));
-    const RESTART_URL      = @json(route('dashboard.bot-restart', $restaurant->id));
+    const STATUS_URL       = @json(route('dashboard.bot-status', $restaurant->id, false));
+    const PAIRING_CODE_URL = @json(route('dashboard.bot-pairing-code', $restaurant->id, false));
+    const QR_URL           = @json(route('dashboard.bot-qr', $restaurant->id, false));
+    const RESTART_URL      = @json(route('dashboard.bot-restart', $restaurant->id, false));
     const CSRF_TOKEN       = @json(csrf_token());
 
     let currentTab = 'pairing';
