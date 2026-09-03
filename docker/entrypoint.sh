@@ -30,6 +30,21 @@ if ! grep -q "APP_KEY=base64:" /var/www/html/.env; then
     php /var/www/html/artisan key:generate --force || true
 fi
 
+# Ensure BOT_INTERNAL_TOKEN is set so internal control API starts
+if ! grep -q "BOT_INTERNAL_TOKEN=[a-zA-Z0-9]" /var/www/html/.env; then
+    DEFAULT_TOKEN="02946be11eb016a014ef2c16a254b0bc8d62c141e52c1525002d96a484cda4d5"
+    TOKEN="${BOT_INTERNAL_TOKEN:-$DEFAULT_TOKEN}"
+    echo "🤖 [Foodio] Setting BOT_INTERNAL_TOKEN..."
+    sed -i "s/^BOT_INTERNAL_TOKEN=.*/BOT_INTERNAL_TOKEN=${TOKEN}/" /var/www/html/.env || echo "BOT_INTERNAL_TOKEN=${TOKEN}" >> /var/www/html/.env
+    export BOT_INTERNAL_TOKEN="${TOKEN}"
+fi
+
+# Sync GROQ_API_KEY if provided in container environment
+if [ -n "$GROQ_API_KEY" ]; then
+    echo "🧠 [Foodio] Configuring GROQ_API_KEY..."
+    sed -i "s/^GROQ_API_KEY=.*/GROQ_API_KEY=${GROQ_API_KEY}/" /var/www/html/.env || echo "GROQ_API_KEY=${GROQ_API_KEY}" >> /var/www/html/.env
+fi
+
 # Ensure SQLite database file exists and is writable
 mkdir -p /var/www/html/database
 touch /var/www/html/database/database.sqlite
