@@ -1104,7 +1104,15 @@ class DashboardController extends Controller
         $previous = [$r->menu_file, $r->menu_image];
 
         $fileName = 'menu_' . $r->id . '_' . bin2hex(random_bytes(8)) . '.' . $extension;
-        $file->move($destPath, $fileName);
+        try {
+            $file->move($destPath, $fileName);
+        } catch (\Throwable $e) {
+            $target = $destPath . DIRECTORY_SEPARATOR . $fileName;
+            if (! @copy($file->getRealPath(), $target)) {
+                \Illuminate\Support\Facades\Log::error("Failed to store menu upload: " . $e->getMessage());
+                return null;
+            }
+        }
 
         // Remove the superseded file(s). The bot picks the *first* prefix match it
         // finds while scanning the directory, so leaving stale uploads behind can

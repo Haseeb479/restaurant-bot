@@ -97,8 +97,8 @@ php /var/www/html/artisan db:seed --force || echo "🌱 Database already seeded.
 php /var/www/html/artisan optimize:clear || true
 
 # Re-apply full permissions right before handing over to Nginx and PHP-FPM
-chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/.wwebjs_auth /var/www/html/database /var/www/html/public/uploads 2>/dev/null || true
-chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/.wwebjs_auth /var/www/html/database /var/www/html/public/uploads 2>/dev/null || true
+chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/.wwebjs_auth /var/www/html/database /var/www/html/public 2>/dev/null || true
+chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/.wwebjs_auth /var/www/html/database /var/www/html/public 2>/dev/null || true
 
 # Test Nginx configuration
 # Configure Supervisord for WhatsApp Bot
