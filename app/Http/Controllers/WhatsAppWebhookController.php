@@ -20,7 +20,9 @@ class WhatsAppWebhookController extends Controller
      */
     public function handle(Request $request): JsonResponse
     {
-        $event    = strtolower((string) ($request->input('event') ?? $request->input('type') ?? ''));
+        $rawEvent = (string) ($request->input('event') ?? $request->input('type') ?? '');
+        $event    = strtolower(str_replace(['.', '-'], '_', $rawEvent));
+
         $instance = (string) (
             $request->input('instance')
             ?? $request->input('instanceName')
@@ -49,20 +51,20 @@ class WhatsAppWebhookController extends Controller
         }
 
         // 1. Connection Update event (open, close, connecting)
-        if ($event === 'connection.update' || $event === 'CONNECTION_UPDATE') {
+        if ($event === 'connection_update') {
             $state = $data['state'] ?? $data['status'] ?? '';
             $this->handleConnectionUpdate($restaurant, (string) $state);
             return response()->json(['status' => 'processed', 'event' => 'connection.update']);
         }
 
         // 2. QR Code update
-        if ($event === 'qrcode.updated' || $event === 'QRCODE_UPDATED') {
+        if ($event === 'qrcode_updated') {
             $restaurant->update(['bot_status' => 'qr_pending']);
             return response()->json(['status' => 'processed', 'event' => 'qrcode.updated']);
         }
 
         // 3. Incoming message (MESSAGES_UPSERT)
-        if ($event === 'messages.upsert' || $event === 'MESSAGES_UPSERT') {
+        if ($event === 'messages_upsert' || isset($data['key']) || isset($data['message'])) {
             $this->handleIncomingMessage($restaurant, $data);
             return response()->json(['status' => 'processed', 'event' => 'messages.upsert']);
         }
@@ -99,6 +101,16 @@ class WhatsAppWebhookController extends Controller
      */
     private function handleIncomingMessage(Restaurant $restaurant, array $data): void
     {
+        // Handle array of messages if Evolution sent a batch
+        if (isset($data[0]) && is_array($data[0])) {
+            foreach ($data as $msg) {
+                if (is_array($msg)) {
+                    $this->handleIncomingMessage($restaurant, $msg);
+                }
+            }
+            return;
+        }
+
         $messageObj = $data['message'] ?? $data;
         $key        = $data['key'] ?? $messageObj['key'] ?? [];
 
