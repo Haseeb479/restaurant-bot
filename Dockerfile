@@ -80,6 +80,11 @@ COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
+# 9b. Prepare upload directories and permissions
+RUN mkdir -p /var/www/html/public/uploads/menus \
+    && chown -R www-data:www-data /var/www/html/public/uploads /var/www/html/storage /var/www/html/bootstrap/cache \
+    && chmod -R 777 /var/www/html/public/uploads /var/www/html/storage /var/www/html/bootstrap/cache
+
 # 10. Default listen port
 EXPOSE 8080
 

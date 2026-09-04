@@ -1098,8 +1098,7 @@ class DashboardController extends Controller
 
         $destPath = public_path('uploads/menus');
         if (! is_dir($destPath)) {
-            // 0755, not 0777 — the web server never needs world-writable dirs.
-            mkdir($destPath, 0755, true);
+            @mkdir($destPath, 0777, true);
         }
 
         $previous = [$r->menu_file, $r->menu_image];

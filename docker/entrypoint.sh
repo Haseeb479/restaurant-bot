@@ -77,11 +77,11 @@ echo "🛡️ [Foodio] Configuring ADMIN_PASSWORD..."
 sed -i "s/^ADMIN_PASSWORD=.*/ADMIN_PASSWORD=${ADMIN_PASS}/" /var/www/html/.env || echo "ADMIN_PASSWORD=${ADMIN_PASS}" >> /var/www/html/.env
 export ADMIN_PASSWORD="${ADMIN_PASS}"
 
-# Prepare storage and session dirs with full permissions
-mkdir -p /var/www/html/storage/framework/{sessions,views,cache} /var/www/html/storage/logs /var/www/html/bootstrap/cache /var/www/html/.wwebjs_auth
+# Prepare storage, session, and upload dirs with full permissions
+mkdir -p /var/www/html/storage/framework/{sessions,views,cache} /var/www/html/storage/logs /var/www/html/bootstrap/cache /var/www/html/.wwebjs_auth /var/www/html/public/uploads/menus
 touch /var/www/html/storage/logs/laravel.log
-chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/.wwebjs_auth /var/www/html/database 2>/dev/null || true
-chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/.wwebjs_auth /var/www/html/database 2>/dev/null || true
+chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/.wwebjs_auth /var/www/html/database /var/www/html/public/uploads 2>/dev/null || true
+chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/.wwebjs_auth /var/www/html/database /var/www/html/public/uploads 2>/dev/null || true
 
 # Create storage symlink
 php /var/www/html/artisan storage:link || true
@@ -97,8 +97,8 @@ php /var/www/html/artisan db:seed --force || echo "🌱 Database already seeded.
 php /var/www/html/artisan optimize:clear || true
 
 # Re-apply full permissions right before handing over to Nginx and PHP-FPM
-chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/.wwebjs_auth /var/www/html/database 2>/dev/null || true
-chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/.wwebjs_auth /var/www/html/database 2>/dev/null || true
+chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/.wwebjs_auth /var/www/html/database /var/www/html/public/uploads 2>/dev/null || true
+chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/.wwebjs_auth /var/www/html/database /var/www/html/public/uploads 2>/dev/null || true
 
 # Test Nginx configuration
 # Configure Supervisord for WhatsApp Bot
