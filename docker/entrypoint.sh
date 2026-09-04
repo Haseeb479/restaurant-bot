@@ -90,8 +90,14 @@ php /var/www/html/artisan storage:link || true
 echo "📦 [Foodio] Running database migrations..."
 php /var/www/html/artisan migrate --force || echo "⚠️ Migration notice: table may already exist."
 
-echo "🌱 [Foodio] Ensuring default restaurant data exists..."
-php /var/www/html/artisan db:seed --force || echo "🌱 Database already seeded."
+echo "🌱 [Foodio] Checking if database needs seeding..."
+RESTAURANT_COUNT=$(php /var/www/html/artisan tinker --execute="echo \App\Models\Restaurant::count();" 2>/dev/null | tail -1 | tr -d '[:space:]')
+if [ "$RESTAURANT_COUNT" = "0" ] || [ -z "$RESTAURANT_COUNT" ]; then
+    echo "🌱 [Foodio] Empty database — running seeders..."
+    php /var/www/html/artisan db:seed --force || echo "⚠️ Seeder warning (non-fatal)."
+else
+    echo "✅ [Foodio] Database has ${RESTAURANT_COUNT} restaurant(s) — skipping seed to preserve data."
+fi
 
 # Clear cached config so runtime environment variables apply
 php /var/www/html/artisan optimize:clear || true
