@@ -378,20 +378,25 @@
         </table>
 
         <!-- TOTALS BREAKDOWN -->
+        @php
+            $foodSubtotal = $order->items->sum('subtotal') ?: $order->total;
+            $deliveryFee  = $order->delivery_charge ?? 0;
+            $grandTotal   = $foodSubtotal + $deliveryFee;
+        @endphp
         <div class="totals-section">
             <div class="total-row">
                 <span class="meta-lbl">Food Subtotal:</span>
-                <span class="meta-val">Rs. {{ number_format($order->items->sum('subtotal') ?: ($order->total - $order->delivery_charge), 0) }}</span>
+                <span class="meta-val">Rs. {{ number_format($foodSubtotal, 0) }}</span>
             </div>
-            @if($order->delivery_charge > 0)
+            @if($deliveryFee > 0)
                 <div class="total-row">
                     <span class="meta-lbl">Delivery Fee:</span>
-                    <span class="meta-val">Rs. {{ number_format($order->delivery_charge, 0) }}</span>
+                    <span class="meta-val">Rs. {{ number_format($deliveryFee, 0) }}</span>
                 </div>
             @endif
             <div class="grand-total-row">
                 <span>TOTAL PAYABLE:</span>
-                <span>Rs. {{ number_format($order->total, 0) }}</span>
+                <span>Rs. {{ number_format($grandTotal, 0) }}</span>
             </div>
         </div>
 
