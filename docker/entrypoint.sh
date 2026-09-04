@@ -61,6 +61,16 @@ if [ -n "$GROQ_API_KEY" ]; then
     sed -i "s/^GROQ_API_KEY=.*/GROQ_API_KEY=${GROQ_API_KEY}/" /var/www/html/.env || echo "GROQ_API_KEY=${GROQ_API_KEY}" >> /var/www/html/.env
 fi
 
+# Sync Evolution API configuration if provided
+if [ -n "$EVOLUTION_BASE_URL" ]; then
+    echo "⚡ [Foodio] Configuring EVOLUTION_BASE_URL..."
+    sed -i "s|^EVOLUTION_BASE_URL=.*|EVOLUTION_BASE_URL=${EVOLUTION_BASE_URL}|" /var/www/html/.env || echo "EVOLUTION_BASE_URL=${EVOLUTION_BASE_URL}" >> /var/www/html/.env
+fi
+if [ -n "$EVOLUTION_API_KEY" ]; then
+    echo "🔐 [Foodio] Configuring EVOLUTION_API_KEY..."
+    sed -i "s|^EVOLUTION_API_KEY=.*|EVOLUTION_API_KEY=${EVOLUTION_API_KEY}|" /var/www/html/.env || echo "EVOLUTION_API_KEY=${EVOLUTION_API_KEY}" >> /var/www/html/.env
+fi
+
 # Ensure ADMIN_PASSWORD is set (default: admin123, or user specified)
 ADMIN_PASS="${ADMIN_PASSWORD:-admin123}"
 echo "🛡️ [Foodio] Configuring ADMIN_PASSWORD..."
@@ -91,7 +101,14 @@ chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /
 chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/.wwebjs_auth /var/www/html/database 2>/dev/null || true
 
 # Test Nginx configuration
-nginx -t || echo "⚠️ Nginx config test finished"
+# Configure Supervisord for WhatsApp Bot
+if [ "$DISABLE_LEGACY_BOT" = "true" ] || [ -n "$EVOLUTION_BASE_URL" ]; then
+    echo "⚡ [Foodio] Evolution API active: Disabling heavy legacy Puppeteer bot..."
+    sed -i '/\[program:whatsapp-bot\]/,/environment=/s/^/;/g' /etc/supervisor/conf.d/supervisord.conf || true
+else
+    echo "🤖 [Foodio] Legacy bot active: Injecting BOT_INTERNAL_TOKEN into supervisor..."
+    sed -i "s|environment=.*|environment=PUPPETEER_EXECUTABLE_PATH=\"/usr/bin/chromium\",BOT_INTERNAL_PORT=\"3000\",BOT_INTERNAL_TOKEN=\"${TOKEN}\"|g" /etc/supervisor/conf.d/supervisord.conf || true
+fi
 
-echo "✅ [Foodio] Initialization complete. Starting Nginx, PHP-FPM, and WhatsApp Bot..."
+echo "✅ [Foodio] Initialization complete. Starting services..."
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
