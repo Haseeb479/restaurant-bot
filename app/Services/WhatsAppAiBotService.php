@@ -25,10 +25,10 @@ class WhatsAppAiBotService
 {
     private const GROQ_API_URL  = 'https://api.groq.com/openai/v1/chat/completions';
     private const MODELS        = [
-        'openai/gpt-oss-120b',
-        'openai/gpt-oss-20b',
-        'qwen/qwen3.8-27b',
-        'groq/compound',
+        'llama-3.3-70b-versatile',
+        'llama-3.1-8b-instant',
+        'mixtral-8x7b-32768',
+        'gemma2-9b-it',
     ];
     private const SESSION_TTL   = 45; // minutes
 
@@ -135,14 +135,17 @@ class WhatsAppAiBotService
      */
     private function callGroq(array $messages): ?string
     {
-        $apiKey = config('services.groq.key');
+        $apiKey = config('services.groq.key') ?: env('GROQ_API_KEY');
 
         if (empty($apiKey)) {
             Log::error('WhatsApp AI: GROQ_API_KEY is not set in .env — bot cannot function properly!');
             return null;
         }
 
-        foreach (self::MODELS as $model) {
+        $preferred = env('GROQ_MODEL');
+        $models    = $preferred ? array_unique(array_merge([$preferred], self::MODELS)) : self::MODELS;
+
+        foreach ($models as $model) {
             try {
                 $response = Http::withToken($apiKey)
                     ->timeout(15)
@@ -611,31 +614,48 @@ PROMPT;
         $name  = $restaurant->name ?: 'our restaurant';
         $lower = strtolower($text);
 
-        $items = $restaurant->menuItems()->where('is_available', true)->take(6)->get();
-        $menuSnippet = '';
-        if ($items->isNotEmpty()) {
-            $menuSnippet = "\n\n📋 *Quick Menu:*\n";
+        $categories = $restaurant->categories()
+            ->with(['items' => fn($q) => $q->where('is_available', true)])
+            ->orderBy('sort_order')
+            ->get();
+
+        $menuSnippet = "\n\n📋 *Menu:*";
+        $hasItems    = false;
+
+        foreach ($categories as $cat) {
+            $catItems = $cat->items;
+            if ($catItems->isEmpty()) continue;
+            $hasItems = true;
+            $menuSnippet .= "\n\n📂 *{$cat->name}*";
+            foreach ($catItems as $item) {
+                $priceStr = 'Rs. ' . number_format((float) $item->price, 0);
+                if (!empty($item->sizes) && is_array($item->sizes)) {
+                    $parts    = array_map(fn($s) => "{$s['size']}: Rs." . number_format($s['price'] ?? 0, 0), $item->sizes);
+                    $priceStr = implode(' / ', $parts);
+                }
+                $menuSnippet .= "\n• *{$item->name}* — {$priceStr}";
+            }
+        }
+
+        if (! $hasItems) {
+            $items = $restaurant->menuItems()->where('is_available', true)->get();
             foreach ($items as $item) {
-                $menuSnippet .= "• *{$item->name}* — Rs. " . number_format((float) $item->price, 0) . "\n";
+                $menuSnippet .= "\n• *{$item->name}* — Rs. " . number_format((float) $item->price, 0);
             }
         }
 
         if (preg_match('/hi|hello|hey|salam|assalam/i', $lower)) {
-            return "👋 Welcome to *{$name}*! I'm Zain, your ordering assistant 😊{$menuSnippet}\n\nWhat would you like to order today?";
+            return "👋 Welcome to *{$name}*! I'm Zain, your ordering assistant 😊{$menuSnippet}\n\nWhat would you like to order today? Please reply with your items and delivery address!";
         }
 
-        if (preg_match('/menu|kya hai|what.*have|items|list|dikhao|prices/i', $lower)) {
-            return "📋 Here's what we have at *{$name}*:{$menuSnippet}\n\nKya lena chahein ge? 😊";
-        }
-
-        if (preg_match('/order|chahiye|want|lena/i', $lower)) {
-            return "Sure! Tell me what you'd like from *{$name}* and your delivery address 🙂{$menuSnippet}";
+        if (preg_match('/menu|kya hai|what.*have|items|list|dikhao|prices|card/i', $lower)) {
+            return "📋 Here is the complete menu for *{$name}*:{$menuSnippet}\n\nKya mangwana chahein ge? 😊 Reply with your item name & quantity to place your order!";
         }
 
         if (preg_match('/track|tracking|status/i', $lower)) {
             return "Please send your *tracking code* (e.g. FEZ1010) and I'll check your order status right away!";
         }
 
-        return "Hey! 😊 I'm here to help you order from *{$name}*! Type *menu* to see our items, or just tell me what you'd like to eat!{$menuSnippet}";
+        return "Hey! 😊 I'm here to help you order from *{$name}*!{$menuSnippet}\n\nPlease reply with what you'd like to order, your name, and delivery address!";
     }
 }
