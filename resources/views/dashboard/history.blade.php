@@ -69,8 +69,8 @@
                         </span>
                     </td>
                     <td>
-                        <a href="{{ route('dashboard.orders', [$r->id, 'order_id' => $o->id]) }}" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;">
-                            View in Kitchen ↗
+                        <a href="{{ route('dashboard.print-bill', [$r->id, $o->id]) }}" target="_blank" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; background:#0f172a; color:#fff; border-color:#0f172a;">
+                            🖨️ Print Bill
                         </a>
                     </td>
                 </tr>
