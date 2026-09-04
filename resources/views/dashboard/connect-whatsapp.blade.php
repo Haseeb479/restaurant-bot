@@ -370,10 +370,27 @@
             const data = await res.json().catch(() => ({}));
 
             if (data.status === 'connected' || data.is_open) {
+                if (qrPollInterval) {
+                    clearInterval(qrPollInterval);
+                    qrPollInterval = null;
+                }
+                const tabsNav = document.querySelector('.tabs-nav');
+                if (tabsNav) tabsNav.style.display = 'none';
+
+                const secQr = document.getElementById('section-qr');
+                const secPairing = document.getElementById('section-pairing');
+                if (secQr) secQr.style.display = 'none';
+                if (secPairing) secPairing.style.display = 'flex';
+
                 document.getElementById('pairing-initial').style.display = 'none';
                 document.getElementById('pairing-result').style.display = 'none';
                 document.getElementById('pairing-connected').style.display = 'flex';
-                document.getElementById('poll-indicator').innerText = '✓ WhatsApp instance LIVE & connected';
+                const ind = document.getElementById('poll-indicator');
+                if (ind) {
+                    ind.innerText = '✓ WhatsApp instance LIVE & connected';
+                    ind.style.color = '#16a34a';
+                    ind.style.fontWeight = '700';
+                }
             }
         } catch (err) {}
     }
