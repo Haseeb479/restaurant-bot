@@ -224,9 +224,30 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Delivery Areas</label>
-                    <input type="text" name="delivery_areas" class="form-control" value="{{ old('delivery_areas', $restaurant->delivery_areas) }}" placeholder="e.g. Phase 1, Phase 2, Model Town, Cantt">
-                    <div class="form-hint">Comma-separated list of sectors / neighborhoods you deliver to</div>
+                    <label class="form-label">🗺️ Delivery Areas <span style="color:#ef4444;font-weight:700;">*</span></label>
+                    <p class="form-hint" style="margin-bottom:8px;">Add each neighborhood / sector / phase where you deliver. The bot will <strong>refuse orders</strong> from areas not in this list.</p>
+
+                    {{-- Hidden real input submitted with form --}}
+                    <input type="hidden" id="delivery_areas_value" name="delivery_areas" value="{{ old('delivery_areas', $restaurant->delivery_areas) }}">
+
+                    {{-- Tag chip display --}}
+                    <div id="area-tags-container" style="display:flex;flex-wrap:wrap;gap:6px;min-height:40px;padding:8px;border:1.5px solid #cbd5e1;border-radius:10px;background:#f8fafc;cursor:text;" onclick="document.getElementById('area-tag-input').focus()">
+                        {{-- JS will render chips here --}}
+                    </div>
+
+                    {{-- Typing input --}}
+                    <div style="display:flex;gap:8px;margin-top:8px;">
+                        <input
+                            type="text"
+                            id="area-tag-input"
+                            placeholder="Type area name (e.g. Satellite Town) then press Enter"
+                            class="form-control"
+                            style="flex:1;"
+                            onkeydown="handleAreaKeydown(event)"
+                        >
+                        <button type="button" onclick="addAreaTag()" class="btn" style="background:#0f172a;color:#fff;white-space:nowrap;padding:0 16px;">+ Add</button>
+                    </div>
+                    <div class="form-hint" style="margin-top:6px;">Press <kbd>Enter</kbd> or click <strong>+ Add</strong> after each area. Click <strong>×</strong> to remove one.</div>
                 </div>
 
                 <div class="grid-2">
@@ -362,5 +383,67 @@
         </div>
     </div>
 </form>
+
+<script>
+// ── Delivery Area Tag Chip Manager ────────────────────────────────────────────
+(function () {
+    const container  = document.getElementById('area-tags-container');
+    const input      = document.getElementById('area-tag-input');
+    const hidden     = document.getElementById('delivery_areas_value');
+    if (!container || !input || !hidden) return;
+
+    let areas = hidden.value
+        ? hidden.value.split(',').map(a => a.trim()).filter(Boolean)
+        : [];
+
+    function syncHidden() {
+        hidden.value = areas.join(', ');
+    }
+
+    function renderChips() {
+        container.innerHTML = '';
+        areas.forEach((area, i) => {
+            const chip = document.createElement('span');
+            chip.style.cssText = 'display:inline-flex;align-items:center;gap:5px;background:#0f172a;color:#fff;padding:4px 10px;border-radius:999px;font-size:13px;font-weight:600;';
+            chip.innerHTML = `${area} <button type="button" onclick="removeArea(${i})" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:15px;line-height:1;padding:0;" title="Remove">×</button>`;
+            container.appendChild(chip);
+        });
+    }
+
+    window.removeArea = function (i) {
+        areas.splice(i, 1);
+        syncHidden();
+        renderChips();
+    };
+
+    window.addAreaTag = function () {
+        const val = input.value.trim().replace(/,+$/, '');
+        if (!val) return;
+        // Allow comma-separated paste
+        val.split(',').map(a => a.trim()).filter(Boolean).forEach(a => {
+            if (!areas.map(x => x.toLowerCase()).includes(a.toLowerCase())) {
+                areas.push(a);
+            }
+        });
+        input.value = '';
+        syncHidden();
+        renderChips();
+        input.focus();
+    };
+
+    window.handleAreaKeydown = function (e) {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            addAreaTag();
+        }
+    };
+
+    // Ensure hidden value is in sync when form submits
+    const form = hidden.closest('form');
+    if (form) form.addEventListener('submit', syncHidden);
+
+    renderChips();
+})();
+</script>
 
 @endsection

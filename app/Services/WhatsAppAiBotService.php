@@ -134,6 +134,51 @@ class WhatsAppAiBotService
             $history = array_slice($history, -20);
         }
 
+        // ── Delivery area hard-block ─────────────────────────────────────────
+        // If the owner has defined delivery areas AND the message looks like it
+        // contains a delivery address, validate it immediately in PHP before
+        // calling the AI, so rogue cities/areas can NEVER slip through.
+        $configuredAreas = array_filter(array_map(
+            fn ($a) => mb_strtolower(trim($a)),
+            explode(',', $restaurant->delivery_areas ?? '')
+        ));
+
+        if (! empty($configuredAreas)) {
+            // Heuristic: message mentions "deliver to", "address", "area", or
+            // reads like an address (contains street / block / sector words).
+            $looksLikeAddress = (bool) preg_match(
+                '/deliver\s*to|address|ghar|house|flat|block|phase|sector|street|road|lane|bazar|colony|town|city|near|opposite|behind|mahallah|mohallah|پتہ|ایڈریس/iu',
+                $text
+            );
+
+            if ($looksLikeAddress) {
+                $msgLower = mb_strtolower($text);
+                $matched  = false;
+                foreach ($configuredAreas as $area) {
+                    // Match whole-word / substring (area names can be partial)
+                    if ($area !== '' && mb_strpos($msgLower, $area) !== false) {
+                        $matched = true;
+                        break;
+                    }
+                }
+
+                if (! $matched) {
+                    // Build a friendly, localised refusal listing our areas
+                    $areaList = implode(', ', array_map('ucwords', $configuredAreas));
+                    $refusal  =
+                        "❌ *Maafi chahte hain!* Hum abhi sirf in areas mein deliver karte hain:\n\n" .
+                        "📍 *{$areaList}*\n\n" .
+                        "Kya aapka address in mein se kisi area mein hai? 😊 " .
+                        "Agar haan, toh apna poora address dobara bhejein!";
+
+                    // Save session so conversation context is preserved
+                    Cache::put($sessionKey, $history, now()->addMinutes(self::SESSION_TTL));
+                    BotEvolutionClient::sendMessage($restaurant, $recipientJid, $refusal);
+                    return;
+                }
+            }
+        }
+
         // 3. Build system prompt from live DB menu
         $systemPrompt = $this->buildSystemPrompt($restaurant);
 
@@ -302,7 +347,15 @@ class WhatsAppAiBotService
         $dealsText = $this->buildDealsText($restaurant);
 
         $deliveryZoneRule = $areas !== ''
-            ? "- STRICT DELIVERY COVERAGE: We ONLY deliver to: {$areas}. If the customer's delivery address is outside these areas or in another city/zone, politely inform them we cannot deliver there, decline the order, or ask for an address within our delivery zones."
+            ? implode("\n", [
+                "- STRICT DELIVERY ZONE ENFORCEMENT (NON-NEGOTIABLE):",
+                "  • We ONLY deliver to these areas: {$areas}",
+                "  • If customer provides ANY address outside these areas (different city, different phase, different town), you MUST refuse:",
+                "    → Say: \"Maafi chahte hain, hum sirf {$areas} mein deliver karte hain. Kya aapka ghar in areas mein hai?\"",
+                "  • DO NOT accept, confirm, or process any order for an address outside our delivery zones.",
+                "  • DO NOT suggest workarounds or partial deliveries.",
+                "  • If address is within zones → proceed normally.",
+              ])
             : "- DELIVERY COVERAGE: Deliver within local restaurant operational radius.";
 
         return <<<PROMPT
