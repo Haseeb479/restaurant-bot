@@ -26,9 +26,11 @@ class WhatsAppAiBotService
 {
     private const GROQ_API_URL  = 'https://api.groq.com/openai/v1/chat/completions';
     private const MODELS        = [
-        'llama-3.3-70b-versatile',
-        'llama-3.1-8b-instant',
-        'mixtral-8x7b-32768',
+        'groq/compound-mini',
+        'qwen/qwen3.8-27b',
+        'qwen/qwen3.6-27b',
+        'openai/gpt-oss-120b',
+        'openai/gpt-oss-20b',
     ];
     private const SESSION_TTL   = 45; // minutes
 
@@ -300,9 +302,18 @@ class WhatsAppAiBotService
 
         // 6. If customer asked for menu and a visual menu flyer/image exists, send it!
         //    We use the public URL so it works on Railway (ephemeral FS — local paths won't exist).
-        $isMenuRequest = (bool) preg_match('/menu|dikhao|prices|kya hai|list|card|items|منو|مینو|pdf|sheet|flyer|photo|document|picture/i', $text);
+        // 6. If customer explicitly asked for the menu and a visual menu flyer exists, send it!
+        $isExplicitMenuRequest = (bool) preg_match('/^(?:menu|show\s+menu|send\s+menu|menu\s+dikhao|menu\s+bhejo|menu\s+card|menu\s+pdf|menu\s+photo|flyer|rate\s+list)\b/iu', $text)
+            || (bool) preg_match('/^(?:منو|مینو)$/u', $text);
+
+        // Don't treat as menu request if customer is already ordering quantities (e.g. 1x, 2 zinger, etc.)
+        $isOrdering = (bool) preg_match('/\b\d+\s*(?:x|burger|pizza|biryani|deal|half|full|plate|bottle|piece|roll)\b/i', $text);
+        if ($isOrdering) {
+            $isExplicitMenuRequest = false;
+        }
+
         $flyerSent = false;
-        if ($isMenuRequest) {
+        if ($isExplicitMenuRequest) {
             $menuFile = $restaurant->menu_image ?: $restaurant->menu_file;
             if ($menuFile) {
                 $ext = strtolower(pathinfo($menuFile, PATHINFO_EXTENSION));
@@ -318,8 +329,8 @@ class WhatsAppAiBotService
             }
         }
 
-        // 7. Send text reply — if flyer was sent, replace verbose AI text with a short friendly nudge
-        if ($flyerSent) {
+        // 7. Send text reply — only replace if flyer was sent and reply was just a raw greeting
+        if ($flyerSent && !preg_match('/order|confirm|total|deliver|naam|address|rupay|rs\.|subtotal/i', $reply)) {
             $reply = "👆 Here's our complete menu! See anything you'd like? 😊 Just reply with your item & quantity and I'll take your order right away!";
         }
         BotEvolutionClient::sendMessage($restaurant, $recipientJid, $reply);
@@ -347,7 +358,8 @@ class WhatsAppAiBotService
         foreach ($models as $model) {
             try {
                 $response = Http::withToken($apiKey)
-                    ->timeout(7)
+                    ->withoutVerifying()
+                    ->timeout(15)
                     ->post(self::GROQ_API_URL, [
                         'model'       => $model,
                         'messages'    => $messages,
