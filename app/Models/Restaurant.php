@@ -55,6 +55,7 @@ class Restaurant extends Model
         'bot_phone_number',
         'restaurant_lat',
         'restaurant_lng',
+        'delivery_radius_km',
     ];
 
     protected $casts = [
@@ -62,6 +63,7 @@ class Restaurant extends Model
         'is_open'              => 'boolean',
         'delivery_charge'      => 'decimal:2',
         'minimum_order'        => 'decimal:2',
+        'delivery_radius_km'   => 'decimal:1',
         'plan_expires_at'      => 'datetime',
         'approved_at'          => 'datetime',
         'bot_last_seen_at'     => 'datetime',
@@ -71,6 +73,11 @@ class Restaurant extends Model
         'ai_config'            => 'array',
         'rate_limit_per_month' => 'integer',
     ];
+
+    public function maxDeliveryRadiusKm(): float
+    {
+        return (float) ($this->delivery_radius_km ?: 5.0);
+    }
 
     protected $hidden = ['owner_password'];
 

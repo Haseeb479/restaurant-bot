@@ -725,6 +725,9 @@ class DashboardController extends Controller
             'address'              => ['nullable', 'string', 'max:500'],
             'city'                 => ['nullable', 'string', 'max:100'],
             'delivery_areas'       => ['nullable', 'string', 'max:1000'],
+            'delivery_radius_km'   => ['nullable', 'numeric', 'min:0.5', 'max:50'],
+            'restaurant_lat'       => ['nullable', 'numeric', 'between:-90,90'],
+            'restaurant_lng'       => ['nullable', 'numeric', 'between:-180,180'],
             'delivery_charge'      => ['nullable', 'numeric', 'min:0', 'max:100000'],
             'minimum_order'        => ['nullable', 'numeric', 'min:0', 'max:1000000'],
             'greeting_message'     => ['nullable', 'string', 'max:1000'],
@@ -736,11 +739,28 @@ class DashboardController extends Controller
 
         $data = array_intersect_key($validated, array_flip([
             'name', 'whatsapp_number', 'owner_phone', 'manager_phone', 'address', 'city',
-            'delivery_areas', 'delivery_charge', 'minimum_order', 'greeting_message',
+            'delivery_areas', 'delivery_radius_km', 'restaurant_lat', 'restaurant_lng',
+            'delivery_charge', 'minimum_order', 'greeting_message',
             'google_sheet_webhook', 'hours',
         ]));
 
         $data['is_open'] = $request->has('is_open');
+
+        // If coordinates were not explicitly set or changed, try to auto-geocode
+        if (empty($data['restaurant_lat']) && (!empty($data['address']) || !empty($data['city']))) {
+            try {
+                $query = trim(($data['address'] ?? '') . ' ' . ($data['city'] ?? '') . ', Pakistan');
+                $resp = \Illuminate\Support\Facades\Http::timeout(4)
+                    ->withHeaders(['User-Agent' => 'Foodio-RestaurantBot/1.0'])
+                    ->get('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' . urlencode($query));
+                if ($resp->successful() && !empty($resp->json()[0]['lat'])) {
+                    $data['restaurant_lat'] = (float) $resp->json()[0]['lat'];
+                    $data['restaurant_lng'] = (float) $resp->json()[0]['lon'];
+                }
+            } catch (\Throwable $e) {
+                // Ignore geocoding fail silently
+            }
+        }
 
         $r->update($data);
 

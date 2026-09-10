@@ -134,36 +134,78 @@ class WhatsAppAiBotService
             $history = array_slice($history, -20);
         }
 
-        // ── Delivery area hard-block ─────────────────────────────────────────
-        // If the owner has defined delivery areas AND the message looks like it
-        // contains a delivery address, validate it immediately in PHP before
-        // calling the AI, so rogue cities/areas can NEVER slip through.
-        $configuredAreas = array_filter(array_map(
-            fn ($a) => mb_strtolower(trim($a)),
-            explode(',', $restaurant->delivery_areas ?? '')
-        ));
+        // ── Foodpanda-Style Delivery Radius & City Protection ────────────────
+        // Validate delivery address against city lock and maximum KM radius limit
+        // BEFORE invoking AI to prevent rogue deliveries or AI hallucinations.
+        $looksLikeAddress = (bool) preg_match(
+            '/deliver\s*to|address|ghar|house|flat|block|phase|sector|street|road|lane|bazar|colony|town|city|near|opposite|behind|mahallah|mohallah|پتہ|ایڈریس/iu',
+            $text
+        );
 
-        if (! empty($configuredAreas)) {
-            // Heuristic: message mentions "deliver to", "address", "area", or
-            // reads like an address (contains street / block / sector words).
-            $looksLikeAddress = (bool) preg_match(
-                '/deliver\s*to|address|ghar|house|flat|block|phase|sector|street|road|lane|bazar|colony|town|city|near|opposite|behind|mahallah|mohallah|پتہ|ایڈریس/iu',
-                $text
-            );
+        if ($looksLikeAddress) {
+            $msgLower = mb_strtolower($text);
+            $restCity = mb_strtolower(trim($restaurant->city ?? ''));
+            $maxRadius = $restaurant->maxDeliveryRadiusKm();
 
-            if ($looksLikeAddress) {
-                $msgLower = mb_strtolower($text);
-                $matched  = false;
+            // 1. City Lock Check:
+            // If the customer explicitly mentions a major Pakistani city that does NOT match the restaurant's base city, block immediately.
+            $majorCities = [
+                'karachi', 'lahore', 'islamabad', 'rawalpindi', 'faisalabad', 'multan', 'peshawar',
+                'quetta', 'gujranwala', 'sialkot', 'hyderabad', 'bahawalpur', 'sargodha', 'lodhran',
+                'sukkur', 'larkana', 'abbottabad', 'mardan', 'kasur', 'sahiwal', 'okara', 'gujrat',
+                'sheikhupura', 'jhang', 'rahim yar khan', 'muzaffargarh', 'dera ghazi khan'
+            ];
+
+            foreach ($majorCities as $city) {
+                if (mb_strpos($msgLower, $city) !== false) {
+                    if ($restCity !== '' && mb_strpos($restCity, $city) === false && mb_strpos($city, $restCity) === false) {
+                        $refusal = "❌ *Maafi chahte hain!* Hamara restaurant *" . ucwords($restaurant->city) . "* mein waqia hai.\n\n" .
+                                   "Hum sirf *" . ucwords($restaurant->city) . "* aur uske ird-gird *{$maxRadius} km* tak deliver karte hain 🛵. " .
+                                   "Doosre sheheron mein delivery dastiyab nahi hai.";
+                        Cache::put($sessionKey, $history, now()->addMinutes(self::SESSION_TTL));
+                        BotEvolutionClient::sendMessage($restaurant, $recipientJid, $refusal);
+                        return;
+                    }
+                }
+            }
+
+            // 2. GPS Radius Distance Check:
+            $restCoords = $this->getRestaurantCoords($restaurant);
+            if ($restCoords) {
+                $custCoords = $this->geocodeAddress($text, $restaurant->city ?? '');
+                if ($custCoords) {
+                    $distKm = $this->calculateHaversineDistance($restCoords[0], $restCoords[1], $custCoords[0], $custCoords[1]);
+                    if ($distKm > $maxRadius) {
+                        $refusal = "❌ *Maafi chahte hain!* Aapka address hamare restaurant se *{$distKm} km* door hai.\n\n" .
+                                   "Hamari maximum delivery limit *{$maxRadius} km* tak hai 🛵.\n\n" .
+                                   "Barah-e-karam apna koi qareebi address bhejein ya take-away / pickup order karein! 😊";
+                        Cache::put($sessionKey, $history, now()->addMinutes(self::SESSION_TTL));
+                        BotEvolutionClient::sendMessage($restaurant, $recipientJid, $refusal);
+                        return;
+                    } else {
+                        // Location verified within radius! Store coordinates for order save
+                        Cache::put("verified_delivery_coords_{$sessionKey}", $custCoords, now()->addMinutes(self::SESSION_TTL));
+                    }
+                }
+            }
+
+            // 3. Fallback: Configured manual delivery areas whitelist (if owner specified any)
+            $configuredAreas = array_filter(array_map(
+                fn ($a) => mb_strtolower(trim($a)),
+                explode(',', $restaurant->delivery_areas ?? '')
+            ));
+
+            if (! empty($configuredAreas)) {
+                $matched = false;
                 foreach ($configuredAreas as $area) {
-                    // Match whole-word / substring (area names can be partial)
                     if ($area !== '' && mb_strpos($msgLower, $area) !== false) {
                         $matched = true;
                         break;
                     }
                 }
 
-                if (! $matched) {
-                    // Build a friendly, localised refusal listing our areas
+                // Only block on manual whitelist if we also didn't get a valid geocoded GPS match
+                if (! $matched && empty($custCoords)) {
                     $areaList = implode(', ', array_map('ucwords', $configuredAreas));
                     $refusal  =
                         "❌ *Maafi chahte hain!* Hum abhi sirf in areas mein deliver karte hain:\n\n" .
@@ -171,7 +213,6 @@ class WhatsAppAiBotService
                         "Kya aapka address in mein se kisi area mein hai? 😊 " .
                         "Agar haan, toh apna poora address dobara bhejein!";
 
-                    // Save session so conversation context is preserved
                     Cache::put($sessionKey, $history, now()->addMinutes(self::SESSION_TTL));
                     BotEvolutionClient::sendMessage($restaurant, $recipientJid, $refusal);
                     return;
@@ -340,30 +381,32 @@ class WhatsAppAiBotService
         $hours   = $restaurant->hours ?: '10 AM – 11 PM';
         $delivery = (float) ($restaurant->delivery_charge ?? 50);
         $minOrder = (float) ($restaurant->minimum_order ?? 0);
+        $city     = $restaurant->city ?: 'Local Area';
+        $radius   = $restaurant->maxDeliveryRadiusKm();
         $areas    = trim($restaurant->delivery_areas ?: '');
-        $areasNotice = $areas !== '' ? "- Operational Delivery Areas ONLY: {$areas}\n" : '';
+        $areasNotice = $areas !== '' ? "- Operational Delivery Areas Whitelist: {$areas}\n" : '';
 
         $menuText  = $this->buildMenuText($restaurant);
         $dealsText = $this->buildDealsText($restaurant);
 
-        $deliveryZoneRule = $areas !== ''
-            ? implode("\n", [
-                "- STRICT DELIVERY ZONE ENFORCEMENT (NON-NEGOTIABLE):",
-                "  • We ONLY deliver to these areas: {$areas}",
-                "  • If customer provides ANY address outside these areas (different city, different phase, different town), you MUST refuse:",
-                "    → Say: \"Maafi chahte hain, hum sirf {$areas} mein deliver karte hain. Kya aapka ghar in areas mein hai?\"",
-                "  • DO NOT accept, confirm, or process any order for an address outside our delivery zones.",
-                "  • DO NOT suggest workarounds or partial deliveries.",
-                "  • If address is within zones → proceed normally.",
-              ])
-            : "- DELIVERY COVERAGE: Deliver within local restaurant operational radius.";
+        $deliveryZoneRule = implode("\n", array_filter([
+            "- STRICT LOCAL DELIVERY RADIUS & CITY LIMITS (NON-NEGOTIABLE):",
+            "  • Base City: {$city}. We ONLY deliver within {$city} and its surrounding neighborhoods up to maximum {$radius} km radius.",
+            "  • If customer gives ANY address in a different city (e.g. Karachi, Lahore, Islamabad, Multan, etc. if different from {$city}), you MUST refuse immediately.",
+            $areas !== '' ? "  • Whitelisted delivery neighborhoods: {$areas}." : null,
+            "  • If customer's address is outside our city or beyond {$radius} km, say:",
+            "    \"Maafi chahte hain! Hamara restaurant {$city} mein hai aur hum sirf {$radius} km tak deliver karte hain 🛵. Kya aapka koi qareebi address hai?\"",
+            "  • NEVER accept or confirm orders outside our delivery radius under any circumstances.",
+        ]));
 
         return <<<PROMPT
 You are Zain, a warm, polite, and professional WhatsApp ordering waiter at "{$name}" restaurant in Pakistan.
 
 RESTAURANT INFO:
 - Name: {$name}
+- City: {$city}
 - Address: {$address}
+- Delivery Radius: {$radius} km (Strict Foodpanda-style limit)
 - Delivery Charge: Rs. {$delivery}
 - Minimum Order: Rs. {$minOrder}
 - Hours: {$hours}
@@ -708,7 +751,9 @@ PROMPT;
             }
 
             // Geocode delivery address and persist for live tracking map
-            $gpsCoords = $this->geocodeAddress($address, $restaurant->city ?? '');
+            $sessionKey = "wa_session_{$restaurant->id}_{$contactPhone}";
+            $cachedGps  = Cache::get("verified_delivery_coords_{$sessionKey}");
+            $gpsCoords  = $cachedGps ?: $this->geocodeAddress($address, $restaurant->city ?? '');
             if ($gpsCoords) {
                 $order->update([
                     'delivery_lat' => $gpsCoords[0],
@@ -765,6 +810,73 @@ PROMPT;
             }
         } catch (\Throwable $e) {
             Log::debug('Geocoding failed: ' . $e->getMessage());
+        }
+
+        return null;
+    }
+
+    /**
+     * Calculate straight-line distance in kilometers between two GPS coordinates (Haversine formula).
+     */
+    private function calculateHaversineDistance(float $lat1, float $lon1, float $lat2, float $lon2): float
+    {
+        $earthRadius = 6371.0; // km
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLon = deg2rad($lon2 - $lon1);
+
+        $a = sin($dLat / 2) * sin($dLat / 2) +
+             cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
+             sin($dLon / 2) * sin($dLon / 2);
+
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+        return round($earthRadius * $c, 1);
+    }
+
+    /**
+     * Retrieve or resolve restaurant kitchen GPS coordinates.
+     *
+     * @return array{0: float, 1: float}|null
+     */
+    private function getRestaurantCoords(Restaurant $restaurant): ?array
+    {
+        if ($restaurant->restaurant_lat && $restaurant->restaurant_lng) {
+            return [(float) $restaurant->restaurant_lat, (float) $restaurant->restaurant_lng];
+        }
+
+        // Fallback to known city coords
+        $city = mb_strtolower(trim($restaurant->city ?? ''));
+        $knownCities = [
+            'lodhran' => [29.5405, 71.6336], 'multan' => [30.1575, 71.5249],
+            'bahawalpur' => [29.3544, 71.6911], 'lahore' => [31.5204, 74.3587],
+            'faisalabad' => [31.4504, 73.1350], 'rawalpindi' => [33.5651, 73.0169],
+            'islamabad' => [33.6844, 73.0479], 'karachi' => [24.8607, 67.0011],
+            'peshawar' => [34.0151, 71.5249], 'quetta' => [30.1798, 66.9750],
+            'gujranwala' => [32.1877, 74.1945], 'sialkot' => [32.4945, 74.5229],
+            'sargodha' => [32.0836, 72.6711], 'dera ghazi khan' => [30.0561, 70.6403],
+            'sahiwal' => [30.6682, 73.1114], 'okara' => [30.8081, 73.4458],
+            'khanewal' => [30.3017, 71.9321], 'vehari' => [30.0452, 72.3489],
+            'rahim yar khan' => [28.4212, 70.2989], 'hyderabad' => [25.3960, 68.3578],
+            'sukkur' => [27.7052, 68.8574],
+        ];
+
+        foreach ($knownCities as $kCity => $coords) {
+            if ($city !== '' && (mb_strpos($city, $kCity) !== false || mb_strpos($kCity, $city) !== false)) {
+                return $coords;
+            }
+        }
+
+        // Try geocoding address
+        if (!empty($restaurant->address) || !empty($restaurant->city)) {
+            $addr = trim(($restaurant->address ?? '') . ' ' . ($restaurant->city ?? ''));
+            $coords = $this->geocodeAddress($addr, $restaurant->city ?? '');
+            if ($coords) {
+                $restaurant->update([
+                    'restaurant_lat' => $coords[0],
+                    'restaurant_lng' => $coords[1],
+                ]);
+                return $coords;
+            }
         }
 
         return null;

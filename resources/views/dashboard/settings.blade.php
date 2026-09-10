@@ -4,6 +4,8 @@
 @section('header_subtitle', 'Configure business information, delivery rules, and WhatsApp bot preferences')
 
 @section('content')
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <style>
     .settings-grid {
@@ -223,15 +225,72 @@
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">🗺️ Delivery Areas <span style="color:#ef4444;font-weight:700;">*</span></label>
-                    <p class="form-hint" style="margin-bottom:8px;">Add each neighborhood / sector / phase where you deliver. The bot will <strong>refuse orders</strong> from areas not in this list.</p>
+                {{-- Hidden Coordinates inputs --}}
+                <input type="hidden" id="restaurant_lat" name="restaurant_lat" value="{{ old('restaurant_lat', $restaurant->restaurant_lat) }}">
+                <input type="hidden" id="restaurant_lng" name="restaurant_lng" value="{{ old('restaurant_lng', $restaurant->restaurant_lng) }}">
+
+                <!-- 1. FOODPANDA-STYLE DELIVERY RADIUS SLIDER -->
+                <div class="form-group" style="margin-bottom: 22px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label class="form-label" style="margin-bottom: 0; font-weight: 800; display: flex; align-items: center; gap: 6px;">
+                            <span>🛵 Maximum Delivery Radius</span>
+                            <span style="font-size: 11px; background: #ecfdf5; color: #047857; padding: 2px 8px; border-radius: 999px; font-weight: 700; border: 1px solid #a7f3d0;">Foodpanda-Style</span>
+                        </label>
+                        <span id="radius-val-badge" style="background: #10b981; color: white; padding: 3px 12px; border-radius: 999px; font-weight: 800; font-size: 13px; box-shadow: 0 2px 6px rgba(16,185,129,0.3);">
+                            {{ old('delivery_radius_km', $restaurant->delivery_radius_km ?? 5.0) }} KM
+                        </span>
+                    </div>
+
+                    <input 
+                        type="range" 
+                        id="delivery_radius_km" 
+                        name="delivery_radius_km" 
+                        min="1" 
+                        max="25" 
+                        step="0.5" 
+                        value="{{ old('delivery_radius_km', $restaurant->delivery_radius_km ?? 5.0) }}" 
+                        style="width: 100%; accent-color: #10b981; cursor: pointer;"
+                        oninput="onRadiusSliderChange(this.value)"
+                    >
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; margin-top: 4px;">
+                        <span>1 KM (Immediate)</span>
+                        <span>5 KM (Standard City)</span>
+                        <span>10 KM (Wide Area)</span>
+                        <span>25 KM (Max Coverage)</span>
+                    </div>
+                    <div class="form-hint" style="margin-top: 6px;">
+                        The WhatsApp bot calculates the customer's exact GPS distance. Any address beyond <strong><span id="radius-hint-text">{{ old('delivery_radius_km', $restaurant->delivery_radius_km ?? 5.0) }}</span> KM</strong> is politely declined.
+                    </div>
+                </div>
+
+                <!-- 2. INTERACTIVE COVERAGE GEOFENCE MAP -->
+                <div class="form-group" style="margin-bottom: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 12.5px; font-weight: 700; color: #1e293b;">📍 Kitchen Location & Delivery Geofence</span>
+                        <button type="button" onclick="locateMyKitchen()" class="btn" style="padding: 4px 10px; font-size: 11px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; color: #334155; font-weight: 600;">
+                            🎯 Auto-Detect My Location
+                        </button>
+                    </div>
+                    <div id="coverage-map" style="width: 100%; height: 260px; border-radius: 12px; border: 1.5px solid #cbd5e1; overflow: hidden; background: #f8fafc; position: relative; z-index: 1;"></div>
+                    <span style="font-size: 11px; color: #64748b; margin-top: 5px; display: block;">
+                        💡 Click anywhere on the map or drag the 🏪 pin to set your exact kitchen position. The green circle shows your live delivery zone!
+                    </span>
+                </div>
+
+                <!-- 3. OPTIONAL NEIGHBORHOOD WHITELIST -->
+                <div class="form-group" style="border-top: 1px dashed #e2e8f0; pt-3; margin-top: 20px; padding-top: 18px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <label class="form-label" style="margin-bottom: 0;">🏷️ Specific Sector Whitelist <span style="font-size: 11px; color: #94a3b8; font-weight: normal;">(Optional)</span></label>
+                    </div>
+                    <p class="form-hint" style="margin-bottom: 8px;">
+                        Optional override: If left empty, the bot automatically delivers anywhere within your <strong>KM radius</strong>. Only add names here if you want to strictly restrict delivery to specific sectors or phases.
+                    </p>
 
                     {{-- Hidden real input submitted with form --}}
                     <input type="hidden" id="delivery_areas_value" name="delivery_areas" value="{{ old('delivery_areas', $restaurant->delivery_areas) }}">
 
                     {{-- Tag chip display --}}
-                    <div id="area-tags-container" style="display:flex;flex-wrap:wrap;gap:6px;min-height:40px;padding:8px;border:1.5px solid #cbd5e1;border-radius:10px;background:#f8fafc;cursor:text;" onclick="document.getElementById('area-tag-input').focus()">
+                    <div id="area-tags-container" style="display:flex;flex-wrap:wrap;gap:6px;min-height:36px;padding:6px 8px;border:1.5px solid #cbd5e1;border-radius:10px;background:#f8fafc;cursor:text;" onclick="document.getElementById('area-tag-input').focus()">
                         {{-- JS will render chips here --}}
                     </div>
 
@@ -240,14 +299,13 @@
                         <input
                             type="text"
                             id="area-tag-input"
-                            placeholder="Type area name (e.g. Satellite Town) then press Enter"
+                            placeholder="Type sector/town name (e.g. Model Town) then press Enter"
                             class="form-control"
                             style="flex:1;"
                             onkeydown="handleAreaKeydown(event)"
                         >
                         <button type="button" onclick="addAreaTag()" class="btn" style="background:#0f172a;color:#fff;white-space:nowrap;padding:0 16px;">+ Add</button>
                     </div>
-                    <div class="form-hint" style="margin-top:6px;">Press <kbd>Enter</kbd> or click <strong>+ Add</strong> after each area. Click <strong>×</strong> to remove one.</div>
                 </div>
 
                 <div class="grid-2">
@@ -385,6 +443,115 @@
 </form>
 
 <script>
+// ── Interactive Coverage Map & Radius Geofence ────────────────────────────────
+let map, marker, circle;
+
+function initCoverageMap() {
+    const latInput = document.getElementById('restaurant_lat');
+    const lngInput = document.getElementById('restaurant_lng');
+    const radiusInput = document.getElementById('delivery_radius_km');
+    const mapContainer = document.getElementById('coverage-map');
+    if (!mapContainer) return;
+
+    // Fallback known city centers
+    const cityCoords = {
+        'lodhran': [29.5405, 71.6336], 'multan': [30.1575, 71.5249],
+        'bahawalpur': [29.3544, 71.6911], 'lahore': [31.5204, 74.3587],
+        'faisalabad': [31.4504, 73.1350], 'rawalpindi': [33.5651, 73.0169],
+        'islamabad': [33.6844, 73.0479], 'karachi': [24.8607, 67.0011],
+        'peshawar': [34.0151, 71.5249], 'quetta': [30.1798, 66.9750],
+        'gujranwala': [32.1877, 74.1945], 'sialkot': [32.4945, 74.5229],
+        'sargodha': [32.0836, 72.6711], 'sahiwal': [30.6682, 73.1114],
+        'hyderabad': [25.3960, 68.3578], 'sukkur': [27.7052, 68.8574],
+    };
+
+    const restCity = @json(strtolower(trim($restaurant->city ?? '')));
+    let defaultLat = 29.5405;
+    let defaultLng = 71.6336;
+    for (const [c, coords] of Object.entries(cityCoords)) {
+        if (restCity && (restCity.includes(c) || c.includes(restCity))) {
+            defaultLat = coords[0];
+            defaultLng = coords[1];
+            break;
+        }
+    }
+
+    let lat = parseFloat(latInput.value) || defaultLat;
+    let lng = parseFloat(lngInput.value) || defaultLng;
+    let radiusKm = parseFloat(radiusInput.value) || 5.0;
+
+    map = L.map('coverage-map', { zoomControl: true, attributionControl: false }).setView([lat, lng], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+    const kitchenIcon = L.divIcon({
+        html: '<div style="background:#0f172a;color:white;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 10px rgba(0,0,0,0.4);border:2px solid white;cursor:grab;">🏪</div>',
+        className: '', iconSize: [34, 34], iconAnchor: [17, 17]
+    });
+
+    marker = L.marker([lat, lng], { icon: kitchenIcon, draggable: true }).addTo(map);
+    circle = L.circle([lat, lng], {
+        radius: radiusKm * 1000,
+        color: '#10b981',
+        fillColor: '#10b981',
+        fillOpacity: 0.18,
+        weight: 2
+    }).addTo(map);
+
+    function updateCoords(newLat, newLng) {
+        latInput.value = newLat.toFixed(7);
+        lngInput.value = newLng.toFixed(7);
+        marker.setLatLng([newLat, newLng]);
+        circle.setLatLng([newLat, newLng]);
+    }
+
+    marker.on('dragend', function(e) {
+        const pos = e.target.getLatLng();
+        updateCoords(pos.lat, pos.lng);
+    });
+
+    map.on('click', function(e) {
+        updateCoords(e.latlng.lat, e.latlng.lng);
+    });
+
+    // If initial coords were empty, save default into inputs
+    if (!latInput.value) {
+        latInput.value = lat.toFixed(7);
+        lngInput.value = lng.toFixed(7);
+    }
+}
+
+window.onRadiusSliderChange = function(val) {
+    const km = parseFloat(val);
+    document.getElementById('radius-val-badge').textContent = km + ' KM';
+    document.getElementById('radius-hint-text').textContent = km;
+    if (circle) {
+        circle.setRadius(km * 1000);
+        map.fitBounds(circle.getBounds(), { padding: [20, 20] });
+    }
+};
+
+window.locateMyKitchen = function() {
+    if (!navigator.geolocation) {
+        alert('Geolocation is not supported by your browser.');
+        return;
+    }
+    navigator.geolocation.getCurrentPosition(function(pos) {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        document.getElementById('restaurant_lat').value = lat.toFixed(7);
+        document.getElementById('restaurant_lng').value = lng.toFixed(7);
+        if (map && marker && circle) {
+            marker.setLatLng([lat, lng]);
+            circle.setLatLng([lat, lng]);
+            map.setView([lat, lng], 14);
+        }
+    }, function() {
+        alert('Unable to retrieve your current location. Please click on the map to set your kitchen pin.');
+    });
+};
+
+document.addEventListener('DOMContentLoaded', initCoverageMap);
+
 // ── Delivery Area Tag Chip Manager ────────────────────────────────────────────
 (function () {
     const container  = document.getElementById('area-tags-container');
