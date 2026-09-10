@@ -20,6 +20,21 @@ class WhatsAppWebhookController extends Controller
      */
     public function handle(Request $request): JsonResponse
     {
+        // ── GAP 8: Webhook authentication ─────────────────────────────────────
+        // Verify the request is genuinely from our Evolution API server by
+        // checking the shared secret it sends as an "apikey" header. If no key
+        // is set in .env we skip the check (dev/local convenience).
+        $configuredKey = trim((string) env('EVOLUTION_API_KEY', ''));
+        if ($configuredKey !== '') {
+            $incomingKey = (string) ($request->header('apikey') ?? $request->header('x-api-key') ?? '');
+            if ($incomingKey !== $configuredKey) {
+                Log::warning('Evolution Webhook: Unauthorized request — invalid or missing apikey header.', [
+                    'ip' => $request->ip(),
+                ]);
+                return response()->json(['status' => 'unauthorized'], 401);
+            }
+        }
+
         $rawEvent = (string) ($request->input('event') ?? $request->input('type') ?? '');
         $event    = strtolower(str_replace(['.', '-'], '_', $rawEvent));
 
@@ -83,16 +98,26 @@ class WhatsAppWebhookController extends Controller
             'connecting' => 'qr_pending',
         ];
 
-        $newStatus = $statusMap[$state] ?? 'disconnected';
+        $newStatus      = $statusMap[$state] ?? 'disconnected';
+        $previousStatus = $restaurant->bot_status;
 
-        $restaurant->update([
+        $updateData = [
             'bot_status'       => $newStatus,
             'evolution_status' => $newStatus,
             'bot_last_seen_at' => $newStatus === 'connected' ? now() : $restaurant->bot_last_seen_at,
-        ]);
+        ];
+
+        if ($newStatus === 'disconnected' && $previousStatus === 'connected') {
+            $updateData['last_error']    = 'WhatsApp session unlinked or disconnected';
+            $updateData['last_error_at'] = now();
+        }
+
+        $restaurant->update($updateData);
 
         if ($newStatus === 'connected') {
             AuditLog::log('bot.connected', "WhatsApp bot connected for {$restaurant->name} (#{$restaurant->id}) via Evolution instance {$restaurant->evolution_instance_id}");
+        } elseif ($newStatus === 'disconnected' && $previousStatus === 'connected') {
+            AuditLog::log('bot.disconnected', "⚠️ WhatsApp bot disconnected unexpectedly for {$restaurant->name} (#{$restaurant->id}). Owner should scan QR code.");
         }
     }
 
@@ -149,6 +174,21 @@ class WhatsAppWebhookController extends Controller
         }
 
         Log::info("Evolution Webhook: Incoming message for {$restaurant->name} from [{$remoteJid}]: {$text}");
+
+        // ── GAP 4: Human handoff — mute AI while owner is handling manually ───
+        // If the restaurant owner replied to this customer directly via WhatsApp,
+        // the conversations.human_handling_until column is set. While it is in
+        // the future we silence the bot so the owner's conversation is not
+        // interrupted. This mirrors the Node.js SessionManager.isHandoffActive().
+        $handoffActive = \App\Models\Conversation::where('restaurant_id', $restaurant->id)
+            ->where('customer_phone', preg_replace('/[^0-9]/', '', $customerPhone))
+            ->where('human_handling_until', '>', now())
+            ->exists();
+
+        if ($handoffActive) {
+            Log::info("Evolution Webhook: AI muted (human handoff active) for {$customerPhone} at {$restaurant->name}");
+            return;
+        }
 
         // Target recipient: use remoteJid directly to ensure 100% reply delivery for @lid & standard accounts
         $recipientJid = $remoteJid ?: $customerPhone;

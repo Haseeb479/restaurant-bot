@@ -14,6 +14,7 @@ class Payment extends Model
         'currency',
         'payment_method',
         'payment_reference',
+        'payment_slip',
         'stripe_payment_id',
         'status',
         'completed_at',

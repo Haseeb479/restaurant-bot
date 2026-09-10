@@ -367,7 +367,7 @@ class DashboardController extends Controller
             'confirmed' => "✅ *Order Confirmed!*\n\nYour order *{$order->tracking_code}* has been accepted by *{$r->name}*!\n\n📍 *Live Tracking:* {$trackingUrl}",
             'preparing' => "👨‍🍳 *Preparing Your Food!*\n\nOur kitchen is preparing your order *{$order->tracking_code}* fresh.\n\n📍 *Live Tracking:* {$trackingUrl}",
             'out_for_delivery' => "🛵 *Order Dispatched & On The Way!*\n\nYour order *{$order->tracking_code}* has been dispatched by *{$r->name}*!{$riderInfo}{$etaText}\n💰 *Total to Pay:* Rs. " . number_format($order->total, 0) . " (" . ucwords(str_replace('_', ' ', $order->payment_method ?: 'COD')) . ")\n\n📍 *Live Tracking:* {$trackingUrl}",
-            'delivered' => "🎉 *Order Delivered!*\n\nYour order *{$order->tracking_code}* has been delivered. Enjoy your meal! Thank you for ordering from *{$r->name}*! 🙏",
+            'delivered' => "🎉 *Order Delivered!*\n\nYour order *{$order->tracking_code}* has been delivered. Enjoy your meal! Thank you for ordering from *{$r->name}*! 🙏\n\n⭐ *Rate Your Experience:*\nPlease reply with a rating from *1 to 5* ⭐ (e.g. *5* or *5 star*), along with any feedback, to let us know how we did!",
             'cancelled' => "❌ *Order Cancelled*\n\nYour order *{$order->tracking_code}* was cancelled. Please call us directly for details.",
         ];
 
@@ -901,9 +901,32 @@ class DashboardController extends Controller
         $this->authCheck($id);
         $r = Restaurant::findOrFail($id);
 
-        // 1. Guard: if the legacy single-bot process is paired to a DIFFERENT restaurant,
-        //    refuse immediately — restarting it would drop that tenant's WhatsApp session.
-        //    We check this first so no HTTP call to any /restart endpoint is made.
+        // ── GAP 6: Try Evolution API first (production multi-tenant path) ──────
+        // Previously the legacy BotControlClient was queried first, meaning every
+        // restaurant owner got a 503 when the old whatsapp-web.js process was not
+        // running. Evolution API is now the primary path; the legacy bot is only
+        // tried if Evolution is not configured (local dev / self-hosted fallback).
+        if (BotEvolutionClient::isConfigured()) {
+            $okEvo = BotEvolutionClient::restartInstance($r);
+            if ($okEvo) {
+                $r->update(['bot_status' => 'disconnected', 'evolution_status' => 'disconnected']);
+                return response()->json([
+                    'success' => true,
+                    'message' => 'WhatsApp instance restarted. You can now reconnect.',
+                ]);
+            }
+
+            // Evolution configured but restart call failed (instance may not exist yet)
+            BotEvolutionClient::createInstance($r);
+            return response()->json([
+                'success' => false,
+                'message' => 'Could not restart the WhatsApp instance. A fresh one has been created — please scan the QR code.',
+            ], 500);
+        }
+
+        // ── Legacy fallback — only reached when EVOLUTION_API_KEY is not set ──
+        // Guard: if the legacy single-bot process is paired to a DIFFERENT
+        // restaurant, refuse — restarting it would drop that tenant's session.
         try {
             $legacyStatus = BotControlClient::status();
 
@@ -922,17 +945,6 @@ class DashboardController extends Controller
             ], 503);
         }
 
-        // 2. Restart Evolution instance (per-restaurant, inherently isolated)
-        $okEvo = BotEvolutionClient::restartInstance($r);
-        if ($okEvo) {
-            $r->update(['bot_status' => 'disconnected', 'evolution_status' => 'disconnected']);
-            return response()->json([
-                'success' => true,
-                'message' => 'WhatsApp instance restarted. You can now reconnect.',
-            ]);
-        }
-
-        // 3. Legacy fallback — restart the shared bot process
         try {
             $okLegacy = BotControlClient::restart();
         } catch (\Illuminate\Http\Client\ConnectionException) {
@@ -1528,22 +1540,33 @@ class DashboardController extends Controller
             $query->whereIn('tag', ['VIP', 'Frequent']);
         }
 
-        $targetCustomers = $query->get();
+        // Limit batch to 50 recipients per broadcast run to prevent execution timeouts and Meta spam bans
+        $targetCustomers = $query->take(50)->get();
         $dealMessage = trim($request->input('message'));
-        $sentCount = 0;
+        $fullText    = "🎉 *Special Offer from {$r->name}!*\n\n{$dealMessage}\n\n_Reply *menu* anytime to order!_";
+        $sentCount   = 0;
 
         foreach ($targetCustomers as $c) {
-            $sent = BotControlClient::sendMessage(
-                $c->phone,
-                "🎉 *Special Offer from {$r->name}!*\n\n{$dealMessage}\n\n_Reply *menu* anytime to order!_",
-                ['restaurant_id' => $r->id, 'customer_id' => $c->id, 'recipient' => 'broadcast']
-            );
+            // 1. Try EvolutionAPI first (production multi-tenant instance)
+            $sent = BotEvolutionClient::sendMessage($r, $c->phone, $fullText, [
+                'restaurant_id' => $r->id,
+                'customer_id'   => $c->id,
+                'recipient'     => 'broadcast',
+            ]);
 
-            // Only count what actually went out — the old code incremented even
-            // when the send failed, so the owner was told "dispatched to 40" for
-            // a bot that was offline.
+            // 2. Fallback to legacy single-bot client if Evolution not connected
+            if (! $sent) {
+                $sent = BotControlClient::sendMessage(
+                    $c->phone,
+                    $fullText,
+                    ['restaurant_id' => $r->id, 'customer_id' => $c->id, 'recipient' => 'broadcast']
+                );
+            }
+
             if ($sent) {
                 $sentCount++;
+                // Anti-spam pacing: 300ms delay between sends to avoid WhatsApp rate limit bans
+                usleep(300_000);
             }
         }
 
@@ -1745,6 +1768,104 @@ class DashboardController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    // ── End-of-Day Cash & Rider Settlement Summary ───────────
+    public function dailyClosing(Request $request, string $id)
+    {
+        $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
+
+        $date = $request->input('date', today()->toDateString());
+        $orders = $r->orders()->with('items')->whereDate('created_at', $date)->get();
+
+        $deliveredOrders = $orders->where('status', 'delivered');
+        $cancelledOrders = $orders->where('status', 'cancelled');
+        $activeOrders    = $orders->whereNotIn('status', ['delivered', 'cancelled']);
+
+        $totalSales       = (float) $deliveredOrders->sum('total');
+        $codCollected     = (float) $deliveredOrders->where('payment_method', 'cash_on_delivery')->sum('total');
+        $onlineCollected  = (float) $deliveredOrders->where('payment_method', '!=', 'cash_on_delivery')->sum('total');
+        $deliveryFees     = (float) $deliveredOrders->sum('delivery_charge');
+        $foodSales        = (float) $deliveredOrders->sum('subtotal');
+
+        // Payment method breakdown
+        $paymentBreakdown = [
+            'cash_on_delivery' => (float) $deliveredOrders->where('payment_method', 'cash_on_delivery')->sum('total'),
+            'jazzcash'         => (float) $deliveredOrders->where('payment_method', 'jazzcash')->sum('total'),
+            'easypaisa'        => (float) $deliveredOrders->where('payment_method', 'easypaisa')->sum('total'),
+            'bank_transfer'    => (float) $deliveredOrders->where('payment_method', 'bank_transfer')->sum('total'),
+        ];
+
+        // Rider breakdown: how much cash does each rider hold to settle with cashier?
+        $riderSettlement = [];
+        foreach ($deliveredOrders->groupBy('rider_name') as $riderName => $rOrders) {
+            $riderNameKey    = $riderName ?: 'Unassigned / Self-Pickup';
+            $riderCod        = (float) $rOrders->where('payment_method', 'cash_on_delivery')->sum('total');
+            $riderOnline     = (float) $rOrders->where('payment_method', '!=', 'cash_on_delivery')->sum('total');
+            $riderSettlement[] = [
+                'rider_name'    => $riderNameKey,
+                'rider_phone'   => $rOrders->first()->rider_phone ?? '',
+                'total_orders'  => $rOrders->count(),
+                'cod_to_collect'=> $riderCod,
+                'online_orders' => $riderOnline,
+                'total_volume'  => (float) $rOrders->sum('total'),
+            ];
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success'           => true,
+                'date'              => $date,
+                'total_orders'      => $orders->count(),
+                'delivered_count'   => $deliveredOrders->count(),
+                'cancelled_count'   => $cancelledOrders->count(),
+                'active_count'      => $activeOrders->count(),
+                'total_sales'       => $totalSales,
+                'cod_collected'     => $codCollected,
+                'online_collected'  => $onlineCollected,
+                'delivery_fees'     => $deliveryFees,
+                'food_sales'        => $foodSales,
+                'payment_breakdown' => $paymentBreakdown,
+                'rider_settlement'  => $riderSettlement,
+            ]);
+        }
+
+        return view('dashboard.daily-closing', compact(
+            'r', 'date', 'orders', 'deliveredOrders', 'cancelledOrders', 'activeOrders',
+            'totalSales', 'codCollected', 'onlineCollected', 'deliveryFees', 'foodSales',
+            'paymentBreakdown', 'riderSettlement'
+        ));
+    }
+
+    // ── Thermal POS 80mm Print Slip for Daily Closing Register ──
+    public function printDailyClosing(Request $request, string $id)
+    {
+        $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
+
+        $date = $request->input('date', today()->toDateString());
+        $orders = $r->orders()->whereDate('created_at', $date)->get();
+
+        $deliveredOrders = $orders->where('status', 'delivered');
+        $cancelledOrders = $orders->where('status', 'cancelled');
+        $totalSales      = (float) $deliveredOrders->sum('total');
+        $codCollected    = (float) $deliveredOrders->where('payment_method', 'cash_on_delivery')->sum('total');
+        $onlineCollected = (float) $deliveredOrders->where('payment_method', '!=', 'cash_on_delivery')->sum('total');
+
+        $riderSettlement = [];
+        foreach ($deliveredOrders->groupBy('rider_name') as $riderName => $rOrders) {
+            $riderSettlement[] = [
+                'rider_name'    => $riderName ?: 'Self-Pickup',
+                'orders_count'  => $rOrders->count(),
+                'cod_to_collect'=> (float) $rOrders->where('payment_method', 'cash_on_delivery')->sum('total'),
+            ];
+        }
+
+        return view('dashboard.print-daily-closing', compact(
+            'r', 'date', 'orders', 'deliveredOrders', 'cancelledOrders',
+            'totalSales', 'codCollected', 'onlineCollected', 'riderSettlement'
+        ));
     }
 
     // ── Instant Bot Cache Invalidation ─────────────────────

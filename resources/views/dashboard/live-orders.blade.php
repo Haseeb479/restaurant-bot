@@ -576,7 +576,14 @@
             </p>
         </div>
 
-        <div style="display: flex; gap: 10px;">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <button id="btn-sound-toggle" onclick="toggleKitchenChime()" class="btn-action-secondary" title="Kitchen audio chime on new orders" style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 700; border-color: #818cf8; color: #4f46e5;">
+                <span id="sound-icon">🔔</span>
+                <span id="sound-label">Chime: ON</span>
+            </button>
+            <a href="{{ route('dashboard.daily-closing', $restaurant->id) }}" class="btn-action-secondary" style="background: #ecfdf5; border-color: #a7f3d0; color: #047857; font-weight: 700;" title="View Today's Cash & Rider Settlement Summary">
+                💰 Daily Closing & Cash
+            </a>
             <a href="{{ route('dashboard.orders', $restaurant->id) }}" class="btn-action-secondary" title="View Executive Dashboard Overview">
                 📊 Dashboard Overview
             </a>
@@ -1393,6 +1400,7 @@
                             showToast('🔔 New order arrived!', 'success');
                             const bell = document.getElementById('notif-bell');
                             if (bell) { bell.style.animation = 'bellShake 0.6s'; setTimeout(() => bell.style.animation = '', 700); }
+                            triggerKitchenNewOrderAlert();
                         }
                     } else {
                         orders.forEach(o => {
@@ -1417,6 +1425,103 @@
         } catch (_) { /* offline */ }
     }
 
+    // ── KITCHEN CHIME & ATTENTION AUDIO SYSTEM ──────────────────────
+    let kitchenSoundEnabled = localStorage.getItem('kitchen_sound_enabled') !== 'false';
+    let titleBlinkInterval = null;
+    const ORIGINAL_TITLE = document.title;
+
+    function updateSoundButtonUI() {
+        const icon  = document.getElementById('sound-icon');
+        const label = document.getElementById('sound-label');
+        const btn   = document.getElementById('btn-sound-toggle');
+        if (!icon || !label || !btn) return;
+
+        if (kitchenSoundEnabled) {
+            icon.textContent = '🔔';
+            label.textContent = 'Chime: ON';
+            btn.style.borderColor = '#818cf8';
+            btn.style.color = '#4f46e5';
+            btn.style.background = '#f5f3ff';
+        } else {
+            icon.textContent = '🔕';
+            label.textContent = 'Chime: OFF';
+            btn.style.borderColor = '#cbd5e1';
+            btn.style.color = '#64748b';
+            btn.style.background = '#f8fafc';
+        }
+    }
+
+    window.toggleKitchenChime = function() {
+        kitchenSoundEnabled = !kitchenSoundEnabled;
+        localStorage.setItem('kitchen_sound_enabled', kitchenSoundEnabled ? 'true' : 'false');
+        updateSoundButtonUI();
+        if (kitchenSoundEnabled) {
+            playKitchenChime();
+            showToast('🔔 Kitchen sound alert enabled', 'info');
+        } else {
+            showToast('🔕 Kitchen sound alert muted', 'warning');
+        }
+    };
+
+    function playKitchenChime() {
+        if (!kitchenSoundEnabled) return;
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            const ctx = new AudioContext();
+
+            // Dual-tone harmonic restaurant POS chime
+            const playTone = (freq, startTime, duration) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, startTime);
+                gain.gain.setValueAtTime(0.25, startTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(startTime);
+                osc.stop(startTime + duration);
+            };
+
+            const now = ctx.currentTime;
+            playTone(659.25, now, 0.35);         // E5 note
+            playTone(987.77, now + 0.12, 0.65);  // B5 harmonic
+            playTone(1318.51, now + 0.28, 0.85); // E6 chime
+        } catch (e) {
+            console.debug('Audio chime error:', e);
+        }
+    }
+
+    function triggerKitchenNewOrderAlert() {
+        playKitchenChime();
+
+        // Flash browser tab title to catch kitchen staff attention
+        if (titleBlinkInterval) clearInterval(titleBlinkInterval);
+        let flash = true;
+        titleBlinkInterval = setInterval(() => {
+            document.title = flash ? '🔔 (NEW ORDER!) ' + ORIGINAL_TITLE : '🛍️ (CHECK ORDER) ' + ORIGINAL_TITLE;
+            flash = !flash;
+        }, 800);
+    }
+
+    // Reset flashing title when user focuses/clicks on the page
+    window.addEventListener('focus', () => {
+        if (titleBlinkInterval) {
+            clearInterval(titleBlinkInterval);
+            titleBlinkInterval = null;
+            document.title = ORIGINAL_TITLE;
+        }
+    });
+    window.addEventListener('click', () => {
+        if (titleBlinkInterval) {
+            clearInterval(titleBlinkInterval);
+            titleBlinkInterval = null;
+            document.title = ORIGINAL_TITLE;
+        }
+    });
+
+    updateSoundButtonUI();
     pollLiveFeed();
     setInterval(pollLiveFeed, 5000);
 </script>

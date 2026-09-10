@@ -108,7 +108,7 @@
                     </div>
                 @endif
 
-                <form method="POST" action="{{ route('onboarding.payment.submit', $restaurant->id) }}" class="space-y-6">
+                <form method="POST" action="{{ route('onboarding.payment.submit', $restaurant->id) }}" enctype="multipart/form-data" class="space-y-6">
                     @csrf
 
                     <!-- Payment Method Selector -->
@@ -170,6 +170,18 @@
                             class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white transition"
                         >
                         <p class="text-[11px] text-slate-400 mt-1.5">Enter the confirmation code from your SMS or banking receipt for Super Admin verification.</p>
+                    </div>
+
+                    <!-- Payment Proof Slip / Screenshot Upload -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Upload Payment Receipt Screenshot (Optional but recommended)</label>
+                        <input
+                            type="file"
+                            name="payment_slip"
+                            accept="image/png,image/jpeg,image/webp,application/pdf"
+                            class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white transition file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 cursor-pointer"
+                        >
+                        <p class="text-[11px] text-slate-400 mt-1.5">Attach a screenshot of your transfer slip or transaction message to expedite approval (PNG, JPG, PDF up to 5MB).</p>
                     </div>
 
                     <button

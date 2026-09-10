@@ -90,6 +90,7 @@
             <thead>
                 <tr>
                     <th>Restaurant</th>
+                    <th>Evolution Instance</th>
                     <th>Bot Number</th>
                     <th>Connection State</th>
                     <th>Last Error / Diagnostic</th>
@@ -100,7 +101,15 @@
             <tbody>
                 @foreach($restaurants as $r)
                     <tr>
-                        <td><strong>{{ $r->name }}</strong></td>
+                        <td>
+                            <strong>{{ $r->name }}</strong>
+                            <div style="font-size: 11px; color: var(--text-secondary);">#{{ $r->id }}</div>
+                        </td>
+                        <td>
+                            <code style="font-size: 11.5px; background: rgba(99, 102, 241, 0.1); color: #4f46e5; padding: 2px 6px; border-radius: 6px;">
+                                {{ $r->evolution_instance_id ?: ('rest_' . $r->id) }}
+                            </code>
+                        </td>
                         <td><code>{{ $r->whatsapp_number }}</code></td>
                         <td>
                             @if($r->bot_status === 'connected')
@@ -122,10 +131,15 @@
                             {{ $r->bot_last_seen_at ? $r->bot_last_seen_at->diffForHumans() : 'Never' }}
                         </td>
                         <td style="text-align: right;">
-                            <form method="POST" action="{{ route('admin.restaurant.reset-bot', $r->id) }}" style="display: inline;">
-                                @csrf
-                                <button type="submit" class="btn btn-secondary btn-sm" title="Clear Error / Reconnect">🔄 Reset</button>
-                            </form>
+                            <div style="display: inline-flex; gap: 6px; align-items: center;">
+                                <a href="{{ route('dashboard.connect-whatsapp', $r->id) }}" target="_blank" class="btn btn-secondary btn-sm" style="font-size: 11px; padding: 4px 8px;" title="Open Owner QR Pairing Screen">
+                                    📱 View QR
+                                </a>
+                                <form method="POST" action="{{ route('admin.restaurant.reset-bot', $r->id) }}" style="display: inline;">
+                                    @csrf
+                                    <button type="submit" class="btn btn-secondary btn-sm" style="font-size: 11px; padding: 4px 8px;" title="Restart Instance & Reset Error">🔄 Restart</button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 @endforeach

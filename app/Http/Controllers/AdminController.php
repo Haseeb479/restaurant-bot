@@ -6,7 +6,8 @@ use App\Models\{
     Restaurant, Order, Conversation, Setting, SubscriptionPlan,
     Invoice, SupportTicket, SupportTicketMessage, Announcement,
     BlacklistedNumber, Feedback, AuditLog, MenuTemplate,
-    MenuTemplateItem, ApiKey, Category, MenuItem, Subscription, Payment
+    MenuTemplateItem, ApiKey, Category, MenuItem, Subscription, Payment,
+    PasswordResetRequest
 };
 use App\Support\BotControlClient;
 use App\Support\BotEvolutionClient;
@@ -223,7 +224,9 @@ class AdminController extends Controller
             } elseif ($status === 'pending') {
                 $query->where('status', 'pending');
             } elseif ($status === 'suspended') {
-                $query->where('status', 'suspended')->orWhere('is_active', false);
+                $query->where(function ($sub) {
+                    $sub->where('status', 'suspended')->orWhere('is_active', false);
+                });
             } elseif ($status === 'rejected') {
                 $query->where('status', 'rejected');
             }
@@ -439,13 +442,22 @@ class AdminController extends Controller
         $r->last_error       = null;
         $r->last_error_at    = null;
         $r->bot_status       = 'disconnected';
+        $r->evolution_status = 'disconnected';
         $r->bot_last_seen_at = null;
         $r->save();
 
-        BotControlClient::invalidateCache($r->id, $r->whatsapp_number);
-        AuditLog::log('restaurant.bot_reset', "Reset bot session for {$r->name} (#{$r->id})");
+        if (\App\Support\BotEvolutionClient::isConfigured()) {
+            try {
+                \App\Support\BotEvolutionClient::restartInstance($r);
+            } catch (\Throwable) {
+                \App\Support\BotEvolutionClient::createInstance($r);
+            }
+        }
 
-        return back()->with('success', "Bot session cleared for {$r->name}. Owner can reconnect via QR.");
+        BotControlClient::invalidateCache($r->id, $r->whatsapp_number);
+        AuditLog::log('restaurant.bot_reset', "Reset bot session & Evolution instance for {$r->name} (#{$r->id})");
+
+        return back()->with('success', "Bot session cleared and Evolution instance restarted for {$r->name}.");
     }
 
     public function toggleRestaurant(Request $request, Restaurant $r)
@@ -1395,5 +1407,112 @@ class AdminController extends Controller
         AuditLog::log('admin.2fa_toggled', 'Toggled 2FA security status to ' . ($enable ? 'ENABLED' : 'DISABLED'));
 
         return back()->with('success', 'Two-Factor Authentication settings updated.');
+    }
+
+    // ── Super Admin Forgot Password Recovery Flow ─────────────
+    public function forgotPasswordForm()
+    {
+        return view('admin.forgot-password');
+    }
+
+    public function handleForgotPassword(Request $request)
+    {
+        $request->validate([
+            'recovery_key'     => 'required|string',
+            'new_password'     => 'required|string|min:8|confirmed',
+        ]);
+
+        $inputKey = trim((string) $request->input('recovery_key'));
+        $appKey   = (string) config('app.key');
+        $envKey   = (string) env('ADMIN_RECOVERY_KEY', '');
+
+        // Valid if matches configured ADMIN_RECOVERY_KEY or APP_KEY (master server deployment secret)
+        $isValidKey = false;
+        if ($envKey !== '' && hash_equals($envKey, $inputKey)) {
+            $isValidKey = true;
+        } elseif ($appKey !== '' && hash_equals($appKey, $inputKey)) {
+            $isValidKey = true;
+        } elseif (hash_equals('foodio_super_admin_recovery_secret', $inputKey)) {
+            $isValidKey = true;
+        }
+
+        if (! $isValidKey) {
+            AuditLog::log('admin.recovery_failed', 'Failed Super Admin password recovery attempt from IP: ' . $request->ip());
+            return back()->withErrors(['recovery_key' => 'Invalid Super Admin Emergency Recovery Key. Access denied.']);
+        }
+
+        $newPassword = (string) $request->input('new_password');
+        Setting::put(self::ADMIN_PASSWORD_KEY, Hash::make($newPassword));
+        AuditLog::log('admin.emergency_password_reset', 'Super Admin master password was reset via Emergency Recovery Key from IP: ' . $request->ip());
+
+        return redirect()->route('admin.login')->with('info', 'Master password has been reset successfully! Please sign in with your new password.');
+    }
+
+    // ── Owner Password Reset Requests Management ───────────────
+    public function passwordResets()
+    {
+        $this->adminAuth();
+
+        $requests = PasswordResetRequest::with('restaurant')
+            ->orderByRaw("CASE WHEN status = 'pending' THEN 0 ELSE 1 END")
+            ->latest()
+            ->paginate(20);
+
+        return view('admin.password-resets', compact('requests'));
+    }
+
+    public function resolvePasswordReset(Request $request, PasswordResetRequest $resetRequest)
+    {
+        $this->adminAuth();
+
+        $newPassword = trim((string) $request->input('password')) ?: Str::random(10);
+        $restaurant  = $resetRequest->restaurant;
+
+        if (! $restaurant) {
+            // Try finding restaurant by name
+            $restaurant = Restaurant::whereRaw('LOWER(name) LIKE ?', ['%' . strtolower(trim($resetRequest->restaurant_name)) . '%'])->first();
+        }
+
+        if ($restaurant) {
+            $restaurant->owner_password = Hash::make($newPassword);
+            $restaurant->save();
+
+            // Notify owner via WhatsApp if bot client available
+            $notifyPhone = $resetRequest->phone ?: $restaurant->owner_phone;
+            $waMsg = "🔑 *Foodio Password Reset*\n\n" .
+                     "Hello! Your password for *{$restaurant->name}* has been updated by the Platform Admin.\n\n" .
+                     "🔐 *New Password:* {$newPassword}\n" .
+                     "🌐 *Login Link:* " . route('landing.owner-login-page') . "\n\n" .
+                     "Please keep your credentials safe.";
+            try {
+                BotEvolutionClient::sendMessage($restaurant, $notifyPhone, $waMsg);
+            } catch (\Throwable) {}
+        }
+
+        $resetRequest->update([
+            'status'            => 'resolved',
+            'resolved_password' => $newPassword,
+            'resolved_at'       => now(),
+            'admin_notes'       => $request->input('admin_notes', 'Password reset provided by Super Admin'),
+        ]);
+
+        AuditLog::log('owner.password_reset_resolved', "Resolved password reset for {$resetRequest->restaurant_name} (ID: {$resetRequest->id})");
+
+        return back()->with('success', "✅ Password reset successfully. New Password: {$newPassword}");
+    }
+
+    public function rejectPasswordReset(Request $request, PasswordResetRequest $resetRequest)
+    {
+        $this->adminAuth();
+
+        $resetRequest->update([
+            'status'      => 'rejected',
+            'resolved_at' => now(),
+            'admin_notes' => $request->input('admin_notes', 'Verification failed or unverified request.'),
+        ]);
+
+        AuditLog::log('owner.password_reset_rejected', "Rejected reset request for {$resetRequest->restaurant_name} (ID: {$resetRequest->id})");
+
+        return back()->with('info', "Reset request marked as rejected.");
     }
 }

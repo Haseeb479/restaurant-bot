@@ -10,6 +10,21 @@ use Illuminate\Support\Str;
 class OnboardingController extends Controller
 {
     /**
+     * Ensure the requester is either the applicant who signed up in this session,
+     * the authenticated restaurant owner, or a super admin.
+     */
+    private function authorizeOnboarding(int|string $id): void
+    {
+        $sessionOnboardingId = session('onboarding_restaurant_id');
+        $isOwnerSession      = session("restaurant_{$id}") === true;
+        $isSuperAdmin        = session('admin_logged_in') === true;
+
+        if (! $isSuperAdmin && ! $isOwnerSession && (int) $sessionOnboardingId !== (int) $id) {
+            abort(403, 'Unauthorized access to this registration application.');
+        }
+    }
+
+    /**
      * Step 1: Owner & Restaurant Signup Form
      * GET /register or /get-started
      */
@@ -72,6 +87,7 @@ class OnboardingController extends Controller
      */
     public function step2PlanForm($id)
     {
+        $this->authorizeOnboarding($id);
         $restaurant = Restaurant::findOrFail($id);
         $plans = SubscriptionPlan::where('is_active', true)->orderBy('price_monthly')->get();
 
@@ -123,6 +139,7 @@ class OnboardingController extends Controller
      */
     public function step2PlanSubmit(Request $request, $id)
     {
+        $this->authorizeOnboarding($id);
         $restaurant = Restaurant::findOrFail($id);
 
         $request->validate([
@@ -149,6 +166,7 @@ class OnboardingController extends Controller
      */
     public function step3PaymentForm($id)
     {
+        $this->authorizeOnboarding($id);
         $restaurant = Restaurant::with('subscriptionPlan')->findOrFail($id);
 
         // If restaurant is already approved, skip payment and go directly to status / dashboard
@@ -169,6 +187,7 @@ class OnboardingController extends Controller
      */
     public function step3PaymentSubmit(Request $request, $id)
     {
+        $this->authorizeOnboarding($id);
         $restaurant = Restaurant::with('subscriptionPlan')->findOrFail($id);
         $plan = $restaurant->subscriptionPlan ?: SubscriptionPlan::first();
 
@@ -184,6 +203,7 @@ class OnboardingController extends Controller
         $request->validate([
             'payment_method'    => 'required|string|in:stripe,jazzcash,easypaisa,bank_transfer',
             'payment_reference' => 'nullable|string|max:100',
+            'payment_slip'      => 'nullable|file|mimes:jpeg,png,jpg,webp,pdf|max:5120',
         ]);
 
         $interval = session('billing_interval', 'monthly');
@@ -191,6 +211,22 @@ class OnboardingController extends Controller
 
         $reference = $request->input('payment_reference') ?: ('PAY-' . strtoupper(Str::random(10)));
         $stripeId  = $request->payment_method === 'stripe' ? ('ch_' . Str::random(24)) : null;
+
+        // Process uploaded payment slip / receipt
+        $slipPath = null;
+        if ($request->hasFile('payment_slip') && $request->file('payment_slip')->isValid()) {
+            $slipFile = $request->file('payment_slip');
+            $ext = strtolower($slipFile->getClientOriginalExtension() ?: 'jpg');
+            if (in_array($ext, ['jpeg', 'png', 'jpg', 'webp', 'pdf'], true)) {
+                $dir = public_path('uploads/payments');
+                if (!is_dir($dir)) {
+                    @mkdir($dir, 0755, true);
+                }
+                $slipName = 'slip_' . $restaurant->id . '_' . bin2hex(random_bytes(8)) . '.' . $ext;
+                $slipFile->move($dir, $slipName);
+                $slipPath = 'uploads/payments/' . $slipName;
+            }
+        }
 
         // 1. Record Payment
         $payment = Payment::create([
@@ -200,6 +236,7 @@ class OnboardingController extends Controller
             'currency'          => 'PKR',
             'payment_method'    => $request->payment_method,
             'payment_reference' => $reference,
+            'payment_slip'      => $slipPath,
             'stripe_payment_id' => $stripeId,
             'status'            => 'completed',
             'completed_at'      => now(),
@@ -241,14 +278,22 @@ class OnboardingController extends Controller
     {
         $restaurant = Restaurant::with(['subscriptionPlan', 'payments'])->findOrFail($id);
 
-        // If approved by Super Admin, automatically authenticate owner session
-        if ($restaurant->status === 'active' || $restaurant->registration_status === 'approved') {
+        $sessionOnboardingId = session('onboarding_restaurant_id');
+        $isOwnerSession      = session("restaurant_{$restaurant->id}") === true;
+        $isSuperAdmin        = session('admin_logged_in') === true;
+        $isLegitimateOwner   = $isSuperAdmin || $isOwnerSession || (int) $sessionOnboardingId === (int) $restaurant->id;
+
+        // Auto-authenticate ONLY if the requester is verified as the applicant from this session
+        if ($isLegitimateOwner && ($restaurant->status === 'active' || $restaurant->registration_status === 'approved')) {
             session([
                 "restaurant_{$restaurant->id}" => true,
                 "restaurant_{$restaurant->id}_login_time" => now()->toIso8601String(),
             ]);
         }
 
-        return view('onboarding.status', compact('restaurant'));
+        return view('onboarding.status', [
+            'restaurant'           => $restaurant,
+            'isAuthenticatedOwner' => $isLegitimateOwner,
+        ]);
     }
 }

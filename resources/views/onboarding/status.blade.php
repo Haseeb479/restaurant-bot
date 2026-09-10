@@ -69,13 +69,23 @@
                     Your restaurant registration has been approved by Super Admin. Your dedicated management dashboard is live and ready.
                 </p>
 
-                <a 
-                    href="{{ route('dashboard.orders', $restaurant->id) }}" 
-                    class="inline-flex items-center justify-center gap-2 w-full py-4 bg-brand-600 hover:bg-brand-500 text-white font-extrabold text-base rounded-2xl shadow-lg shadow-brand-600/25 hover:shadow-brand-600/35 transition active:scale-[0.99]"
-                >
-                    <span>Launch Restaurant Dashboard</span>
-                    <span>→</span>
-                </a>
+                @if($isAuthenticatedOwner ?? false)
+                    <a 
+                        href="{{ route('dashboard.orders', $restaurant->id) }}" 
+                        class="inline-flex items-center justify-center gap-2 w-full py-4 bg-brand-600 hover:bg-brand-500 text-white font-extrabold text-base rounded-2xl shadow-lg shadow-brand-600/25 hover:shadow-brand-600/35 transition active:scale-[0.99]"
+                    >
+                        <span>Launch Restaurant Dashboard</span>
+                        <span>→</span>
+                    </a>
+                @else
+                    <a 
+                        href="{{ route('landing.owner-login-page') }}" 
+                        class="inline-flex items-center justify-center gap-2 w-full py-4 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-base rounded-2xl shadow-lg transition active:scale-[0.99]"
+                    >
+                        <span>Sign In to Your Dashboard</span>
+                        <span>→</span>
+                    </a>
+                @endif
             </div>
 
         @elseif($restaurant->status === 'rejected' || $restaurant->registration_status === 'rejected')

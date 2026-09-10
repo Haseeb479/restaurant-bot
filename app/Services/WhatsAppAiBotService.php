@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Feedback;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Restaurant;
@@ -25,11 +26,9 @@ class WhatsAppAiBotService
 {
     private const GROQ_API_URL  = 'https://api.groq.com/openai/v1/chat/completions';
     private const MODELS        = [
-        'groq/compound-mini',
-        'qwen/qwen3.8-27b',
-        'qwen/qwen3.6-27b',
         'llama-3.3-70b-versatile',
         'llama-3.1-8b-instant',
+        'mixtral-8x7b-32768',
     ];
     private const SESSION_TTL   = 45; // minutes
 
@@ -44,6 +43,62 @@ class WhatsAppAiBotService
             return;
         }
 
+        // ── GAP 1: Per-customer rate limiting ─────────────────────────────────
+        // Max 12 messages per 60 seconds; burst protection of 1.2 s between
+        // consecutive messages. Mirrors the Node.js RateLimiter exactly.
+        $nowMs      = (int) (microtime(true) * 1000);
+        $rateCacheKey = "wa_rate_{$restaurant->id}_{$customerPhone}";
+        $rateData   = Cache::get($rateCacheKey, ['ts' => [], 'last_warn' => 0]);
+
+        // Drop timestamps older than 60 s
+        $rateData['ts'] = array_values(array_filter($rateData['ts'], fn ($t) => $nowMs - $t < 60_000));
+
+        // Burst: last message arrived within 1.2 s → silently drop
+        if (! empty($rateData['ts']) && $nowMs - end($rateData['ts']) < 1_200) {
+            Cache::put($rateCacheKey, $rateData, now()->addMinutes(2));
+            return;
+        }
+
+        // Minute limit: >= 12 messages → warn once per 30 s then drop
+        if (count($rateData['ts']) >= 12) {
+            if ($nowMs - ($rateData['last_warn'] ?? 0) > 30_000) {
+                $rateData['last_warn'] = $nowMs;
+                BotEvolutionClient::sendMessage(
+                    $restaurant,
+                    $recipientJid,
+                    "⚠️ Bohat zyada messages aa rahe hain! Barah-e-karam thora intezar farmayein 😊\n" .
+                    "Please wait a few seconds before sending another message."
+                );
+            }
+            Cache::put($rateCacheKey, $rateData, now()->addMinutes(2));
+            return;
+        }
+
+        // Allowed — record this message
+        $rateData['ts'][] = $nowMs;
+        Cache::put($rateCacheKey, $rateData, now()->addMinutes(2));
+
+        // ── GAP 2: Restaurant closed check ────────────────────────────────────
+        // Don't accept orders or chat when the restaurant has toggled itself
+        // closed from the dashboard. Allow tracking queries through regardless.
+        if (! $restaurant->is_open) {
+            $isTrackingQuery = preg_match('/^[A-Za-z]{2,4}\d{3,6}$/', $text) ||
+                preg_match('/^(?:track|status|order)\s+/i', $text) ||
+                preg_match('/track\s*(?:id|code|\?)/i', $text) ||
+                preg_match('/^(?:track|tracking|status|kahan hai|order kahan)$/i', $text);
+
+            if (! $isTrackingQuery) {
+                $hours = $restaurant->hours ?: 'check back soon';
+                BotEvolutionClient::sendMessage(
+                    $restaurant,
+                    $recipientJid,
+                    "Sorry, *{$restaurant->name}* is currently closed 🔴\n" .
+                    "Please try again during opening hours: {$hours}."
+                );
+                return;
+            }
+        }
+
         // 1. Handle tracking inquiries (e.g. "FEZ1010", "track FEZ1010", "track id ?", "status", etc.)
         if (preg_match('/^[A-Za-z]{2,4}\d{3,6}$/', $text) ||
             preg_match('/^(?:track|status|order)\s+([A-Za-z0-9-]+)$/i', $text, $m) ||
@@ -56,7 +111,21 @@ class WhatsAppAiBotService
             return;
         }
 
-        // 2. Load / create session history (max 20 messages)
+        // 2. Handle customer order cancellation (e.g. "cancel order", "cancel FEZ1010", "order cancel karna hai")
+        if (preg_match('/^(?:cancel|order\s+cancel|cancel\s+order|radd|order\s+radd|khatam|cancel\s+karna)\b/i', $text) ||
+            preg_match('/(?:cancel|radd)\s+([A-Za-z]{2,4}\d{3,6})/i', $text, $cancelMatch)) {
+            $explicitCancelCode = isset($cancelMatch[1]) ? strtoupper(trim($cancelMatch[1])) : null;
+            $cancelReply = $this->handleOrderCancellation($restaurant, $customerPhone, $explicitCancelCode);
+            BotEvolutionClient::sendMessage($restaurant, $recipientJid, $cancelReply);
+            return;
+        }
+
+        // 3. Handle post-delivery star rating & feedback
+        if ($this->handleDeliveredFeedback($restaurant, $customerPhone, $recipientJid, $text)) {
+            return;
+        }
+
+        // 4. Load / create session history (max 20 messages)
         $sessionKey = "wa_session_{$restaurant->id}_{$customerPhone}";
         $history    = Cache::get($sessionKey, []);
 
@@ -93,11 +162,48 @@ class WhatsAppAiBotService
             if ($trackingCode) {
                 $trackUrl = url('/track/' . $trackingCode);
                 $reply .= "\n\n🎉 *Order Confirmed!*\n📦 *Your Tracking Code:* *{$trackingCode}*\n🔗 *Live Order Tracking:* {$trackUrl}\n\nSend this code anytime to check your live order & rider status!";
-                
-                // Reset session for fresh future conversations
+
+                // Reset session so next conversation starts fresh
                 Cache::forget($sessionKey);
+
+                // ── GAP 3: Notify owner/manager via WhatsApp ──────────────────
+                // Send the restaurant owner or manager a new-order WhatsApp
+                // alert immediately after saving, just like the Node.js
+                // NotifyService does. Uses the same Evolution instance so no
+                // extra infra is required.
+                $notifyPhone = $restaurant->manager_phone ?: $restaurant->owner_phone;
+                if ($notifyPhone) {
+                    // Retrieve saved order to get exact parsed total
+                    $savedOrder  = \App\Models\Order::where('tracking_code', $trackingCode)->first();
+                    $totalStr    = $savedOrder ? 'Rs. ' . number_format((float) $savedOrder->total, 0) : '';
+                    $addressStr  = $savedOrder?->delivery_address ?: 'N/A';
+                    $itemsStr    = '';
+                    if ($savedOrder && $savedOrder->items()->exists()) {
+                        $itemsStr = "\n🍽️ *Items:* " . $savedOrder->items->map(
+                            fn ($i) => "{$i->quantity}x {$i->name}"
+                        )->implode(', ');
+                    }
+
+                    $ownerMsg =
+                        "🔔 *New Order — {$restaurant->name}!*\n\n" .
+                        "📦 *#{$trackingCode}*\n" .
+                        "📱 *Customer:* {$customerPhone}" .
+                        $itemsStr .
+                        ($totalStr ? "\n💰 *Total:* {$totalStr}" : '') .
+                        "\n📍 *Address:* {$addressStr}\n\n" .
+                        "✅ Login to your dashboard to confirm the order.";
+
+                    BotEvolutionClient::sendMessage($restaurant, $notifyPhone, $ownerMsg);
+                }
             } else {
-                Cache::put($sessionKey, $history, now()->addMinutes(self::SESSION_TTL));
+                // ── GAP 5: Order save failed — don't leave customer hanging ───
+                // Clear the session so the AI doesn't loop into another spurious
+                // "order confirmed" on the next message. Override the AI's reply
+                // with a clear retry message so the customer knows to re-order.
+                Cache::forget($sessionKey);
+                $reply =
+                    "⚠️ Sorry — something went wrong saving your order, so it has *not* been placed.\n\n" .
+                    "Please send your order again in a moment, or contact us directly.";
             }
         } else {
             Cache::put($sessionKey, $history, now()->addMinutes(self::SESSION_TTL));
@@ -149,7 +255,7 @@ class WhatsAppAiBotService
         foreach ($models as $model) {
             try {
                 $response = Http::withToken($apiKey)
-                    ->timeout(15)
+                    ->timeout(7)
                     ->post(self::GROQ_API_URL, [
                         'model'       => $model,
                         'messages'    => $messages,
@@ -186,9 +292,15 @@ class WhatsAppAiBotService
         $hours   = $restaurant->hours ?: '10 AM – 11 PM';
         $delivery = (float) ($restaurant->delivery_charge ?? 50);
         $minOrder = (float) ($restaurant->minimum_order ?? 0);
+        $areas    = trim($restaurant->delivery_areas ?: '');
+        $areasNotice = $areas !== '' ? "- Operational Delivery Areas ONLY: {$areas}\n" : '';
 
         $menuText  = $this->buildMenuText($restaurant);
         $dealsText = $this->buildDealsText($restaurant);
+
+        $deliveryZoneRule = $areas !== ''
+            ? "- STRICT DELIVERY COVERAGE: We ONLY deliver to: {$areas}. If the customer's delivery address is outside these areas or in another city/zone, politely inform them we cannot deliver there, decline the order, or ask for an address within our delivery zones."
+            : "- DELIVERY COVERAGE: Deliver within local restaurant operational radius.";
 
         return <<<PROMPT
 You are Zain, a warm, polite, and professional WhatsApp ordering waiter at "{$name}" restaurant in Pakistan.
@@ -199,7 +311,7 @@ RESTAURANT INFO:
 - Delivery Charge: Rs. {$delivery}
 - Minimum Order: Rs. {$minOrder}
 - Hours: {$hours}
-
+{$areasNotice}
 {$menuText}{$dealsText}CORE PILLARS & STRICT OPERATING RULES:
 
 1. MENU IS THE ONLY SOURCE OF TRUTH (STRICT ZERO HALLUCINATION):
@@ -210,6 +322,7 @@ RESTAURANT INFO:
 
 2. SCOPE & DOMAIN BOUNDARY:
 - You are STRICTLY a restaurant waiter. You ONLY discuss food, menu, deals, restaurant timings, delivery, payment, and taking orders.
+{$deliveryZoneRule}
 - If customer asks off-topic questions, politely deflect:
   "Main to sirf {$name} ka waiter hoon aur aapke liye mazedar khana deliver karwa sakta hoon! 🍔 Aaj kya khana pasand karein ge?"
 
@@ -604,6 +717,161 @@ PROMPT;
                "💰 *Total:* Rs. " . number_format($order->total, 0) . " (" . ucwords(str_replace('_', ' ', $order->payment_method)) . ")\n" .
                "🔗 *Live Delivery Map:* {$trackUrl}\n\n" .
                "Thank you for ordering with *{$restaurant->name}*! 🙏";
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    //  Order Cancellation Handling
+    // ──────────────────────────────────────────────────────────────────────────
+
+    private function handleOrderCancellation(Restaurant $restaurant, string $customerPhone, ?string $explicitCode): string
+    {
+        $query = Order::where('restaurant_id', $restaurant->id);
+
+        if ($explicitCode) {
+            $order = (clone $query)->where('tracking_code', $explicitCode)->first();
+        } else {
+            $order = null;
+        }
+
+        if (! $order && ! empty($customerPhone)) {
+            $cleanPhone = preg_replace('/[^0-9]/', '', $customerPhone);
+            $shortPhone = substr($cleanPhone, -9);
+            $order = (clone $query)
+                ->where(function ($q) use ($cleanPhone, $shortPhone) {
+                    $q->where('customer_phone', 'like', "%{$shortPhone}%")
+                      ->orWhere('customer_phone', $cleanPhone);
+                })
+                ->whereNotIn('status', ['cancelled', 'delivered'])
+                ->orderBy('created_at', 'desc')
+                ->first();
+        }
+
+        if (! $order) {
+            return "🔍 *No Active Order Found to Cancel*\n\nWe couldn't find an active order for your number.\nIf you have a tracking code, reply like *cancel [CODE]* or call us directly at " . ($restaurant->phone ?: 'our direct number') . ".";
+        }
+
+        // Check cancellation eligibility based on current status
+        if ($order->status === 'pending') {
+            $order->update(['status' => 'cancelled']);
+
+            // Alert restaurant owner / kitchen manager immediately via WhatsApp
+            $notifyPhone = $restaurant->manager_phone ?: $restaurant->owner_phone;
+            if ($notifyPhone) {
+                $cancelAlert = "⚠️ *ORDER CANCELLED BY CUSTOMER*\n\n" .
+                    "📦 *Order:* #{$order->tracking_code}\n" .
+                    "📱 *Customer:* {$order->customer_phone}\n" .
+                    "👤 *Name:* {$order->customer_name}\n" .
+                    "💰 *Total:* Rs. " . number_format((float) $order->total, 0) . "\n\n" .
+                    "This pending order was cancelled by the customer via WhatsApp.";
+                BotEvolutionClient::sendMessage($restaurant, $notifyPhone, $cancelAlert);
+            }
+
+            Log::info("WhatsApp AI: Order #{$order->tracking_code} cancelled by customer {$customerPhone} for restaurant {$restaurant->name}");
+
+            return "❌ *Order Cancelled Successfully*\n\nYour order *#{$order->tracking_code}* has been cancelled.\nIf you change your mind, feel free to check our *menu* anytime to order again! 🙏";
+        }
+
+        if (in_array($order->status, ['confirmed', 'preparing', 'out_for_delivery'], true)) {
+            $statusNote = $order->status === 'out_for_delivery'
+                ? "is already out for delivery with our rider"
+                : "is already being prepared fresh in the kitchen";
+
+            $contactPhone = $restaurant->phone ?: ($restaurant->manager_phone ?: $restaurant->owner_phone);
+            $phoneSnippet = $contactPhone ? " at *{$contactPhone}*" : "";
+
+            return "⚠️ *Cannot Cancel Order #{$order->tracking_code} via Chat*\n\nYour order {$statusNote}.\nPlease call the restaurant directly{$phoneSnippet} right away to request urgent changes or assistance.";
+        }
+
+        if ($order->status === 'delivered') {
+            return "ℹ️ Order *#{$order->tracking_code}* has already been marked as *delivered*. We hope you enjoyed it! ⭐";
+        }
+
+        return "ℹ️ Order *#{$order->tracking_code}* has already been cancelled.";
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    //  Post-Delivery Feedback & Star Rating Handling
+    // ──────────────────────────────────────────────────────────────────────────
+
+    private function handleDeliveredFeedback(Restaurant $restaurant, string $customerPhone, string $recipientJid, string $text): bool
+    {
+        // 1. Check if the message resembles a rating or star feedback
+        // Patterns: single digit 1-5, "5 star", "5/5", "4 stars - great food", "⭐ 5", "⭐⭐⭐⭐⭐"
+        $rating = null;
+        $comment = '';
+
+        if (preg_match('/^([1-5])\s*(?:\/|out\s+of)?\s*5?(?:\s*stars?)?(?:\s*[-–—:]\s*(.*))?$/i', $text, $m)) {
+            $rating = (int) $m[1];
+            $comment = trim($m[2] ?? '');
+        } elseif (preg_match('/^([1-5])\s*star\b(?:\s*[-–—:]\s*(.*))?$/i', $text, $m)) {
+            $rating = (int) $m[1];
+            $comment = trim($m[2] ?? '');
+        } elseif (preg_match('/^[⭐*]{1,5}$/u', $text)) {
+            $rating = mb_substr_count($text, '⭐') ?: strlen($text);
+            $comment = '';
+        }
+
+        if (! $rating || $rating < 1 || $rating > 5) {
+            return false;
+        }
+
+        // 2. Find if this customer had a recently delivered order (within 48 hours)
+        $cleanPhone = preg_replace('/[^0-9]/', '', $customerPhone);
+        $shortPhone = substr($cleanPhone, -9);
+
+        $deliveredOrder = Order::where('restaurant_id', $restaurant->id)
+            ->where('status', 'delivered')
+            ->where('updated_at', '>=', now()->subHours(48))
+            ->where(function ($q) use ($cleanPhone, $shortPhone) {
+                $q->where('customer_phone', 'like', "%{$shortPhone}%")
+                  ->orWhere('customer_phone', $cleanPhone);
+            })
+            ->latest('updated_at')
+            ->first();
+
+        if (! $deliveredOrder) {
+            // Not a post-delivery context — let it flow to AI or normal conversation
+            return false;
+        }
+
+        // 3. Check if feedback already recorded for this delivered order timeframe
+        $alreadySubmitted = Feedback::where('restaurant_id', $restaurant->id)
+            ->where(function ($q) use ($cleanPhone, $shortPhone) {
+                $q->where('user_phone', 'like', "%{$shortPhone}%")
+                  ->orWhere('user_phone', $cleanPhone);
+            })
+            ->where('created_at', '>=', $deliveredOrder->updated_at->subMinutes(5))
+            ->exists();
+
+        if ($alreadySubmitted) {
+            return false;
+        }
+
+        // 4. Save feedback
+        try {
+            $customerName = $deliveredOrder->customer_name ?: 'Valued Customer';
+            Feedback::create([
+                'restaurant_id' => $restaurant->id,
+                'user_name'     => $customerName,
+                'user_phone'    => $customerPhone,
+                'rating'        => $rating,
+                'comment'       => $comment !== '' ? $comment : "Rated {$rating}/5 stars via WhatsApp",
+                'category'      => 'food',
+                'is_reviewed'   => false,
+            ]);
+
+            $starIcons = str_repeat('⭐', $rating);
+            $reply = "🌟 *Thank you for your review!* {$starIcons}\n\n" .
+                     "We've recorded your {$rating}/5 star rating for *{$restaurant->name}*.\n" .
+                     "Your feedback helps us continue serving you the freshest and tastiest food! 🙏❤️";
+
+            BotEvolutionClient::sendMessage($restaurant, $recipientJid, $reply);
+            Log::info("WhatsApp AI: Recorded {$rating}-star feedback from {$customerPhone} for {$restaurant->name}");
+            return true;
+        } catch (\Throwable $e) {
+            Log::error("WhatsApp AI: Error saving feedback: " . $e->getMessage());
+            return false;
+        }
     }
 
     // ──────────────────────────────────────────────────────────────────────────

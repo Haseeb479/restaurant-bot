@@ -1,4 +1,4 @@
-﻿@extends('layouts.admin')
+@extends('layouts.admin')
 @section('title', 'Pending Restaurant Approvals')
 @section('header_title', 'Pending Restaurant Approvals')
 @section('header_subtitle', 'Review and approve/reject self-registered restaurants')
@@ -65,6 +65,13 @@
                                 @if($lastPayment && $lastPayment->payment_reference)
                                     <div style="font-size: 10px; color: var(--text-secondary); font-family: monospace; margin-top: 2px;">
                                         Ref: {{ $lastPayment->payment_reference }}
+                                    </div>
+                                @endif
+                                @if($lastPayment && $lastPayment->payment_slip)
+                                    <div style="margin-top: 5px;">
+                                        <a href="{{ asset($lastPayment->payment_slip) }}" target="_blank" class="btn btn-secondary btn-sm" style="padding: 3px 8px; font-size: 10.5px; font-weight: 700; color: #047857; border-color: #a7f3d0; background: #ecfdf5; display: inline-flex; align-items: center; gap: 4px;">
+                                            <span>📄</span> View Payment Slip ↗
+                                        </a>
                                     </div>
                                 @endif
                             </td>

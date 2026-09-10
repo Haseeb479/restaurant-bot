@@ -19,7 +19,11 @@ class EvolutionInitCommand extends Command
         if ($id) {
             $query->where('id', $id);
         } else {
-            $query->where('status', 'active');
+            // ── GAP 7: Use the boolean is_active column, not status string ────
+            // Some restaurants may have is_active=1 but status != 'active' (e.g.
+            // 'pending' or other lifecycle values). The boolean flag is the
+            // definitive "this restaurant should have a working bot" signal.
+            $query->where('is_active', true);
         }
 
         $restaurants = $query->get();

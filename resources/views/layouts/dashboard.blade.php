@@ -1253,6 +1253,21 @@
     </header>
 
     <main>
+        @php
+            $currentRest = $restaurant ?? ($r ?? null);
+        @endphp
+        @if($currentRest && ($currentRest->bot_status === 'disconnected' || $currentRest->bot_status === 'qr_pending'))
+            <div style="background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 12px 18px; border-radius: 12px; margin-bottom: 20px; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 18px;">⚠️</span>
+                    <span>WhatsApp Bot is <strong>{{ $currentRest->bot_status === 'qr_pending' ? 'Awaiting QR Scan' : 'Offline / Disconnected' }}</strong>. Your customers cannot place orders until connected!</span>
+                </div>
+                <a href="{{ route('dashboard.connect-whatsapp', $currentRest->id) }}" style="padding: 6px 14px; background: #d97706; color: #fff; border-radius: 8px; font-size: 12px; font-weight: 800; text-decoration: none;">
+                    Scan QR & Connect →
+                </a>
+            </div>
+        @endif
+
         @if(session('success'))
             <div style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 12px 18px; border-radius: 12px; margin-bottom: 20px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
                 <span>✓</span> {{ session('success') }}

@@ -45,8 +45,8 @@ $ownerLoginHandler = function (\Illuminate\Http\Request $req) {
         })
         ->orderByRaw("CASE 
             WHEN LOWER(name) = ? THEN 1 
-            WHEN is_active = 1 AND LOWER(name) LIKE ? THEN 2
-            WHEN is_active = 1 THEN 3
+            WHEN is_active = true AND LOWER(name) LIKE ? THEN 2
+            WHEN is_active = true THEN 3
             ELSE 4 END", 
             [strtolower($input), strtolower($input) . '%']
         )
@@ -114,11 +114,22 @@ Route::post('/forgot-password', function (\Illuminate\Http\Request $req) {
     // Look up the restaurant to give a vague but honest response
     // (always return success to prevent enumeration attacks)
     $r = \App\Models\Restaurant::whereRaw('LOWER(name) LIKE ?', ['%' . strtolower(trim($req->restaurant_name)) . '%'])
-        ->where('email', trim($req->email))
+        ->where(function ($q) use ($req) {
+            $q->where('email', trim($req->email))
+              ->orWhere('owner_phone', 'like', '%' . substr(preg_replace('/[^0-9]/', '', $req->phone), -9));
+        })
         ->first();
 
+    // Record request into database
+    \App\Models\PasswordResetRequest::create([
+        'restaurant_id'   => $r?->id,
+        'restaurant_name' => trim($req->restaurant_name),
+        'email'           => trim($req->email),
+        'phone'           => trim($req->phone),
+        'status'          => 'pending',
+    ]);
+
     if ($r) {
-        // Log a reset request in audit log for admin action
         try {
             \App\Models\AuditLog::log(
                 'owner.password_reset_request',
@@ -177,7 +188,10 @@ Route::get('track/{code}/status', function (string $code) {
 // ── Rider Live GPS Delivery Portal ─────────────────────────
 Route::prefix('rider/deliver/{token}')->group(function () {
     Route::get('/',              [\App\Http\Controllers\RiderPortalController::class, 'show'])->name('rider.deliver.show');
-    Route::post('location',      [\App\Http\Controllers\RiderPortalController::class, 'updateLocation'])->middleware('throttle:120,1')->name('rider.deliver.location');
+    Route::post('location',      [\App\Http\Controllers\RiderPortalController::class, 'updateLocation'])
+        ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class])
+        ->middleware('throttle:120,1')
+        ->name('rider.deliver.location');
     Route::post('complete',      [\App\Http\Controllers\RiderPortalController::class, 'completeDelivery'])->name('rider.deliver.complete');
 });
 
@@ -236,6 +250,8 @@ Route::prefix('dashboard/{id}')->group(function () {
     Route::get('customers/export-csv',         [DashboardController::class, 'exportCustomersCsv'])->name('dashboard.export-customers-csv');
     Route::get('reports',                      [DashboardController::class, 'reports'])->name('dashboard.reports');
     Route::get('reports/export-csv',           [DashboardController::class, 'exportSalesReportCsv'])->name('dashboard.export-sales-report-csv');
+    Route::get('daily-closing',                [DashboardController::class, 'dailyClosing'])->name('dashboard.daily-closing');
+    Route::get('daily-closing/print',          [DashboardController::class, 'printDailyClosing'])->name('dashboard.print-daily-closing');
     Route::get('settings',                     [DashboardController::class, 'settings'])->name('dashboard.settings');
     Route::post('settings',                    [DashboardController::class, 'updateSettings'])->name('dashboard.update-settings');
 });
@@ -252,10 +268,15 @@ Route::prefix('admin')->group(function () {
 
     Route::get('login',                                [AdminController::class, 'loginForm'])->name('admin.login');
     Route::post('login',                               [AdminController::class, 'login'])->middleware('throttle:5,1');
+    Route::get('forgot-password',                      [AdminController::class, 'forgotPasswordForm'])->name('admin.forgot-password');
+    Route::post('forgot-password',                     [AdminController::class, 'handleForgotPassword'])->middleware('throttle:3,5')->name('admin.forgot-password.submit');
     Route::post('logout',                              [AdminController::class, 'logout'])->name('admin.logout');
     Route::get('/',                                    [AdminController::class, 'dashboard'])->name('admin.dashboard');
 
-    // 1. Restaurant Management
+    // 1. Restaurant Management & Password Reset Requests
+    Route::get('password-resets',                      [AdminController::class, 'passwordResets'])->name('admin.password-resets');
+    Route::post('password-resets/{resetRequest}/resolve', [AdminController::class, 'resolvePasswordReset'])->name('admin.password-resets.resolve');
+    Route::post('password-resets/{resetRequest}/reject',  [AdminController::class, 'rejectPasswordReset'])->name('admin.password-resets.reject');
     Route::get('restaurants',                          [AdminController::class, 'restaurants'])->name('admin.restaurants');
     Route::get('restaurants/pending',                  [AdminController::class, 'pendingRestaurants'])->name('admin.restaurants.pending');
     Route::post('restaurant/{r}/approve',              [AdminController::class, 'approveRestaurant'])->name('admin.restaurant.approve');

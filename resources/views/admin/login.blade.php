@@ -118,7 +118,12 @@
                     @csrf
 
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Admin Master Password</label>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700">Admin Master Password</label>
+                            <a href="{{ route('admin.forgot-password') }}" class="text-[11px] font-semibold text-brand-600 hover:text-brand-700 hover:underline transition">
+                                Forgot Password?
+                            </a>
+                        </div>
                         <div class="relative">
                             <input
                                 type="password"

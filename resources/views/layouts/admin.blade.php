@@ -774,6 +774,13 @@
                 <span class="nav-badge">{{ $pCount }}</span>
             @endif
         </a>
+        <a href="{{ route('admin.password-resets') }}" class="nav-item {{ request()->routeIs('admin.password-resets') ? 'active' : '' }}">
+            <div class="nav-left"><span class="icon">🔑</span><span>Password Resets</span></div>
+            @php $rCount = \App\Models\PasswordResetRequest::where('status', 'pending')->count(); @endphp
+            @if($rCount > 0)
+                <span class="nav-badge" style="background: #f59e0b;">{{ $rCount }}</span>
+            @endif
+        </a>
         <a href="{{ route('admin.create-restaurant') }}" class="nav-item {{ request()->routeIs('admin.create-restaurant') ? 'active' : '' }}">
             <div class="nav-left"><span class="icon">➕</span><span>Add Restaurant</span></div>
         </a>
