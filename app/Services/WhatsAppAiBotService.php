@@ -38,10 +38,10 @@ class WhatsAppAiBotService
     //  Public entry point
     // ──────────────────────────────────────────────────────────────────────────
 
-    public function handle(Restaurant $restaurant, string $customerPhone, string $recipientJid, string $messageText): void
+    public function handle(Restaurant $restaurant, string $customerPhone, string $recipientJid, string $messageText, ?array $locationCoords = null): void
     {
         $text = trim($messageText);
-        if ($text === '') {
+        if ($text === '' && empty($locationCoords)) {
             return;
         }
 
@@ -134,6 +134,39 @@ class WhatsAppAiBotService
         $sessionKey = "wa_session_{$restaurant->id}_{$customerPhone}";
         $history    = Cache::get($sessionKey, []);
 
+        // ── Handle Native WhatsApp Location Attachment (locationMessage) ──────
+        if ($locationCoords && isset($locationCoords['lat'], $locationCoords['lng'])) {
+            $lat = (float) $locationCoords['lat'];
+            $lng = (float) $locationCoords['lng'];
+            Cache::put("verified_delivery_coords_{$sessionKey}", [$lat, $lng], now()->addMinutes(self::SESSION_TTL));
+            if (! empty($locationCoords['address'])) {
+                Cache::put("verified_delivery_address_{$sessionKey}", $locationCoords['address'], now()->addMinutes(self::SESSION_TTL));
+            }
+
+            $restCoords = $this->getRestaurantCoords($restaurant);
+            $distKm     = $restCoords ? $this->calculateHaversineDistance($restCoords[0], $restCoords[1], $lat, $lng) : 1.0;
+            $maxRadius  = $restaurant->maxDeliveryRadiusKm();
+
+            if ($distKm > $maxRadius) {
+                $refusal = "❌ *Maafi chahte hain!* Aapki pin ki gayi location hamare restaurant se *{$distKm} km* door hai.\n\n" .
+                           "Hamari maximum delivery limit *{$maxRadius} km* tak hai 🛵.\n\n" .
+                           "Barah-e-karam apna koi qareebi address bhejein ya take-away order karein! 😊";
+                BotEvolutionClient::sendMessage($restaurant, $recipientJid, $refusal);
+                return;
+            }
+
+            // Location is verified and within radius!
+            $locAck = "📍 *Shukriya! Aapki exact delivery location pin receive ho gayi hai!* ✅\n" .
+                      "_(Kitchen se faasla: {$distKm} km)_\n\n" .
+                      "Barah-e-karam apna *Order* ya *Naam* batayein, ya agar order ready hai toh reply karein *'CONFIRM'*! 😊";
+
+            $history[] = ['role' => 'user', 'content' => "Shared GPS Pin: [Lat: {$lat}, Lng: {$lng}]" . (!empty($locationCoords['address']) ? " Address: {$locationCoords['address']}" : "")];
+            $history[] = ['role' => 'assistant', 'content' => $locAck];
+            Cache::put($sessionKey, $history, now()->addMinutes(self::SESSION_TTL));
+            BotEvolutionClient::sendMessage($restaurant, $recipientJid, $locAck);
+            return;
+        }
+
         $history[] = ['role' => 'user', 'content' => $text];
         if (count($history) > 20) {
             $history = array_slice($history, -20);
@@ -175,9 +208,11 @@ class WhatsAppAiBotService
             }
 
             // 2. GPS Radius Distance Check:
+            $cachedGps  = Cache::get("verified_delivery_coords_{$sessionKey}");
             $restCoords = $this->getRestaurantCoords($restaurant);
             if ($restCoords) {
-                $custCoords = $this->geocodeAddress($text, $restaurant->city ?? '');
+                $cleanAddr  = $this->extractAddressFromText($text);
+                $custCoords = $cachedGps ?: $this->geocodeAddress($cleanAddr, $restaurant->city ?? '');
                 if ($custCoords) {
                     $distKm = $this->calculateHaversineDistance($restCoords[0], $restCoords[1], $custCoords[0], $custCoords[1]);
                     if ($distKm > $maxRadius) {
@@ -318,6 +353,13 @@ class WhatsAppAiBotService
 
                     BotEvolutionClient::sendMessage($restaurant, $notifyPhone, $ownerMsg);
                 }
+
+                // If saved order doesn't have confirmed GPS coordinates, offer pin setting link
+                $savedOrder = \App\Models\Order::where('tracking_code', $trackingCode)->first();
+                if ($savedOrder && (! $savedOrder->delivery_lat || ! $savedOrder->delivery_lng)) {
+                    $pinLink = url('/confirm-location/' . $trackingCode);
+                    $reply .= "\n\n📍 *Doorstep Pin:* Rider ke liye apna exact map pin set karein:\n👉 {$pinLink}";
+                }
             } else {
                 // ── GAP 5: Order save failed — don't leave customer hanging ───
                 // Clear the session so the AI doesn't loop into another spurious
@@ -330,6 +372,21 @@ class WhatsAppAiBotService
             }
         } else {
             Cache::put($sessionKey, $history, now()->addMinutes(self::SESSION_TTL));
+
+            // Pre-order pin confirmation link: when AI presents summary or asks for address
+            $hasVerifiedCoords = (bool) Cache::get("verified_delivery_coords_{$sessionKey}");
+            if (! $hasVerifiedCoords && (
+                stripos($reply, 'order summary') !== false ||
+                stripos($reply, 'deliver to') !== false ||
+                preg_match('/(?:address|ghar\s*ka\s*pata|location)\b/iu', $reply)
+            )) {
+                $locToken = self::getOrCreateLocationToken($restaurant, $customerPhone, $recipientJid);
+                $pinUrl = url("/confirm-location/{$locToken}");
+                $reply .= "\n\n📍 *Set / Confirm Pin on Map:*\n" .
+                          "Apna exact doorstep pin set karne ke liye tap karein:\n" .
+                          "👉 {$pinUrl}\n" .
+                          "_(Ya WhatsApp par 📎 -> Location se direct pin share karein)_";
+            }
         }
 
         // Send AI conversational reply (taking orders, answering queries, confirmations)
@@ -768,6 +825,12 @@ PROMPT;
             // Geocode delivery address and persist for live tracking map
             $sessionKey = "wa_session_{$restaurant->id}_{$contactPhone}";
             $cachedGps  = Cache::get("verified_delivery_coords_{$sessionKey}");
+            $cachedAddr = Cache::get("verified_delivery_address_{$sessionKey}");
+            if ($cachedAddr && ($address === 'Delivery order via WhatsApp' || empty($address))) {
+                $address = $cachedAddr;
+                $order->update(['delivery_address' => $address]);
+            }
+
             $gpsCoords  = $cachedGps ?: $this->geocodeAddress($address, $restaurant->city ?? '');
             if ($gpsCoords) {
                 $order->update([
@@ -799,35 +862,135 @@ PROMPT;
     /**
      * Geocode an address string using Nominatim (OpenStreetMap).
      * Returns [lat, lng] or null on failure.
+     * Comprehensive structured logging for queries, responses, and place IDs.
      *
      * @return array{0: float, 1: float}|null
      */
     private function geocodeAddress(string $address, string $city = ''): ?array
     {
-        if (trim($address) === '') {
+        $clean = trim($address);
+        if ($clean === '' || $clean === 'Delivery order via WhatsApp') {
             return null;
         }
 
-        try {
-            $query = trim($address . ($city ? ", {$city}" : '') . ', Pakistan');
-            $encoded = urlencode($query);
-            $url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&q={$encoded}";
+        // Clean query of punctuation/markdown noise
+        $clean = preg_replace('/[#*`~_]/', ' ', $clean);
+        $clean = trim(preg_replace('/\s+/', ' ', $clean));
 
-            $response = \Illuminate\Support\Facades\Http::timeout(5)
-                ->withHeaders(['User-Agent' => 'Foodio-RestaurantBot/1.0'])
-                ->get($url);
+        $queriesToTry = [];
+        $queriesToTry[] = trim($clean . ($city ? ", {$city}" : '') . ', Pakistan');
 
-            if ($response->successful()) {
-                $data = $response->json();
-                if (! empty($data[0]['lat']) && ! empty($data[0]['lon'])) {
-                    return [(float) $data[0]['lat'], (float) $data[0]['lon']];
-                }
+        // If query has commas (e.g. "Model Town B, House 12"), try primary area + city
+        if (str_contains($clean, ',')) {
+            $parts = array_map('trim', explode(',', $clean));
+            if (!empty($parts[0]) && strlen($parts[0]) > 3) {
+                $queriesToTry[] = trim($parts[0] . ($city ? ", {$city}" : '') . ', Pakistan');
             }
-        } catch (\Throwable $e) {
-            Log::debug('Geocoding failed: ' . $e->getMessage());
         }
 
+        foreach ($queriesToTry as $query) {
+            try {
+                $encoded = urlencode($query);
+                $url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&q={$encoded}";
+
+                Log::info("Geocoding Request", [
+                    'original_address' => $address,
+                    'city'             => $city,
+                    'query'            => $query,
+                    'url'              => $url,
+                ]);
+
+                $response = \Illuminate\Support\Facades\Http::timeout(10)
+                    ->withoutVerifying()
+                    ->withHeaders(['User-Agent' => 'Foodio-RestaurantBot/1.0'])
+                    ->get($url);
+
+                $status = $response->status();
+                if ($response->successful()) {
+                    $data = $response->json();
+                    if (! empty($data[0]['lat']) && ! empty($data[0]['lon'])) {
+                        $lat = (float) $data[0]['lat'];
+                        $lon = (float) $data[0]['lon'];
+
+                        Log::info("Geocoding Found Match", [
+                            'original_address' => $address,
+                            'query'            => $query,
+                            'status'           => $status,
+                            'place_id'         => $data[0]['place_id'] ?? null,
+                            'osm_type'         => $data[0]['osm_type'] ?? null,
+                            'class'            => $data[0]['class'] ?? null,
+                            'type'             => $data[0]['type'] ?? null,
+                            'display_name'     => $data[0]['display_name'] ?? null,
+                            'lat'              => $lat,
+                            'lon'              => $lon,
+                        ]);
+
+                        return [$lat, $lon];
+                    } else {
+                        Log::info("Geocoding Empty Result", [
+                            'original_address' => $address,
+                            'query'            => $query,
+                            'status'           => $status,
+                        ]);
+                    }
+                } else {
+                    Log::warning("Geocoding HTTP Error", [
+                        'query'  => $query,
+                        'status' => $status,
+                        'body'   => $response->body(),
+                    ]);
+                }
+            } catch (\Throwable $e) {
+                Log::warning("Geocoding Exception for [{$query}]: " . $e->getMessage());
+            }
+        }
+
+        Log::warning("Geocoding Failed: No coordinates found for address [{$address}] (City: [{$city}])");
         return null;
+    }
+
+    /**
+     * Extract the core street address / locality from a conversational message.
+     */
+    private function extractAddressFromText(string $text): string
+    {
+        $cleaned = $text;
+        $remove = [
+            '/^(?:mera\s+)?address\s*(?:hai|ye\s*hai|is)?\s*[:*–-]?/iu',
+            '/^(?:deliver\s*to|delivery\s*address)\s*[:*–-]?/iu',
+            '/^(?:ghar\s+ka\s+pata|pata|location)\s*[:*–-]?/iu',
+            '/\b(?:bhejein|bhej\s*do|deliver\s*kardein|order\s*karo)\b/iu',
+            '/\b(?:near|opposite|behind)\b/iu',
+            '/\b03\d{9}\b/',
+            '/\+92\d{10}/',
+        ];
+        foreach ($remove as $pattern) {
+            $cleaned = preg_replace($pattern, ' ', $cleaned);
+        }
+        $cleaned = trim(preg_replace('/\s+/', ' ', $cleaned));
+        return $cleaned ?: $text;
+    }
+
+    /**
+     * Retrieve or generate location confirmation token for WhatsApp session.
+     */
+    public static function getOrCreateLocationToken(Restaurant $restaurant, string $customerPhone, string $recipientJid): string
+    {
+        $sessionKey = "wa_session_{$restaurant->id}_{$customerPhone}";
+        $cachedToken = Cache::get("loc_token_for_{$sessionKey}");
+        if ($cachedToken) {
+            return $cachedToken;
+        }
+
+        $token = substr(hash('sha256', "loc_{$restaurant->id}_{$customerPhone}_" . (config('app.key') ?: 'foodio')), 0, 16);
+        Cache::put("loc_token_{$token}", [
+            'restaurant_id'  => $restaurant->id,
+            'customer_phone' => $customerPhone,
+            'recipient_jid'  => $recipientJid,
+        ], now()->addHours(6));
+        Cache::put("loc_token_for_{$sessionKey}", $token, now()->addHours(6));
+
+        return $token;
     }
 
     /**

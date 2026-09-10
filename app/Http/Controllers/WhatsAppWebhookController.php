@@ -167,7 +167,28 @@ class WhatsAppWebhookController extends Controller
             ?? ''
         ));
 
-        if ($text === '') {
+        // ── Detect WhatsApp Native Location Share (locationMessage / liveLocationMessage) ──
+        $locMsg = $messageObj['locationMessage'] ?? $messageObj['liveLocationMessage'] ?? null;
+        $locationCoords = null;
+        if ($locMsg) {
+            $rawLat = $locMsg['degreesLatitude'] ?? $locMsg['latitude'] ?? null;
+            $rawLng = $locMsg['degreesLongitude'] ?? $locMsg['longitude'] ?? null;
+            if ($rawLat !== null && $rawLng !== null && is_numeric($rawLat) && is_numeric($rawLng)) {
+                $locationCoords = [
+                    'lat'     => (float) $rawLat,
+                    'lng'     => (float) $rawLng,
+                    'name'    => (string) ($locMsg['name'] ?? ''),
+                    'address' => (string) ($locMsg['address'] ?? ''),
+                ];
+                if ($text === '') {
+                    $locLabel = $locationCoords['name'] ?: $locationCoords['address'] ?: 'Pin on map';
+                    $text = "📍 [Customer shared location pin: {$locationCoords['lat']}, {$locationCoords['lng']} ({$locLabel})]";
+                }
+                Log::info("Evolution Webhook: Received native location from [{$remoteJid}] for {$restaurant->name}: Lat {$locationCoords['lat']}, Lng {$locationCoords['lng']}");
+            }
+        }
+
+        if ($text === '' && ! $locationCoords) {
             return;
         }
 
@@ -195,7 +216,8 @@ class WhatsAppWebhookController extends Controller
             $restaurant,
             $customerPhone ?: $recipientJid,
             $recipientJid,
-            $text
+            $text,
+            $locationCoords
         );
     }
 

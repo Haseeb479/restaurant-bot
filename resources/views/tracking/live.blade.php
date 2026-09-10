@@ -170,13 +170,28 @@
                         <div class="text-slate-500 text-[11px] truncate">{{ $order->restaurant->address ?: ($order->restaurant->city ?: 'Kitchen') }}</div>
                     </div>
                     <div class="pl-1">
-                        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                            <span>📍</span> Delivery Destination
+                        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center justify-between">
+                            <span class="flex items-center gap-1"><span>📍</span> Destination</span>
+                            <a href="{{ route('location.confirm', $order->tracking_code) }}" class="text-emerald-600 hover:text-emerald-700 font-semibold underline text-[10px]">
+                                {{ ($order->delivery_lat && $order->delivery_lng) ? 'Adjust Pin' : 'Set Pin' }}
+                            </a>
                         </div>
                         <div class="font-bold text-slate-800 mt-0.5 truncate">{{ $order->customer_name ?: 'Customer' }}</div>
                         <div class="text-slate-500 text-[11px] truncate">{{ $order->masked_delivery_address ?: 'Delivery Address' }}</div>
                     </div>
                 </div>
+
+                @if(! $order->delivery_lat || ! $order->delivery_lng)
+                    <div class="mt-3 bg-amber-50 border border-amber-200 text-amber-900 px-3 py-2 rounded-xl flex items-center justify-between text-xs">
+                        <div class="flex items-center gap-2">
+                            <span class="text-base">📍</span>
+                            <span>Exact doorstep pin pending confirmation</span>
+                        </div>
+                        <a href="{{ route('location.confirm', $order->tracking_code) }}" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition">
+                            Set Pin on Map
+                        </a>
+                    </div>
+                @endif
             </div>
 
             <!-- Rider Assignment Card (Shown when Rider Assigned) -->
@@ -447,12 +462,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let polyline = null;
     let destMarker = null;
 
-    const orderId = @json($order->id);
-    const fallbackLatOffset = (((orderId * 13) % 16) + 10) * 0.0016;
-    const fallbackLngOffset = (((orderId * 17) % 16) + 10) * 0.0016;
-    const fallbackDestLat = originLat + fallbackLatOffset;
-    const fallbackDestLng = originLng + fallbackLngOffset;
-
     function drawRoute(dLat, dLng) {
         destLat = dLat;
         destLng = dLng;
@@ -499,24 +508,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (hasRealDest) {
         drawRoute(destLat, destLng);
     } else {
-        // Attempt live geocode first, with instant guaranteed fallback
-        const rawAddr = @json($geocodingAddress);
-        const queryCity = @json($geocodingCity);
-
-        if (rawAddr && rawAddr.length > 3) {
-            fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(rawAddr + ', ' + queryCity + ', Pakistan'), {
-                headers: { 'Accept': 'application/json' }
-            }).then(r => r.json()).then(data => {
-                if (data && data[0] && data[0].lat) {
-                    drawRoute(parseFloat(data[0].lat), parseFloat(data[0].lon));
-                } else {
-                    drawRoute(fallbackDestLat, fallbackDestLng);
-                }
-            }).catch(() => {
-                drawRoute(fallbackDestLat, fallbackDestLng);
-            });
-        } else {
-            drawRoute(fallbackDestLat, fallbackDestLng);
+        // Real destination GPS not yet set. Center on restaurant without drawing fake routes.
+        map.setView([originLat, originLng], 14);
+        if (distTextElem) {
+            distTextElem.textContent = 'Awaiting pin confirmation 📍';
         }
     }
 

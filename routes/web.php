@@ -185,6 +185,10 @@ Route::get('track/{code}/status', function (string $code) {
     ])->header('Cache-Control', 'no-store');
 })->middleware('throttle:60,1')->name('order.track.status');
 
+// ── Customer Live Map-Pin Confirmation ─────────────────────
+Route::get('confirm-location/{token}',  [\App\Http\Controllers\LocationConfirmationController::class, 'show'])->name('location.confirm');
+Route::post('confirm-location/{token}', [\App\Http\Controllers\LocationConfirmationController::class, 'update'])->middleware('throttle:30,1')->name('location.confirm.update');
+
 // ── Rider Live GPS Delivery Portal ─────────────────────────
 Route::prefix('rider/deliver/{token}')->group(function () {
     Route::get('/',              [\App\Http\Controllers\RiderPortalController::class, 'show'])->name('rider.deliver.show');
