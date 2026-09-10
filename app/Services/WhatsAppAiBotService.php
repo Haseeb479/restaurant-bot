@@ -225,6 +225,38 @@ class WhatsAppAiBotService
             }
         }
 
+        // ── Direct Menu Request: Send Flyer + Clean Formatted Text Menu ───────
+        $isMenuQuery = (bool) preg_match('/^(?:menu|show\s+menu|send\s+menu|menu\s+dikhao|menu\s+bhejo|menu\s+card|menu\s+pdf|menu\s+photo|flyer|rate\s+list)\b/iu', $text)
+            || (bool) preg_match('/^(?:منو|مینو)$/u', $text)
+            || (bool) preg_match('/^(?:kya\s+hai|kya\s+items\s+hain|list\s+bhejo|menu\s+chahiye|apna\s+menu\s+bhejo)$/iu', $text);
+
+        $isOrdering = (bool) preg_match('/\b\d+\s*(?:x|burger|pizza|biryani|deal|half|full|plate|bottle|piece|roll|chahiye|mangwana|pack|dona|bhej\s+do)\b/i', $text);
+
+        if ($isMenuQuery && ! $isOrdering) {
+            // 1. Send visual menu flyer if uploaded
+            $menuFile = $restaurant->menu_image ?: $restaurant->menu_file;
+            if ($menuFile) {
+                $ext = strtolower(pathinfo($menuFile, PATHINFO_EXTENSION));
+                if (in_array($ext, ['jpg', 'jpeg', 'jfif', 'png', 'webp', 'gif', 'pdf'], true)) {
+                    BotEvolutionClient::sendMedia(
+                        $restaurant,
+                        $recipientJid,
+                        $menuFile,
+                        "📋 *{$restaurant->name} — Official Menu Flyer*"
+                    );
+                }
+            }
+
+            // 2. Send clean, structured text menu
+            $formattedMenu = $this->buildFormattedCustomerMenu($restaurant);
+            BotEvolutionClient::sendMessage($restaurant, $recipientJid, $formattedMenu);
+
+            $history[] = ['role' => 'user', 'content' => $text];
+            $history[] = ['role' => 'assistant', 'content' => "Menu sent! Please let me know what items and quantity you would like to order."];
+            Cache::put($sessionKey, $history, now()->addMinutes(self::SESSION_TTL));
+            return;
+        }
+
         // 3. Build system prompt from live DB menu
         $systemPrompt = $this->buildSystemPrompt($restaurant);
 
@@ -300,39 +332,7 @@ class WhatsAppAiBotService
             Cache::put($sessionKey, $history, now()->addMinutes(self::SESSION_TTL));
         }
 
-        // 6. If customer asked for menu and a visual menu flyer/image exists, send it!
-        //    We use the public URL so it works on Railway (ephemeral FS — local paths won't exist).
-        // 6. If customer explicitly asked for the menu and a visual menu flyer exists, send it!
-        $isExplicitMenuRequest = (bool) preg_match('/^(?:menu|show\s+menu|send\s+menu|menu\s+dikhao|menu\s+bhejo|menu\s+card|menu\s+pdf|menu\s+photo|flyer|rate\s+list)\b/iu', $text)
-            || (bool) preg_match('/^(?:منو|مینو)$/u', $text);
-
-        // Don't treat as menu request if customer is already ordering quantities (e.g. 1x, 2 zinger, etc.)
-        $isOrdering = (bool) preg_match('/\b\d+\s*(?:x|burger|pizza|biryani|deal|half|full|plate|bottle|piece|roll)\b/i', $text);
-        if ($isOrdering) {
-            $isExplicitMenuRequest = false;
-        }
-
-        $flyerSent = false;
-        if ($isExplicitMenuRequest) {
-            $menuFile = $restaurant->menu_image ?: $restaurant->menu_file;
-            if ($menuFile) {
-                $ext = strtolower(pathinfo($menuFile, PATHINFO_EXTENSION));
-                if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif', 'pdf'], true)) {
-                    $publicUrl = url(ltrim($menuFile, '/'));
-                    $flyerSent = BotEvolutionClient::sendMedia(
-                        $restaurant,
-                        $recipientJid,
-                        $publicUrl,
-                        "📋 *{$restaurant->name} — Full Menu*"
-                    );
-                }
-            }
-        }
-
-        // 7. Send text reply — only replace if flyer was sent and reply was just a raw greeting
-        if ($flyerSent && !preg_match('/order|confirm|total|deliver|naam|address|rupay|rs\.|subtotal/i', $reply)) {
-            $reply = "👆 Here's our complete menu! See anything you'd like? 😊 Just reply with your item & quantity and I'll take your order right away!";
-        }
+        // Send AI conversational reply (taking orders, answering queries, confirmations)
         BotEvolutionClient::sendMessage($restaurant, $recipientJid, $reply);
     }
 
@@ -1163,6 +1163,66 @@ PROMPT;
             return "Please send your *tracking code* (e.g. FEZ1010) and I'll check your order status right away!";
         }
 
-        return "Hey! 😊 I'm here to help you order from *{$name}*!{$menuSnippet}\n\nPlease reply with what you'd like to order, your name, and delivery address!";
+        return "Hey! 😊 I'm here to help you order from *{$name}*!\n\nPlease reply with what you'd like to order, your name, and delivery address!";
+    }
+
+    /**
+     * Build clean, beautiful, formatted customer menu for WhatsApp.
+     */
+    private function buildFormattedCustomerMenu(Restaurant $restaurant): string
+    {
+        $name = strtoupper($restaurant->name ?: 'Restaurant');
+        $out  = "📋 *{$name} — OFFICIAL MENU*\n";
+        $out .= "───────────────────\n";
+
+        $categories = $restaurant->categories()
+            ->with(['items' => fn($q) => $q->where('is_available', true)])
+            ->orderBy('sort_order')
+            ->get();
+
+        $hasItems = false;
+        foreach ($categories as $cat) {
+            $items = $cat->items ?? collect();
+            if ($items->isEmpty()) continue;
+            $hasItems = true;
+            $catName = strtoupper($cat->name);
+            $out .= "\n🍽️ *{$catName}*\n";
+            foreach ($items as $item) {
+                $priceStr = "Rs. " . number_format((float) $item->price, 0);
+                if (!empty($item->sizes) && is_array($item->sizes)) {
+                    $parts = array_map(fn($s) => "{$s['size']}: Rs." . number_format($s['price'] ?? 0, 0), $item->sizes);
+                    $priceStr = implode(' / ', $parts);
+                }
+                $desc = $item->description ? " _({$item->description})_" : "";
+                $out .= "• *{$item->name}* — {$priceStr}{$desc}\n";
+            }
+        }
+
+        if (!$hasItems) {
+            $items = $restaurant->menuItems()->where('is_available', true)->get();
+            foreach ($items as $item) {
+                $priceStr = "Rs. " . number_format((float) $item->price, 0);
+                if (!empty($item->sizes) && is_array($item->sizes)) {
+                    $parts = array_map(fn($s) => "{$s['size']}: Rs." . number_format($s['price'] ?? 0, 0), $item->sizes);
+                    $priceStr = implode(' / ', $parts);
+                }
+                $desc = $item->description ? " _({$item->description})_" : "";
+                $out .= "• *{$item->name}* — {$priceStr}{$desc}\n";
+            }
+        }
+
+        $radius = $restaurant->delivery_radius_km ?: 5.0;
+        $fee    = (float) ($restaurant->delivery_charge ?? 50);
+        $min    = (float) ($restaurant->minimum_order ?? 0);
+
+        $out .= "\n───────────────────\n";
+        $out .= "🛵 *Delivery Fee:* Rs. {$fee} (within {$radius} KM)\n";
+        if ($min > 0) {
+            $out .= "🏷️ *Minimum Order:* Rs. {$min}\n";
+        }
+        $out .= "✨ *Order karne ke liye:* Reply with item name & quantity!\n";
+        $out .= "_(Example: \"1 Zinger Burger aur 1 Cold Drink\")_";
+
+        return $out;
     }
 }

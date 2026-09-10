@@ -289,6 +289,7 @@ class BotEvolutionClient
         $mimeMap = [
             'jpg'  => 'image/jpeg',
             'jpeg' => 'image/jpeg',
+            'jfif' => 'image/jpeg',
             'png'  => 'image/png',
             'webp' => 'image/webp',
             'gif'  => 'image/gif',
@@ -297,13 +298,24 @@ class BotEvolutionClient
         $mime = $mimeMap[$ext] ?? 'application/octet-stream';
         $mediaType = str_starts_with($mime, 'image/') ? 'image' : 'document';
 
-        // If local file exists, convert to Base64 for 100% reliable direct transfer
+        // Check potential local file paths for Base64 conversion
         $mediaData = $filePathOrUrl;
         $localPath = null;
-        if (file_exists($filePathOrUrl)) {
-            $localPath = $filePathOrUrl;
-        } elseif (file_exists(public_path(ltrim($filePathOrUrl, '/')))) {
-            $localPath = public_path(ltrim($filePathOrUrl, '/'));
+        $cleanRel  = ltrim($filePathOrUrl, '/');
+        $candidates = [
+            $filePathOrUrl,
+            public_path($cleanRel),
+            public_path('menus/' . basename($filePathOrUrl)),
+            public_path('uploads/' . $cleanRel),
+            public_path('uploads/menus/' . basename($filePathOrUrl)),
+            storage_path('app/public/' . $cleanRel),
+        ];
+
+        foreach ($candidates as $cand) {
+            if ($cand && file_exists($cand) && is_readable($cand) && !is_dir($cand)) {
+                $localPath = $cand;
+                break;
+            }
         }
 
         if ($localPath && is_readable($localPath)) {
@@ -311,6 +323,8 @@ class BotEvolutionClient
             if ($fileContents !== false) {
                 $mediaData = base64_encode($fileContents);
             }
+        } elseif (!str_starts_with($mediaData, 'http://') && !str_starts_with($mediaData, 'https://')) {
+            $mediaData = url($cleanRel);
         }
 
         $response = self::send('post', "/message/sendMedia/{$instanceName}", [
