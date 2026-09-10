@@ -1492,7 +1492,7 @@ class DashboardController extends Controller
         // Auto-sync past orders into customers table if empty
         if ($r->customers()->count() === 0 && $r->orders()->count() > 0) {
             $pastCustomers = Order::where('restaurant_id', $r->id)
-                ->selectRaw('customer_phone, MAX(customer_name) as name, MAX(delivery_address) as address, COUNT(*) as total_orders, SUM(CASE WHEN status != "cancelled" THEN total ELSE 0 END) as total_spent, MAX(created_at) as last_order_at')
+                ->selectRaw("customer_phone, MAX(customer_name) as name, MAX(delivery_address) as address, COUNT(*) as total_orders, SUM(CASE WHEN status != 'cancelled' THEN total ELSE 0 END) as total_spent, MAX(created_at) as last_order_at")
                 ->groupBy('customer_phone')
                 ->get();
 
