@@ -31,6 +31,8 @@ class Order extends Model
         'rider_lat',
         'rider_lng',
         'rider_location_updated_at',
+        'delivery_lat',
+        'delivery_lng',
     ];
 
     protected $casts = [
@@ -43,6 +45,8 @@ class Order extends Model
         'rider_lat'                 => 'decimal:7',
         'rider_lng'                 => 'decimal:7',
         'rider_location_updated_at' => 'datetime',
+        'delivery_lat'              => 'decimal:7',
+        'delivery_lng'              => 'decimal:7',
     ];
 
     // ─── Relationships ────────────────────────────────────────────────────────

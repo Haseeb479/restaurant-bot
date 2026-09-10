@@ -303,75 +303,37 @@ document.addEventListener('DOMContentLoaded', function() {
     const mapContainer = document.getElementById('live-tracking-map');
     if (!mapContainer) return;
 
-    // Comprehensive Pakistan Cities & Districts Coordinates Lookup
+
+
+    @php
+        $hasLiveGps       = $order->hasLiveGps();
+        $initialRiderLat  = $order->rider_lat  ? (float) $order->rider_lat  : null;
+        $initialRiderLng  = $order->rider_lng  ? (float) $order->rider_lng  : null;
+        $realRestLat      = $order->restaurant->restaurant_lat  ? (float) $order->restaurant->restaurant_lat  : null;
+        $realRestLng      = $order->restaurant->restaurant_lng  ? (float) $order->restaurant->restaurant_lng  : null;
+        $realDeliveryLat  = $order->delivery_lat ? (float) $order->delivery_lat : null;
+        $realDeliveryLng  = $order->delivery_lng ? (float) $order->delivery_lng : null;
+        $geocodingAddress = $order->delivery_address ? trim(str_replace(['•••', 'hidden'], '', $order->delivery_address)) : '';
+        $geocodingCity    = $order->restaurant->city ?? 'Pakistan';
+    @endphp
+
+    // Pakistan city centre fallback table
     const cityCoords = {
-        'lodhran': [29.5405, 71.6336],
-        'multan': [30.1575, 71.5249],
-        'bahawalpur': [29.3544, 71.6911],
-        'bahawalnagar': [29.9987, 73.2536],
-        'khanewal': [30.3017, 71.9321],
-        'vehari': [30.0452, 72.3489],
-        'rahim yar khan': [28.4212, 70.2989],
-        'sadiqabad': [28.3090, 70.1332],
-        'muzaffargarh': [30.0703, 71.1933],
-        'dera ghazi khan': [30.0561, 70.6403],
-        'dg khan': [30.0561, 70.6403],
-        'sahiwal': [30.6682, 73.1114],
-        'okara': [30.8081, 73.4458],
-        'pakpattan': [30.3410, 73.3866],
-        'kasur': [31.1179, 74.4466],
-        'sheikhupura': [31.7131, 73.9783],
-        'nankana sahib': [31.4500, 73.7000],
-        'faisalabad': [31.4504, 73.1350],
-        'jhang': [31.2781, 72.3317],
-        'toba tek singh': [30.9713, 72.4827],
-        'chiniot': [31.7200, 72.9789],
-        'sargodha': [32.0836, 72.6711],
-        'mianwali': [32.5839, 71.5370],
-        'khushab': [32.2955, 72.3525],
-        'bhakkar': [31.6253, 71.0657],
-        'layyah': [30.9613, 70.9398],
-        'gujranwala': [32.1877, 74.1945],
-        'sialkot': [32.4945, 74.5229],
-        'gujrat': [32.5742, 74.0754],
-        'mandi bahauddin': [32.5870, 73.4912],
-        'hafizabad': [32.0679, 73.6880],
-        'narowal': [32.0995, 74.8763],
-        'wazirabad': [32.4431, 74.1194],
-        'jhelum': [32.9405, 73.7276],
-        'chakwal': [32.9328, 72.8630],
-        'rawalpindi': [33.5651, 73.0169],
-        'islamabad': [33.6844, 73.0479],
-        'attock': [33.7667, 72.3667],
-        'lahore': [31.5204, 74.3587],
-        'karachi': [24.8607, 67.0011],
-        'hyderabad': [25.3960, 68.3578],
-        'sukkur': [27.7052, 68.8574],
-        'larkana': [27.5589, 68.2120],
-        'nawabshah': [26.2483, 68.4096],
-        'mirpur khas': [25.5276, 69.0159],
-        'jacobabad': [28.2819, 68.4386],
-        'shikarpur': [27.9556, 68.6382],
-        'peshawar': [34.0151, 71.5249],
-        'mardan': [34.1989, 72.0403],
-        'swat': [35.2227, 72.4258],
-        'mingora': [34.7717, 72.3602],
-        'abbottabad': [34.1688, 73.2215],
-        'mansehra': [34.3333, 73.2000],
-        'kohat': [33.5869, 71.4414],
-        'bannu': [32.9861, 70.6042],
-        'dera ismail khan': [31.8314, 70.9019],
-        'di khan': [31.8314, 70.9019],
-        'haripur': [33.9999, 72.9333],
-        'quetta': [30.1798, 66.9750],
+        'lodhran': [29.5405, 71.6336], 'multan': [30.1575, 71.5249],
+        'bahawalpur': [29.3544, 71.6911], 'lahore': [31.5204, 74.3587],
+        'faisalabad': [31.4504, 73.1350], 'rawalpindi': [33.5651, 73.0169],
+        'islamabad': [33.6844, 73.0479], 'karachi': [24.8607, 67.0011],
+        'peshawar': [34.0151, 71.5249], 'quetta': [30.1798, 66.9750],
+        'gujranwala': [32.1877, 74.1945], 'sialkot': [32.4945, 74.5229],
+        'sargodha': [32.0836, 72.6711], 'dera ghazi khan': [30.0561, 70.6403],
+        'muzaffargarh': [30.0703, 71.1933], 'sahiwal': [30.6682, 73.1114],
+        'okara': [30.8081, 73.4458], 'khanewal': [30.3017, 71.9321],
+        'vehari': [30.0452, 72.3489], 'bahawalnagar': [29.9987, 73.2536],
+        'rahim yar khan': [28.4212, 70.2989], 'sadiqabad': [28.3090, 70.1332],
+        'hyderabad': [25.3960, 68.3578], 'sukkur': [27.7052, 68.8574],
+        'abbottabad': [34.1688, 73.2215], 'mardan': [34.1989, 72.0403],
+        'gilgit': [35.9208, 74.3089], 'quetta': [30.1798, 66.9750],
         'gwadar': [25.1216, 62.3254],
-        'turbat': [26.0031, 63.0544],
-        'khuzdar': [27.8167, 66.6167],
-        'hub': [25.0286, 66.8833],
-        'muzaffarabad': [34.3597, 73.4708],
-        'mirpur': [33.1484, 73.7519],
-        'gilgit': [35.9208, 74.3089],
-        'skardu': [35.2971, 75.6333]
     };
 
     function resolveCoords(str) {
@@ -383,175 +345,153 @@ document.addEventListener('DOMContentLoaded', function() {
         return null;
     }
 
-    const restaurantCity = @json(strtolower(trim($order->restaurant->city ?? '')));
-    const restaurantAddr = @json(strtolower(trim($order->restaurant->address ?? '')));
-    const customerAddr   = @json(strtolower(trim($order->masked_delivery_address ?? '')));
-
-    const baseOrigin = resolveCoords(restaurantCity) 
-        || resolveCoords(restaurantAddr) 
-        || resolveCoords(customerAddr) 
-        || [29.5405, 71.6336]; // Lodhran / South Punjab default fallback
-
-    // Seeded offset based on order id to create a realistic 2.5 - 4.5 km route
-    const orderId = {{ $order->id }};
-    const latOffset = (((orderId * 13) % 25) + 15) * 0.001;
-    const lngOffset = (((orderId * 17) % 25) + 15) * 0.001;
-
-    const originLat = baseOrigin[0];
-    const originLng = baseOrigin[1];
-    const destLat = originLat + latOffset;
-    const destLng = originLng + lngOffset;
-
-    // Calculate approximate distance in km (Haversine formula)
-    function calcDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371; // km
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                  Math.sin(dLon/2) * Math.sin(dLon/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        return (R * c).toFixed(1);
-    }
-
-    const totalDistKm = parseFloat(calcDistance(originLat, originLng, destLat, destLng));
-    const distTextElem = document.getElementById('distance-text');
-    const orderStatus = @json($order->status);
-
-    // Initialize Leaflet Map
-    const map = L.map('live-tracking-map', {
-        zoomControl: false,
-        attributionControl: false
-    }).setView([(originLat + destLat)/2, (originLng + destLng)/2], 14);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19
-    }).addTo(map);
-
-    // Custom Icon Creators
-    const restIcon = L.divIcon({
-        html: '<div style="background: #0f172a; color: white; width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: 2px solid white;">🏪</div>',
-        className: 'leaflet-div-icon',
-        iconSize: [34, 34],
-        iconAnchor: [17, 17]
-    });
-
-    const destIcon = L.divIcon({
-        html: '<div style="background: #ef4444; color: white; width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; box-shadow: 0 4px 10px rgba(239,68,68,0.4); border: 2px solid white;">📍</div>',
-        className: 'leaflet-div-icon',
-        iconSize: [34, 34],
-        iconAnchor: [17, 17]
-    });
-
-    const riderIcon = L.divIcon({
-        html: '<div style="background: #10b981; color: white; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(16,185,129,0.5); border: 3px solid white; animation: pulse-dot 1.5s infinite;">🛵</div>',
-        className: 'leaflet-div-icon',
-        iconSize: [38, 38],
-        iconAnchor: [19, 19]
-    });
-
-    // Add Markers
-    const restMarker = L.marker([originLat, originLng], { icon: restIcon }).addTo(map).bindPopup('<b>Kitchen Origin</b><br>' + @json($order->restaurant->name));
-    const destMarker = L.marker([destLat, destLng], { icon: destIcon }).addTo(map).bindPopup('<b>Delivery Destination</b><br>' + @json($order->customer_name ?: 'Customer'));
-
-    // Route Polyline Points with intermediate waypoints
-    const midLat = originLat + (latOffset * 0.45) + 0.003;
-    const midLng = originLng + (lngOffset * 0.6) - 0.002;
-    let routePoints = [
-        [originLat, originLng],
-        [originLat + latOffset*0.2, originLng + lngOffset*0.1],
-        [midLat, midLng],
-        [originLat + latOffset*0.8, originLng + lngOffset*0.75],
-        [destLat, destLng]
-    ];
-
-    const polyline = L.polyline(routePoints, {
-        color: '#10b981',
-        weight: 5,
-        opacity: 0.8,
-        dashArray: orderStatus === 'delivered' ? null : '8, 8'
-    }).addTo(map);
-
-    @php
-        $geocodingAddress = '';
-        if ($order && $order->masked_delivery_address) {
-            $geocodingAddress = trim(str_replace(['•••', 'hidden'], '', $order->masked_delivery_address));
-        }
-        $geocodingCity = ($order && $order->restaurant && $order->restaurant->city) ? $order->restaurant->city : 'Pakistan';
-        $hasLiveGps = $order ? $order->hasLiveGps() : false;
-        $initialRiderLat = ($order && $order->rider_lat) ? (float) $order->rider_lat : null;
-        $initialRiderLng = ($order && $order->rider_lng) ? (float) $order->rider_lng : null;
-    @endphp
-
-    // Try precise geocoding for customer address if given
-    const rawDeliveryAddr = @json($geocodingAddress);
-    if (rawDeliveryAddr && rawDeliveryAddr.length > 3) {
-        const queryCity = @json($geocodingCity);
-        const searchQuery = encodeURIComponent(rawDeliveryAddr + ', ' + queryCity + ', Pakistan');
-        fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + searchQuery, { headers: { 'Accept': 'application/json' } })
-            .then(r => r.json())
-            .then(data => {
-                if (data && data[0] && data[0].lat && data[0].lon) {
-                    const realDestLat = parseFloat(data[0].lat);
-                    const realDestLng = parseFloat(data[0].lon);
-                    destMarker.setLatLng([realDestLat, realDestLng]);
-                    const newRoute = [
-                        [originLat, originLng],
-                        [(originLat + realDestLat)/2 + 0.002, (originLng + realDestLng)/2 - 0.002],
-                        [realDestLat, realDestLng]
-                    ];
-                    polyline.setLatLngs(newRoute);
-                    map.fitBounds(polyline.getBounds(), { padding: [35, 35] });
-                }
-            })
-            .catch(() => {});
-    }
-
-    // Check if real GPS coordinates exist on initial load
-    const initialLiveGps = @json($hasLiveGps);
+    // ── Real GPS from DB ──────────────────────────────────────────────────────
+    const dbRestLat       = @json($realRestLat);
+    const dbRestLng       = @json($realRestLng);
+    const dbDeliveryLat   = @json($realDeliveryLat);
+    const dbDeliveryLng   = @json($realDeliveryLng);
+    const initialLiveGps  = @json($hasLiveGps);
     const initialRiderLat = @json($initialRiderLat);
     const initialRiderLng = @json($initialRiderLng);
+    const orderStatus     = @json($order->status);
 
-    // Rider Position Initializer
-    let currentRiderLat = originLat + (latOffset * 0.1);
-    let currentRiderLng = originLng + (lngOffset * 0.1);
+    // ── Restaurant origin ─────────────────────────────────────────────────────
+    const restaurantCity = @json(strtolower(trim($order->restaurant->city ?? '')));
+    const fallbackOrigin = resolveCoords(restaurantCity) || [29.5405, 71.6336];
+    const originLat = dbRestLat || fallbackOrigin[0];
+    const originLng = dbRestLng || fallbackOrigin[1];
 
+    // ── Delivery destination ──────────────────────────────────────────────────
+    let destLat = dbDeliveryLat || null;
+    let destLng = dbDeliveryLng || null;
+    const hasRealDest = !!(destLat && destLng);
+
+    // Calculate approximate distance in km (Haversine)
+    function calcDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2)**2 +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLon/2)**2;
+        return (R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))).toFixed(1);
+    }
+
+    // ── Map init ──────────────────────────────────────────────────────────────
+    const mapCenterLat = destLat ? (originLat + destLat) / 2 : originLat;
+    const mapCenterLng = destLng ? (originLng + destLng) / 2 : originLng;
+
+    const map = L.map('live-tracking-map', { zoomControl: false, attributionControl: false })
+        .setView([mapCenterLat, mapCenterLng], destLat ? 13 : 14);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+    // Icons
+    const restIcon = L.divIcon({
+        html: '<div style="background:#0f172a;color:white;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 10px rgba(0,0,0,0.3);border:2px solid white;">🏪</div>',
+        className: 'leaflet-div-icon', iconSize: [34, 34], iconAnchor: [17, 17]
+    });
+    const destIcon = L.divIcon({
+        html: '<div style="background:#ef4444;color:white;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 10px rgba(239,68,68,0.4);border:2px solid white;">📍</div>',
+        className: 'leaflet-div-icon', iconSize: [34, 34], iconAnchor: [17, 17]
+    });
+    const riderIcon = L.divIcon({
+        html: '<div style="background:#10b981;color:white;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 12px rgba(16,185,129,0.5);border:3px solid white;animation:pulse-dot 1.5s infinite;">🛵</div>',
+        className: 'leaflet-div-icon', iconSize: [38, 38], iconAnchor: [19, 19]
+    });
+
+    // Restaurant marker (always shown)
+    L.marker([originLat, originLng], { icon: restIcon }).addTo(map)
+        .bindPopup('<b>Kitchen</b><br>' + @json($order->restaurant->name));
+
+    // Distance badge element
+    const distTextElem = document.getElementById('distance-text');
+
+    function updateDistanceBadge(rLat, rLng, isLive) {
+        if (!distTextElem) return;
+        if (orderStatus === 'delivered') {
+            distTextElem.textContent = 'Delivered 🎉';
+            return;
+        }
+        if (destLat && destLng) {
+            const rem = parseFloat(calcDistance(rLat, rLng, destLat, destLng));
+            if (isLive) {
+                distTextElem.innerHTML = `<span style="color:#10b981;">📡 Live GPS:</span> ${rem} km away (~${Math.max(1, Math.round(rem * 3))} mins)`;
+            } else if (orderStatus === 'out_for_delivery') {
+                distTextElem.textContent = `${rem} km away • On the way 🛵`;
+            } else {
+                const total = parseFloat(calcDistance(originLat, originLng, destLat, destLng));
+                distTextElem.textContent = `${total} km total distance`;
+            }
+        } else {
+            distTextElem.textContent = orderStatus === 'out_for_delivery' ? 'On the way 🛵' : 'Calculating...';
+        }
+    }
+
+    // Rider marker
+    let currentRiderLat = originLat;
+    let currentRiderLng = originLng;
     if (initialLiveGps && initialRiderLat && initialRiderLng) {
         currentRiderLat = initialRiderLat;
         currentRiderLng = initialRiderLng;
-    } else if (orderStatus === 'out_for_delivery') {
-        currentRiderLat = originLat + (latOffset * 0.55);
-        currentRiderLng = originLng + (lngOffset * 0.55);
-    } else if (orderStatus === 'delivered') {
+    } else if (orderStatus === 'out_for_delivery' && destLat && destLng) {
+        currentRiderLat = (originLat + destLat) / 2;
+        currentRiderLng = (originLng + destLng) / 2;
+    } else if (orderStatus === 'delivered' && destLat && destLng) {
         currentRiderLat = destLat;
         currentRiderLng = destLng;
     }
-
     const riderMarker = L.marker([currentRiderLat, currentRiderLng], { icon: riderIcon }).addTo(map);
 
-    function updateRiderDistanceDisplay(rLat, rLng, isLiveGps) {
-        if (!distTextElem) return;
-        if (orderStatus === 'delivered') {
-            distTextElem.textContent = totalDistKm + ' km (Delivered 🎉)';
-            return;
-        }
+    // ── Destination marker + route ────────────────────────────────────────────
+    let polyline = null;
+    let destMarker = null;
 
-        const remainingKm = parseFloat(calcDistance(rLat, rLng, destLat, destLng));
-        if (isLiveGps) {
-            distTextElem.innerHTML = `<span style="color: #10b981;">📡 Live GPS:</span> ${remainingKm} km away (~${Math.max(1, Math.round(remainingKm * 3))} mins)`;
-        } else if (orderStatus === 'out_for_delivery') {
-            distTextElem.textContent = remainingKm + ' km away • On the way 🛵';
+    function drawRoute(dLat, dLng) {
+        destLat = dLat;
+        destLng = dLng;
+        if (destMarker) destMarker.setLatLng([dLat, dLng]);
+        else {
+            destMarker = L.marker([dLat, dLng], { icon: destIcon }).addTo(map)
+                .bindPopup('<b>Delivery Destination</b><br>' + @json($order->customer_name ?: 'Customer'));
+        }
+        const routePts = [
+            [originLat, originLng],
+            [(originLat + dLat) / 2 + 0.002, (originLng + dLng) / 2 - 0.002],
+            [dLat, dLng]
+        ];
+        if (polyline) polyline.setLatLngs(routePts);
+        else polyline = L.polyline(routePts, { color: '#10b981', weight: 5, opacity: 0.8, dashArray: orderStatus === 'delivered' ? null : '8, 8' }).addTo(map);
+        map.fitBounds(polyline.getBounds(), { padding: [35, 35] });
+        updateDistanceBadge(currentRiderLat, currentRiderLng, initialLiveGps);
+    }
+
+    if (hasRealDest) {
+        drawRoute(destLat, destLng);
+    } else {
+        // Attempt live Nominatim geocode for the delivery address
+        const rawAddr = @json($geocodingAddress);
+        const queryCity = @json($geocodingCity);
+        if (rawAddr && rawAddr.length > 3) {
+            fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(rawAddr + ', ' + queryCity + ', Pakistan'), {
+                headers: { 'Accept': 'application/json' }
+            }).then(r => r.json()).then(data => {
+                if (data && data[0] && data[0].lat) drawRoute(parseFloat(data[0].lat), parseFloat(data[0].lon));
+                else updateDistanceBadge(currentRiderLat, currentRiderLng, false);
+            }).catch(() => updateDistanceBadge(currentRiderLat, currentRiderLng, false));
         } else {
-            distTextElem.textContent = totalDistKm + ' km Total Distance';
+            updateDistanceBadge(currentRiderLat, currentRiderLng, false);
         }
     }
 
-    updateRiderDistanceDisplay(currentRiderLat, currentRiderLng, initialLiveGps);
+    updateDistanceBadge(currentRiderLat, currentRiderLng, initialLiveGps);
 
-    // Expose update function for live polling
+    // Expose for live GPS polling
     window.updateRiderLivePosition = function(lat, lng) {
         riderMarker.setLatLng([lat, lng]);
-        updateRiderDistanceDisplay(lat, lng, true);
+        currentRiderLat = lat;
+        currentRiderLng = lng;
+        updateDistanceBadge(lat, lng, true);
     };
 });
 </script>

@@ -53,6 +53,8 @@ class Restaurant extends Model
         'evolution_instance_id',
         'evolution_status',
         'bot_phone_number',
+        'restaurant_lat',
+        'restaurant_lng',
     ];
 
     protected $casts = [

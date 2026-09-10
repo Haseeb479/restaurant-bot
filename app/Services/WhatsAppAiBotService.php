@@ -210,26 +210,29 @@ class WhatsAppAiBotService
         }
 
         // 6. If customer asked for menu and a visual menu flyer/image exists, send it!
+        //    We use the public URL so it works on Railway (ephemeral FS — local paths won't exist).
         $isMenuRequest = (bool) preg_match('/menu|dikhao|prices|kya hai|list|card|items|منو|مینو|pdf|sheet|flyer|photo|document|picture/i', $text);
+        $flyerSent = false;
         if ($isMenuRequest) {
             $menuFile = $restaurant->menu_image ?: $restaurant->menu_file;
             if ($menuFile) {
-                $fullMenuPath = public_path(ltrim($menuFile, '/'));
-                if (file_exists($fullMenuPath)) {
-                    $ext = strtolower(pathinfo($fullMenuPath, PATHINFO_EXTENSION));
-                    if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif', 'pdf'], true)) {
-                        BotEvolutionClient::sendMedia(
-                            $restaurant,
-                            $recipientJid,
-                            $fullMenuPath,
-                            "📋 *{$restaurant->name} Menu*"
-                        );
-                    }
+                $ext = strtolower(pathinfo($menuFile, PATHINFO_EXTENSION));
+                if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif', 'pdf'], true)) {
+                    $publicUrl = url(ltrim($menuFile, '/'));
+                    $flyerSent = BotEvolutionClient::sendMedia(
+                        $restaurant,
+                        $recipientJid,
+                        $publicUrl,
+                        "📋 *{$restaurant->name} — Full Menu*"
+                    );
                 }
             }
         }
 
-        // 7. Send text reply back through EvolutionAPI
+        // 7. Send text reply — if flyer was sent, replace verbose AI text with a short friendly nudge
+        if ($flyerSent) {
+            $reply = "👆 Here's our complete menu! See anything you'd like? 😊 Just reply with your item & quantity and I'll take your order right away!";
+        }
         BotEvolutionClient::sendMessage($restaurant, $recipientJid, $reply);
     }
 
@@ -651,12 +654,67 @@ PROMPT;
                 ]);
             }
 
+            // Geocode delivery address and persist for live tracking map
+            $gpsCoords = $this->geocodeAddress($address, $restaurant->city ?? '');
+            if ($gpsCoords) {
+                $order->update([
+                    'delivery_lat' => $gpsCoords[0],
+                    'delivery_lng' => $gpsCoords[1],
+                ]);
+            }
+
+            // Geocode restaurant address if not already set
+            if (! $restaurant->restaurant_lat && ($restaurant->address || $restaurant->city)) {
+                $restAddr = trim(($restaurant->address ?? '') . ' ' . ($restaurant->city ?? ''));
+                $restCoords = $this->geocodeAddress($restAddr, $restaurant->city ?? '');
+                if ($restCoords) {
+                    $restaurant->update([
+                        'restaurant_lat' => $restCoords[0],
+                        'restaurant_lng' => $restCoords[1],
+                    ]);
+                }
+            }
+
             Log::info("WhatsApp AI: Order #{$trackingCode} saved successfully for {$restaurant->name} (ID: {$order->id}, Total: Rs.{$total}, Items: " . count($parsedItems) . ")");
             return $trackingCode;
         } catch (\Throwable $e) {
             Log::error("WhatsApp AI: Failed to save order for {$restaurant->name}: " . $e->getMessage());
             return null;
         }
+    }
+
+    /**
+     * Geocode an address string using Nominatim (OpenStreetMap).
+     * Returns [lat, lng] or null on failure.
+     *
+     * @return array{0: float, 1: float}|null
+     */
+    private function geocodeAddress(string $address, string $city = ''): ?array
+    {
+        if (trim($address) === '') {
+            return null;
+        }
+
+        try {
+            $query = trim($address . ($city ? ", {$city}" : '') . ', Pakistan');
+            $encoded = urlencode($query);
+            $url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&q={$encoded}";
+
+            $response = \Illuminate\Support\Facades\Http::timeout(5)
+                ->withHeaders(['User-Agent' => 'Foodio-RestaurantBot/1.0'])
+                ->get($url);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                if (! empty($data[0]['lat']) && ! empty($data[0]['lon'])) {
+                    return [(float) $data[0]['lat'], (float) $data[0]['lon']];
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::debug('Geocoding failed: ' . $e->getMessage());
+        }
+
+        return null;
     }
 
     // ──────────────────────────────────────────────────────────────────────────
