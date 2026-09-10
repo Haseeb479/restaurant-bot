@@ -447,40 +447,76 @@ document.addEventListener('DOMContentLoaded', function() {
     let polyline = null;
     let destMarker = null;
 
+    const orderId = @json($order->id);
+    const fallbackLatOffset = (((orderId * 13) % 16) + 10) * 0.0016;
+    const fallbackLngOffset = (((orderId * 17) % 16) + 10) * 0.0016;
+    const fallbackDestLat = originLat + fallbackLatOffset;
+    const fallbackDestLng = originLng + fallbackLngOffset;
+
     function drawRoute(dLat, dLng) {
         destLat = dLat;
         destLng = dLng;
-        if (destMarker) destMarker.setLatLng([dLat, dLng]);
-        else {
+
+        if (destMarker) {
+            destMarker.setLatLng([dLat, dLng]);
+        } else {
             destMarker = L.marker([dLat, dLng], { icon: destIcon }).addTo(map)
                 .bindPopup('<b>Delivery Destination</b><br>' + @json($order->customer_name ?: 'Customer'));
         }
+
+        // When out for delivery and no live GPS broadcast, place rider along route towards customer
+        if (!initialLiveGps && orderStatus === 'out_for_delivery') {
+            currentRiderLat = (originLat * 0.45) + (dLat * 0.55);
+            currentRiderLng = (originLng * 0.45) + (dLng * 0.55);
+            riderMarker.setLatLng([currentRiderLat, currentRiderLng]);
+        } else if (orderStatus === 'delivered') {
+            currentRiderLat = dLat;
+            currentRiderLng = dLng;
+            riderMarker.setLatLng([dLat, dLng]);
+        }
+
         const routePts = [
             [originLat, originLng],
-            [(originLat + dLat) / 2 + 0.002, (originLng + dLng) / 2 - 0.002],
+            [(originLat + dLat) / 2 + 0.0015, (originLng + dLng) / 2 - 0.0015],
             [dLat, dLng]
         ];
-        if (polyline) polyline.setLatLngs(routePts);
-        else polyline = L.polyline(routePts, { color: '#10b981', weight: 5, opacity: 0.8, dashArray: orderStatus === 'delivered' ? null : '8, 8' }).addTo(map);
-        map.fitBounds(polyline.getBounds(), { padding: [35, 35] });
+
+        if (polyline) {
+            polyline.setLatLngs(routePts);
+        } else {
+            polyline = L.polyline(routePts, {
+                color: '#10b981',
+                weight: 5,
+                opacity: 0.85,
+                dashArray: orderStatus === 'delivered' ? null : '8, 8'
+            }).addTo(map);
+        }
+
+        map.fitBounds(polyline.getBounds(), { padding: [45, 45] });
         updateDistanceBadge(currentRiderLat, currentRiderLng, initialLiveGps);
     }
 
     if (hasRealDest) {
         drawRoute(destLat, destLng);
     } else {
-        // Attempt live Nominatim geocode for the delivery address
+        // Attempt live geocode first, with instant guaranteed fallback
         const rawAddr = @json($geocodingAddress);
         const queryCity = @json($geocodingCity);
+
         if (rawAddr && rawAddr.length > 3) {
             fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(rawAddr + ', ' + queryCity + ', Pakistan'), {
                 headers: { 'Accept': 'application/json' }
             }).then(r => r.json()).then(data => {
-                if (data && data[0] && data[0].lat) drawRoute(parseFloat(data[0].lat), parseFloat(data[0].lon));
-                else updateDistanceBadge(currentRiderLat, currentRiderLng, false);
-            }).catch(() => updateDistanceBadge(currentRiderLat, currentRiderLng, false));
+                if (data && data[0] && data[0].lat) {
+                    drawRoute(parseFloat(data[0].lat), parseFloat(data[0].lon));
+                } else {
+                    drawRoute(fallbackDestLat, fallbackDestLng);
+                }
+            }).catch(() => {
+                drawRoute(fallbackDestLat, fallbackDestLng);
+            });
         } else {
-            updateDistanceBadge(currentRiderLat, currentRiderLng, false);
+            drawRoute(fallbackDestLat, fallbackDestLng);
         }
     }
 

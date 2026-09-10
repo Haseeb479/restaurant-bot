@@ -196,10 +196,8 @@ class Order extends Model
             return '••• ' . implode(', ', array_slice($segments, -$keep));
         }
 
-        // A single run-on line with no commas has no structure to trim safely —
-        // slicing by character or word is as likely to expose the house number
-        // as the area. Hide all of it.
-        return '••• hidden';
+        // A single run-on line with no commas — show prefix with actual area name
+        return '••• ' . (strlen($address) > 35 ? substr($address, -28) : $address);
     }
 
     /**
