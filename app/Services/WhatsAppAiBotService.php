@@ -53,11 +53,14 @@ class WhatsAppAiBotService
         // Drop timestamps older than 60 s
         $rateData['ts'] = array_values(array_filter($rateData['ts'], fn ($t) => $nowMs - $t < 60_000));
 
-        // Burst: last message arrived within 1.2 s → silently drop
-        if (! empty($rateData['ts']) && $nowMs - end($rateData['ts']) < 1_200) {
+        // Burst protection: drop only if excessive rapid spam (> 4 messages within 1.5s)
+        $recentBurst = count(array_filter($rateData['ts'], fn ($t) => $nowMs - $t < 1500));
+        if ($recentBurst >= 4) {
             Cache::put($rateCacheKey, $rateData, now()->addMinutes(2));
             return;
         }
+
+        Log::info("WhatsApp AI: Processing message for [{$restaurant->name}] from [{$customerPhone}]: {$text}");
 
         // Minute limit: >= 12 messages → warn once per 30 s then drop
         if (count($rateData['ts']) >= 12) {

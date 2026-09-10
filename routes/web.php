@@ -215,6 +215,9 @@ Route::post('webhook/whatsapp', [\App\Http\Controllers\WhatsAppWebhookController
     ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class])
     ->name('webhook.whatsapp');
 
+Route::post('api/webhook/whatsapp', [\App\Http\Controllers\WhatsAppWebhookController::class, 'handle'])
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class]);
+
 // ── Restaurant owner dashboard ─────────────────────────────
 Route::prefix('dashboard/{id}')->group(function () {
     Route::get('login',                        [DashboardController::class, 'loginForm'])->name('dashboard.login');

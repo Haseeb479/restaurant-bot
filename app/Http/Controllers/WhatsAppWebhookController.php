@@ -20,19 +20,17 @@ class WhatsAppWebhookController extends Controller
      */
     public function handle(Request $request): JsonResponse
     {
-        // ── GAP 8: Webhook authentication ─────────────────────────────────────
-        // Verify the request is genuinely from our Evolution API server by
-        // checking the shared secret it sends as an "apikey" header. If no key
-        // is set in .env we skip the check (dev/local convenience).
+        // ── Webhook authentication ─────────────────────────────────────────────
+        // Verify the request if an apikey/x-api-key header was provided.
+        // (Evolution API does not send apikey on default outgoing webhooks,
+        // so we only reject if a key was explicitly sent and is mismatched).
         $configuredKey = trim((string) env('EVOLUTION_API_KEY', ''));
-        if ($configuredKey !== '') {
-            $incomingKey = (string) ($request->header('apikey') ?? $request->header('x-api-key') ?? '');
-            if ($incomingKey !== $configuredKey) {
-                Log::warning('Evolution Webhook: Unauthorized request — invalid or missing apikey header.', [
-                    'ip' => $request->ip(),
-                ]);
-                return response()->json(['status' => 'unauthorized'], 401);
-            }
+        $incomingKey   = (string) ($request->header('apikey') ?? $request->header('x-api-key') ?? '');
+        if ($incomingKey !== '' && $configuredKey !== '' && !hash_equals($configuredKey, $incomingKey)) {
+            Log::warning('Evolution Webhook: Unauthorized request — invalid apikey header.', [
+                'ip' => $request->ip(),
+            ]);
+            return response()->json(['status' => 'unauthorized'], 401);
         }
 
         $rawEvent = (string) ($request->input('event') ?? $request->input('type') ?? '');
