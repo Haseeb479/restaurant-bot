@@ -61,15 +61,28 @@ Route::get('/health/ready', function () {
         $checks['evolution'] = 'unconfigured';
     }
 
-    return response()->json([
+    $payload = [
         'status'    => $isReady ? 'ok' : 'not_ready',
         'timestamp' => now()->toIso8601String(),
         'checks'    => $checks,
-    ], $isReady ? 200 : 503)->header('Cache-Control', 'no-store, no-cache');
+        'services'  => [
+            'database'  => $checks['database'] ?? 'ok',
+            'groq'      => !empty(config('services.groq.key')) ? 'ok' : 'unconfigured',
+            'evolution' => $checks['evolution'] ?? 'ok',
+            'maps'      => !empty(config('services.google.maps_api_key')) ? 'ok' : 'unconfigured',
+        ],
+    ];
+
+    return response()->json($payload, $isReady ? 200 : 503)->header('Cache-Control', 'no-store, no-cache');
 })->name('health.ready');
 
-// Backward-compatible /health route
-Route::get('/health', function () {
+// Backward-compatible /health route (returns json directly if json requested or redirect to ready)
+Route::get('/health', function (\Illuminate\Http\Request $request) {
+    if ($request->wantsJson() || $request->isJson()) {
+        return app()->handle(\Illuminate\Http\Request::create('/health/ready', 'GET', [], [], [], [
+            'HTTP_ACCEPT' => 'application/json',
+        ]));
+    }
     return redirect()->route('health.ready');
 })->name('health');
 
@@ -130,7 +143,7 @@ $ownerLoginHandler = function (\Illuminate\Http\Request $req) {
     // not the restaurant name exists (prevents timing-based enumeration, B4).
     if (! $r) {
         \App\Support\AccountLockoutService::recordFailedAttempt($input, $req->ip());
-        \Illuminate\Support\Facades\Hash::check($req->password, '$2y$12$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+        \Illuminate\Support\Facades\Hash::check($req->password, '$2y$12$3LRFjLZoNuOz4cOHEaLM4ugFgYIYCu0PBPSSKcnBW7QFtmR5n2eAS');
         return back()
             ->withInput($req->only('restaurant_name'))
             ->withErrors(['password' => 'Wrong restaurant name or password. Please check and try again.'], 'owner');

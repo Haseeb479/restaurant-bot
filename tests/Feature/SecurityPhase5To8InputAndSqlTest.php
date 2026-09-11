@@ -15,16 +15,17 @@ class SecurityPhase5To8InputAndSqlTest extends TestCase
     private function createActiveRestaurant(string $name = 'Alpha Food'): Restaurant
     {
         $r = new Restaurant([
-            'name'                => $name,
-            'whatsapp_number'     => '92300' . random_int(1000000, 9999999),
-            'owner_phone'         => '92300' . random_int(1000000, 9999999),
-            'status'              => 'active',
-            'registration_status' => 'approved',
-            'is_open'             => true,
-            'plan'                => 'trial',
+            'name'            => $name,
+            'whatsapp_number' => '92300' . random_int(1000000, 9999999),
+            'owner_phone'     => '92300' . random_int(1000000, 9999999),
+            'is_open'         => true,
         ]);
-        $r->is_active = true;
-        $r->owner_password = Hash::make('Secret123');
+        $r->status              = 'active';
+        $r->registration_status = 'approved';
+        $r->is_active           = true;
+        $r->email_verified_at   = now();
+        $r->plan                = 'trial';
+        $r->owner_password      = Hash::make('Secret123456!');
         $r->save();
 
         return $r;
@@ -81,7 +82,7 @@ class SecurityPhase5To8InputAndSqlTest extends TestCase
 
         // Must remain pending and inactive regardless of payload
         $this->assertSame('pending', $restaurant->status);
-        $this->assertSame('pending_plan', $restaurant->registration_status);
+        $this->assertSame('pending_verification', $restaurant->registration_status);
         $this->assertFalse($restaurant->is_active);
     }
 
@@ -104,7 +105,7 @@ class SecurityPhase5To8InputAndSqlTest extends TestCase
         $this->assertSame('Safe Kitchen Renamed', $fresh->name);
         $this->assertSame('active', $fresh->status);
         $this->assertTrue($fresh->is_active);
-        $this->assertTrue(Hash::check('Secret123', $fresh->owner_password));
+        $this->assertTrue(Hash::check('Secret123456!', $fresh->owner_password));
         $this->assertNotSame('sk_live_hacked', $fresh->api_key);
     }
 
@@ -125,10 +126,11 @@ class SecurityPhase5To8InputAndSqlTest extends TestCase
         $r->save();
 
         // Client attempts to pay Rs. 1 instead of Rs. 7,000
-        $response = $this->post(route('onboarding.payment.submit', $r->id), [
-            'payment_method' => 'easypaisa',
-            'amount'         => 1, // Tampered price
-        ]);
+        $response = $this->withSession(['onboarding_restaurant_id' => $r->id])
+            ->post(route('onboarding.payment.submit', $r->id), [
+                'payment_method' => 'easypaisa',
+                'amount'         => 1, // Tampered price
+            ]);
 
         $response->assertRedirect(route('onboarding.status', $r->id));
 

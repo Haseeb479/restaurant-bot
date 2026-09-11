@@ -14,16 +14,17 @@ class SecurityPhase2And3RbacTest extends TestCase
     private function createRestaurant(string $name = 'Grill Point', bool $active = true): Restaurant
     {
         $r = new Restaurant([
-            'name'                => $name,
-            'whatsapp_number'     => '92300' . random_int(1000000, 9999999),
-            'owner_phone'         => '92300' . random_int(1000000, 9999999),
-            'status'              => $active ? 'active' : 'pending',
-            'registration_status' => $active ? 'approved' : 'pending_review',
-            'is_open'             => true,
-            'plan'                => 'trial',
+            'name'            => $name,
+            'whatsapp_number' => '92300' . random_int(1000000, 9999999),
+            'owner_phone'     => '92300' . random_int(1000000, 9999999),
+            'is_open'         => true,
         ]);
-        $r->is_active = $active;
-        $r->owner_password = Hash::make('Secret123');
+        $r->status              = $active ? 'active' : 'pending';
+        $r->registration_status = $active ? 'approved' : 'pending_review';
+        $r->is_active           = $active;
+        $r->email_verified_at   = now();
+        $r->plan                = 'trial';
+        $r->owner_password      = Hash::make('Secret123456!');
         $r->save();
 
         return $r;

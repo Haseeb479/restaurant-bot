@@ -24,15 +24,16 @@ class AuthTest extends TestCase
     private function makeRestaurant(string $password, bool $hashed = true): Restaurant
     {
         $r = new Restaurant([
-            'name'                => 'Test Kitchen',
-            'whatsapp_number'     => '9232' . random_int(10000000, 99999999),
-            'owner_phone'         => '923001234567',
-            'status'              => 'active',
-            'registration_status' => 'approved',
-            'is_active'           => true,
-            'is_open'             => true,
-            'plan'                => 'trial',
+            'name'            => 'Test Kitchen',
+            'whatsapp_number' => '9232' . random_int(10000000, 99999999),
+            'owner_phone'     => '923001234567',
+            'is_open'         => true,
         ]);
+        $r->status              = 'active';
+        $r->registration_status = 'approved';
+        $r->is_active           = true;
+        $r->email_verified_at   = now();
+        $r->plan                = 'trial';
         // owner_password is guarded, so assign it explicitly.
         $r->owner_password = $hashed ? Hash::make($password) : $password;
         $r->save();

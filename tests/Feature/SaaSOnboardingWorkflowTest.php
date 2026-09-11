@@ -25,7 +25,7 @@ class SaaSOnboardingWorkflowTest extends TestCase
             'email'           => 'ali@crispybites.com',
             'whatsapp_number' => '03001234567',
             'owner_phone'     => '03007654321',
-            'owner_password'  => 'password123',
+            'owner_password'  => 'Password123456!',
             'city'            => 'Lodhran',
             'address'         => 'Main Highway, Lodhran',
         ]);
@@ -33,26 +33,30 @@ class SaaSOnboardingWorkflowTest extends TestCase
         $restaurant = Restaurant::where('whatsapp_number', '03001234567')->first();
         $this->assertNotNull($restaurant);
         $this->assertSame('pending', $restaurant->status);
-        $this->assertSame('pending_plan', $restaurant->registration_status);
+        $this->assertSame('pending_verification', $restaurant->registration_status);
         $this->assertFalse($restaurant->is_active);
 
-        $response->assertRedirect(route('onboarding.plan', $restaurant->id));
+        $response->assertRedirect(route('onboarding.verify-notice', $restaurant->id));
     }
 
     private function createRestaurant(array $attributes = []): Restaurant
     {
         $r = new Restaurant(array_merge([
-            'name'                => 'Crispy Bites Grill',
-            'owner_name'          => 'Ali Hassan',
-            'email'               => 'ali@crispybites.com',
-            'whatsapp_number'     => '03001234567',
-            'owner_phone'         => '03007654321',
-            'status'              => 'pending',
-            'registration_status' => 'pending_plan',
-            'is_active'           => false,
+            'name'            => 'Crispy Bites Grill',
+            'owner_name'      => 'Ali Hassan',
+            'email'           => 'ali' . uniqid() . '@crispybites.com',
+            'whatsapp_number' => '0300' . random_int(1000000, 9999999),
+            'owner_phone'     => '0300' . random_int(1000000, 9999999),
         ], $attributes));
-        $r->owner_password = Hash::make($attributes['password'] ?? 'password123');
+        $r->status              = $attributes['status'] ?? 'pending';
+        $r->registration_status = $attributes['registration_status'] ?? 'pending_plan';
+        $r->is_active           = $attributes['is_active'] ?? false;
+        $r->email_verified_at   = $attributes['email_verified_at'] ?? now();
+        $r->owner_password      = Hash::make($attributes['password'] ?? 'Password123456!');
+        if (isset($attributes['plan_id'])) $r->plan_id = $attributes['plan_id'];
+        if (isset($attributes['plan'])) $r->plan = $attributes['plan'];
         $r->save();
+        session(['onboarding_restaurant_id' => $r->id]);
         return $r;
     }
 
@@ -111,7 +115,7 @@ class SaaSOnboardingWorkflowTest extends TestCase
         ]);
 
         $restaurant->refresh();
-        $this->assertSame('completed', $restaurant->payment_status);
+        $this->assertSame('pending_verification', $restaurant->payment_status);
         $this->assertSame('pending_review', $restaurant->registration_status);
         $this->assertSame('pending', $restaurant->status);
 
@@ -119,7 +123,7 @@ class SaaSOnboardingWorkflowTest extends TestCase
             'restaurant_id'  => $restaurant->id,
             'plan_id'        => $plan->id,
             'payment_method' => 'stripe',
-            'status'         => 'completed',
+            'status'         => 'pending_verification',
         ]);
 
         $response->assertRedirect(route('onboarding.status', $restaurant->id));
@@ -177,7 +181,7 @@ class SaaSOnboardingWorkflowTest extends TestCase
 
         $response = $this->post(route('landing.owner-login'), [
             'restaurant_name' => $restaurant->name,
-            'password'        => 'password123',
+            'password'        => 'Password123456!',
         ]);
 
         $response->assertRedirect(route('dashboard.orders', $restaurant->id));
@@ -206,7 +210,7 @@ class SaaSOnboardingWorkflowTest extends TestCase
         // Attempting login blocks owner
         $loginRes = $this->post(route('landing.owner-login'), [
             'restaurant_name' => $restaurant->name,
-            'password'        => 'password123',
+            'password'        => 'Password123456!',
         ]);
 
         $loginRes->assertSessionHasErrors('password', null, 'owner');
@@ -263,7 +267,7 @@ class SaaSOnboardingWorkflowTest extends TestCase
             'payment_method'    => 'easypaisa',
             'payment_reference' => '09000786534909',
             'amount'            => 3500,
-            'status'            => 'completed',
+            'status'            => 'pending_verification',
         ]);
     }
 

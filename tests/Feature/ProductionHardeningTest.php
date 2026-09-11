@@ -77,13 +77,13 @@ class ProductionHardeningTest extends TestCase
      */
     public function test_trial_plan_expiration_enforces_14_days(): void
     {
-        $activeTrial = new Restaurant([
+        $activeTrial = (new Restaurant)->forceFill([
             'plan'             => 'trial',
             'trial_started_at' => now()->subDays(5),
         ]);
         $this->assertTrue($activeTrial->isPlanActive());
 
-        $expiredTrial = new Restaurant([
+        $expiredTrial = (new Restaurant)->forceFill([
             'plan'             => 'trial',
             'trial_started_at' => now()->subDays(15),
         ]);

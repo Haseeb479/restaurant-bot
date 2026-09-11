@@ -127,7 +127,7 @@ class WhatsAppWebhookController extends Controller
             $updateData['last_error_at'] = now();
         }
 
-        $restaurant->update($updateData);
+        $restaurant->forceFill($updateData)->save();
 
         if ($newStatus === 'connected') {
             AuditLog::log('bot.connected', "WhatsApp bot connected for {$restaurant->name} (#{$restaurant->id}) via Evolution instance {$restaurant->evolution_instance_id}");

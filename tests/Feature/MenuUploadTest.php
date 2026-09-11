@@ -83,11 +83,14 @@ class MenuUploadTest extends TestCase
             'name'            => $name,
             'whatsapp_number' => '9232' . random_int(10000000, 99999999),
             'owner_phone'     => '923001234567',
-            'is_active'       => true,
             'is_open'         => true,
-            'plan'            => 'trial',
         ]);
-        $r->owner_password = Hash::make('owner-secret-password');
+        $r->status              = 'active';
+        $r->registration_status = 'approved';
+        $r->is_active           = true;
+        $r->email_verified_at   = now();
+        $r->plan                = 'trial';
+        $r->owner_password      = Hash::make('owner-secret-password');
         $r->save();
 
         return $r;

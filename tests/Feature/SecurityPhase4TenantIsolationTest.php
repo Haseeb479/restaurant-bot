@@ -18,16 +18,17 @@ class SecurityPhase4TenantIsolationTest extends TestCase
     private function createRestaurant(string $name): Restaurant
     {
         $r = new Restaurant([
-            'name'                => $name,
-            'whatsapp_number'     => '92300' . random_int(1000000, 9999999),
-            'owner_phone'         => '92300' . random_int(1000000, 9999999),
-            'status'              => 'active',
-            'registration_status' => 'approved',
-            'is_open'             => true,
-            'plan'                => 'trial',
+            'name'            => $name,
+            'whatsapp_number' => '92300' . random_int(1000000, 9999999),
+            'owner_phone'     => '92300' . random_int(1000000, 9999999),
+            'is_open'         => true,
         ]);
-        $r->is_active = true;
-        $r->owner_password = Hash::make('Secret123');
+        $r->status              = 'active';
+        $r->registration_status = 'approved';
+        $r->is_active           = true;
+        $r->email_verified_at   = now();
+        $r->plan                = 'trial';
+        $r->owner_password      = Hash::make('Secret123456!');
         $r->save();
 
         return $r;

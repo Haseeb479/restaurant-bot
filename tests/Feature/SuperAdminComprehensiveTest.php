@@ -57,7 +57,7 @@ class SuperAdminComprehensiveTest extends TestCase
                 'name'            => 'Karachi Grill House',
                 'whatsapp_number' => '923009988776',
                 'owner_phone'     => '03009988776',
-                'owner_password'  => 'secret1234',
+                'owner_password'  => 'Secret123456!',
                 'plan'            => 'pro',
                 'city'            => 'Karachi',
             ]);

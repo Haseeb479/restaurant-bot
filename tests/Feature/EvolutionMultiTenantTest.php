@@ -13,19 +13,26 @@ class EvolutionMultiTenantTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config(['services.evolution.api_key' => 'test_evo_secret_key']);
+    }
+
     private function createRestaurant(string $name, string $phone): Restaurant
     {
         $r = new Restaurant([
-            'name'                => $name,
-            'whatsapp_number'     => $phone,
-            'owner_phone'         => $phone,
-            'status'              => 'active',
-            'registration_status' => 'approved',
-            'is_open'             => true,
-            'plan'                => 'trial',
+            'name'            => $name,
+            'whatsapp_number' => $phone,
+            'owner_phone'     => $phone,
+            'is_open'         => true,
         ]);
+        $r->status                = 'active';
+        $r->registration_status   = 'approved';
         $r->is_active             = true;
-        $r->owner_password        = Hash::make('Secret123');
+        $r->email_verified_at     = now();
+        $r->plan                  = 'trial';
+        $r->owner_password        = Hash::make('Secret123456!');
         $r->evolution_instance_id = 'rest_' . random_int(1000, 9999);
         $r->save();
 
@@ -49,13 +56,14 @@ class EvolutionMultiTenantTest extends TestCase
         $r->save();
 
         // Simulate Evolution connection.update event for this restaurant
-        $response = $this->postJson(route('webhook.whatsapp'), [
-            'event'    => 'connection.update',
-            'instance' => 'rest_' . $r->id,
-            'data'     => [
-                'state' => 'open',
-            ],
-        ]);
+        $response = $this->withHeaders(['apikey' => 'test_evo_secret_key'])
+            ->postJson(route('webhook.whatsapp'), [
+                'event'    => 'connection.update',
+                'instance' => 'rest_' . $r->id,
+                'data'     => [
+                    'state' => 'open',
+                ],
+            ]);
 
         $response->assertOk();
         $response->assertJson(['status' => 'processed', 'event' => 'connection.update']);
@@ -87,19 +95,20 @@ class EvolutionMultiTenantTest extends TestCase
         ]);
 
         // Customer inquires for TRK1001 on Restaurant 1's instance
-        $response = $this->postJson(route('webhook.whatsapp'), [
-            'event'    => 'messages.upsert',
-            'instance' => 'rest_' . $r1->id,
-            'data'     => [
-                'key' => [
-                    'remoteJid' => '923000000001@s.whatsapp.net',
-                    'fromMe'    => false,
+        $response = $this->withHeaders(['apikey' => 'test_evo_secret_key'])
+            ->postJson(route('webhook.whatsapp'), [
+                'event'    => 'messages.upsert',
+                'instance' => 'rest_' . $r1->id,
+                'data'     => [
+                    'key' => [
+                        'remoteJid' => '923000000001@s.whatsapp.net',
+                        'fromMe'    => false,
+                    ],
+                    'message' => [
+                        'conversation' => 'TRK1001',
+                    ],
                 ],
-                'message' => [
-                    'conversation' => 'TRK1001',
-                ],
-            ],
-        ]);
+            ]);
 
         $response->assertOk();
         $response->assertJson(['status' => 'processed', 'event' => 'messages.upsert']);
@@ -107,11 +116,12 @@ class EvolutionMultiTenantTest extends TestCase
 
     public function test_evolution_webhook_ignores_unknown_instances_safely(): void
     {
-        $response = $this->postJson(route('webhook.whatsapp'), [
-            'event'    => 'messages.upsert',
-            'instance' => 'nonexistent_instance_9999',
-            'data'     => [],
-        ]);
+        $response = $this->withHeaders(['apikey' => 'test_evo_secret_key'])
+            ->postJson(route('webhook.whatsapp'), [
+                'event'    => 'messages.upsert',
+                'instance' => 'nonexistent_instance_9999',
+                'data'     => [],
+            ]);
 
         $response->assertOk();
         $response->assertJson(['status' => 'ignored', 'reason' => 'restaurant_not_found']);

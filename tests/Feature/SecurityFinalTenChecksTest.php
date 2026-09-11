@@ -35,16 +35,17 @@ class SecurityFinalTenChecksTest extends TestCase
     private function activeRestaurant(string $name = 'Test Bistro'): Restaurant
     {
         $r = new Restaurant([
-            'name'                => $name,
-            'whatsapp_number'     => '923' . random_int(100000000, 999999999),
-            'owner_phone'         => '923' . random_int(100000000, 999999999),
-            'status'              => 'active',
-            'registration_status' => 'approved',
-            'is_open'             => true,
-            'plan'                => 'trial',
+            'name'            => $name,
+            'whatsapp_number' => '923' . random_int(100000000, 999999999),
+            'owner_phone'     => '923' . random_int(100000000, 999999999),
+            'is_open'         => true,
         ]);
-        $r->is_active      = true;
-        $r->owner_password = Hash::make('Secret123!');
+        $r->status              = 'active';
+        $r->registration_status = 'approved';
+        $r->is_active           = true;
+        $r->email_verified_at   = now();
+        $r->plan                = 'trial';
+        $r->owner_password      = Hash::make('Secret123456!');
         $r->save();
         return $r;
     }
@@ -130,10 +131,11 @@ class SecurityFinalTenChecksTest extends TestCase
         $r->plan_id = $plan->id;
         $r->save();
 
-        $this->post(route('onboarding.payment.submit', $r->id), [
-            'payment_method' => 'easypaisa',
-            'amount'         => 1,   // Tampered — must be ignored
-        ]);
+        $this->withSession(['onboarding_restaurant_id' => $r->id])
+            ->post(route('onboarding.payment.submit', $r->id), [
+                'payment_method' => 'easypaisa',
+                'amount'         => 1,   // Tampered — must be ignored
+            ]);
 
         $payment = $r->payments()->latest()->first();
         $this->assertNotNull($payment, 'A payment record must be created');
@@ -155,7 +157,8 @@ class SecurityFinalTenChecksTest extends TestCase
         $r->plan_id = $plan->id;
         $r->save();
 
-        $response = $this->from(route('onboarding.payment', $r->id))
+        $response = $this->withSession(['onboarding_restaurant_id' => $r->id])
+            ->from(route('onboarding.payment', $r->id))
             ->post(route('onboarding.payment.submit', $r->id), [
                 'payment_method' => 'free_money_glitch',
             ]);

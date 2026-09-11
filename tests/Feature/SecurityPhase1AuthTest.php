@@ -15,17 +15,18 @@ class SecurityPhase1AuthTest extends TestCase
     private function createActiveRestaurant(string $name = 'Burger Hub', string $password = 'securePassword123!'): Restaurant
     {
         $r = new Restaurant([
-            'name'                => $name,
-            'email'               => strtolower(str_replace(' ', '', $name)) . '@example.com',
-            'whatsapp_number'     => '92300' . random_int(1000000, 9999999),
-            'owner_phone'         => '92300' . random_int(1000000, 9999999),
-            'status'              => 'active',
-            'registration_status' => 'approved',
-            'is_active'           => true,
-            'is_open'             => true,
-            'plan'                => 'trial',
+            'name'            => $name,
+            'email'           => strtolower(str_replace(' ', '', $name)) . '@example.com',
+            'whatsapp_number' => '92300' . random_int(1000000, 9999999),
+            'owner_phone'     => '92300' . random_int(1000000, 9999999),
+            'is_open'         => true,
         ]);
-        $r->owner_password = Hash::make($password);
+        $r->status              = 'active';
+        $r->registration_status = 'approved';
+        $r->is_active           = true;
+        $r->email_verified_at   = now();
+        $r->plan                = 'trial';
+        $r->owner_password      = Hash::make($password);
         $r->save();
 
         return $r;

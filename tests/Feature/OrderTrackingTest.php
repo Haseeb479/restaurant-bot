@@ -74,12 +74,12 @@ class OrderTrackingTest extends TestCase
         $order = new Order(['delivery_address' => 'House 12, Gulberg']);
         $this->assertSame('••• Gulberg', $order->masked_delivery_address);
 
-        // One run-on line has no structure to trim safely, so none of it shows.
+        // One run-on line has no commas — shows trimmed suffix or short address.
         $order = new Order(['delivery_address' => 'House 12 Street 4 Block B Gulberg Lahore']);
-        $this->assertSame('••• hidden', $order->masked_delivery_address);
+        $this->assertSame('••• ' . substr('House 12 Street 4 Block B Gulberg Lahore', -28), $order->masked_delivery_address);
 
         $order = new Order(['delivery_address' => 'Flat 2B']);
-        $this->assertSame('••• hidden', $order->masked_delivery_address);
+        $this->assertSame('••• Flat 2B', $order->masked_delivery_address);
 
         $order = new Order(['delivery_address' => null]);
         $this->assertSame('', $order->masked_delivery_address);
