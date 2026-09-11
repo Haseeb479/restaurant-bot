@@ -77,6 +77,29 @@ class Order extends Model
     ];
 
     /**
+     * Strict state machine defining valid forward and terminal transitions.
+     * Prevents invalid backwards transitions (e.g. delivered -> pending) (C3).
+     */
+    public const ALLOWED_TRANSITIONS = [
+        'pending'          => ['confirmed', 'preparing', 'cancelled'],
+        'confirmed'        => ['preparing', 'out_for_delivery', 'cancelled'],
+        'preparing'        => ['out_for_delivery', 'cancelled'],
+        'out_for_delivery' => ['delivered', 'cancelled'],
+        'delivered'        => [],
+        'cancelled'        => [],
+    ];
+
+    public function canTransitionTo(string $targetStatus): bool
+    {
+        if ($this->status === $targetStatus) {
+            return true;
+        }
+
+        $allowed = self::ALLOWED_TRANSITIONS[$this->status] ?? [];
+        return in_array($targetStatus, $allowed, true);
+    }
+
+    /**
      * Generate a short, human-friendly tracking code like `FZ1234` or `ORD5821`.
      *
      * Format: {2–3 letter prefix}{4-digit padded number} — total 6–7 characters.

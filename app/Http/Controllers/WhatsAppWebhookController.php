@@ -212,7 +212,10 @@ class WhatsAppWebhookController extends Controller
         // Target recipient: use remoteJid directly to ensure 100% reply delivery for @lid & standard accounts
         $recipientJid = $remoteJid ?: $customerPhone;
 
-        app(\App\Services\WhatsAppAiBotService::class)->handle(
+        // ── D2: Dispatch asynchronous job ────────────────────────────────────
+        // Offloads AI completion and message sending to background worker.
+        // Returns HTTP 200 to EvolutionAPI immediately, preventing webhook timeouts & retry storms.
+        \App\Jobs\ProcessWhatsAppMessage::dispatch(
             $restaurant,
             $customerPhone ?: $recipientJid,
             $recipientJid,

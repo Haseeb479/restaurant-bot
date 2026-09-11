@@ -68,9 +68,25 @@ class AdminController extends Controller
     {
         $password = (string) $request->input('password', '');
         $pin      = (string) $request->input('two_fa_pin', '');
+        $ip       = $request->ip();
+
+        // ── B3: Brute-force lockout ────────────────────────────────────────────
+        // Track consecutive failures per IP. After 5 failures the IP is blocked
+        // for 15 minutes regardless of subsequent correct passwords.
+        $lockKey  = 'admin_login_fails_' . md5($ip);
+        $fails    = (int) \Illuminate\Support\Facades\Cache::get($lockKey, 0);
+
+        if ($fails >= 5) {
+            AuditLog::log('admin.login_blocked', "Admin login blocked due to brute-force — IP: {$ip}");
+            return back()->withErrors([
+                'password' => 'Too many failed attempts. Admin access is locked for 15 minutes. Contact your system administrator.',
+            ]);
+        }
 
         if (! $this->verifyAdminPassword($password)) {
-            AuditLog::log('admin.login_failed', 'Failed login attempt for IP: ' . $request->ip());
+            $fails++;
+            \Illuminate\Support\Facades\Cache::put($lockKey, $fails, now()->addMinutes(15));
+            AuditLog::log('admin.login_failed', "Failed login attempt #{$fails} for IP: {$ip}");
             return back()->withErrors([
                 'password' => 'Invalid Super Admin password.',
             ]);
@@ -90,6 +106,9 @@ class AdminController extends Controller
                 ]);
             }
         }
+
+        // Successful login — clear the failure counter
+        \Illuminate\Support\Facades\Cache::forget($lockKey);
 
         $request->session()->regenerate();
         session(['admin_logged_in' => true]);
@@ -175,6 +194,10 @@ class AdminController extends Controller
         $recentAuditLogs = AuditLog::latest()->take(6)->get();
         $openTicketsCount = SupportTicket::whereIn('status', ['open', 'in_progress'])->count();
 
+        // ── H3: Customer Feedback & Satisfaction Summary ──────────────────────
+        $platformAvgRating = round((float) (Feedback::avg('rating') ?: 5.0), 1);
+        $recentFeedbacks   = Feedback::with('restaurant')->latest()->take(5)->get();
+
         return view('admin.dashboard', compact(
             'restaurants',
             'totalRestaurants',
@@ -194,7 +217,9 @@ class AdminController extends Controller
             'chartRevenueData',
             'pendingQueue',
             'recentAuditLogs',
-            'openTicketsCount'
+            'openTicketsCount',
+            'platformAvgRating',
+            'recentFeedbacks'
         ));
     }
 
@@ -264,7 +289,21 @@ class AdminController extends Controller
         $r->rejection_reason    = null;
         $r->approved_at         = now();
         $r->plan_expires_at     = now()->addMonth();
+        // ── C6: Mark payment as verified now that admin has reviewed it ──────
+        $r->payment_status      = 'completed';
         $r->save();
+
+        // Complete the pending payment record
+        if ($r->payment_id) {
+            Payment::where('id', $r->payment_id)->update([
+                'status'       => 'completed',
+                'completed_at' => now(),
+            ]);
+            // Mark invoice as paid
+            Invoice::where('restaurant_id', $r->id)
+                ->where('status', 'pending')
+                ->update(['status' => 'paid', 'paid_at' => now()]);
+        }
 
         $planId = $r->plan_id ?: (SubscriptionPlan::where('slug', $r->plan)->value('id') ?: SubscriptionPlan::first()?->id);
         if ($planId) {

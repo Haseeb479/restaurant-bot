@@ -213,18 +213,19 @@ class OnboardingController extends Controller
         $stripeId  = $request->payment_method === 'stripe' ? ('ch_' . Str::random(24)) : null;
 
         // Process uploaded payment slip / receipt
+        // ── B5: Store in private storage — NOT in public/ ─────────────────────
+        // Payment slips contain bank account numbers and transaction details.
+        // Storing them under public/ would make them downloadable by anyone with
+        // the filename. We now store them in storage/app/private/ and serve them
+        // only through an admin-gated signed route (StorageController).
         $slipPath = null;
         if ($request->hasFile('payment_slip') && $request->file('payment_slip')->isValid()) {
             $slipFile = $request->file('payment_slip');
             $ext = strtolower($slipFile->getClientOriginalExtension() ?: 'jpg');
             if (in_array($ext, ['jpeg', 'png', 'jpg', 'webp', 'pdf'], true)) {
-                $dir = public_path('uploads/payments');
-                if (!is_dir($dir)) {
-                    @mkdir($dir, 0755, true);
-                }
                 $slipName = 'slip_' . $restaurant->id . '_' . bin2hex(random_bytes(8)) . '.' . $ext;
-                $slipFile->move($dir, $slipName);
-                $slipPath = 'uploads/payments/' . $slipName;
+                $slipFile->storeAs('payment_slips', $slipName, 'private');
+                $slipPath = 'payment_slips/' . $slipName;
             }
         }
 
@@ -238,8 +239,12 @@ class OnboardingController extends Controller
             'payment_reference' => $reference,
             'payment_slip'      => $slipPath,
             'stripe_payment_id' => $stripeId,
-            'status'            => 'completed',
-            'completed_at'      => now(),
+            // ── C6: Do NOT auto-complete — wait for admin verification ─────────
+            // Previously set to 'completed' instantly, which let any fake reference
+            // number activate a restaurant. Now stays 'pending_verification' until
+            // the Super Admin reviews and manually approves.
+            'status'            => 'pending_verification',
+            'completed_at'      => null,
         ]);
 
         // 2. Generate Invoice
@@ -251,14 +256,14 @@ class OnboardingController extends Controller
             'currency'          => 'PKR',
             'payment_method'    => ucfirst(str_replace('_', ' ', $request->payment_method)),
             'payment_reference' => $reference,
-            'status'            => 'paid',
-            'paid_at'           => now(),
+            'status'            => 'pending',  // admin must verify before marking paid (C6)
+            'paid_at'           => null,
             'due_date'          => now()->toDateString(),
-            'notes'             => "Onboarding subscription payment via {$request->payment_method}",
+            'notes'             => "Onboarding subscription payment via {$request->payment_method} — awaiting admin verification",
         ]);
 
-        // 3. Update Restaurant to Pending Review
-        $restaurant->payment_status      = 'completed';
+        // 3. Update Restaurant to Pending Review (NOT active yet — C6)
+        $restaurant->payment_status      = 'pending_verification';
         $restaurant->payment_id          = $payment->id;
         $restaurant->registration_status = 'pending_review';
         $restaurant->status              = 'pending';

@@ -56,6 +56,7 @@ class Restaurant extends Model
         'restaurant_lat',
         'restaurant_lng',
         'delivery_radius_km',
+        'trial_started_at',
     ];
 
     protected $casts = [
@@ -65,6 +66,7 @@ class Restaurant extends Model
         'minimum_order'        => 'decimal:2',
         'delivery_radius_km'   => 'decimal:1',
         'plan_expires_at'      => 'datetime',
+        'trial_started_at'     => 'datetime',
         'approved_at'          => 'datetime',
         'bot_last_seen_at'     => 'datetime',
         'deactivated_at'       => 'datetime',
@@ -163,8 +165,66 @@ class Restaurant extends Model
 
     public function isPlanActive(): bool
     {
-        if ($this->plan === 'trial') return true;
-        return $this->plan_expires_at && $this->plan_expires_at->isFuture();
+        // 1. Check formal active subscription first (H2)
+        $sub = $this->activeSubscription;
+        if ($sub && (! $sub->expires_at || $sub->expires_at->isFuture())) {
+            return true;
+        }
+
+        // 2. Enforce 14-day limit on trial accounts (H1)
+        if ($this->plan === 'trial') {
+            $started = $this->trial_started_at ?? $this->created_at;
+            if ($started && $started->diffInDays(now()) > 14) {
+                return false;
+            }
+            return true;
+        }
+
+        // 3. Fall back to plan_expires_at timestamp
+        return (bool) ($this->plan_expires_at && $this->plan_expires_at->isFuture());
+    }
+
+    /**
+     * Maximum allowed orders per calendar month for this restaurant's tier (C5).
+     */
+    public function maxMonthlyOrders(): int
+    {
+        if ($this->subscriptionPlan && $this->subscriptionPlan->max_orders_per_month > 0) {
+            return (int) $this->subscriptionPlan->max_orders_per_month;
+        }
+        return (int) ($this->rate_limit_per_month ?: 500);
+    }
+
+    /**
+     * Maximum allowed menu items for this restaurant's tier (C5).
+     */
+    public function maxMenuItems(): int
+    {
+        if ($this->subscriptionPlan && $this->subscriptionPlan->max_menu_items > 0) {
+            return (int) $this->subscriptionPlan->max_menu_items;
+        }
+        return 50;
+    }
+
+    /**
+     * Current month order volume.
+     */
+    public function monthlyOrdersCount(): int
+    {
+        return (int) $this->orders()
+            ->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->count();
+    }
+
+    public function hasExceededMonthlyOrders(): bool
+    {
+        return $this->monthlyOrdersCount() >= $this->maxMonthlyOrders();
+    }
+
+    public function hasExceededMenuItems(): bool
+    {
+        return $this->menuItems()->count() >= $this->maxMenuItems();
     }
 
     /**

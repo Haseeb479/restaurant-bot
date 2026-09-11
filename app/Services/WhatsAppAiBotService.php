@@ -104,6 +104,23 @@ class WhatsAppAiBotService
             }
         }
 
+        // ── Check if restaurant subscription/trial is active (H1, H2) ────────
+        if (! $restaurant->isPlanActive()) {
+            $isTrackingQuery = preg_match('/^[A-Za-z]{2,4}\d{3,6}$/', $text) ||
+                preg_match('/^(?:track|status|order)\s+/i', $text) ||
+                preg_match('/track\s*(?:id|code|\?)/i', $text) ||
+                preg_match('/^(?:track|tracking|status|kahan hai|order kahan)$/i', $text);
+
+            if (! $isTrackingQuery) {
+                BotEvolutionClient::sendMessage(
+                    $restaurant,
+                    $recipientJid,
+                    "⚠️ Online ordering is temporarily paused for *{$restaurant->name}*.\nPlease contact the restaurant directly."
+                );
+                return;
+            }
+        }
+
         // 1. Handle tracking inquiries (e.g. "FEZ1010", "track FEZ1010", "track id ?", "status", etc.)
         if (preg_match('/^[A-Za-z]{2,4}\d{3,6}$/', $text) ||
             preg_match('/^(?:track|status|order)\s+([A-Za-z0-9-]+)$/i', $text, $m) ||
@@ -415,7 +432,8 @@ class WhatsAppAiBotService
         foreach ($models as $model) {
             try {
                 $response = Http::withToken($apiKey)
-                    ->withoutVerifying()
+                    // Note: do NOT add ->withoutVerifying() — SSL verification must
+                    // stay enabled to prevent MITM attacks against Groq's API (B8).
                     ->timeout(15)
                     ->post(self::GROQ_API_URL, [
                         'model'       => $model,
@@ -675,6 +693,19 @@ PROMPT;
 
     private function saveOrderFromHistory(Restaurant $restaurant, string $customerPhone, array $history): ?string
     {
+        // ── C5: Enforce Monthly Order Limits ─────────────────────────────────
+        if ($restaurant->hasExceededMonthlyOrders()) {
+            Log::warning("WhatsApp AI: Monthly order limit reached for {$restaurant->name} (Limit: {$restaurant->maxMonthlyOrders()})");
+            if (! empty($restaurant->owner_phone)) {
+                BotEvolutionClient::sendMessage(
+                    $restaurant,
+                    $restaurant->owner_phone,
+                    "⚠️ *Order Limit Reached!*\n\nYour restaurant has reached its monthly order limit of {$restaurant->maxMonthlyOrders()} orders. Please upgrade your subscription plan to continue accepting orders online."
+                );
+            }
+            return null;
+        }
+
         // 1. Locate the assistant message containing the Order Summary
         $summaryMsg = '';
         foreach (array_reverse($history) as $msg) {
@@ -741,61 +772,88 @@ PROMPT;
         // 8. Generate Tracking Code
         $trackingCode = Order::generateTrackingCode($restaurant);
 
-        // 9. Parse Itemized Products
+        // ── C2: Duplicate order prevention ────────────────────────────────────
+        // A network retry or double-confirmation message would otherwise create
+        // two identical orders seconds apart. If we already saved an order for
+        // this session in the last 5 minutes, return that tracking code.
+        $sessionKey        = "wa_session_{$restaurant->id}_{$customerPhone}";
+        $dedupKey          = "order_saved_{$sessionKey}";
+        $existingTrackCode = Cache::get($dedupKey);
+        if ($existingTrackCode) {
+            Log::info("WhatsApp AI: Duplicate order prevented for {$customerPhone} — returning existing {$existingTrackCode}");
+            return $existingTrackCode;
+        }
+
+        // ── C1: Server-side price validation from the database ────────────────
+        // The AI output is used only for item names and quantities. Prices are
+        // always taken from the authoritative MenuItem records in the database.
+        // This prevents a customer from manipulating the conversation to make
+        // the AI write a lower price in the summary.
         $lines = explode("\n", $summaryMsg);
         $parsedItems = [];
         $dbMenuItems = $restaurant->menuItems()->get();
+        $dbSubtotal  = 0.0; // Will be recalculated from DB prices
 
         foreach ($lines as $line) {
             $cleanLine = trim(strip_tags($line));
             if (preg_match('/^[-*•\s]*(\d+)\s*x\s*(.+)/i', $cleanLine, $m)) {
-                $qty = (int) $m[1];
+                $qty  = (int) $m[1];
                 $rest = trim($m[2], " *–—-\t\n\r\0\x0B");
 
-                // Extract price from line
-                $linePrice = 0;
-                if (preg_match_all('/(?:rs\.?|pkr\.?|₹)\s*([0-9,]+(?:\.\d+)?)/i', $rest, $pMatches)) {
-                    $lastMatch = end($pMatches[1]);
-                    $linePrice = (float) str_replace(',', '', $lastMatch);
-                }
-
-                // Extract clean item name
+                // Extract clean item name (strip price suffixes)
                 $itemName = preg_replace('/(?:—|-|–|:|@|\(|→|Rs\.|PKR|₹).*$/iu', '', $rest);
                 $itemName = trim($itemName, " *–—-\t\n\r\0\x0B");
 
-                // Look up matching MenuItem in DB
+                // Look up the authoritative price from the database (C1)
                 $matchedDbItem = $dbMenuItems->first(function ($mi) use ($itemName) {
                     return stripos($mi->name, $itemName) !== false || stripos($itemName, $mi->name) !== false;
                 });
 
                 if ($matchedDbItem) {
-                    $dbPrice = (float) $matchedDbItem->price;
-                    if ($linePrice <= 0 && $dbPrice > 0) {
-                        $linePrice = $dbPrice * $qty;
-                    }
-                    $itemName = $matchedDbItem->name;
+                    // Always use DB price — never trust AI-generated price (C1)
+                    $unitPrice  = (float) $matchedDbItem->price;
+                    $lineTotal  = $unitPrice * $qty;
+                    $itemName   = $matchedDbItem->name; // canonical casing
                     $menuItemId = $matchedDbItem->id;
                 } else {
+                    // Unknown item: fall back to AI-parsed price, but log it
+                    $linePrice = 0;
+                    if (preg_match_all('/(?:rs\.?|pkr\.?|₹)\s*([0-9,]+(?:\.\d+)?)/i', $rest, $pMatches)) {
+                        $linePrice = (float) str_replace(',', '', end($pMatches[1]));
+                    }
+                    $unitPrice  = ($qty > 0 && $linePrice > 0) ? ($linePrice / $qty) : 0;
+                    $lineTotal  = $linePrice;
                     $menuItemId = null;
+                    Log::warning("WhatsApp AI: Item '{$itemName}' not found in DB for {$restaurant->name} — using AI price Rs.{$linePrice}");
                 }
 
-                $unitPrice = ($qty > 0 && $linePrice > 0) ? ($linePrice / $qty) : ($linePrice ?: 100);
-
-                if ($itemName !== '') {
+                if ($itemName !== '' && $qty > 0) {
                     $parsedItems[] = [
                         'menu_item_id' => $menuItemId,
                         'name'         => $itemName,
                         'quantity'     => $qty,
                         'unit_price'   => $unitPrice,
-                        'subtotal'     => $linePrice > 0 ? $linePrice : ($unitPrice * $qty),
+                        'subtotal'     => $lineTotal,
                     ];
+                    $dbSubtotal += $lineTotal;
                 }
             }
         }
 
-        try {
+        // Recalculate totals from authoritative DB prices (C1)
+        $deliveryCharge = (float) ($restaurant->delivery_charge ?? 0);
+        if ($dbSubtotal > 0) {
+            // DB prices are authoritative; use them even if they differ from AI
+            $subtotal = $dbSubtotal;
+            $total    = $subtotal + $deliveryCharge;
+            Log::info("WhatsApp AI: Prices recalculated from DB — subtotal: Rs.{$subtotal}, total: Rs.{$total}");
+        } else {
+            // No DB items matched — totals remain as AI-parsed (logged above)
             $deliveryCharge = (float) ($restaurant->delivery_charge ?? 0);
+        }
 
+        try {
+            // $deliveryCharge and $subtotal/$total are already set above (DB-validated).
             $order = Order::create([
                 'restaurant_id'    => $restaurant->id,
                 'tracking_code'    => $trackingCode,
@@ -823,7 +881,6 @@ PROMPT;
             }
 
             // Geocode delivery address and persist for live tracking map
-            $sessionKey = "wa_session_{$restaurant->id}_{$contactPhone}";
             $cachedGps  = Cache::get("verified_delivery_coords_{$sessionKey}");
             $cachedAddr = Cache::get("verified_delivery_address_{$sessionKey}");
             if ($cachedAddr && ($address === 'Delivery order via WhatsApp' || empty($address))) {
@@ -831,7 +888,7 @@ PROMPT;
                 $order->update(['delivery_address' => $address]);
             }
 
-            $gpsCoords  = $cachedGps ?: $this->geocodeAddress($address, $restaurant->city ?? '');
+            $gpsCoords = $cachedGps ?: $this->geocodeAddress($address, $restaurant->city ?? '');
             if ($gpsCoords) {
                 $order->update([
                     'delivery_lat' => $gpsCoords[0],
@@ -841,7 +898,7 @@ PROMPT;
 
             // Geocode restaurant address if not already set
             if (! $restaurant->restaurant_lat && ($restaurant->address || $restaurant->city)) {
-                $restAddr = trim(($restaurant->address ?? '') . ' ' . ($restaurant->city ?? ''));
+                $restAddr   = trim(($restaurant->address ?? '') . ' ' . ($restaurant->city ?? ''));
                 $restCoords = $this->geocodeAddress($restAddr, $restaurant->city ?? '');
                 if ($restCoords) {
                     $restaurant->update([
@@ -850,6 +907,9 @@ PROMPT;
                     ]);
                 }
             }
+
+            // ── C2: Mark this session as having a saved order (5-min dedup window) ──
+            Cache::put($dedupKey, $trackingCode, now()->addMinutes(5));
 
             Log::info("WhatsApp AI: Order #{$trackingCode} saved successfully for {$restaurant->name} (ID: {$order->id}, Total: Rs.{$total}, Items: " . count($parsedItems) . ")");
             return $trackingCode;

@@ -166,15 +166,23 @@ class DashboardController extends Controller
         $totalStatusSum    = max(1, array_sum($statusCounts));
         $statusPercentages = array_map(fn($c) => round(($c / $totalStatusSum) * 100), $statusCounts);
 
-        // Weekly trend (last 7 days)
+        // Weekly trend (last 7 days) — single grouped query (F1)
+        $sevenDaysAgo = now()->subDays(6)->startOfDay();
+        $countsByDate = $r->orders()
+            ->where('created_at', '>=', $sevenDaysAgo)
+            ->selectRaw('DATE(created_at) as order_date, COUNT(*) as count')
+            ->groupBy('order_date')
+            ->pluck('count', 'order_date')
+            ->toArray();
+
         $weeklyTrend = [];
         for ($i = 6; $i >= 0; $i--) {
             $d = now()->subDays($i);
-            $dayCount = $r->orders()->whereDate('created_at', $d->toDateString())->count();
+            $dateKey = $d->toDateString();
             $weeklyTrend[] = [
                 'day'   => $d->format('D'),
                 'date'  => $d->format('M d'),
-                'count' => $dayCount,
+                'count' => (int) ($countsByDate[$dateKey] ?? 0),
             ];
         }
 
@@ -188,6 +196,12 @@ class DashboardController extends Controller
 
         // Recent activity feed
         $recentActivity = $orders->take(6);
+
+        // ── H3: Customer Feedback & Rating Summary ────────────────────────────
+        $feedbacksQuery  = $r->feedbacks();
+        $averageRating   = round((float) ($feedbacksQuery->avg('rating') ?: 5.0), 1);
+        $totalFeedbacks  = $feedbacksQuery->count();
+        $recentFeedbacks = $feedbacksQuery->take(5)->get();
 
         return view('dashboard.orders', [
             'restaurant'        => $r,
@@ -208,6 +222,9 @@ class DashboardController extends Controller
             'topSellingItems'   => $topSellingItems,
             'recentActivity'    => $recentActivity,
             'pendingCount'      => $todayOrders->where('status', 'pending')->count(),
+            'averageRating'     => $averageRating,
+            'totalFeedbacks'    => $totalFeedbacks,
+            'recentFeedbacks'   => $recentFeedbacks,
         ]);
     }
 
@@ -329,7 +346,20 @@ class DashboardController extends Controller
             'estimated_minutes' => ['nullable', 'integer', 'min:0', 'max:1440'],
         ]);
 
-        $status     = $validated['status'];
+        $status = $validated['status'];
+
+        // ── C3: State machine transition enforcement ──────────────────────────
+        if (! $order->canTransitionTo($status)) {
+            $transitionError = "Invalid order status transition from '{$order->status}' to '{$status}'.";
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'error'   => $transitionError,
+                ], 422);
+            }
+            return back()->withErrors(['status' => $transitionError]);
+        }
+
         $updateData = ['status' => $status];
 
         foreach (['rider_name', 'rider_phone', 'rider_notes'] as $field) {
@@ -519,6 +549,13 @@ class DashboardController extends Controller
     {
         $this->authCheck($id);
         $r = Restaurant::findOrFail($id);
+
+        // ── C5: Enforce menu item limit for restaurant tier ──────────────────
+        if ($r->hasExceededMenuItems()) {
+            return back()->withErrors([
+                'name' => "Menu item limit reached ({$r->maxMenuItems()} items). Upgrade your subscription plan to add more items.",
+            ]);
+        }
 
         $request->validate([
             'name'        => 'required|string|max:255',

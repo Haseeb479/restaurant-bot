@@ -30,7 +30,10 @@ class BotEvolutionClient
 
     public static function apiKey(): string
     {
-        return trim((string) config('services.evolution.api_key', env('EVOLUTION_API_KEY', 'foodio_evolution_secret_key_2026')));
+        // Never fall back to a hardcoded value — an empty key means EvolutionAPI
+        // is not yet configured, and the VerifyEvolutionWebhook middleware will
+        // return 503 rather than operate with a known-public default (B7).
+        return trim((string) config('services.evolution.api_key', env('EVOLUTION_API_KEY', '')));
     }
 
     public static function baseUrl(): string

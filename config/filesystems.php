@@ -38,6 +38,15 @@ return [
             'report' => false,
         ],
 
+        // Explicit 'private' alias — referenced by StorageController and
+        // OnboardingController for payment slips and other sensitive files (B5).
+        'private' => [
+            'driver' => 'local',
+            'root'   => storage_path('app/private'),
+            'throw'  => false,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

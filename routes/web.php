@@ -11,6 +11,29 @@ Route::get('/', function () {
     return view('landing');
 })->name('landing');
 
+// ── Production Health & Diagnostics Endpoint (G3) ─────────────
+Route::get('/health', function () {
+    $dbOk = false;
+    try {
+        \Illuminate\Support\Facades\DB::connection()->getPdo();
+        $dbOk = true;
+    } catch (\Throwable $e) {
+        $dbOk = false;
+    }
+
+    $status = $dbOk ? 200 : 503;
+    return response()->json([
+        'status'    => $dbOk ? 'healthy' : 'unhealthy',
+        'timestamp' => now()->toIso8601String(),
+        'services'  => [
+            'database'  => $dbOk ? 'connected' : 'disconnected',
+            'groq'      => ! empty(config('services.groq.key') ?: env('GROQ_API_KEY')) ? 'configured' : 'missing_key',
+            'evolution' => ! empty(config('services.evolution.api_key') ?: env('EVOLUTION_API_KEY')) ? 'configured' : 'missing_key',
+            'maps'      => ! empty(config('services.google.maps_api_key') ?: env('GOOGLE_MAPS_API_KEY')) ? 'configured' : 'missing_key',
+        ],
+    ], $status)->header('Cache-Control', 'no-store, no-cache');
+})->name('health');
+
 // ── Dedicated Owner Sign In Page ──────────────────────────────
 Route::get('/login', function () {
     return view('auth.login');
@@ -53,7 +76,17 @@ $ownerLoginHandler = function (\Illuminate\Http\Request $req) {
         ->orderByRaw('LENGTH(name) ASC')
         ->first();
 
-    if (!$r || !\App\Http\Controllers\DashboardController::passwordMatches(
+    // Constant-time guard: if no restaurant found, run a dummy Hash::check()
+    // against a fixed bcrypt hash so the response time is identical whether or
+    // not the restaurant name exists (prevents timing-based enumeration, B4).
+    if (! $r) {
+        \Illuminate\Support\Facades\Hash::check($req->password, '$2y$12$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+        return back()
+            ->withInput($req->only('restaurant_name'))
+            ->withErrors(['password' => 'Wrong restaurant name or password. Please check and try again.'], 'owner');
+    }
+
+    if (!\App\Http\Controllers\DashboardController::passwordMatches(
         (string) $req->password,
         (string) $r->owner_password
     )) {
@@ -215,12 +248,16 @@ Route::post('register/payment/{id}', [OnboardingController::class, 'step3Payment
 Route::get('register/status/{id}',   [OnboardingController::class, 'statusPage'])->name('onboarding.status');
 
 // ── EvolutionAPI Webhook Receiver (Incoming WhatsApp Messages & Status Events) ──
+// VerifyEvolutionWebhook replaces CSRF by validating the `apikey` header that
+// EvolutionAPI sends with every event — prevents forged webhook injection (B1).
 Route::post('webhook/whatsapp', [\App\Http\Controllers\WhatsAppWebhookController::class, 'handle'])
     ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class])
+    ->middleware(\App\Http\Middleware\VerifyEvolutionWebhook::class)
     ->name('webhook.whatsapp');
 
 Route::post('api/webhook/whatsapp', [\App\Http\Controllers\WhatsAppWebhookController::class, 'handle'])
-    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class]);
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class])
+    ->middleware(\App\Http\Middleware\VerifyEvolutionWebhook::class);
 
 // ── Restaurant owner dashboard ─────────────────────────────
 Route::prefix('dashboard/{id}')->group(function () {
@@ -262,6 +299,12 @@ Route::prefix('dashboard/{id}')->group(function () {
     Route::get('settings',                     [DashboardController::class, 'settings'])->name('dashboard.settings');
     Route::post('settings',                    [DashboardController::class, 'updateSettings'])->name('dashboard.update-settings');
 });
+
+// ── Private File Serving (Admin Only) ──────────────────────
+// Payment slips and other sensitive uploads are stored outside public/ and
+// served only through this admin-gated route (B5).
+Route::get('admin/storage/payment-slip/{filename}', [\App\Http\Controllers\StorageController::class, 'paymentSlip'])
+    ->name('admin.storage.payment-slip');
 
 // ── Super admin panel ──────────────────────────────────────
 Route::prefix('admin')->group(function () {
