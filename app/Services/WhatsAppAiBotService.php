@@ -26,10 +26,14 @@ class WhatsAppAiBotService
 {
     private const GROQ_API_URL  = 'https://api.groq.com/openai/v1/chat/completions';
     private const MODELS        = [
+        'groq/compound-mini',
+        'qwen/qwen3.8-27b',
+        'openai/gpt-oss-120b',
+        'qwen/qwen3.6-27b',
+        'openai/gpt-oss-20b',
+        'groq/compound',
         'llama-3.3-70b-versatile',
         'llama-3.1-8b-instant',
-        'mixtral-8x7b-32768',
-        'gemma2-9b-it',
     ];
     private const SESSION_TTL   = 45; // minutes
 
@@ -311,7 +315,7 @@ class WhatsAppAiBotService
         }
 
         // 3. Build system prompt from live DB menu
-        $systemPrompt = $this->buildSystemPrompt($restaurant);
+        $systemPrompt = $this->buildSystemPrompt($restaurant, $sessionKey);
 
         // 4. Call Groq AI
         $messages = array_merge(
@@ -323,13 +327,13 @@ class WhatsAppAiBotService
 
         if ($reply === null) {
             // AI unavailable — smart fallback
-            $reply = $this->smartFallback($text, $restaurant);
+            $reply = $this->smartFallback($text, $restaurant, $history);
             Log::warning("WhatsApp AI: Groq unavailable, using fallback for {$restaurant->name} — customer: {$customerPhone}");
-        } else {
-            $history[] = ['role' => 'assistant', 'content' => $reply];
-            if (count($history) > 20) {
-                $history = array_slice($history, -20);
-            }
+        }
+
+        $history[] = ['role' => 'assistant', 'content' => $reply];
+        if (count($history) > 20) {
+            $history = array_slice($history, -20);
         }
 
         // 5. Detect order confirmation and save to database
@@ -430,18 +434,23 @@ class WhatsAppAiBotService
         $preferred = env('GROQ_MODEL');
         $models    = $preferred ? array_unique(array_merge([$preferred], self::MODELS)) : self::MODELS;
 
+        $caPath = class_exists(\Composer\CaBundle\CaBundle::class)
+            ? \Composer\CaBundle\CaBundle::getSystemCaRootBundlePath()
+            : null;
+
         foreach ($models as $model) {
             try {
-                $response = Http::withToken($apiKey)
-                    // Note: do NOT add ->withoutVerifying() — SSL verification must
-                    // stay enabled to prevent MITM attacks against Groq's API (B8).
-                    ->timeout(15)
-                    ->post(self::GROQ_API_URL, [
-                        'model'       => $model,
-                        'messages'    => $messages,
-                        'temperature' => 0.7,
-                        'max_tokens'  => 700,
-                    ]);
+                $req = Http::withToken($apiKey)->timeout(15);
+                if ($caPath && file_exists($caPath)) {
+                    $req = $req->withOptions(['verify' => $caPath]);
+                }
+
+                $response = $req->post(self::GROQ_API_URL, [
+                    'model'       => $model,
+                    'messages'    => $messages,
+                    'temperature' => 0.7,
+                    'max_tokens'  => 700,
+                ]);
 
                 if ($response->successful()) {
                     $data  = $response->json();
@@ -465,7 +474,7 @@ class WhatsAppAiBotService
     //  System Prompt
     // ──────────────────────────────────────────────────────────────────────────
 
-    private function buildSystemPrompt(Restaurant $restaurant): string
+    private function buildSystemPrompt(Restaurant $restaurant, ?string $sessionKey = null): string
     {
         $name    = $restaurant->name ?: 'Our Restaurant';
         $address = $restaurant->address ?: ($restaurant->city ?: 'City Center');
@@ -480,14 +489,19 @@ class WhatsAppAiBotService
         $menuText  = $this->buildMenuText($restaurant);
         $dealsText = $this->buildDealsText($restaurant);
 
+        $hasVerifiedGps = $sessionKey ? (bool) Cache::get("verified_delivery_coords_{$sessionKey}") : false;
+        $verifiedNotice = $hasVerifiedGps
+            ? "  • CUSTOMER PIN STATUS: Customer's exact location pin has ALREADY been verified on the map! Accept their delivery address and proceed directly to Order Summary.\n"
+            : '';
+
         $deliveryZoneRule = implode("\n", array_filter([
-            "- STRICT LOCAL DELIVERY RADIUS & CITY LIMITS (NON-NEGOTIABLE):",
-            "  • Base City: {$city}. We ONLY deliver within {$city} and its surrounding neighborhoods up to maximum {$radius} km radius.",
-            "  • If customer gives ANY address in a different city (e.g. Karachi, Lahore, Islamabad, Multan, etc. if different from {$city}), you MUST refuse immediately.",
-            $areas !== '' ? "  • Whitelisted delivery neighborhoods: {$areas}." : null,
-            "  • If customer's address is outside our city or beyond {$radius} km, say:",
-            "    \"Maafi chahte hain! Hamara restaurant {$city} mein hai aur hum sirf {$radius} km tak deliver karte hain 🛵. Kya aapka koi qareebi address hai?\"",
-            "  • NEVER accept or confirm orders outside our delivery radius under any circumstances.",
+            "- DELIVERY & ADDRESS INSTRUCTIONS:",
+            "  • Base City: {$city}. Operating Delivery Radius: {$radius} km.",
+            "  • The backend system automatically verifies distance and GPS radius before messages reach you.",
+            $areas !== '' ? "  • Whitelisted operational neighborhoods: {$areas}." : null,
+            $verifiedNotice ?: null,
+            "  • When the customer gives their name, delivery address, and payment method, accept the address and immediately output the complete itemized Order Summary (Step 5). Do not refuse or question local addresses.",
+            "  • ONLY refuse an address if the customer explicitly demands delivery to a completely different distant major city (e.g. asking to deliver to Karachi or Islamabad when restaurant is in {$city}).",
         ]));
 
         return <<<PROMPT
@@ -1340,10 +1354,62 @@ PROMPT;
     //  Smart fallback
     // ──────────────────────────────────────────────────────────────────────────
 
-    private function smartFallback(string $text, Restaurant $restaurant): string
+    private function smartFallback(string $text, Restaurant $restaurant, array $history = []): string
     {
         $name  = $restaurant->name ?: 'our restaurant';
         $lower = strtolower($text);
+
+        // 1. If user confirms after an order summary was already presented
+        $hasSummaryInHistory = false;
+        foreach ($history as $h) {
+            if ($h['role'] === 'assistant' && stripos($h['content'], 'order summary') !== false) {
+                $hasSummaryInHistory = true;
+                break;
+            }
+        }
+
+        if ($hasSummaryInHistory && preg_match('/^(?:ha|haa|haan|yes|yep|yeah|ok|theek|thk|confirm|done|jee|ji|kr do|kar do)\b/i', $lower)) {
+            return "Your order is placed! Shukriya 😊 Aapka order kitchen ko bhej diya gaya hai.";
+        }
+
+        // 2. If user provides name, address, or payment details
+        if (preg_match('/(?:name|naam|address|pata|ghar|street|road|delivery|payment|cash|cod|jazzcash|easypaisa)\b/i', $lower)) {
+            $dbItems = $restaurant->menuItems()->where('is_available', true)->get();
+            $orderLines = [];
+            $subtotal = 0.0;
+            $userTexts = array_map(fn($m) => $m['content'], array_filter($history, fn($m) => $m['role'] === 'user'));
+            $allUserText = implode(' ', $userTexts) . ' ' . $text;
+
+            foreach ($dbItems as $item) {
+                if ($item->price > 0 && stripos($allUserText, $item->name) !== false) {
+                    $qty = 1;
+                    if (preg_match('/(\d+)\s*(?:x\s*)?' . preg_quote($item->name, '/') . '/i', $allUserText, $qm)) {
+                        $qty = (int) $qm[1];
+                    }
+                    $lineTotal = (float) $item->price * $qty;
+                    $subtotal += $lineTotal;
+                    $orderLines[] = "{$qty}x {$item->name} — Rs.{$lineTotal}";
+                }
+            }
+
+            if (! empty($orderLines)) {
+                $deliveryFee = (float) ($restaurant->delivery_charge ?? 50);
+                $grandTotal = $subtotal + $deliveryFee;
+                $itemsText = implode("\n", $orderLines);
+
+                return "─────────────────\n" .
+                       "🧾 *Order Summary*\n" .
+                       "{$itemsText}\n" .
+                       "─────────────────\n" .
+                       "Subtotal: Rs.{$subtotal}\n" .
+                       "Delivery: Rs.{$deliveryFee}\n" .
+                       "*Total: Rs.{$grandTotal}*\n" .
+                       "─────────────────\n" .
+                       "Deliver to: {$text}\n\n" .
+                       "Kya main aapka order confirm kar doon? ✅\n" .
+                       "_(Reply 'CONFIRM' ya 'HAAN' to place order)_";
+            }
+        }
 
         $categories = $restaurant->categories()
             ->with(['items' => fn($q) => $q->where('is_available', true)])

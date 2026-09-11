@@ -363,4 +363,98 @@ class ProductionSaaSHardeningTest extends TestCase
         $this->artisan('backup:test-restore')
             ->assertExitCode(0);
     }
+
+    /**
+     * Complete end-to-end smoke test:
+     * Webhook arrives -> Bot processes -> Order summary & confirmation -> DB saved -> Visible on Dashboard.
+     */
+    public function test_end_to_end_whatsapp_ordering_flow_persists_order(): void
+    {
+        config(['services.evolution.api_key' => 'secret_test_evo_key_2026']);
+
+        $restaurant = $this->makeRestaurant([
+            'name'                  => 'EndToEnd Burger Cafe',
+            'city'                  => 'Lahore',
+            'delivery_charge'       => 50,
+            'evolution_instance_id' => 'rest_e2e_test',
+            'lat'                   => 31.5204,
+            'lng'                   => 74.3587,
+        ]);
+
+        $category = \App\Models\Category::create([
+            'restaurant_id' => $restaurant->id,
+            'name'          => 'Burgers',
+            'sort_order'    => 1,
+        ]);
+
+        $burger = \App\Models\MenuItem::create([
+            'restaurant_id' => $restaurant->id,
+            'category_id'   => $category->id,
+            'name'          => 'Crispy Zinger',
+            'price'         => 350.00,
+            'is_available'  => true,
+        ]);
+
+        $customerPhone = '923009998877';
+        $sessionKey    = "wa_session_{$restaurant->id}_{$customerPhone}";
+
+        // Pre-cache verified delivery coords to avoid live geocoding latency
+        Cache::put("verified_delivery_coords_{$sessionKey}", [31.5200, 74.3580], now()->addMinutes(45));
+
+        // Simulate customer ordering items, address, and name
+        $history = [
+            ['role' => 'user', 'content' => '1 Crispy Zinger chahiye'],
+            ['role' => 'assistant', 'content' => "─────────────────\n🧾 *Order Summary*\n1x Crispy Zinger — Rs.350\n─────────────────\nSubtotal: Rs.350\nDelivery: Rs.50\n*Total: Rs.400*\n─────────────────\nName: Ali\nDeliver to: Model Town B, House 12\nPayment: Cash on Delivery\n\nKya main aapka order confirm kar doon? ✅"],
+        ];
+        Cache::put($sessionKey, $history, now()->addMinutes(45));
+
+        // Customer sends confirmation via webhook
+        $response = $this->withHeaders(['apikey' => 'secret_test_evo_key_2026'])
+            ->postJson('/webhook/whatsapp', [
+                'instance' => 'rest_e2e_test',
+                'event'    => 'messages_upsert',
+                'data'     => [
+                    'key' => [
+                        'id'        => 'WA_CONFIRM_MSG_1',
+                        'fromMe'    => false,
+                        'remoteJid' => "{$customerPhone}@s.whatsapp.net",
+                    ],
+                    'message' => [
+                        'conversation' => 'Haan confirm kar do',
+                    ],
+                ],
+            ]);
+
+        $response->assertStatus(200);
+
+        // Verify order is persisted in the database
+        $this->assertDatabaseHas('orders', [
+            'restaurant_id'    => $restaurant->id,
+            'customer_phone'   => $customerPhone,
+            'payment_method'   => 'cash_on_delivery',
+            'total'            => 400.00,
+        ]);
+
+        $savedOrder = \App\Models\Order::where('restaurant_id', $restaurant->id)
+            ->where('customer_phone', $customerPhone)
+            ->first();
+
+        $this->assertNotNull($savedOrder);
+        $this->assertNotEmpty($savedOrder->tracking_code);
+
+        // Verify order items saved with DB price
+        $this->assertDatabaseHas('order_items', [
+            'order_id'     => $savedOrder->id,
+            'menu_item_id' => $burger->id,
+            'quantity'     => 1,
+            'unit_price'   => 350.00,
+            'subtotal'     => 350.00,
+        ]);
+
+        // Verify order is visible in the owner's dashboard orders page
+        $this->withSession(["restaurant_{$restaurant->id}" => true]);
+        $dashResponse = $this->get(route('dashboard.orders', $restaurant->id));
+        $dashResponse->assertOk();
+        $dashResponse->assertSee($savedOrder->tracking_code);
+    }
 }
