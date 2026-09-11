@@ -12,8 +12,9 @@ class ProcessWhatsAppMessage implements ShouldQueue
 {
     use Queueable;
 
-    public int $tries = 2;
+    public int $tries = 3;
     public int $timeout = 60;
+    public array $backoff = [2, 5, 10];
 
     /**
      * Create a new job instance.
@@ -40,9 +41,10 @@ class ProcessWhatsAppMessage implements ShouldQueue
                 $this->locationCoords
             );
         } catch (\Throwable $e) {
+            $maskedPhone = \App\Support\LogSanitizer::maskPhone($this->customerPhone);
             Log::error("ProcessWhatsAppMessage Job Failed for {$this->restaurant->name}: " . $e->getMessage(), [
                 'exception' => $e,
-                'phone'     => $this->customerPhone,
+                'phone'     => $maskedPhone,
             ]);
             throw $e;
         }

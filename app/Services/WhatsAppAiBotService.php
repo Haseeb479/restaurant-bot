@@ -62,7 +62,9 @@ class WhatsAppAiBotService
             return;
         }
 
-        Log::info("WhatsApp AI: Processing message for [{$restaurant->name}] from [{$customerPhone}]: {$text}");
+        $maskedPhone = \App\Support\LogSanitizer::maskPhone($customerPhone);
+        $redactedText = \App\Support\LogSanitizer::redactMessage($text);
+        Log::info("WhatsApp AI: Processing message for [{$restaurant->name}] from [{$maskedPhone}]: {$redactedText}");
 
         // Minute limit: >= 12 messages → warn once per 30 s then drop
         if (count($rateData['ts']) >= 12) {

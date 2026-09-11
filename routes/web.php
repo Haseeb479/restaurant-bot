@@ -11,27 +11,66 @@ Route::get('/', function () {
     return view('landing');
 })->name('landing');
 
-// ── Production Health & Diagnostics Endpoint (G3) ─────────────
-Route::get('/health', function () {
-    $dbOk = false;
+// ── Production Health, Liveness & Readiness Endpoints (Req 16) ─
+// 1. Liveness: Process is alive and answering HTTP traffic
+Route::get('/health/live', function () {
+    return response()->json([
+        'status'    => 'ok',
+        'timestamp' => now()->toIso8601String(),
+    ], 200)->header('Cache-Control', 'no-store, no-cache');
+})->name('health.live');
+
+// 2. Readiness: Verifies database, cache/redis, and service dependencies
+Route::get('/health/ready', function () {
+    $checks = [];
+    $isReady = true;
+
+    // Database check
     try {
         \Illuminate\Support\Facades\DB::connection()->getPdo();
-        $dbOk = true;
+        $checks['database'] = 'ok';
     } catch (\Throwable $e) {
-        $dbOk = false;
+        $checks['database'] = 'fail';
+        $isReady = false;
     }
 
-    $status = $dbOk ? 200 : 503;
+    // Cache / Redis check
+    try {
+        \Illuminate\Support\Facades\Cache::put('health_check_ping', 'pong', 5);
+        $cached = \Illuminate\Support\Facades\Cache::get('health_check_ping');
+        $checks['cache'] = ($cached === 'pong') ? 'ok' : 'fail';
+        if ($checks['cache'] === 'fail') {
+            $isReady = false;
+        }
+    } catch (\Throwable $e) {
+        $checks['cache'] = 'fail';
+        $isReady = false;
+    }
+
+    // EvolutionAPI connectivity check (read-only ping)
+    if (\App\Support\BotEvolutionClient::isConfigured()) {
+        try {
+            $resp = \Illuminate\Support\Facades\Http::timeout(3)
+                ->withHeaders(['apikey' => \App\Support\BotEvolutionClient::apiKey()])
+                ->get(\App\Support\BotEvolutionClient::baseUrl() . '/instance/fetchInstances');
+            $checks['evolution'] = ($resp && $resp->successful()) ? 'ok' : 'unreachable';
+        } catch (\Throwable $e) {
+            $checks['evolution'] = 'unreachable';
+        }
+    } else {
+        $checks['evolution'] = 'unconfigured';
+    }
+
     return response()->json([
-        'status'    => $dbOk ? 'healthy' : 'unhealthy',
+        'status'    => $isReady ? 'ok' : 'not_ready',
         'timestamp' => now()->toIso8601String(),
-        'services'  => [
-            'database'  => $dbOk ? 'connected' : 'disconnected',
-            'groq'      => ! empty(config('services.groq.key') ?: env('GROQ_API_KEY')) ? 'configured' : 'missing_key',
-            'evolution' => ! empty(config('services.evolution.api_key') ?: env('EVOLUTION_API_KEY')) ? 'configured' : 'missing_key',
-            'maps'      => ! empty(config('services.google.maps_api_key') ?: env('GOOGLE_MAPS_API_KEY')) ? 'configured' : 'missing_key',
-        ],
-    ], $status)->header('Cache-Control', 'no-store, no-cache');
+        'checks'    => $checks,
+    ], $isReady ? 200 : 503)->header('Cache-Control', 'no-store, no-cache');
+})->name('health.ready');
+
+// Backward-compatible /health route
+Route::get('/health', function () {
+    return redirect()->route('health.ready');
 })->name('health');
 
 // ── Dedicated Owner Sign In Page ──────────────────────────────
@@ -52,6 +91,16 @@ $ownerLoginHandler = function (\Illuminate\Http\Request $req) {
 
     $input  = trim((string) $req->restaurant_name);
     $digits = preg_replace('/[^0-9]/', '', $input);
+
+    // ── Req 11: Check per-account lockout ─────────────────────────────────
+    $lockRemaining = \App\Support\AccountLockoutService::isLocked($input);
+    if ($lockRemaining > 0) {
+        $minutes = ceil($lockRemaining / 60);
+        \App\Models\AuditLog::log('auth.owner_login_blocked', "Owner login blocked due to account lockout for [{$input}] from IP [{$req->ip()}].");
+        return back()
+            ->withInput($req->only('restaurant_name'))
+            ->withErrors(['password' => "Too many failed attempts. This account is temporarily locked for {$minutes} minute(s)."], 'owner');
+    }
 
     // Flexible multi-field lookup:
     // 1. Exact or partial restaurant name
@@ -80,6 +129,7 @@ $ownerLoginHandler = function (\Illuminate\Http\Request $req) {
     // against a fixed bcrypt hash so the response time is identical whether or
     // not the restaurant name exists (prevents timing-based enumeration, B4).
     if (! $r) {
+        \App\Support\AccountLockoutService::recordFailedAttempt($input, $req->ip());
         \Illuminate\Support\Facades\Hash::check($req->password, '$2y$12$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
         return back()
             ->withInput($req->only('restaurant_name'))
@@ -90,10 +140,17 @@ $ownerLoginHandler = function (\Illuminate\Http\Request $req) {
         (string) $req->password,
         (string) $r->owner_password
     )) {
+        $lockSeconds = \App\Support\AccountLockoutService::recordFailedAttempt($input, $req->ip());
+        $err = $lockSeconds > 0
+            ? "Too many failed attempts. This account is temporarily locked for " . ceil($lockSeconds / 60) . " minute(s)."
+            : "Wrong restaurant name or password. Please check and try again.";
         return back()
             ->withInput($req->only('restaurant_name'))
-            ->withErrors(['password' => 'Wrong restaurant name or password. Please check and try again.'], 'owner');
+            ->withErrors(['password' => $err], 'owner');
     }
+
+    // Successful password match — reset failed attempts
+    \App\Support\AccountLockoutService::resetAttempts($input);
 
     if ($r->status === 'pending' || ($r->status !== 'active' && in_array($r->registration_status, ['pending_review', 'pending_plan', 'pending_payment']))) {
         return redirect()->route('onboarding.status', $r->id);
@@ -238,6 +295,10 @@ Route::get('get-started',            [OnboardingController::class, 'step1Form'])
 Route::get('restaurant/register',    [OnboardingController::class, 'step1Form'])->name('restaurant.register');
 Route::post('register',              [OnboardingController::class, 'step1Submit'])->middleware('throttle:10,1')->name('onboarding.signup.submit');
 Route::post('restaurant/register',   [OnboardingController::class, 'step1Submit'])->middleware('throttle:10,1');
+
+Route::get('register/verify-notice/{id}',        [OnboardingController::class, 'verifyNotice'])->name('onboarding.verify-notice');
+Route::get('register/verify/{id}/{token}',       [OnboardingController::class, 'verify'])->middleware('throttle:15,1')->name('onboarding.verify');
+Route::post('register/resend-verification/{id}', [OnboardingController::class, 'resendVerification'])->middleware('throttle:5,1')->name('onboarding.resend-verification');
 
 Route::get('register/plan/{id}',     [OnboardingController::class, 'step2PlanForm'])->name('onboarding.plan');
 Route::post('register/plan/{id}',    [OnboardingController::class, 'step2PlanSubmit'])->name('onboarding.plan.submit');

@@ -135,7 +135,7 @@ class RestaurantController extends Controller
      */
     public function showRegistrationForm()
     {
-        return view('restaurant.register');
+        return redirect()->route('onboarding.signup');
     }
 
     /**
@@ -143,44 +143,6 @@ class RestaurantController extends Controller
      */
     public function register(Request $request)
     {
-        $request->validate([
-            'name'            => 'required|string|max:255',
-            'whatsapp_number' => 'required|string|unique:restaurants',
-            'owner_phone'     => 'required|string',
-            'owner_password'  => 'required|string|min:6',
-            'city'            => 'nullable|string|max:100',
-            'address'         => 'nullable|string|max:500',
-        ]);
-
-        $restaurant = new Restaurant(
-            $request->only(['name', 'whatsapp_number', 'owner_phone', 'city', 'address'])
-        );
-        $restaurant->plan           = 'starter';
-        $restaurant->status         = 'active';
-        $restaurant->is_active      = true;
-        $restaurant->is_open        = true;
-        $restaurant->bot_status     = 'disconnected';
-        $restaurant->owner_password = Hash::make($request->input('owner_password'));
-        $restaurant->api_key        = 'sk_live_' . \Illuminate\Support\Str::random(32);
-        $restaurant->features       = [
-            'order_tracking'        => true,
-            'customer_notifications'=> true,
-            'ai_suggestions'        => true,
-            'human_handover'        => true,
-            'voice_notes'           => true,
-            'deal_broadcast'        => true,
-        ];
-        $restaurant->save();
-
-        \App\Models\AuditLog::log('restaurant.self_registered', "New restaurant registered via self-service: {$restaurant->name} (#{$restaurant->id})");
-
-        // Automatically log owner into dashboard session
-        $request->session()->regenerate();
-        session(["restaurant_{$restaurant->id}" => true]);
-        session(["restaurant_{$restaurant->id}_login_time" => now()->toIso8601String()]);
-
-        return redirect()
-            ->route('dashboard.connect-whatsapp', ['id' => $restaurant->id])
-            ->with('success', '🎉 Restaurant registered! Please scan the QR code below to connect your WhatsApp bot.');
+        return redirect()->route('onboarding.signup');
     }
 }

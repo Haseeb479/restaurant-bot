@@ -14,8 +14,10 @@ if (!fs.existsSync(LOG_DIR)) {
     } catch (e) {}
 }
 
+import { LogSanitizer } from '../utils/LogSanitizer.js';
+
 /**
- * Logger — structured logging to disk and database.
+ * Logger — structured logging to disk and database with PII redaction (Req 12).
  */
 export class Logger {
     static getDailyLogFile() {
@@ -24,15 +26,16 @@ export class Logger {
     }
 
     /**
-     * Write structured log entry to file
+     * Write structured log entry to file with PII redaction
      */
     static write(level, message, meta = {}) {
         const timestamp = new Date().toISOString();
+        const sanitizedMeta = LogSanitizer.sanitizeMeta(meta);
         const entry = JSON.stringify({
             timestamp,
             level,
             message,
-            ...meta,
+            ...sanitizedMeta,
         }) + '\n';
 
         try {

@@ -161,7 +161,7 @@
                                     type="password"
                                     id="signup_owner_password"
                                     name="owner_password"
-                                    placeholder="Minimum 6 characters"
+                                    placeholder="Minimum 12 characters"
                                     required
                                     class="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white transition"
                                 >

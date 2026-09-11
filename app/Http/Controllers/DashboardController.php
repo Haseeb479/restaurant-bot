@@ -55,9 +55,24 @@ class DashboardController extends Controller
         $r        = Restaurant::findOrFail($slug);
         $password = trim((string) $request->input('password', ''));
 
-        if (! self::passwordMatches($password, $r->owner_password)) {
-            return back()->withErrors(['password' => 'Wrong password. Please check and try again.']);
+        // ── Req 11: Check per-account lockout ─────────────────────────────────
+        $lockRemaining = \App\Support\AccountLockoutService::isLocked((string) $r->id);
+        if ($lockRemaining > 0) {
+            $minutes = ceil($lockRemaining / 60);
+            \App\Models\AuditLog::log('auth.owner_login_blocked', "Owner login blocked due to account lockout for restaurant #{$r->id} from IP [{$request->ip()}].");
+            return back()->withErrors(['password' => "Too many failed attempts. This account is temporarily locked for {$minutes} minute(s)."]);
         }
+
+        if (! self::passwordMatches($password, $r->owner_password)) {
+            $lockSeconds = \App\Support\AccountLockoutService::recordFailedAttempt((string) $r->id, $request->ip());
+            $err = $lockSeconds > 0
+                ? "Too many failed attempts. This account is temporarily locked for " . ceil($lockSeconds / 60) . " minute(s)."
+                : "Wrong password. Please check and try again.";
+            return back()->withErrors(['password' => $err]);
+        }
+
+        // Successful password match — reset attempts
+        \App\Support\AccountLockoutService::resetAttempts((string) $r->id);
 
         if ($r->status === 'pending' || ($r->status !== 'active' && in_array($r->registration_status, ['pending_review', 'pending_plan', 'pending_payment']))) {
             return redirect()->route('onboarding.status', $r->id);
@@ -1951,8 +1966,9 @@ class DashboardController extends Controller
         $r = \App\Models\Restaurant::find($id);
         abort_if(!$r, 404, 'Restaurant not found.');
 
-        // 3. If standard restaurant owner login (not super admin), block if deactivated
+        // 3. If standard restaurant owner login (not super admin), block if deactivated or unverified
         if (!$isSuperAdmin) {
+            abort_if(!$r->isVerified(), 403, 'Please verify your email address before accessing the dashboard.');
             abort_if(!$r->is_active, 403, 'This restaurant account has been deactivated. Please contact the platform admin.');
         }
     }

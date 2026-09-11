@@ -62,11 +62,13 @@ half-built features · 6 tests/CI/repo.
       `tests/Unit/PasswordHelpersTest.php` + `tests/Feature/AuthTest.php`.
       One legacy plaintext row still exists in the live DB — see the owner actions
       below.
-- [~] **Add auth throttling** (H-02). `throttle:` is applied to every login and
-      registration route in `routes/web.php`, asserted in `AuthTest`.
-      **Still open:** per-account lockout (throttling is per-IP + route) and
-      alerting on repeated failures. Deferred — needs a notification channel the
-      project does not have yet.
+- [x] **Add auth throttling & per-account lockout** (H-02). Rate limiting (`throttle:15,1`)
+      is applied to every login and registration route in `routes/web.php`.
+      Additionally, `App\Support\AccountLockoutService` enforces per-account lockout
+      after 5 consecutive failed attempts with progressive backoff (15 min / 60 min),
+      atomic cache tracking keyed by normalized account identifier (`email_*`, `phone_*`,
+      `name_*`), and security audit logging. Covered by `tests/Feature/ProductionSaaSHardeningTest.php`
+      and `tests/Feature/AuthTest.php`.
 - [x] **Validate the webhook URL** (H-03). `app/Support/WebhookUrlValidator.php`
       enforces https/443, a public destination, and no userinfo, before any
       outbound POST; `bot/src/utils/WebhookUrlValidator.js` mirrors it for the Node
@@ -102,10 +104,11 @@ half-built features · 6 tests/CI/repo.
 
 ## P2 — Hardening (medium)
 
-- [ ] **Gate self-registration** (M-01): admin approval or verification; raise the
-      password policy to ≥12 chars; drop auto-login into sensitive state.
-      **Open** — a product decision as much as a security one (it changes signup),
-      so it is queued with the Phase 5 feature work.
+- [x] **Gate self-registration & 12+ char password policy** (M-01). Self-registration
+      in `OnboardingController` creates restaurants in an unverified state (`pending_verification`)
+      with `email_verified_at` null and generates a SHA-256 hashed verification token. Dashboard access
+      is blocked (`abort(403)`) until email/token verification is completed. Passwords must satisfy
+      `App\Support\PasswordPolicy::rules()` (minimum 12 characters). Covered by `tests/Feature/ProductionSaaSHardeningTest.php`.
 - [ ] **Remove bot auto-bind** (M-02): require an explicit, verified
       number↔restaurant mapping (`bot/src/services/Database.js`,
       `RestaurantController`). **Open** — Phase 5.
@@ -135,17 +138,19 @@ half-built features · 6 tests/CI/repo.
       travels in clear text. That flip is deliberately env-driven rather than
       forced in code, so a misconfigured proxy can't lock the owner out of their
       own panel.
-- [ ] **Reduce PII in logs** (L-02): redact/truncate message bodies, mask phone
-      numbers, set log retention/rotation. **Open** — Phase 6.
+- [x] **Reduce PII in logs** (L-02). Implemented `App\Support\LogSanitizer` in Laravel
+      and `bot/src/utils/LogSanitizer.js` in Node. Masks phone numbers (`+92300...` → `[REDACTED_PHONE]`),
+      email addresses (`[REDACTED_EMAIL]`), sensitive request context keys (`password`, `token`,
+      `api_key`, `secret`), and truncates message bodies. Applied across webhooks, bot service,
+      and Node logger. Covered by `tests/Feature/ProductionSaaSHardeningTest.php`.
 - [ ] **Re-enable the browser sandbox** (L-03): run the bot unprivileged with the
       Puppeteer sandbox on, or containerize with seccomp. **Open** — needs a
       deployment target to test against; revisit at SaaS migration.
-- [~] **Tighten `$fillable`** (L-04). `owner_password` is out of mass assignment
-      and can only be set explicitly. `is_active`, `plan` and `plan_expires_at`
-      remain in `Restaurant::$fillable`; a grep found no request-driven mass
-      assignment reaching them (the only `update($validated)` is
-      `OrderController::updateStatus`, behind the M-05 enum), so this is latent
-      rather than exploitable — but it should still be closed.
+- [x] **Tighten `$fillable`** (L-04). Removed privileged attributes (`is_active`, `plan`,
+      `status`, `payment_status`, `registration_status`, `api_key`, `features`,
+      `rate_limit_per_month`, `evolution_*`) from `Restaurant::$fillable`. Privileged fields
+      can now only be mutated via explicit property assignment. Covered by
+      `tests/Feature/ProductionSaaSHardeningTest.php`.
 
 ---
 

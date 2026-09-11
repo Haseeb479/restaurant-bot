@@ -361,7 +361,7 @@ class AdminController extends Controller
             'name'            => 'required|string|max:255',
             'whatsapp_number' => 'required|string|unique:restaurants',
             'owner_phone'     => 'required|string',
-            'owner_password'  => 'required|string|min:6',
+            'owner_password'  => \App\Support\PasswordPolicy::rule(true),
             'plan'            => 'required|string',
             'city'            => 'nullable|string|max:100',
             'address'         => 'nullable|string|max:500',
@@ -422,7 +422,7 @@ class AdminController extends Controller
             'greeting_message'=> 'nullable|string',
             'plan'            => 'required|string',
             'rate_limit_per_month' => 'nullable|integer|min:50',
-            'owner_password'  => 'nullable|string|min:4',
+            'owner_password'  => \App\Support\PasswordPolicy::rule(false),
         ]);
 
         $r->fill($request->only([
@@ -466,7 +466,10 @@ class AdminController extends Controller
     public function resetRestaurantPassword(Request $request, Restaurant $r)
     {
         $this->adminAuth();
-        $newPassword = trim((string) $request->input('new_password')) ?: Str::random(10);
+        $request->validate([
+            'new_password' => ['nullable', 'string', 'min:12'],
+        ]);
+        $newPassword = trim((string) $request->input('new_password')) ?: Str::random(16);
         $r->owner_password = Hash::make($newPassword);
         $r->save();
 
@@ -1401,7 +1404,7 @@ class AdminController extends Controller
         if ($request->filled('current_password') && $request->filled('new_password')) {
             $request->validate([
                 'current_password' => 'required|string',
-                'new_password'     => 'required|string|min:8|different:current_password',
+                'new_password'     => ['required', 'string', 'min:12', 'different:current_password'],
             ]);
 
             if (! $this->verifyAdminPassword((string) $request->input('current_password'))) {
@@ -1504,7 +1507,11 @@ class AdminController extends Controller
     {
         $this->adminAuth();
 
-        $newPassword = trim((string) $request->input('password')) ?: Str::random(10);
+        $request->validate([
+            'password' => ['nullable', 'string', 'min:12'],
+        ]);
+
+        $newPassword = trim((string) $request->input('password')) ?: Str::random(16);
         $restaurant  = $resetRequest->restaurant;
 
         if (! $restaurant) {

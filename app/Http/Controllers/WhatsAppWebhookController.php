@@ -78,7 +78,24 @@ class WhatsAppWebhookController extends Controller
 
         // 3. Incoming message (MESSAGES_UPSERT)
         if ($event === 'messages_upsert' || isset($data['key']) || isset($data['message'])) {
-            $this->handleIncomingMessage($restaurant, $data);
+            // ── Req 17: Controller-level Message ID Deduplication Guard ──────
+            // Check dedup here so the HTTP response can signal 'deduplicated'.
+            // The inner handleIncomingMessage also has a guard as a second fence.
+            $msgData  = $data;
+            if (isset($data[0]) && is_array($data[0])) {
+                $msgData = $data[0]; // Batch — check first message ID
+            }
+            $msgKey    = $msgData['key'] ?? $msgData['message']['key'] ?? [];
+            $messageId = (string) ($msgKey['id'] ?? '');
+            if ($messageId !== '' && !\Illuminate\Support\Facades\Cache::has("wa_msg_seen_{$restaurant->id}_{$messageId}")) {
+                // Not seen yet — proceed to process
+                $this->handleIncomingMessage($restaurant, $data);
+            } elseif ($messageId !== '') {
+                Log::info("Evolution Webhook: Duplicate message event [{$messageId}] ignored (controller) for restaurant {$restaurant->name}");
+                return response()->json(['status' => 'deduplicated', 'event' => 'messages.upsert']);
+            } else {
+                $this->handleIncomingMessage($restaurant, $data);
+            }
             return response()->json(['status' => 'processed', 'event' => 'messages.upsert']);
         }
 
@@ -149,6 +166,17 @@ class WhatsAppWebhookController extends Controller
             return;
         }
 
+        // ── Req 17: Message ID Deduplication Guard ────────────────────────────
+        $messageId = (string) ($key['id'] ?? '');
+        if ($messageId !== '') {
+            $dedupKey = "wa_msg_seen_{$restaurant->id}_{$messageId}";
+            if (\Illuminate\Support\Facades\Cache::has($dedupKey)) {
+                Log::info("Evolution Webhook: Duplicate message event [{$messageId}] ignored for restaurant {$restaurant->name}");
+                return;
+            }
+            \Illuminate\Support\Facades\Cache::put($dedupKey, true, now()->addMinutes(10));
+        }
+
         // Extract customer phone number
         $customerPhone = preg_replace('/[^0-9]/', '', explode('@', $remoteJid)[0]);
         if ($customerPhone === '' && ! str_contains($remoteJid, '@')) {
@@ -184,7 +212,8 @@ class WhatsAppWebhookController extends Controller
                     $locLabel = $locationCoords['name'] ?: $locationCoords['address'] ?: 'Pin on map';
                     $text = "📍 [Customer shared location pin: {$locationCoords['lat']}, {$locationCoords['lng']} ({$locLabel})]";
                 }
-                Log::info("Evolution Webhook: Received native location from [{$remoteJid}] for {$restaurant->name}: Lat {$locationCoords['lat']}, Lng {$locationCoords['lng']}");
+                $maskedJid = \App\Support\LogSanitizer::maskPhone($remoteJid);
+                Log::info("Evolution Webhook: Received native location from [{$maskedJid}] for {$restaurant->name} (lat/lng sanitized)");
             }
         }
 
@@ -192,7 +221,9 @@ class WhatsAppWebhookController extends Controller
             return;
         }
 
-        Log::info("Evolution Webhook: Incoming message for {$restaurant->name} from [{$remoteJid}]: {$text}");
+        $maskedJid = \App\Support\LogSanitizer::maskPhone($remoteJid);
+        $redactedMsg = \App\Support\LogSanitizer::redactMessage($text);
+        Log::info("Evolution Webhook: Incoming message for {$restaurant->name} from [{$maskedJid}]: {$redactedMsg}");
 
         // ── GAP 4: Human handoff — mute AI while owner is handling manually ───
         // If the restaurant owner replied to this customer directly via WhatsApp,
@@ -205,7 +236,8 @@ class WhatsAppWebhookController extends Controller
             ->exists();
 
         if ($handoffActive) {
-            Log::info("Evolution Webhook: AI muted (human handoff active) for {$customerPhone} at {$restaurant->name}");
+            $maskedPhone = \App\Support\LogSanitizer::maskPhone($customerPhone);
+            Log::info("Evolution Webhook: AI muted (human handoff active) for {$maskedPhone} at {$restaurant->name}");
             return;
         }
 

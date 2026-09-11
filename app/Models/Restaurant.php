@@ -12,7 +12,10 @@ class Restaurant extends Model
      * NOTE: `owner_password` is deliberately NOT mass-assignable. It must always
      * be set explicitly through a hash (see AdminController::storeRestaurant,
      * RestaurantController::register, DashboardController::login), so a future
-     * `->update($request->all())` can never overwrite a credential.
+     * Only safe, tenant-editable presentation and business details are permitted.
+     * Privileged state (is_active, status, plan, plan_id, payment_status,
+     * registration_status, api_key, features, evolution fields, verification tokens)
+     * must NEVER be mass-assignable (Req 13).
      */
     protected $fillable = [
         'name',
@@ -20,6 +23,7 @@ class Restaurant extends Model
         'email',
         'whatsapp_number',
         'owner_phone',
+        'manager_phone',
         'city',
         'address',
         'delivery_areas',
@@ -33,30 +37,9 @@ class Restaurant extends Model
         'menu_file_name',
         'menu_file_type',
         'google_sheet_webhook',
-        'manager_phone',
-        'bot_status',
-        'bot_last_seen_at',
-        'last_error',
-        'last_error_at',
-        'plan',
-        'plan_id',
-        'payment_status',
-        'registration_status',
-        'payment_id',
-        'status',
-        'rejection_reason',
-        'approved_at',
-        'features',
-        'ai_config',
-        'rate_limit_per_month',
-        'api_key',
-        'evolution_instance_id',
-        'evolution_status',
-        'bot_phone_number',
         'restaurant_lat',
         'restaurant_lng',
         'delivery_radius_km',
-        'trial_started_at',
     ];
 
     protected $casts = [
@@ -68,6 +51,8 @@ class Restaurant extends Model
         'plan_expires_at'      => 'datetime',
         'trial_started_at'     => 'datetime',
         'approved_at'          => 'datetime',
+        'email_verified_at'    => 'datetime',
+        'verification_sent_at' => 'datetime',
         'bot_last_seen_at'     => 'datetime',
         'deactivated_at'       => 'datetime',
         'last_error_at'        => 'datetime',
@@ -75,6 +60,55 @@ class Restaurant extends Model
         'ai_config'            => 'array',
         'rate_limit_per_month' => 'integer',
     ];
+
+    public function isVerified(): bool
+    {
+        return ! empty($this->email_verified_at);
+    }
+
+    /**
+     * Generate a cryptographic, single-use verification token (Req 9).
+     * The raw token is returned to be sent via notification, while its SHA-256
+     * hash is stored in the database.
+     */
+    public function generateVerificationToken(): string
+    {
+        $rawToken = bin2hex(random_bytes(32));
+        $this->verification_token_hash = hash('sha256', $rawToken);
+        $this->verification_sent_at    = now();
+        $this->save();
+
+        return $rawToken;
+    }
+
+    /**
+     * Validate a presented verification token using constant-time hash comparison (Req 9).
+     */
+    public function verifyWithToken(string $rawToken): bool
+    {
+        if (empty($this->verification_token_hash) || empty($this->verification_sent_at)) {
+            return false;
+        }
+
+        // 24 hour expiration window
+        if ($this->verification_sent_at->addHours(24)->isPast()) {
+            return false;
+        }
+
+        $incomingHash = hash('sha256', trim($rawToken));
+
+        if (! hash_equals($this->verification_token_hash, $incomingHash)) {
+            return false;
+        }
+
+        // Mark verified and immediately invalidate the single-use token
+        $this->email_verified_at        = now();
+        $this->verification_token_hash  = null;
+        $this->verification_sent_at     = null;
+        $this->save();
+
+        return true;
+    }
 
     public function maxDeliveryRadiusKm(): float
     {
