@@ -184,6 +184,7 @@ class DashboardController extends Controller
         // Weekly trend (last 7 days) — single grouped query (F1)
         $sevenDaysAgo = now()->subDays(6)->startOfDay();
         $countsByDate = $r->orders()
+            ->reorder()
             ->where('created_at', '>=', $sevenDaysAgo)
             ->selectRaw('DATE(created_at) as order_date, COUNT(*) as count')
             ->groupBy('order_date')
