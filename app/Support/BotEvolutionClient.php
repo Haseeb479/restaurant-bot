@@ -57,10 +57,13 @@ class BotEvolutionClient
         ]);
 
         if ($response && ($response->successful() || $response->status() === 403 || $response->status() === 409)) {
-            // Instance exists or created
-            $restaurant->update([
+            // Instance exists or created — use forceFill because evolution_instance_id
+            // is intentionally excluded from $fillable (mass-assignment guard), but
+            // internal system code must always be able to set it.
+            $restaurant->forceFill([
                 'evolution_instance_id' => $instanceName,
-            ]);
+            ])->save();
+
 
             // Set up webhook for incoming messages and status changes
             self::configureWebhook($restaurant);
@@ -77,12 +80,26 @@ class BotEvolutionClient
     public static function configureWebhook(Restaurant $restaurant): bool
     {
         $instanceName = self::instanceName($restaurant);
-        $webhookUrl   = url('/webhook/whatsapp');
+        $apiKey       = self::apiKey();
+
+        $webhookUrl = config('services.evolution.webhook_url', env('EVOLUTION_WEBHOOK_URL')) ?: url('/webhook/whatsapp');
+
+        // Add apikey to webhook query parameters so authentication succeeds
+        // even if reverse proxies, load balancers, or Evolution versions omit custom headers.
+        if ($apiKey !== '' && ! str_contains($webhookUrl, 'apikey=')) {
+            $separator   = str_contains($webhookUrl, '?') ? '&' : '?';
+            $webhookUrl .= $separator . 'apikey=' . urlencode($apiKey);
+        }
 
         $response = self::send('post', "/webhook/set/{$instanceName}", [
             'webhook' => [
                 'enabled'   => true,
                 'url'       => $webhookUrl,
+                'headers'   => [
+                    'apikey'        => $apiKey,
+                    'x-api-key'     => $apiKey,
+                    'Authorization' => "Bearer {$apiKey}",
+                ],
                 'byEvents'  => false,
                 'base64'    => true,
                 'events'    => [

@@ -63,6 +63,11 @@ class WhatsAppWebhookController extends Controller
             return response()->json(['status' => 'ignored', 'reason' => 'restaurant_not_found'], 200);
         }
 
+        // Auto-heal evolution_instance_id if it was not stored previously
+        if (empty($restaurant->evolution_instance_id)) {
+            $restaurant->forceFill(['evolution_instance_id' => $instance])->save();
+        }
+
         // 1. Connection Update event (open, close, connecting)
         if ($event === 'connection_update') {
             $state = $data['state'] ?? $data['status'] ?? '';
@@ -244,16 +249,24 @@ class WhatsAppWebhookController extends Controller
         // Target recipient: use remoteJid directly to ensure 100% reply delivery for @lid & standard accounts
         $recipientJid = $remoteJid ?: $customerPhone;
 
-        // ── D2: Dispatch asynchronous job ────────────────────────────────────
-        // Offloads AI completion and message sending to background worker.
-        // Returns HTTP 200 to EvolutionAPI immediately, preventing webhook timeouts & retry storms.
-        \App\Jobs\ProcessWhatsAppMessage::dispatch(
-            $restaurant,
-            $customerPhone ?: $recipientJid,
-            $recipientJid,
-            $text,
-            $locationCoords
-        );
+        // ── D2: Process message (sync by default for instant reply; async if configured) ──
+        if (config('queue.default') === 'sync' || env('WHATSAPP_PROCESS_SYNC', true)) {
+            \App\Jobs\ProcessWhatsAppMessage::dispatchSync(
+                $restaurant,
+                $customerPhone ?: $recipientJid,
+                $recipientJid,
+                $text,
+                $locationCoords
+            );
+        } else {
+            \App\Jobs\ProcessWhatsAppMessage::dispatch(
+                $restaurant,
+                $customerPhone ?: $recipientJid,
+                $recipientJid,
+                $text,
+                $locationCoords
+            );
+        }
     }
 
     /**

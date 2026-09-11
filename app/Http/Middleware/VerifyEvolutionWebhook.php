@@ -30,7 +30,19 @@ class VerifyEvolutionWebhook
             abort(503, 'Webhook authentication is not configured on this server.');
         }
 
-        $incomingKey = trim((string) $request->header('apikey', ''));
+        $incomingKey = trim((string) (
+            $request->header('apikey')
+            ?? $request->header('x-api-key')
+            ?? $request->query('apikey')
+            ?? ''
+        ));
+
+        if ($incomingKey === '' && $request->hasHeader('Authorization')) {
+            $auth = trim((string) $request->header('Authorization'));
+            if (str_starts_with(strtolower($auth), 'bearer ')) {
+                $incomingKey = trim(substr($auth, 7));
+            }
+        }
 
         if (! hash_equals($expectedKey, $incomingKey)) {
             \Illuminate\Support\Facades\Log::warning('EvolutionAPI webhook rejected: invalid API key', [

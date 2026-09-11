@@ -855,6 +855,12 @@ class DashboardController extends Controller
             ];
             $liveStatus = $statusMap[$evoState['state']] ?? 'disconnected';
 
+            // Ensure Evolution API webhook routing with authentication is active
+            if ($isConnected && ! \Illuminate\Support\Facades\Cache::has("evo_webhook_set_{$r->id}")) {
+                BotEvolutionClient::configureWebhook($r);
+                \Illuminate\Support\Facades\Cache::put("evo_webhook_set_{$r->id}", true, now()->addHours(6));
+            }
+
             return response()->json([
                 'success'    => true,
                 'status'     => $liveStatus,

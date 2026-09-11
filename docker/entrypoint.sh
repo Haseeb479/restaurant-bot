@@ -40,6 +40,12 @@ fi
 sed -i 's/^SESSION_DRIVER=.*/SESSION_DRIVER=file/' /var/www/html/.env || true
 sed -i 's/^CACHE_STORE=.*/CACHE_STORE=file/' /var/www/html/.env || true
 
+# Sync QUEUE_CONNECTION if provided (e.g. redis for production)
+if [ -n "$QUEUE_CONNECTION" ]; then
+    echo "⚙️ [Foodio] Setting QUEUE_CONNECTION=${QUEUE_CONNECTION}..."
+    sed -i "s/^QUEUE_CONNECTION=.*/QUEUE_CONNECTION=${QUEUE_CONNECTION}/" /var/www/html/.env || echo "QUEUE_CONNECTION=${QUEUE_CONNECTION}" >> /var/www/html/.env
+fi
+
 # Ensure APP_KEY exists
 if ! grep -q "APP_KEY=base64:" /var/www/html/.env; then
     echo "🔑 [Foodio] Generating Application Key..."
