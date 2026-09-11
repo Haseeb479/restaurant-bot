@@ -181,10 +181,10 @@ class BotEvolutionClient
 
         $botStatus = $statusMap[$state] ?? 'disconnected';
         if ($restaurant->evolution_status !== $botStatus) {
-            $restaurant->update([
+            $restaurant->forceFill([
                 'evolution_status' => $botStatus,
                 'bot_status'       => $botStatus,
-            ]);
+            ])->save();
         }
 
         return [
@@ -364,6 +364,23 @@ class BotEvolutionClient
         $response     = self::send('post', "/instance/restart/{$instanceName}");
 
         return $response !== null && $response->successful();
+    }
+
+    /**
+     * Logout the WhatsApp session for a restaurant's Evolution instance.
+     *
+     * Unlike restartInstance(), this actually disconnects the WhatsApp session
+     * so that a new QR code is generated on the next connect attempt. This is
+     * needed when the user unlinks their phone or wants to re-pair.
+     *
+     * EvolutionAPI v2 endpoint: DELETE /instance/logout/{instanceName}
+     */
+    public static function logoutInstance(Restaurant $restaurant): bool
+    {
+        $instanceName = self::instanceName($restaurant);
+        $response     = self::send('delete', "/instance/logout/{$instanceName}");
+
+        return $response !== null && ($response->successful() || $response->status() === 404);
     }
 
     /**

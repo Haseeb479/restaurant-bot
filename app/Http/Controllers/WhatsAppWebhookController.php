@@ -72,7 +72,7 @@ class WhatsAppWebhookController extends Controller
 
         // 2. QR Code update
         if ($event === 'qrcode_updated') {
-            $restaurant->update(['bot_status' => 'qr_pending']);
+            $restaurant->forceFill(['bot_status' => 'qr_pending', 'evolution_status' => 'qr_pending'])->save();
             return response()->json(['status' => 'processed', 'event' => 'qrcode.updated']);
         }
 

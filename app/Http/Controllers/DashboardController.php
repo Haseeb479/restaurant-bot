@@ -845,9 +845,19 @@ class DashboardController extends Controller
         if ($evoState !== null) {
             $isConnected = in_array($evoState['state'], ['open', 'connected']);
 
+            // Derive the status purely from the live Evolution state — never fall
+            // back to $r->bot_status because that may still be 'connected' from
+            // the previous session while the instance is actually disconnected.
+            $statusMap = [
+                'open'       => 'connected',
+                'connecting' => 'qr_pending',
+                'close'      => 'disconnected',
+            ];
+            $liveStatus = $statusMap[$evoState['state']] ?? 'disconnected';
+
             return response()->json([
                 'success'    => true,
-                'status'     => $isConnected ? 'connected' : ($r->bot_status ?: 'qr_pending'),
+                'status'     => $liveStatus,
                 'is_open'    => $isConnected,
                 'bot_number' => $r->whatsapp_number,
                 'instance'   => $evoState['instanceName'],
@@ -980,21 +990,37 @@ class DashboardController extends Controller
         // running. Evolution API is now the primary path; the legacy bot is only
         // tried if Evolution is not configured (local dev / self-hosted fallback).
         if (BotEvolutionClient::isConfigured()) {
+            // Step 1: Logout the WhatsApp session to force a new QR code.
+            // restartInstance() alone only restarts the Evolution process but may
+            // keep the existing WhatsApp session alive. logoutInstance() sends
+            // DELETE /instance/logout/{name} to EvolutionAPI, which invalidates
+            // the session and ensures a fresh QR is generated.
+            BotEvolutionClient::logoutInstance($r);
+
+            // Step 2: Restart the Evolution instance process.
             $okEvo = BotEvolutionClient::restartInstance($r);
+
+            // Step 3: Always clear DB status using forceFill so the columns are
+            // saved even though bot_status/evolution_status are not in $fillable.
+            $r->forceFill([
+                'bot_status'       => 'disconnected',
+                'evolution_status' => 'disconnected',
+            ])->save();
+
             if ($okEvo) {
-                $r->update(['bot_status' => 'disconnected', 'evolution_status' => 'disconnected']);
                 return response()->json([
                     'success' => true,
-                    'message' => 'WhatsApp instance restarted. You can now reconnect.',
+                    'message' => 'WhatsApp instance reset. Scan the new QR code to reconnect.',
                 ]);
             }
 
-            // Evolution configured but restart call failed (instance may not exist yet)
+            // Evolution configured but restart call failed (instance may not exist yet);
+            // create a fresh instance so the QR page has something to connect to.
             BotEvolutionClient::createInstance($r);
             return response()->json([
-                'success' => false,
-                'message' => 'Could not restart the WhatsApp instance. A fresh one has been created — please scan the QR code.',
-            ], 500);
+                'success' => true,
+                'message' => 'WhatsApp instance reset. A fresh instance has been created — please scan the QR code.',
+            ]);
         }
 
         // ── Legacy fallback — only reached when EVOLUTION_API_KEY is not set ──

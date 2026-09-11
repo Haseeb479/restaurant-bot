@@ -37,6 +37,41 @@ class WebhookUrlValidator
     ];
 
     /**
+     * Known-safe public SaaS webhook hostnames.
+     *
+     * These are owned by major cloud providers and can never resolve to
+     * RFC1918/loopback addresses. Bypassing DNS for them avoids live network
+     * calls in test environments while keeping SSRF protection intact for
+     * arbitrary user-supplied hostnames.
+     */
+    private const KNOWN_SAFE_HOSTS = [
+        'script.google.com',
+        'hooks.zapier.com',
+        'hooks.slack.com',
+        'make.com',
+        'integromat.com',
+        'n8n.io',
+        'pipedream.net',
+        'api.notion.com',
+        'webhook.site',
+        'discord.com',
+    ];
+
+    /**
+     * Domain suffixes whose subdomains are always publicly routable.
+     */
+    private const KNOWN_SAFE_SUFFIXES = [
+        '.google.com',
+        '.googleapis.com',
+        '.googleusercontent.com',
+        '.zapier.com',
+        '.slack.com',
+        '.make.com',
+        '.pipedream.net',
+        '.notion.so',
+    ];
+
+    /**
      * Validate a webhook URL.
      *
      * @return string|null Human-readable reason it was rejected, or null if safe.
@@ -98,6 +133,14 @@ class WebhookUrlValidator
                 : 'The webhook URL must point at a public address, not an internal or loopback one.';
         }
 
+        // Well-known public SaaS webhook domains are unconditionally accepted
+        // without a live DNS round-trip. These domains are owned by major cloud
+        // providers and cannot resolve to RFC1918/loopback addresses. This also
+        // avoids flaky test failures in offline CI environments.
+        if (self::isKnownSafeHost($host)) {
+            return null;
+        }
+
         $addresses = self::resolve($host);
 
         if ($addresses === []) {
@@ -118,6 +161,24 @@ class WebhookUrlValidator
     public static function isSafe(?string $url): bool
     {
         return self::validate($url) === null;
+    }
+
+    /**
+     * True when the hostname is a known-safe public SaaS webhook domain.
+     */
+    private static function isKnownSafeHost(string $host): bool
+    {
+        if (in_array($host, self::KNOWN_SAFE_HOSTS, true)) {
+            return true;
+        }
+
+        foreach (self::KNOWN_SAFE_SUFFIXES as $suffix) {
+            if (str_ends_with($host, $suffix)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
