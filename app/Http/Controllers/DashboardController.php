@@ -319,7 +319,10 @@ class DashboardController extends Controller
                 'rider_name'          => $o->rider_name,
                 'rider_phone'         => $o->rider_phone,
                 'delivery_address'    => $o->delivery_address,
+                'delivery_lat'        => $o->delivery_lat ? (float) $o->delivery_lat : null,
+                'delivery_lng'        => $o->delivery_lng ? (float) $o->delivery_lng : null,
                 'estimated_minutes'   => $o->estimated_minutes,
+
                 'payment_method'      => $o->payment_method ?: 'cash_on_delivery',
                 'delivery_fee'        => (float) ($r->delivery_charge ?? 0),
                 'items'               => $o->items->map(fn($i) => [

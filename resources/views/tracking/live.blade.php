@@ -10,6 +10,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -18,14 +20,6 @@
             50% { opacity: 0.35; transform: scale(1.35); }
         }
         .pulse-live { animation: pulse-dot 1.8s infinite ease-in-out; }
-        /* Prevent Google Maps UI overflow */
-        .gm-style iframe + div { border:none!important; }
-        .gm-style-cc { display: none !important; }
-        a[href^="http://maps.google.com/maps"],
-        a[href^="https://maps.google.com/maps"],
-        a[href^="https://www.google.com/maps"] {
-            display: none !important;
-        }
         .custom-map-shadow {
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
         }
@@ -373,7 +367,7 @@
 @endif
 
 <!-- ══════════════════════════════════════════════════════════════════ -->
-<!-- GOOGLE MAPS SCRIPT & LIVE TRACKING ENGINE                          -->
+<!-- LEAFLET MAP ENGINE & LIVE TRACKING ENGINE                         -->
 <!-- ══════════════════════════════════════════════════════════════════ -->
 @if($order)
 <script>
@@ -449,68 +443,61 @@
         return (R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))).toFixed(1);
     }
 
-    // ── Modern SVG Marker Icons ──────────────────────────────────────────────
-    // 1. Customer Delivery Pin (Modern Red/Rose Teardrop with Home icon)
-    const customerPinSvg = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 54" width="44" height="54">
-            <defs>
-                <filter id="cShadow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#000000" flood-opacity="0.35"/>
-                </filter>
-                <linearGradient id="gradCust" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#f43f5e"/>
-                    <stop offset="100%" stop-color="#e11d48"/>
-                </linearGradient>
-            </defs>
-            <path d="M22 2 C11 2 2 11 2 22 C2 34 22 52 22 52 C22 52 42 34 42 22 C42 11 33 2 22 2 Z" fill="url(#gradCust)" filter="url(#cShadow)" stroke="#ffffff" stroke-width="2.5"/>
-            <circle cx="22" cy="21" r="11" fill="#ffffff"/>
-            <path d="M16 23 L22 17 L28 23 L27 23 L27 26 L23 26 L23 23 L21 23 L21 26 L17 26 L17 23 Z" fill="#e11d48"/>
-        </svg>
-    `);
+    // ── Leaflet Custom HTML Marker Icons ──────────────────────────────────────
+    function makeLeafletIcon(html, size) {
+        return L.divIcon({ html: html, className: '', iconSize: size, iconAnchor: [size[0]/2, size[1]] });
+    }
 
-    // 2. Kitchen Pin (Modern Dark Slate with Store icon)
-    const kitchenPinSvg = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+    const kitchenIconHtml = `<div style="
+        width:42px;height:52px;display:flex;align-items:flex-end;justify-content:center;">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 42 52" width="42" height="52">
             <defs>
-                <filter id="kShadow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#000000" flood-opacity="0.35"/>
+                <filter id="kS" x="-20%" y="-20%" width="140%" height="140%">
+                    <feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#000" flood-opacity="0.35"/>
                 </filter>
-                <linearGradient id="gradKitchen" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#1e293b"/>
-                    <stop offset="100%" stop-color="#0f172a"/>
-                </linearGradient>
             </defs>
-            <path d="M21 2 C11 2 2 11 2 21 C2 33 21 50 21 50 C21 50 40 33 40 21 C40 11 31 2 21 2 Z" fill="url(#gradKitchen)" filter="url(#kShadow)" stroke="#ffffff" stroke-width="2.5"/>
+            <path d="M21 2 C11 2 2 11 2 21 C2 33 21 50 21 50 C21 50 40 33 40 21 C40 11 31 2 21 2 Z" fill="#0f172a" filter="url(#kS)" stroke="#fff" stroke-width="2.5"/>
             <circle cx="21" cy="20" r="10" fill="#10b981"/>
-            <path d="M15 22 L15 19 L27 19 L27 22 L25 22 L25 24 L17 24 L17 22 Z M17 16 L25 16 L26 18 L16 18 Z" fill="#ffffff"/>
+            <path d="M15 22 L15 19 L27 19 L27 22 L25 22 L25 24 L17 24 L17 22 Z M17 16 L25 16 L26 18 L16 18 Z" fill="#fff"/>
         </svg>
-    `);
+    </div>`;
 
-    // 3. Rider Pin (Vibrant Emerald Glowing Badge with Scooter emoji)
-    const riderPinSvg = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+    const customerIconHtml = `<div style="
+        width:44px;height:54px;display:flex;align-items:flex-end;justify-content:center;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 54" width="44" height="54">
+            <defs>
+                <filter id="cS" x="-20%" y="-20%" width="140%" height="140%">
+                    <feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#000" flood-opacity="0.35"/>
+                </filter>
+            </defs>
+            <path d="M22 2 C11 2 2 11 2 22 C2 34 22 52 22 52 C22 52 42 34 42 22 C42 11 33 2 22 2 Z" fill="#e11d48" filter="url(#cS)" stroke="#fff" stroke-width="2.5"/>
+            <circle cx="22" cy="21" r="11" fill="#fff"/>
+            <path d="M16 23 L22 17 L28 23 L27 23 L27 26 L23 26 L23 23 L21 23 L21 26 L17 26 L17 23 Z" fill="#e11d48"/>
+        </svg>
+    </div>`;
+
+    const riderIconHtml = `<div style="
+        width:52px;height:52px;display:flex;align-items:center;justify-content:center;">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" width="52" height="52">
             <defs>
-                <filter id="rShadow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000000" flood-opacity="0.4"/>
+                <filter id="rS" x="-20%" y="-20%" width="140%" height="140%">
+                    <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000" flood-opacity="0.4"/>
                 </filter>
-                <linearGradient id="gradRider" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#10b981"/>
-                    <stop offset="100%" stop-color="#059669"/>
-                </linearGradient>
             </defs>
             <circle cx="26" cy="26" r="23" fill="#10b981" fill-opacity="0.25" stroke="#10b981" stroke-width="1.2"/>
-            <circle cx="26" cy="26" r="18" fill="url(#gradRider)" filter="url(#rShadow)" stroke="#ffffff" stroke-width="3"/>
-            <text x="26" y="32" font-size="18" text-anchor="middle" fill="#ffffff" font-family="'Segoe UI Emoji', 'Apple Color Emoji', sans-serif">🛵</text>
+            <circle cx="26" cy="26" r="18" fill="#10b981" filter="url(#rS)" stroke="#fff" stroke-width="3"/>
+            <text x="26" y="32" font-size="18" text-anchor="middle" fill="#fff" font-family="'Segoe UI Emoji','Apple Color Emoji',sans-serif">🛵</text>
         </svg>
-    `);
+    </div>`;
 
-    // Global state holders
-    let googleMap = null;
+    // ── Global state ────────────────────────────────────────────────────────
+    let leafletMap = null;
     let kitchenMarker = null;
     let customerMarker = null;
     let riderMarker = null;
-    let routeCasingPolyline = null;
-    let routeCorePolyline = null;
+    let routePolyline = null;
+    let currentTileLayer = null;
+    let isSatellite = false;
 
     const distTextElem = document.getElementById('distance-text');
 
@@ -535,87 +522,48 @@
         }
     }
 
-    // Fit map bounds to encompass kitchen, destination, and rider
     function fitDeliveryBounds() {
-        if (!googleMap) return;
-        const bounds = new google.maps.LatLngBounds();
-        bounds.extend({ lat: originLat, lng: originLng });
-
-        if (hasRealDest && destLat && destLng) {
-            bounds.extend({ lat: destLat, lng: destLng });
+        if (!leafletMap) return;
+        const pts = [[originLat, originLng]];
+        if (hasRealDest && destLat && destLng) pts.push([destLat, destLng]);
+        if (currentRiderLat && currentRiderLng) pts.push([currentRiderLat, currentRiderLng]);
+        if (pts.length === 1) {
+            leafletMap.setView(pts[0], 15);
+        } else {
+            leafletMap.fitBounds(pts, { padding: [60, 60], maxZoom: 16 });
         }
-        if (currentRiderLat && currentRiderLng) {
-            bounds.extend({ lat: currentRiderLat, lng: currentRiderLng });
-        }
-
-        googleMap.fitBounds(bounds, { top: 70, bottom: 70, left: 60, right: 60 });
-
-        // Gentle zoom cap
-        const listener = google.maps.event.addListener(googleMap, 'idle', function() {
-            if (googleMap.getZoom() > 16) {
-                googleMap.setZoom(16);
-            }
-            google.maps.event.removeListener(listener);
-        });
     }
 
-    // Refresh route polylines
     function drawRoute(dLat, dLng) {
         destLat = dLat;
         destLng = dLng;
 
-        const customerPos = { lat: dLat, lng: dLng };
-
         if (customerMarker) {
-            customerMarker.setPosition(customerPos);
+            customerMarker.setLatLng([dLat, dLng]);
         } else {
-            customerMarker = new google.maps.Marker({
-                position: customerPos,
-                map: googleMap,
-                title: "Delivery Destination: " + customerName,
-                icon: {
-                    url: customerPinSvg,
-                    scaledSize: new google.maps.Size(44, 54),
-                    anchor: new google.maps.Point(22, 52)
-                },
-                zIndex: 150
-            });
+            customerMarker = L.marker([dLat, dLng], {
+                icon: makeLeafletIcon(customerIconHtml, [44, 54]),
+                title: 'Delivery Destination: ' + customerName,
+                zIndexOffset: 150
+            }).addTo(leafletMap)
+              .bindPopup(`<b>🏠 ${customerName}</b><br><span style="color:#64748b;">Delivery Destination</span>`);
         }
 
-        // Generate smooth route path
+        // Smooth curved route using a quadratic Bezier approximation
         const midLat = (originLat + dLat) / 2 + 0.0012;
         const midLng = (originLng + dLng) / 2 - 0.0012;
-        const routePath = [
-            { lat: originLat, lng: originLng },
-            { lat: midLat, lng: midLng },
-            { lat: dLat, lng: dLng }
-        ];
+        const routePath = [[originLat, originLng], [midLat, midLng], [dLat, dLng]];
 
-        if (routeCorePolyline) {
-            routeCasingPolyline.setPath(routePath);
-            routeCorePolyline.setPath(routePath);
+        if (routePolyline) {
+            routePolyline.setLatLngs(routePath);
         } else {
-            // High-contrast casing (white outline ensures visibility on Satellite too!)
-            routeCasingPolyline = new google.maps.Polyline({
-                path: routePath,
-                geodesic: true,
-                strokeColor: '#ffffff',
-                strokeOpacity: 0.95,
-                strokeWeight: 7,
-                map: googleMap,
-                zIndex: 40
-            });
-
-            // Vibrant emerald line
-            routeCorePolyline = new google.maps.Polyline({
-                path: routePath,
-                geodesic: true,
-                strokeColor: '#10b981',
-                strokeOpacity: 0.95,
-                strokeWeight: 4,
-                map: googleMap,
-                zIndex: 41
-            });
+            routePolyline = L.polyline(routePath, {
+                color: '#10b981',
+                weight: 5,
+                opacity: 0.9,
+                dashArray: null,
+                lineJoin: 'round'
+            }).addTo(leafletMap);
         }
 
         fitDeliveryBounds();
@@ -640,83 +588,56 @@
 
             currentRiderLat = lat;
             currentRiderLng = lng;
-            riderMarker.setPosition({ lat, lng });
+            riderMarker.setLatLng([lat, lng]);
 
             if (progress < 1) {
                 requestAnimationFrame(step);
             } else {
                 currentRiderLat = targetLat;
                 currentRiderLng = targetLng;
-                riderMarker.setPosition({ lat: targetLat, lng: targetLng });
+                riderMarker.setLatLng([targetLat, targetLng]);
                 updateDistanceBadge(targetLat, targetLng, true);
             }
         }
         requestAnimationFrame(step);
     }
 
-    // ── Initialize Google Maps (Called by API callback) ───────────────────────
-    window.initGoogleDeliveryMap = function() {
+    // ── Initialize Leaflet Map ─────────────────────────────────────────────────
+    function initLeafletDeliveryMap() {
         const mapContainer = document.getElementById('live-tracking-map');
-        if (!mapContainer) return;
+        if (!mapContainer || !window.L) return;
 
-        // Clean Modern Foodpanda Roadmap Style
-        const cleanRoadmapStyles = [
-            { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
-            { featureType: 'poi.business', stylers: [{ visibility: 'off' }] },
-            { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-            { featureType: 'road', elementType: 'geometry', stylers: [{ lightness: 15 }] },
-            { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#cde2f2' }] }
-        ];
+        const initialCenter = hasRealDest
+            ? [(originLat + destLat) / 2, (originLng + destLng) / 2]
+            : [originLat, originLng];
 
-        const initialCenter = destLat && hasRealDest 
-            ? { lat: (originLat + destLat) / 2, lng: (originLng + destLng) / 2 }
-            : { lat: originLat, lng: originLng };
-
-        googleMap = new google.maps.Map(mapContainer, {
+        leafletMap = L.map('live-tracking-map', {
             center: initialCenter,
             zoom: hasRealDest ? 14 : 15,
-            mapTypeId: google.maps.MapTypeId.ROADMAP, // Default: Basic Road Map
-            disableDefaultUI: true,                   // Modern clean layout without clutter
-            gestureHandling: 'greedy',                // Smooth mobile touch gestures
-            styles: cleanRoadmapStyles,
-            backgroundColor: '#0f172a'
+            zoomControl: false,
+            attributionControl: false
         });
+
+        // Default: OpenStreetMap roadmap (clean, no watermark)
+        currentTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19
+        }).addTo(leafletMap);
 
         // 1. Kitchen Marker
-        kitchenMarker = new google.maps.Marker({
-            position: { lat: originLat, lng: originLng },
-            map: googleMap,
-            title: "Kitchen: " + restaurantName,
-            icon: {
-                url: kitchenPinSvg,
-                scaledSize: new google.maps.Size(42, 52),
-                anchor: new google.maps.Point(21, 50)
-            },
-            zIndex: 100
-        });
-
-        const kitchenInfoWindow = new google.maps.InfoWindow({
-            content: `<div style="font-family:'Plus Jakarta Sans',sans-serif;padding:6px;font-size:12px;"><b>🏪 ${restaurantName}</b><br><span style="color:#64748b;">Kitchen Origin</span></div>`
-        });
-        kitchenMarker.addListener('click', () => kitchenInfoWindow.open(googleMap, kitchenMarker));
+        kitchenMarker = L.marker([originLat, originLng], {
+            icon: makeLeafletIcon(kitchenIconHtml, [42, 52]),
+            title: 'Kitchen: ' + restaurantName,
+            zIndexOffset: 100
+        }).addTo(leafletMap)
+          .bindPopup(`<b>🏪 ${restaurantName}</b><br><span style="color:#64748b;">Kitchen Origin</span>`);
 
         // 2. Rider Marker
-        riderMarker = new google.maps.Marker({
-            position: { lat: currentRiderLat, lng: currentRiderLng },
-            map: googleMap,
-            title: "Delivery Partner: " + riderName,
-            icon: {
-                url: riderPinSvg,
-                scaledSize: new google.maps.Size(52, 52),
-                anchor: new google.maps.Point(26, 26)
-            },
-            zIndex: 200
-        });
-
-        const riderInfoWindow = new google.maps.InfoWindow({
-            content: `<div style="font-family:'Plus Jakarta Sans',sans-serif;padding:6px;font-size:12px;"><b>🛵 ${riderName}</b><br><span style="color:#10b981;font-weight:bold;">Delivery Partner</span></div>`
-        });
-        riderMarker.addListener('click', () => riderInfoWindow.open(googleMap, riderMarker));
+        riderMarker = L.marker([currentRiderLat, currentRiderLng], {
+            icon: makeLeafletIcon(riderIconHtml, [52, 52]),
+            title: 'Delivery Partner: ' + riderName,
+            zIndexOffset: 200
+        }).addTo(leafletMap)
+          .bindPopup(`<b>🛵 ${riderName}</b><br><span style="color:#10b981;font-weight:bold;">Delivery Partner</span>`);
 
         // 3. Destination & Route
         if (hasRealDest) {
@@ -730,22 +651,31 @@
 
         updateDistanceBadge(currentRiderLat, currentRiderLng, initialLiveGps);
 
-        // ── Map Mode Toggle (Roadmap / Satellite) ────────────────────────────
+        // ── Map Mode Toggle (Roadmap / Satellite) ──────────────────────────
         const btnRoadmap   = document.getElementById('btn-mode-roadmap');
         const btnSatellite = document.getElementById('btn-mode-satellite');
+        const TILE_ROADMAP = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+        const TILE_SAT     = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 
         if (btnRoadmap && btnSatellite) {
             btnRoadmap.addEventListener('click', function() {
-                googleMap.setMapTypeId(google.maps.MapTypeId.ROADMAP);
-                btnRoadmap.className = "flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all duration-200 bg-slate-900 text-white shadow-sm";
-                btnSatellite.className = "flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all duration-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100/80";
+                if (isSatellite) {
+                    leafletMap.removeLayer(currentTileLayer);
+                    currentTileLayer = L.tileLayer(TILE_ROADMAP, { maxZoom: 19 }).addTo(leafletMap);
+                    isSatellite = false;
+                }
+                btnRoadmap.className  = 'flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all duration-200 bg-slate-900 text-white shadow-sm';
+                btnSatellite.className = 'flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all duration-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100/80';
             });
 
             btnSatellite.addEventListener('click', function() {
-                // Official photorealistic Google satellite imagery
-                googleMap.setMapTypeId(google.maps.MapTypeId.SATELLITE);
-                btnSatellite.className = "flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all duration-200 bg-slate-900 text-white shadow-sm";
-                btnRoadmap.className = "flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all duration-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100/80";
+                if (!isSatellite) {
+                    leafletMap.removeLayer(currentTileLayer);
+                    currentTileLayer = L.tileLayer(TILE_SAT, { maxZoom: 17 }).addTo(leafletMap);
+                    isSatellite = true;
+                }
+                btnSatellite.className = 'flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all duration-200 bg-slate-900 text-white shadow-sm';
+                btnRoadmap.className   = 'flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all duration-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100/80';
             });
         }
 
@@ -754,8 +684,8 @@
         const btnZoomOut  = document.getElementById('btn-zoom-out');
         const btnRecenter = document.getElementById('btn-map-recenter');
 
-        if (btnZoomIn)  btnZoomIn.addEventListener('click', () => googleMap.setZoom(googleMap.getZoom() + 1));
-        if (btnZoomOut) btnZoomOut.addEventListener('click', () => googleMap.setZoom(googleMap.getZoom() - 1));
+        if (btnZoomIn)  btnZoomIn.addEventListener('click', () => leafletMap.setZoom(leafletMap.getZoom() + 1));
+        if (btnZoomOut) btnZoomOut.addEventListener('click', () => leafletMap.setZoom(leafletMap.getZoom() - 1));
         if (btnRecenter) btnRecenter.addEventListener('click', fitDeliveryBounds);
 
         // Expose live polling updater
@@ -763,12 +693,16 @@
             smoothMoveRider(lat, lng);
             updateDistanceBadge(lat, lng, true);
         };
-    };
+    }
+
+    // Initialize once DOM is ready (Leaflet is loaded synchronously in <head>)
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initLeafletDeliveryMap);
+    } else {
+        initLeafletDeliveryMap();
+    }
 })();
 </script>
-
-<!-- Google Maps JavaScript API (Modern Loading with Geometry & Asynchronous callback) -->
-<script src="https://maps.googleapis.com/maps/api/js?key={{ $googleMapsKey }}&callback=initGoogleDeliveryMap&libraries=geometry&loading=async" async defer></script>
 
 <!-- Live Polling Script (Polls status & rider GPS every 4-7 seconds) -->
 @if(!in_array($order->status, ['delivered', 'cancelled']))

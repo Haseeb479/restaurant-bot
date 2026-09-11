@@ -201,24 +201,40 @@ class WhatsAppWebhookController extends Controller
         ));
 
         // ── Detect WhatsApp Native Location Share (locationMessage / liveLocationMessage) ──
-        $locMsg = $messageObj['locationMessage'] ?? $messageObj['liveLocationMessage'] ?? null;
+        $locMsg = $messageObj['locationMessage']
+            ?? $messageObj['liveLocationMessage']
+            ?? $data['locationMessage']
+            ?? $data['liveLocationMessage']
+            ?? $data['data']['message']['locationMessage']
+            ?? $messageObj['ephemeralMessage']['message']['locationMessage']
+            ?? $messageObj['viewOnceMessage']['message']['locationMessage']
+            ?? null;
+
         $locationCoords = null;
-        if ($locMsg) {
+        if ($locMsg && is_array($locMsg)) {
             $rawLat = $locMsg['degreesLatitude'] ?? $locMsg['latitude'] ?? null;
             $rawLng = $locMsg['degreesLongitude'] ?? $locMsg['longitude'] ?? null;
             if ($rawLat !== null && $rawLng !== null && is_numeric($rawLat) && is_numeric($rawLng)) {
-                $locationCoords = [
-                    'lat'     => (float) $rawLat,
-                    'lng'     => (float) $rawLng,
-                    'name'    => (string) ($locMsg['name'] ?? ''),
-                    'address' => (string) ($locMsg['address'] ?? ''),
-                ];
-                if ($text === '') {
+                $lat = (float) $rawLat;
+                $lng = (float) $rawLng;
+
+                // Validate coordinate boundaries: Lat in [-90, 90], Lng in [-180, 180], exclude null island (0, 0)
+                if ($lat >= -90.0 && $lat <= 90.0 && $lng >= -180.0 && $lng <= 180.0 && ! ($lat == 0.0 && $lng == 0.0)) {
+                    $locationCoords = [
+                        'lat'     => $lat,
+                        'lng'     => $lng,
+                        'name'    => trim((string) ($locMsg['name'] ?? '')),
+                        'address' => trim((string) ($locMsg['address'] ?? '')),
+                    ];
                     $locLabel = $locationCoords['name'] ?: $locationCoords['address'] ?: 'Pin on map';
-                    $text = "📍 [Customer shared location pin: {$locationCoords['lat']}, {$locationCoords['lng']} ({$locLabel})]";
+                    if ($text === '') {
+                        $text = "📍 [Customer shared location pin: {$lat}, {$lng} ({$locLabel})]";
+                    }
+                    $maskedJid = \App\Support\LogSanitizer::maskPhone($remoteJid);
+                    Log::info("Evolution Webhook: Received validated location from [{$maskedJid}] for {$restaurant->name} (lat/lng sanitized)");
+                } else {
+                    Log::warning("Evolution Webhook: Invalid GPS coordinates rejected: lat={$rawLat}, lng={$rawLng}");
                 }
-                $maskedJid = \App\Support\LogSanitizer::maskPhone($remoteJid);
-                Log::info("Evolution Webhook: Received native location from [{$maskedJid}] for {$restaurant->name} (lat/lng sanitized)");
             }
         }
 

@@ -161,8 +161,18 @@ class WhatsAppAiBotService
             $lat = (float) $locationCoords['lat'];
             $lng = (float) $locationCoords['lng'];
             Cache::put("verified_delivery_coords_{$sessionKey}", [$lat, $lng], now()->addMinutes(self::SESSION_TTL));
-            if (! empty($locationCoords['address'])) {
-                Cache::put("verified_delivery_address_{$sessionKey}", $locationCoords['address'], now()->addMinutes(self::SESSION_TTL));
+
+            // Extract or reverse-geocode textual address
+            $resolvedAddress = ! empty($locationCoords['address']) ? trim($locationCoords['address']) : '';
+            if ($resolvedAddress === '' && ! empty($locationCoords['name'])) {
+                $resolvedAddress = trim($locationCoords['name']);
+            }
+            if ($resolvedAddress === '') {
+                $resolvedAddress = $this->reverseGeocode($lat, $lng) ?? '';
+            }
+
+            if ($resolvedAddress !== '') {
+                Cache::put("verified_delivery_address_{$sessionKey}", $resolvedAddress, now()->addMinutes(self::SESSION_TTL));
             }
 
             $restCoords = $this->getRestaurantCoords($restaurant);
@@ -179,10 +189,13 @@ class WhatsAppAiBotService
 
             // Location is verified and within radius!
             $locAck = "📍 *Shukriya! Aapki exact delivery location pin receive ho gayi hai!* ✅\n" .
-                      "_(Kitchen se faasla: {$distKm} km)_\n\n" .
-                      "Barah-e-karam apna *Order* ya *Naam* batayein, ya agar order ready hai toh reply karein *'CONFIRM'*! 😊";
+                      "_(Kitchen se faasla: {$distKm} km)_\n";
+            if ($resolvedAddress !== '') {
+                $locAck .= "🏠 *Pata:* {$resolvedAddress}\n";
+            }
+            $locAck .= "\nBarah-e-karam apna *Order* ya *Naam* batayein, ya agar order ready hai toh reply karein *'CONFIRM'*! 😊";
 
-            $history[] = ['role' => 'user', 'content' => "Shared GPS Pin: [Lat: {$lat}, Lng: {$lng}]" . (!empty($locationCoords['address']) ? " Address: {$locationCoords['address']}" : "")];
+            $history[] = ['role' => 'user', 'content' => "Shared GPS Pin: [Lat: {$lat}, Lng: {$lng}]" . ($resolvedAddress !== '' ? " Address: {$resolvedAddress}" : "")];
             $history[] = ['role' => 'assistant', 'content' => $locAck];
             Cache::put($sessionKey, $history, now()->addMinutes(self::SESSION_TTL));
             BotEvolutionClient::sendMessage($restaurant, $recipientJid, $locAck);
@@ -1022,6 +1035,41 @@ PROMPT;
 
         Log::warning("Geocoding Failed: No coordinates found for address [{$address}] (City: [{$city}])");
         return null;
+    }
+
+    /**
+     * Reverse-geocode latitude and longitude into human-readable street/locality address using Nominatim with caching.
+     */
+    public function reverseGeocode(float $lat, float $lng): ?string
+    {
+        $roundLat = round($lat, 5);
+        $roundLng = round($lng, 5);
+        $cacheKey = "rev_geo_{$roundLat}_{$roundLng}";
+
+        return Cache::remember($cacheKey, now()->addDays(7), function () use ($roundLat, $roundLng) {
+            try {
+                $url = "https://nominatim.openstreetmap.org/reverse?format=json&lat={$roundLat}&lon={$roundLng}&zoom=18&addressdetails=1";
+                $response = \Illuminate\Support\Facades\Http::timeout(5)
+                    ->withoutVerifying()
+                    ->withHeaders(['User-Agent' => 'Foodio-RestaurantBot/1.0'])
+                    ->get($url);
+
+                if ($response->successful()) {
+                    $data = $response->json();
+                    if (! empty($data['display_name'])) {
+                        // Extract concise recognizable locality parts (e.g. "Street 4, Sector G-9/1, Islamabad")
+                        $parts = array_map('trim', explode(',', $data['display_name']));
+                        // Take up to first 4 meaningful parts, omitting redundant country/postcode tail if present
+                        $meaningful = array_slice($parts, 0, min(count($parts), 4));
+                        return implode(', ', $meaningful);
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning("Reverse geocoding failed for [{$roundLat}, {$roundLng}]: " . $e->getMessage());
+            }
+
+            return null;
+        });
     }
 
     /**

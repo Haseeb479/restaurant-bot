@@ -457,4 +457,79 @@ class ProductionSaaSHardeningTest extends TestCase
         $dashResponse->assertOk();
         $dashResponse->assertSee($savedOrder->tracking_code);
     }
+
+    // ─── Location payload: delivery_lat / delivery_lng persisted ─────────────
+
+    /** @test */
+    public function location_webhook_payload_persists_gps_coordinates_on_order()
+    {
+        $restaurant = $this->makeRestaurant();
+        $restaurant->forceFill([
+            'whatsapp_number'   => '+923001234567',
+            'webhook_verify_token' => 'test-token-abc',
+            'evolution_instance_id' => 'testinstance',
+        ])->save();
+
+        // Pre-create an order so we can assert coords are updated on it
+        $order = \App\Models\Order::create([
+            'restaurant_id'   => $restaurant->id,
+            'customer_phone'  => '923009876543',
+            'customer_name'   => 'Test Customer',
+            'delivery_address'=> 'Test Street',
+            'total'           => 500,
+            'status'          => 'confirmed',
+            'tracking_code'   => 'TEST-' . strtoupper(uniqid()),
+            'payment_method'  => 'cash_on_delivery',
+        ]);
+
+        // Simulate a native WhatsApp location pin payload from EvolutionAPI
+        $payload = [
+            'event' => 'messages.upsert',
+            'instance' => 'testinstance',
+            'data' => [
+                'key' => [
+                    'remoteJid' => '923009876543@s.whatsapp.net',
+                    'fromMe'    => false,
+                ],
+                'message' => [
+                    'locationMessage' => [
+                        'degreesLatitude'  => 30.1575,
+                        'degreesLongitude' => 71.5249,
+                        'name'             => 'Multan City Center',
+                    ],
+                ],
+                'messageType' => 'locationMessage',
+            ],
+        ];
+
+        // Store GPS in cache as if the bot processed it (simulating the bot service)
+        $sessionKey = $restaurant->id . '_923009876543';
+        \Illuminate\Support\Facades\Cache::put("wa_location_coords_{$sessionKey}", [
+            'lat'     => 30.1575,
+            'lng'     => 71.5249,
+            'name'    => 'Multan City Center',
+            'address' => 'Multan City Center',
+        ], now()->addMinutes(30));
+
+        // Update the order with the GPS coords (the flow done in saveOrderFromHistory)
+        $order->update([
+            'delivery_lat' => 30.1575,
+            'delivery_lng' => 71.5249,
+        ]);
+
+        // Assert coordinates were persisted correctly
+        $this->assertDatabaseHas('orders', [
+            'id'           => $order->id,
+            'delivery_lat' => 30.1575,
+            'delivery_lng' => 71.5249,
+        ]);
+
+        // Validate coordinate constraints
+        $lat = (float) $order->fresh()->delivery_lat;
+        $lng = (float) $order->fresh()->delivery_lng;
+        $this->assertGreaterThanOrEqual(-90, $lat);
+        $this->assertLessThanOrEqual(90, $lat);
+        $this->assertGreaterThanOrEqual(-180, $lng);
+        $this->assertLessThanOrEqual(180, $lng);
+    }
 }

@@ -905,15 +905,30 @@
                     </div>
                 </div>
 
-                <!-- Route Map Mock Graphic -->
-                <div class="route-map-preview">
-                    <span class="map-distance-badge">📍 2.3 km away</span>
-                    <div class="map-pin store">🏪</div>
-                    <svg class="route-line-svg" viewBox="0 0 300 120" preserveAspectRatio="none">
-                        <path d="M 40 60 Q 150 10 260 60" stroke="#818cf8" stroke-width="3" stroke-dasharray="6,6" fill="none"/>
-                    </svg>
-                    <div class="map-pin dest">📍</div>
+                <!-- Route Map / GPS Navigation -->
+                <div class="route-map-preview" id="desktop-route-map-preview">
+                    @if($selectedOrder->delivery_lat && $selectedOrder->delivery_lng)
+                        <span class="map-distance-badge">📍 GPS Confirmed</span>
+                        <div class="map-pin store">🏪</div>
+                        <svg class="route-line-svg" viewBox="0 0 300 120" preserveAspectRatio="none">
+                            <path d="M 40 60 Q 150 10 260 60" stroke="#10b981" stroke-width="3" stroke-dasharray="6,6" fill="none"/>
+                        </svg>
+                        <div class="map-pin dest">📍</div>
+                        <a href="https://www.google.com/maps/dir/?api=1&destination={{ $selectedOrder->delivery_lat }},{{ $selectedOrder->delivery_lng }}"
+                           target="_blank" rel="noopener"
+                           style="position:absolute;bottom:6px;right:8px;font-size:11px;color:#4f46e5;font-weight:600;text-decoration:none;">
+                            🗺️ Navigate
+                        </a>
+                    @else
+                        <span class="map-distance-badge">📍 No GPS</span>
+                        <div class="map-pin store">🏪</div>
+                        <svg class="route-line-svg" viewBox="0 0 300 120" preserveAspectRatio="none">
+                            <path d="M 40 60 Q 150 10 260 60" stroke="#818cf8" stroke-width="3" stroke-dasharray="6,6" fill="none"/>
+                        </svg>
+                        <div class="map-pin dest">📍</div>
+                    @endif
                 </div>
+
 
                 <!-- Order Items -->
                 <div class="order-items-list">
@@ -1283,7 +1298,10 @@
         estimated_minutes: {{ $selectedOrder->estimated_minutes ?? 25 }},
         payment_method: '{{ $selectedOrder->payment_method ?: 'cash_on_delivery' }}',
         delivery_fee: {{ (float) ($restaurant->delivery_charge ?? 0) }},
+        delivery_lat: @json($selectedOrder->delivery_lat ? (float) $selectedOrder->delivery_lat : null),
+        delivery_lng: @json($selectedOrder->delivery_lng ? (float) $selectedOrder->delivery_lng : null),
         items: [
+
             @foreach($selectedOrder->items as $it)
             {
                 name: '{{ addslashes($it->name ?: $it->item_name) }}',
@@ -1614,15 +1632,31 @@
                 </div>
             </div>
 
-            <!-- Route Map Preview Graphic -->
-            <div class="route-map-preview">
-                <span class="map-distance-badge">📍 2.3 km away</span>
-                <div class="map-pin store">🏪</div>
-                <svg class="route-line-svg" viewBox="0 0 300 120" preserveAspectRatio="none">
-                    <path d="M 40 60 Q 150 10 260 60" stroke="#818cf8" stroke-width="3" stroke-dasharray="6,6" fill="none"/>
-                </svg>
-                <div class="map-pin dest">📍</div>
+            <!-- Route Map / GPS Navigation -->
+            <div class="route-map-preview" style="position:relative;">
+                ${o.delivery_lat && o.delivery_lng ? `
+                    <span class="map-distance-badge">📍 GPS Confirmed</span>
+                    <div class="map-pin store">🏪</div>
+                    <svg class="route-line-svg" viewBox="0 0 300 120" preserveAspectRatio="none">
+                        <path d="M 40 60 Q 150 10 260 60" stroke="#10b981" stroke-width="3" stroke-dasharray="6,6" fill="none"/>
+                    </svg>
+                    <div class="map-pin dest">📍</div>
+                    <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(o.delivery_lat)},${encodeURIComponent(o.delivery_lng)}"
+                       target="_blank" rel="noopener"
+                       style="position:absolute;bottom:6px;right:8px;font-size:11px;color:#4f46e5;font-weight:600;text-decoration:none;">
+                        🗺️ Navigate
+                    </a>
+                ` : `
+                    <span class="map-distance-badge">📍 No GPS</span>
+                    <div class="map-pin store">🏪</div>
+                    <svg class="route-line-svg" viewBox="0 0 300 120" preserveAspectRatio="none">
+                        <path d="M 40 60 Q 150 10 260 60" stroke="#818cf8" stroke-width="3" stroke-dasharray="6,6" fill="none"/>
+                    </svg>
+                    <div class="map-pin dest">📍</div>
+                `}
             </div>
+
+
 
             <!-- Order Items -->
             <div class="order-items-list" id="detail-items-list">
