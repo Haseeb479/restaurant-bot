@@ -618,9 +618,13 @@
             attributionControl: false
         });
 
-        // Default: OpenStreetMap roadmap (clean, no watermark)
-        currentTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19
+        const TILE_ROADMAP = 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
+        const TILE_SAT     = 'https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}';
+
+        // Default: High-res Google Maps Streets (every colony, chowk, shop, and road visible)
+        currentTileLayer = L.tileLayer(TILE_ROADMAP, {
+            maxZoom: 20,
+            subdomains: ['0', '1', '2', '3']
         }).addTo(leafletMap);
 
         // 1. Kitchen Marker
@@ -654,14 +658,12 @@
         // ── Map Mode Toggle (Roadmap / Satellite) ──────────────────────────
         const btnRoadmap   = document.getElementById('btn-mode-roadmap');
         const btnSatellite = document.getElementById('btn-mode-satellite');
-        const TILE_ROADMAP = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-        const TILE_SAT     = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 
         if (btnRoadmap && btnSatellite) {
             btnRoadmap.addEventListener('click', function() {
                 if (isSatellite) {
                     leafletMap.removeLayer(currentTileLayer);
-                    currentTileLayer = L.tileLayer(TILE_ROADMAP, { maxZoom: 19 }).addTo(leafletMap);
+                    currentTileLayer = L.tileLayer(TILE_ROADMAP, { maxZoom: 20, subdomains: ['0', '1', '2', '3'] }).addTo(leafletMap);
                     isSatellite = false;
                 }
                 btnRoadmap.className  = 'flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all duration-200 bg-slate-900 text-white shadow-sm';
@@ -671,13 +673,14 @@
             btnSatellite.addEventListener('click', function() {
                 if (!isSatellite) {
                     leafletMap.removeLayer(currentTileLayer);
-                    currentTileLayer = L.tileLayer(TILE_SAT, { maxZoom: 17 }).addTo(leafletMap);
+                    currentTileLayer = L.tileLayer(TILE_SAT, { maxZoom: 20, subdomains: ['0', '1', '2', '3'] }).addTo(leafletMap);
                     isSatellite = true;
                 }
                 btnSatellite.className = 'flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all duration-200 bg-slate-900 text-white shadow-sm';
                 btnRoadmap.className   = 'flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all duration-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100/80';
             });
         }
+
 
         // Custom Zoom Controls
         const btnZoomIn   = document.getElementById('btn-zoom-in');

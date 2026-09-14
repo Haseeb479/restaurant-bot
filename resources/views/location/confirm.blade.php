@@ -45,11 +45,22 @@
     <div class="relative flex-1 min-h-[50vh]">
         <div id="map" class="w-full h-full min-h-[50vh] z-10"></div>
 
-        <!-- Floating GPS Button -->
-        <button id="gps-btn" type="button" class="absolute top-4 right-4 z-20 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-semibold text-xs py-2.5 px-3.5 rounded-xl shadow-xl flex items-center gap-2 transition-all">
-            <span class="text-base">🎯</span>
-            <span>Use My GPS</span>
-        </button>
+        <!-- Floating Action Controls (GPS & Map Mode) -->
+        <div class="absolute top-4 right-4 z-20 flex flex-col gap-2 items-end">
+            <button id="gps-btn" type="button" class="bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-semibold text-xs py-2.5 px-3.5 rounded-xl shadow-xl flex items-center gap-2 transition-all">
+                <span class="text-base">🎯</span>
+                <span>Use My GPS</span>
+            </button>
+            <div class="bg-slate-900/90 backdrop-blur border border-slate-700 p-1 rounded-xl shadow-lg flex gap-1">
+                <button type="button" id="btn-mode-streets" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-500 text-white transition">
+                    🗺️ Map
+                </button>
+                <button type="button" id="btn-mode-satellite" class="px-2.5 py-1 text-xs font-bold rounded-lg text-slate-400 hover:text-white transition">
+                    🛰️ Satellite
+                </button>
+            </div>
+        </div>
+
 
         <!-- Floating Helper Badge -->
         <div class="absolute top-4 left-4 z-20 bg-slate-900/90 backdrop-blur border border-slate-700 text-xs px-3 py-2 rounded-xl shadow-lg max-w-[240px]">
@@ -133,11 +144,35 @@
         const map = L.map('map', { zoomControl: false, attributionControl: false })
             .setView([currentLat, currentLng], 16);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19
+        const GOOGLE_ROADMAP = 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
+        const GOOGLE_HYBRID  = 'https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}';
+
+        let currentTileLayer = L.tileLayer(GOOGLE_ROADMAP, {
+            maxZoom: 20,
+            subdomains: ['0', '1', '2', '3']
         }).addTo(map);
 
         L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        // Map layer switcher
+        const btnStreets   = document.getElementById('btn-mode-streets');
+        const btnSatellite = document.getElementById('btn-mode-satellite');
+
+        if (btnStreets && btnSatellite) {
+            btnStreets.addEventListener('click', function() {
+                map.removeLayer(currentTileLayer);
+                currentTileLayer = L.tileLayer(GOOGLE_ROADMAP, { maxZoom: 20, subdomains: ['0', '1', '2', '3'] }).addTo(map);
+                btnStreets.className   = 'px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-500 text-white transition';
+                btnSatellite.className = 'px-2.5 py-1 text-xs font-bold rounded-lg text-slate-400 hover:text-white transition';
+            });
+
+            btnSatellite.addEventListener('click', function() {
+                map.removeLayer(currentTileLayer);
+                currentTileLayer = L.tileLayer(GOOGLE_HYBRID, { maxZoom: 20, subdomains: ['0', '1', '2', '3'] }).addTo(map);
+                btnSatellite.className = 'px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-500 text-white transition';
+                btnStreets.className   = 'px-2.5 py-1 text-xs font-bold rounded-lg text-slate-400 hover:text-white transition';
+            });
+        }
 
         const coordsText = document.getElementById('coords-text');
         const areaText   = document.getElementById('area-text');
@@ -147,6 +182,7 @@
         const successModal = document.getElementById('success-modal');
 
         let reverseTimer = null;
+
         function reverseGeocode(lat, lng) {
             coordsText.textContent = lat.toFixed(5) + ', ' + lng.toFixed(5);
             clearTimeout(reverseTimer);
