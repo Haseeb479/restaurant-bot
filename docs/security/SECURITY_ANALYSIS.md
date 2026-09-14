@@ -32,7 +32,7 @@
 | **L-02** | Low | Customer PII (phone + message text) written to bot logs at rest | `bot/src/services/Logger.js`, `bot/src/handlers/MessageRouter.js:55` |
 | **L-03** | Low | Puppeteer launched with `--no-sandbox` | `bot/index.js:86` |
 | **L-04** | Info | Broad `$fillable` incl. `owner_password`, `is_active`, `plan` (mass-assignment surface) | `app/Models/Restaurant.php:11` |
-| **S-01** | Secret | Hardcoded Google/Gemini API key committed in docs | `BOT_V2_FEATURES.md:333`, local `.env.llm` |
+| **S-01** | Secret | Hardcoded Google/Gemini API key committed in docs | `docs/architecture/BOT_V2_FEATURES.md:333`, local `.env.llm` |
 
 **Counts:** 3 Critical · 6 High · 5 Medium · 3 Low · 1 Info · 1 exposed secret.
 
@@ -454,7 +454,7 @@ keep privilege/billing fields out of `$fillable` or guard them explicitly.
 ## Exposed secret
 
 ### S-01 — Hardcoded Google/Gemini API key committed in documentation
-**Location:** `BOT_V2_FEATURES.md:333` (tracked/staged in the outer repo), local `.env.llm`
+**Location:** `docs/architecture/BOT_V2_FEATURES.md:333` (tracked/staged in the outer repo), local `.env.llm`
 
 A live-looking Google API key (`AIzaSy…`, value intentionally not reproduced
 here) is committed in project documentation. The current bot code uses **Groq**
@@ -467,7 +467,7 @@ cost or quota abuse against the owner's Google account.
 
 **Remediation (owner action — not performed here):**
 1. **Rotate/revoke** the key in the Google Cloud console immediately.
-2. Remove it from `BOT_V2_FEATURES.md` and from `.env.llm`; keep secrets only in
+2. Remove it from `docs/architecture/BOT_V2_FEATURES.md` and from `.env.llm`; keep secrets only in
    git-ignored env files.
 3. Because it is in git history, treat it as compromised even after deletion
    (history rewrite / key revocation is the only real fix).

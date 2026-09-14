@@ -26,7 +26,7 @@ half-built features · 6 tests/CI/repo.
 ## P0 — Do first (compromise-level)
 
 - [~] **Rotate the leaked Google/Gemini API key** (S-01). Removed from
-      `BOT_V2_FEATURES.md` (which now carries a stale-section banner) and from the
+      `docs/architecture/BOT_V2_FEATURES.md` (which now carries a stale-section banner) and from the
       git index; `.env.llm` no longer exists. **The key itself has not been
       revoked** — that is an owner action in Google Cloud → APIs & Services →
       Credentials. The outer repo has zero commits, so the key was never actually

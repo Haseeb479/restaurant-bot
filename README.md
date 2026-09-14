@@ -90,6 +90,41 @@ The bot reads and writes MySQL directly; it does not call the Laravel HTTP API.
 Traffic goes the other way — Laravel calls the bot's control server on
 `BOT_INTERNAL_API`, authenticated with `BOT_INTERNAL_TOKEN`.
 
+## Documentation
+
+Comprehensive project documentation is organized in [`docs/`](docs/):
+
+- **Architecture:** [`docs/architecture/BOT_V2_FEATURES.md`](docs/architecture/BOT_V2_FEATURES.md) — System features, conversation flow, and LLM design.
+- **Deployment:** [`docs/deployment/DEPLOYMENT.md`](docs/deployment/DEPLOYMENT.md) and [`docs/deployment/EVOLUTION_API.md`](docs/deployment/EVOLUTION_API.md) — Production deployment, Docker, and EvolutionAPI v2 multi-tenant guide.
+- **Development:** [`docs/development/QR_START.md`](docs/development/QR_START.md) and [`docs/development/LLM_SETUP.md`](docs/development/LLM_SETUP.md) — Local testing and model setup.
+- **Security:** [`docs/security/`](docs/security/) — Threat model, security review, and [`REMEDIATION.md`](docs/security/REMEDIATION.md).
+- **Bot Service:** [`bot/README.md`](bot/README.md) — Node.js WhatsApp bot architecture, message routers, and internal API.
+
+## Project Structure
+
+```text
+├── app/                    # Laravel application core (Controllers, Models, Services)
+├── bot/                    # Node.js WhatsApp bot service (Groq AI, Handlers, Server)
+│   ├── src/                # Bot source modules (ai, handlers, server, services, utils)
+│   ├── tests/              # Node.js test suite
+│   └── README.md           # Bot technical documentation
+├── config/                 # Laravel framework configuration
+├── database/               # Database migrations, seeders, and factories
+├── docs/                   # Structured documentation
+│   ├── architecture/       # System design and specifications
+│   ├── deployment/         # Production, Docker, and EvolutionAPI guides
+│   ├── development/        # Local workflow and setup guides
+│   └── security/           # Threat models, security analysis, and checklist
+├── resources/              # Blade templates, Tailwind CSS, frontend assets
+├── routes/                 # Application web and console routes
+├── scripts/                # Operational scripts
+│   ├── deployment/         # Deployment helpers
+│   ├── development/        # Development utilities
+│   ├── maintenance/        # Database and maintenance tasks
+│   └── testing/            # Connectivity test utilities (e.g. test-groq.js)
+└── tests/                  # PHPUnit feature and unit tests
+```
+
 ## Security
 
 A source-level security review lives in [`docs/security/`](docs/security/) —

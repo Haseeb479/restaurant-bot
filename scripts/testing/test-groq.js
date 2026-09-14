@@ -1,10 +1,11 @@
-// test-groq.js
+// scripts/testing/test-groq.js
 // Run this to check if your Groq key works
-// Command: node test-groq.js
+// Command: node scripts/testing/test-groq.js or npm run test:groq
 
 import Groq from 'groq-sdk';
 import dotenv from 'dotenv';
 
+dotenv.config();
 dotenv.config({ path: '.env.llm' });
 
 const apiKey = process.env.GROQ_API_KEY;
