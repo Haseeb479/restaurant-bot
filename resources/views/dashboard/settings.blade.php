@@ -280,15 +280,19 @@
                                 Search
                             </button>
                         </div>
-                        <div style="display: flex; gap: 6px; align-items: center;">
+                        <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
                             <div style="display: flex; background: #e2e8f0; padding: 2px; border-radius: 8px;">
                                 <button type="button" id="btn-layer-streets" onclick="switchMapLayer('streets')" 
                                         style="padding: 5px 11px; font-size: 11px; font-weight: 700; border: none; border-radius: 6px; background: #0f172a; color: #fff; cursor: pointer; transition: all 0.2s;">
-                                    🗺️ Streets
+                                    🗺️ Google Map
                                 </button>
                                 <button type="button" id="btn-layer-satellite" onclick="switchMapLayer('satellite')" 
                                         style="padding: 5px 11px; font-size: 11px; font-weight: 700; border: none; border-radius: 6px; background: transparent; color: #475569; cursor: pointer; transition: all 0.2s;">
                                     🛰️ Satellite
+                                </button>
+                                <button type="button" id="btn-layer-osm" onclick="switchMapLayer('osm')" 
+                                        style="padding: 5px 11px; font-size: 11px; font-weight: 700; border: none; border-radius: 6px; background: transparent; color: #475569; cursor: pointer; transition: all 0.2s;">
+                                    🌐 OSM
                                 </button>
                             </div>
                             <button type="button" onclick="locateMyKitchen()" class="btn" style="padding: 5px 11px; font-size: 11px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; color: #166534; font-weight: 600; white-space: nowrap;">
@@ -296,6 +300,7 @@
                             </button>
                         </div>
                     </div>
+
 
                     <div id="coverage-map" style="width: 100%; height: 360px; border-radius: 12px; border: 1.5px solid #cbd5e1; overflow: hidden; background: #f8fafc; position: relative; z-index: 1;"></div>
                     <span style="font-size: 11px; color: #64748b; margin-top: 6px; display: block;">
@@ -474,15 +479,16 @@
 let map, marker, circle, currentTileLayer;
 let currentLayerType = 'streets';
 
-const GOOGLE_ROADMAP = 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
-const GOOGLE_HYBRID  = 'https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}';
+const GOOGLE_ROADMAP = 'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
+const GOOGLE_HYBRID  = 'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}';
+const OSM_ROADMAP    = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
 function initCoverageMap() {
     const latInput = document.getElementById('restaurant_lat');
     const lngInput = document.getElementById('restaurant_lng');
     const radiusInput = document.getElementById('delivery_radius_km');
     const mapContainer = document.getElementById('coverage-map');
-    if (!mapContainer) return;
+    if (!mapContainer || !window.L) return;
 
     // Fallback known city centers
     const cityCoords = {
@@ -511,12 +517,12 @@ function initCoverageMap() {
     let lng = parseFloat(lngInput.value) || defaultLng;
     let radiusKm = parseFloat(radiusInput.value) || 5.0;
 
-    map = L.map('coverage-map', { zoomControl: true, attributionControl: false }).setView([lat, lng], 14);
+    map = L.map('coverage-map', { zoomControl: true, attributionControl: false }).setView([lat, lng], 15);
 
-    // Modern Google Maps Roadmap: high-res, full streets, shops, colonies, Urdu & English labels
+    // Default: High-Resolution Google Maps Roadmap (Full streets, colonies, landmarks, shops)
     currentTileLayer = L.tileLayer(GOOGLE_ROADMAP, {
         maxZoom: 20,
-        subdomains: ['0', '1', '2', '3']
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
     }).addTo(map);
 
     const kitchenIcon = L.divIcon({
@@ -564,35 +570,33 @@ window.switchMapLayer = function(type) {
     if (currentTileLayer) {
         map.removeLayer(currentTileLayer);
     }
-    const btnStreets = document.getElementById('btn-layer-streets');
+    const btnStreets   = document.getElementById('btn-layer-streets');
     const btnSatellite = document.getElementById('btn-layer-satellite');
+    const btnOsm       = document.getElementById('btn-layer-osm');
+
+    // Reset buttons style
+    [btnStreets, btnSatellite, btnOsm].forEach(b => {
+        if (b) { b.style.background = 'transparent'; b.style.color = '#475569'; }
+    });
 
     if (type === 'satellite') {
         currentTileLayer = L.tileLayer(GOOGLE_HYBRID, {
             maxZoom: 20,
-            subdomains: ['0', '1', '2', '3']
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
         }).addTo(map);
-        if (btnSatellite) {
-            btnSatellite.style.background = '#0f172a';
-            btnSatellite.style.color = '#fff';
-        }
-        if (btnStreets) {
-            btnStreets.style.background = 'transparent';
-            btnStreets.style.color = '#475569';
-        }
+        if (btnSatellite) { btnSatellite.style.background = '#0f172a'; btnSatellite.style.color = '#fff'; }
+    } else if (type === 'osm') {
+        currentTileLayer = L.tileLayer(OSM_ROADMAP, {
+            maxZoom: 19,
+            subdomains: ['a', 'b', 'c']
+        }).addTo(map);
+        if (btnOsm) { btnOsm.style.background = '#0f172a'; btnOsm.style.color = '#fff'; }
     } else {
         currentTileLayer = L.tileLayer(GOOGLE_ROADMAP, {
             maxZoom: 20,
-            subdomains: ['0', '1', '2', '3']
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
         }).addTo(map);
-        if (btnStreets) {
-            btnStreets.style.background = '#0f172a';
-            btnStreets.style.color = '#fff';
-        }
-        if (btnSatellite) {
-            btnSatellite.style.background = 'transparent';
-            btnSatellite.style.color = '#475569';
-        }
+        if (btnStreets) { btnStreets.style.background = '#0f172a'; btnStreets.style.color = '#fff'; }
     }
 };
 
@@ -605,7 +609,7 @@ window.searchMapLocation = function() {
     const origText = btn ? btn.textContent : 'Search';
     if (btn) btn.textContent = 'Searching...';
 
-    // Geocode via Nominatim with Pakistan bias
+    // Geocode via Nominatim with address details
     fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query) + '&limit=1&addressdetails=1', {
         headers: { 'Accept': 'application/json' }
     })
@@ -615,12 +619,12 @@ window.searchMapLocation = function() {
         if (data && data.length > 0) {
             const newLat = parseFloat(data[0].lat);
             const newLng = parseFloat(data[0].lon);
-            map.flyTo([newLat, newLng], 15, { duration: 1.2 });
+            map.flyTo([newLat, newLng], 16, { duration: 1.2 });
             if (typeof window.updateMapCoords === 'function') {
                 window.updateMapCoords(newLat, newLng);
             }
         } else {
-            alert('Location "' + query + '" not found. Try typing with city name, e.g. "' + query + ', Multan" or "' + query + ', Lodhran".');
+            alert('Location "' + query + '" not found. Try typing with city name, e.g. "' + query + ', Multan" or "' + query + ', Pakistan".');
         }
     })
     .catch(() => {
@@ -628,7 +632,6 @@ window.searchMapLocation = function() {
         alert('Location search service temporarily unavailable. Please drag the pin on the map.');
     });
 };
-
 
 window.onRadiusSliderChange = function(val) {
     const km = parseFloat(val);
@@ -653,14 +656,27 @@ window.locateMyKitchen = function() {
         if (map && marker && circle) {
             marker.setLatLng([lat, lng]);
             circle.setLatLng([lat, lng]);
-            map.setView([lat, lng], 14);
+            map.flyTo([lat, lng], 16, { duration: 1.2 });
         }
     }, function() {
         alert('Unable to retrieve your current location. Please click on the map to set your kitchen pin.');
     });
 };
 
-document.addEventListener('DOMContentLoaded', initCoverageMap);
+function safeInitCoverageMap() {
+    if (typeof L === 'undefined') {
+        setTimeout(safeInitCoverageMap, 50);
+        return;
+    }
+    initCoverageMap();
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', safeInitCoverageMap);
+} else {
+    safeInitCoverageMap();
+}
+
 
 // ── Delivery Area Tag Chip Manager ────────────────────────────────────────────
 (function () {

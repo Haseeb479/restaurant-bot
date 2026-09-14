@@ -144,12 +144,12 @@
         const map = L.map('map', { zoomControl: false, attributionControl: false })
             .setView([currentLat, currentLng], 16);
 
-        const GOOGLE_ROADMAP = 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
-        const GOOGLE_HYBRID  = 'https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}';
+        const GOOGLE_ROADMAP = 'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
+        const GOOGLE_HYBRID  = 'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}';
 
         let currentTileLayer = L.tileLayer(GOOGLE_ROADMAP, {
             maxZoom: 20,
-            subdomains: ['0', '1', '2', '3']
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
         }).addTo(map);
 
         L.control.zoom({ position: 'bottomright' }).addTo(map);
@@ -161,18 +161,19 @@
         if (btnStreets && btnSatellite) {
             btnStreets.addEventListener('click', function() {
                 map.removeLayer(currentTileLayer);
-                currentTileLayer = L.tileLayer(GOOGLE_ROADMAP, { maxZoom: 20, subdomains: ['0', '1', '2', '3'] }).addTo(map);
+                currentTileLayer = L.tileLayer(GOOGLE_ROADMAP, { maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] }).addTo(map);
                 btnStreets.className   = 'px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-500 text-white transition';
                 btnSatellite.className = 'px-2.5 py-1 text-xs font-bold rounded-lg text-slate-400 hover:text-white transition';
             });
 
             btnSatellite.addEventListener('click', function() {
                 map.removeLayer(currentTileLayer);
-                currentTileLayer = L.tileLayer(GOOGLE_HYBRID, { maxZoom: 20, subdomains: ['0', '1', '2', '3'] }).addTo(map);
+                currentTileLayer = L.tileLayer(GOOGLE_HYBRID, { maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] }).addTo(map);
                 btnSatellite.className = 'px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-500 text-white transition';
                 btnStreets.className   = 'px-2.5 py-1 text-xs font-bold rounded-lg text-slate-400 hover:text-white transition';
             });
         }
+
 
         const coordsText = document.getElementById('coords-text');
         const areaText   = document.getElementById('area-text');

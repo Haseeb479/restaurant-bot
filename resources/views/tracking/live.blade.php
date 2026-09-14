@@ -618,13 +618,13 @@
             attributionControl: false
         });
 
-        const TILE_ROADMAP = 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
-        const TILE_SAT     = 'https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}';
+        const TILE_ROADMAP = 'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
+        const TILE_SAT     = 'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}';
 
         // Default: High-res Google Maps Streets (every colony, chowk, shop, and road visible)
         currentTileLayer = L.tileLayer(TILE_ROADMAP, {
             maxZoom: 20,
-            subdomains: ['0', '1', '2', '3']
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
         }).addTo(leafletMap);
 
         // 1. Kitchen Marker
@@ -663,7 +663,7 @@
             btnRoadmap.addEventListener('click', function() {
                 if (isSatellite) {
                     leafletMap.removeLayer(currentTileLayer);
-                    currentTileLayer = L.tileLayer(TILE_ROADMAP, { maxZoom: 20, subdomains: ['0', '1', '2', '3'] }).addTo(leafletMap);
+                    currentTileLayer = L.tileLayer(TILE_ROADMAP, { maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] }).addTo(leafletMap);
                     isSatellite = false;
                 }
                 btnRoadmap.className  = 'flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all duration-200 bg-slate-900 text-white shadow-sm';
@@ -673,13 +673,14 @@
             btnSatellite.addEventListener('click', function() {
                 if (!isSatellite) {
                     leafletMap.removeLayer(currentTileLayer);
-                    currentTileLayer = L.tileLayer(TILE_SAT, { maxZoom: 20, subdomains: ['0', '1', '2', '3'] }).addTo(leafletMap);
+                    currentTileLayer = L.tileLayer(TILE_SAT, { maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] }).addTo(leafletMap);
                     isSatellite = true;
                 }
                 btnSatellite.className = 'flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all duration-200 bg-slate-900 text-white shadow-sm';
                 btnRoadmap.className   = 'flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all duration-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100/80';
             });
         }
+
 
 
         // Custom Zoom Controls
