@@ -272,7 +272,7 @@ export class ChatHandler {
         }
 
         // ── Order confirmed detection & gated fulfillment ─────────────────────
-        if (this.isOrderConfirmed(reply)) {
+        if (this.isOrderConfirmed(reply, session.history)) {
             console.log(`🎯 Order confirmed detection triggered for ${customerPhone}`);
             let saveResult = null;
             try {
@@ -340,7 +340,7 @@ export class ChatHandler {
     }
 
     // ── Order confirmation detection (strict check) ────────────────────────────
-    isOrderConfirmed(reply) {
+    isOrderConfirmed(reply, history = []) {
         const lower = reply.toLowerCase();
 
         // If it's still asking the user to confirm, it's NOT yet placed
@@ -348,7 +348,7 @@ export class ChatHandler {
             return false;
         }
 
-        return (
+        const replyHasPlaced = (
             lower.includes('your order is placed') ||
             lower.includes('order has been placed') ||
             lower.includes('order placed')          ||
@@ -356,6 +356,30 @@ export class ChatHandler {
             lower.includes('آرڈر ہوگیا')             ||
             (lower.includes('total') && lower.includes('placed'))
         );
+
+        if (!replyHasPlaced) {
+            return false;
+        }
+
+        // DETERMINISTIC CUSTOMER CONFIRMATION:
+        // Never place order purely on AI text alone if history is available.
+        // Check that customer sent an explicit confirmation affirmative (e.g. yes, confirm, haan)
+        // or that there is an order summary in the conversation.
+        if (Array.isArray(history) && history.length > 0) {
+            const userMsgs = history.filter(h => h.role === 'user');
+            const lastUserMsg = userMsgs.length > 0 ? (userMsgs[userMsgs.length - 1].content || '').toLowerCase() : '';
+            const isAffirmative = /^(?:ha|haa|haan|yes|yep|yeah|ok|theek hai|thk hai|kr do|kar do|confirm|done|jee|ji)\b/i.test(lastUserMsg.trim())
+                || /confirm|kar do|kr do|bhej do|place|order/i.test(lastUserMsg);
+
+            const hasSummary = history.some(h => h.role === 'assistant' && (/order summary|subtotal|deliver to|total payable/i.test(h.content || '')));
+            
+            // If we have history, ensure it's either an affirmative user response or has order summary
+            if (!isAffirmative && !hasSummary) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

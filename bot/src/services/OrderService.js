@@ -387,7 +387,7 @@ export class OrderService {
         };
 
         // Recalculate using authoritative menu items from session if present
-        if (session.restaurant?.menu_items?.length || session.restaurant?.active_deals?.length || session.restaurant?.delivery_charge !== undefined) {
+        if (session.restaurant?.menu_items?.length || session.restaurant?.active_deals?.length) {
             this.recalculateTotalsFromMenu(
                 parsed,
                 session.restaurant.menu_items || [],
@@ -424,10 +424,16 @@ export class OrderService {
                     item.size = resolved.size !== undefined ? resolved.size : item.size;
                     item.unit_price = resolved.unitPrice;
                     item.subtotal = resolved.unitPrice * (item.quantity || 1);
-                } else if (item.unit_price) {
-                    item.subtotal = item.unit_price * (item.quantity || 1);
+                    calculatedSubtotal += (item.subtotal || 0);
+                } else {
+                    // SECURITY: Database menu pricing is the ONLY price authority.
+                    // If an item does NOT match the menu or active deals, reject it (unit_price = 0).
+                    // Cart validation will reject any cart where items cannot be matched.
+                    item.menu_item_id = null;
+                    item.unit_price = 0;
+                    item.subtotal = 0;
+                    item.unmatched = true;
                 }
-                calculatedSubtotal += (item.subtotal || 0);
             }
         }
 
@@ -553,6 +559,10 @@ export class OrderService {
             if (!item.name || !item.quantity || item.quantity <= 0) {
                 return false;
             }
+            // SECURITY: Never accept items that failed menu matching or have zero/negative price
+            if (item.unmatched || !item.unit_price || item.unit_price <= 0) {
+                return false;
+            }
         }
 
         const subtotal = parseFloat(parsed.subtotal);
@@ -608,7 +618,8 @@ export class OrderService {
 
             this.recalculateTotalsFromMenu(parsed, allItems, dealRows || [], dbDelivery);
         } catch (dbErr) {
-            console.warn('⚠️ Could not fetch fresh DB prices for recalculation, using session prices:', dbErr.message);
+            console.error('❌ Could not fetch authoritative DB prices for recalculation:', dbErr.message);
+            return null;
         }
 
         // Validate cart before proceeding

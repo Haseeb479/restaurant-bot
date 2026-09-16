@@ -15,6 +15,24 @@ function parseReleaseCommand(text) {
     return { isRelease: true, selector: (m[2] || '').replace(/[^0-9]/g, '') };
 }
 
+const processedMessageIds = new Map();
+
+function isDuplicateMessage(msgId) {
+    if (!msgId) return false;
+    const now = Date.now();
+    // Prune old entries > 10 minutes
+    for (const [id, time] of processedMessageIds.entries()) {
+        if (now - time > 10 * 60 * 1000) {
+            processedMessageIds.delete(id);
+        }
+    }
+    if (processedMessageIds.has(msgId)) {
+        return true;
+    }
+    processedMessageIds.set(msgId, now);
+    return false;
+}
+
 /**
  * MessageRouter — single entry point for every incoming WhatsApp message.
  *
@@ -35,6 +53,13 @@ export class MessageRouter {
     }
 
     async handle(msg) {
+        // Deduplicate incoming WhatsApp message events by unique message ID
+        const msgId = msg?.id?.id || msg?.id?._serialized || msg?.id;
+        if (msgId && isDuplicateMessage(msgId)) {
+            console.warn(`⚠️ Duplicate WhatsApp message event ${msgId} ignored`);
+            return;
+        }
+
         // ── Skip non-customer messages ─────────────────────────────────────────
         if (msg.from.includes('@g.us'))      return; // group chats
         if (msg.from === 'status@broadcast') return; // broadcast
