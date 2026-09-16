@@ -35,13 +35,108 @@ class OrderController extends Controller
                 return response()->json(['success' => false, 'error' => 'Restaurant not found'], 404);
             }
 
+            $deliveryCharge = (float) ($restaurant->delivery_charge ?? 0);
+            $subtotal       = (float) $validated['subtotal'];
+
+            // If items array is provided, calculate subtotal authoritatively from MenuItems
+            $itemsData = $request->input('items');
+            if (is_array($itemsData) && count($itemsData) > 0) {
+                $calcSubtotal = 0.0;
+                $dbMenuItems  = $restaurant->menuItems()->get();
+                $dbDeals      = $restaurant->deals()->get();
+
+                foreach ($itemsData as &$it) {
+                    $qty = max(1, (int) ($it['quantity'] ?? 1));
+                    $rawName = trim((string) ($it['name'] ?? ''));
+                    $rawSize = trim((string) ($it['size'] ?? ''));
+
+                    $normName = strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $rawName));
+                    $normName = trim(preg_replace('/\s+/', ' ', $normName));
+
+                    $matchedItem = $dbMenuItems->first(function ($mi) use ($normName) {
+                        $normMi = strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $mi->name));
+                        $normMi = trim(preg_replace('/\s+/', ' ', $normMi));
+                        return $normMi === $normName || stripos($normMi, $normName) !== false || stripos($normName, $normMi) !== false;
+                    });
+
+                    $unitPrice = 0.0;
+                    if ($matchedItem) {
+                        if ($matchedItem->hasSizes() && is_array($matchedItem->sizes) && count($matchedItem->sizes) > 0) {
+                            if ($rawSize !== '') {
+                                $normSize = strtolower($rawSize);
+                                foreach ($matchedItem->sizes as $s) {
+                                    $sName = strtolower(trim($s['size'] ?? ''));
+                                    if ($sName === $normSize || str_starts_with($sName, $normSize) || str_starts_with($normSize, $sName)) {
+                                        $unitPrice = (float) ($s['price'] ?? 0);
+                                        $it['size'] = $s['size'] ?? $rawSize;
+                                        break;
+                                    }
+                                }
+                            }
+                            if ($unitPrice === 0.0 && ((float) $matchedItem->price) <= 0 && isset($matchedItem->sizes[0]['price'])) {
+                                $unitPrice = (float) $matchedItem->sizes[0]['price'];
+                                $it['size'] = $matchedItem->sizes[0]['size'] ?? $rawSize;
+                            }
+                        }
+                        if ($unitPrice === 0.0) {
+                            $unitPrice = (float) $matchedItem->price;
+                        }
+                        $it['menu_item_id'] = $matchedItem->id;
+                        $it['name']         = $matchedItem->name;
+                    } else {
+                        $matchedDeal = $dbDeals->first(function ($deal) use ($normName) {
+                            $dealTitle = $deal->title ?? $deal->name ?? '';
+                            $normDeal  = strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $dealTitle));
+                            $normDeal  = trim(preg_replace('/\s+/', ' ', $normDeal));
+                            return $normDeal === $normName || stripos($normDeal, $normName) !== false || stripos($normName, $normDeal) !== false;
+                        });
+                        if ($matchedDeal) {
+                            $unitPrice = (float) ($matchedDeal->discount_value ?? 0);
+                            $it['name'] = $matchedDeal->title;
+                        } else {
+                            $unitPrice = (float) ($it['unit_price'] ?? 0);
+                        }
+                    }
+
+                    $lineTotal = $unitPrice * $qty;
+                    $it['unit_price'] = $unitPrice;
+                    $it['subtotal']   = $lineTotal;
+                    $calcSubtotal    += $lineTotal;
+                }
+                unset($it);
+
+                if ($calcSubtotal > 0) {
+                    $subtotal = $calcSubtotal;
+                }
+            }
+
+            // Backend is the only authority for totals: subtotal + delivery = total
+            $total = $subtotal + $deliveryCharge;
+
             // ── Create order (no tracking code yet — need ID first) ──
             $order = Order::create([
                 ...$validated,
-                'tracking_code'  => 'TEMP', // placeholder
-                'status'         => $validated['status'] ?? 'pending',
-                'payment_method' => $validated['payment_method'] ?? 'cash_on_delivery',
+                'subtotal'        => $subtotal,
+                'delivery_charge' => $deliveryCharge,
+                'total'           => $total,
+                'tracking_code'   => 'TEMP', // placeholder
+                'status'          => $validated['status'] ?? 'pending',
+                'payment_method'  => $validated['payment_method'] ?? 'cash_on_delivery',
             ]);
+
+            // Save order items if passed
+            if (is_array($itemsData) && count($itemsData) > 0) {
+                foreach ($itemsData as $itemRow) {
+                    $order->items()->create([
+                        'menu_item_id' => $itemRow['menu_item_id'] ?? null,
+                        'name'         => $itemRow['name'] ?? 'Item',
+                        'size'         => $itemRow['size'] ?? null,
+                        'quantity'     => max(1, (int) ($itemRow['quantity'] ?? 1)),
+                        'unit_price'   => (float) ($itemRow['unit_price'] ?? 0),
+                        'subtotal'     => (float) ($itemRow['subtotal'] ?? 0),
+                    ]);
+                }
+            }
 
             // ── Generate tracking code using order ID ──
             $trackingCode = Order::generateTrackingCode($restaurant, $order->id);

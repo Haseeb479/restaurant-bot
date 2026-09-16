@@ -60,6 +60,90 @@ function cleanCustomerPhone(raw, fallbackPhone) {
 }
 
 /**
+ * Normalizes item names for matching against stored menu items.
+ */
+export function normalizeItemName(str) {
+    return String(str || '')
+        .toLowerCase()
+        .replace(/[*_`~]/g, '')
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+/**
+ * Resolves an item's authoritative unit price from stored menu items or deals.
+ * Checks exact match, size variations, and active deals.
+ */
+export function resolveItemPriceFromMenu(itemName, itemSize, menuItems = [], deals = []) {
+    const normSearch = normalizeItemName(itemName);
+    if (!normSearch) return null;
+
+    // 1. Check menu_items
+    for (const mi of menuItems) {
+        const normMi = normalizeItemName(mi.name);
+        if (normMi === normSearch || normMi.includes(normSearch) || normSearch.includes(normMi)) {
+            let unitPrice = 0;
+            let matchedSize = null;
+
+            // Check sizes if item has size variations
+            let sizes = mi.sizes;
+            if (typeof sizes === 'string') {
+                try { sizes = JSON.parse(sizes); } catch (e) { sizes = null; }
+            }
+
+            if (Array.isArray(sizes) && sizes.length > 0) {
+                if (itemSize) {
+                    const normSize = normalizeItemName(itemSize);
+                    const sMatch = sizes.find(s => {
+                        const sName = normalizeItemName(s.size || s.name);
+                        return sName === normSize || sName.startsWith(normSize) || normSize.startsWith(sName);
+                    });
+                    if (sMatch && sMatch.price !== undefined) {
+                        unitPrice = parseFloat(sMatch.price) || 0;
+                        matchedSize = sMatch.size || itemSize;
+                    }
+                }
+                // If size wasn't matched or wasn't specified, but base price is 0, default to first size
+                if (unitPrice === 0 && (mi.price === null || mi.price === undefined || parseFloat(mi.price) <= 0) && sizes[0]?.price) {
+                    unitPrice = parseFloat(sizes[0].price) || 0;
+                    matchedSize = sizes[0].size;
+                }
+            }
+
+            if (unitPrice === 0 && mi.price !== undefined && mi.price !== null) {
+                unitPrice = parseFloat(mi.price) || 0;
+            }
+
+            return {
+                matched: true,
+                menuItemId: mi.id || null,
+                canonicalName: mi.name,
+                size: matchedSize || itemSize,
+                unitPrice,
+            };
+        }
+    }
+
+    // 2. Check active deals
+    for (const deal of deals) {
+        const normDeal = normalizeItemName(deal.title || deal.name);
+        if (normDeal === normSearch || normDeal.includes(normSearch) || normSearch.includes(normDeal)) {
+            const dealPrice = parseFloat(deal.discount_value || deal.price || 0);
+            return {
+                matched: true,
+                dealId: deal.id || null,
+                canonicalName: deal.title || deal.name,
+                size: itemSize,
+                unitPrice: dealPrice,
+            };
+        }
+    }
+
+    return null;
+}
+
+/**
  * OrderService — parses order details from conversation and saves directly to MySQL database.
  */
 export class OrderService {
@@ -196,7 +280,7 @@ export class OrderService {
             .substring(0, 1000)
             || 'Order placed via WhatsApp bot';
 
-        return {
+        const parsed = {
             subtotal,
             deliveryCharge,
             total,
@@ -207,6 +291,66 @@ export class OrderService {
             items,
             notes,
         };
+
+        // Recalculate using authoritative menu items from session if present
+        if (session.restaurant?.menu_items?.length || session.restaurant?.active_deals?.length || session.restaurant?.delivery_charge !== undefined) {
+            this.recalculateTotalsFromMenu(
+                parsed,
+                session.restaurant.menu_items || [],
+                session.restaurant.active_deals || [],
+                session.restaurant.delivery_charge
+            );
+        } else {
+            // Even without menu_items (e.g. mock unit tests), enforce: final total = subtotal + delivery charge
+            parsed.deliveryCharge = parseFloat(session.restaurant?.delivery_charge ?? deliveryCharge ?? 0);
+            parsed.total = (parseFloat(parsed.subtotal) || 0) + (parseFloat(parsed.deliveryCharge) || 0);
+        }
+
+        return parsed;
+    }
+
+    /**
+     * Recalculates all order totals strictly from authoritative database prices:
+     * item subtotal + delivery charge = final total.
+     * AI prices are NEVER trusted.
+     */
+    recalculateTotalsFromMenu(parsed, menuItems = [], deals = [], deliveryCharge = null) {
+        if (!parsed) return parsed;
+
+        let calculatedSubtotal = 0;
+        let anyItemMatched = false;
+
+        if (Array.isArray(parsed.items) && parsed.items.length > 0) {
+            for (const item of parsed.items) {
+                const resolved = resolveItemPriceFromMenu(item.name, item.size, menuItems, deals);
+                if (resolved && resolved.matched) {
+                    anyItemMatched = true;
+                    item.menu_item_id = resolved.menuItemId || null;
+                    item.name = resolved.canonicalName || item.name;
+                    item.size = resolved.size || item.size;
+                    item.unit_price = resolved.unitPrice;
+                    item.subtotal = resolved.unitPrice * (item.quantity || 1);
+                } else if (item.unit_price) {
+                    item.subtotal = item.unit_price * (item.quantity || 1);
+                }
+                calculatedSubtotal += (item.subtotal || 0);
+            }
+        }
+
+        // If items were present or matched, subtotal is the exact sum of line items
+        if (anyItemMatched || (Array.isArray(parsed.items) && parsed.items.length > 0)) {
+            parsed.subtotal = calculatedSubtotal;
+        }
+
+        // Authoritative delivery charge from restaurant configuration
+        if (deliveryCharge !== null && deliveryCharge !== undefined) {
+            parsed.deliveryCharge = parseFloat(deliveryCharge) || 0;
+        }
+
+        // Authoritative final total = item subtotal + delivery charge
+        parsed.total = (parseFloat(parsed.subtotal) || 0) + (parseFloat(parsed.deliveryCharge) || 0);
+
+        return parsed;
     }
 
     /**
@@ -293,6 +437,31 @@ export class OrderService {
     async save(customerPhone, session) {
         const restaurantId = session.restaurant?.id || 1;
         const parsed = this.parseOrderFromHistory(session);
+
+        // Fetch authoritative database prices and delivery charge for the restaurant
+        try {
+            const db = getDbPool();
+            const [menuRows] = await db.query(
+                'SELECT * FROM menu_items WHERE restaurant_id = ? AND is_available = 1 ORDER BY sort_order',
+                [restaurantId]
+            ).catch(() => [[]]);
+
+            const [dealRows] = await db.query(
+                'SELECT * FROM deals WHERE restaurant_id = ? AND is_active = 1',
+                [restaurantId]
+            ).catch(() => [[]]);
+
+            const [restRows] = await db.query(
+                'SELECT delivery_charge FROM restaurants WHERE id = ?',
+                [restaurantId]
+            ).catch(() => [[]]);
+
+            const dbDelivery = restRows?.[0]?.delivery_charge !== undefined ? restRows[0].delivery_charge : (session.restaurant?.delivery_charge ?? 0);
+            this.recalculateTotalsFromMenu(parsed, menuRows || [], dealRows || [], dbDelivery);
+        } catch (dbErr) {
+            console.warn('⚠️ Could not fetch fresh DB prices for recalculation, using session prices:', dbErr.message);
+        }
+
         const trackingCode = await this.generateTrackingCode(restaurantId, session.restaurant?.name);
 
         // 1. Determine customer phone to store (given contact number or sender WhatsApp)

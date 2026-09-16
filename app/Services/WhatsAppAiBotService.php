@@ -719,7 +719,7 @@ PROMPT;
     //  Order saving to database & creating OrderItem records
     // ──────────────────────────────────────────────────────────────────────────
 
-    private function saveOrderFromHistory(Restaurant $restaurant, string $customerPhone, array $history): ?string
+    public function saveOrderFromHistory(Restaurant $restaurant, string $customerPhone, array $history): ?string
     {
         // ── C5: Enforce Monthly Order Limits ─────────────────────────────────
         if ($restaurant->hasExceededMonthlyOrders()) {
@@ -820,6 +820,7 @@ PROMPT;
         $lines = explode("\n", $summaryMsg);
         $parsedItems = [];
         $dbMenuItems = $restaurant->menuItems()->get();
+        $dbDeals     = $restaurant->deals()->get();
         $dbSubtotal  = 0.0; // Will be recalculated from DB prices
 
         foreach ($lines as $line) {
@@ -828,21 +829,77 @@ PROMPT;
                 $qty  = (int) $m[1];
                 $rest = trim($m[2], " *–—-\t\n\r\0\x0B");
 
-                // Extract clean item name (strip price suffixes)
+                // Check for size variation in parentheses or brackets e.g. (Large) or (Small)
+                $itemSize = null;
+                if (preg_match('/\(([^)]+)\)/', $rest, $sizeMatch)) {
+                    $potentialSize = trim($sizeMatch[1]);
+                    if (!preg_match('/(?:rs\.?|pkr\.?|₹|\d{2,})/i', $potentialSize)) {
+                        $itemSize = $potentialSize;
+                    }
+                }
+
+                // Extract clean item name (strip price suffixes and size tags for matching)
                 $itemName = preg_replace('/(?:—|-|–|:|@|\(|→|Rs\.|PKR|₹).*$/iu', '', $rest);
                 $itemName = trim($itemName, " *–—-\t\n\r\0\x0B");
+                $normItemName = strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $itemName));
+                $normItemName = trim(preg_replace('/\s+/', ' ', $normItemName));
 
-                // Look up the authoritative price from the database (C1)
-                $matchedDbItem = $dbMenuItems->first(function ($mi) use ($itemName) {
-                    return stripos($mi->name, $itemName) !== false || stripos($itemName, $mi->name) !== false;
+                // Look up the authoritative price from database menu items (C1)
+                $matchedDbItem = $dbMenuItems->first(function ($mi) use ($normItemName) {
+                    $normMi = strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $mi->name));
+                    $normMi = trim(preg_replace('/\s+/', ' ', $normMi));
+                    return $normMi === $normItemName || stripos($normMi, $normItemName) !== false || stripos($normItemName, $normMi) !== false;
                 });
 
+                $matchedDeal = null;
+                if (!$matchedDbItem) {
+                    // Check active deals
+                    $matchedDeal = $dbDeals->first(function ($deal) use ($normItemName) {
+                        $dealTitle = $deal->title ?? $deal->name ?? '';
+                        $normDeal = strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $dealTitle));
+                        $normDeal = trim(preg_replace('/\s+/', ' ', $normDeal));
+                        return $normDeal === $normItemName || stripos($normDeal, $normItemName) !== false || stripos($normItemName, $normDeal) !== false;
+                    });
+                }
+
                 if ($matchedDbItem) {
-                    // Always use DB price — never trust AI-generated price (C1)
-                    $unitPrice  = (float) $matchedDbItem->price;
+                    $unitPrice = 0.0;
+                    $matchedSize = null;
+
+                    // Handle size variations if defined on MenuItem
+                    if ($matchedDbItem->hasSizes() && is_array($matchedDbItem->sizes) && count($matchedDbItem->sizes) > 0) {
+                        if ($itemSize) {
+                            $normSize = strtolower(trim($itemSize));
+                            foreach ($matchedDbItem->sizes as $s) {
+                                $sName = strtolower(trim($s['size'] ?? ''));
+                                if ($sName === $normSize || str_starts_with($sName, $normSize) || str_starts_with($normSize, $sName)) {
+                                    $unitPrice   = (float) ($s['price'] ?? 0);
+                                    $matchedSize = $s['size'] ?? $itemSize;
+                                    break;
+                                }
+                            }
+                        }
+
+                        // Default to first size if not matched or no size specified but base price is 0
+                        if ($unitPrice === 0.0 && ((float) $matchedDbItem->price) <= 0 && isset($matchedDbItem->sizes[0]['price'])) {
+                            $unitPrice   = (float) $matchedDbItem->sizes[0]['price'];
+                            $matchedSize = $matchedDbItem->sizes[0]['size'] ?? $itemSize;
+                        }
+                    }
+
+                    if ($unitPrice === 0.0) {
+                        $unitPrice = (float) $matchedDbItem->price;
+                    }
+
                     $lineTotal  = $unitPrice * $qty;
-                    $itemName   = $matchedDbItem->name; // canonical casing
+                    $itemName   = $matchedDbItem->name;
+                    $itemSize   = $matchedSize ?: $itemSize;
                     $menuItemId = $matchedDbItem->id;
+                } elseif ($matchedDeal) {
+                    $unitPrice  = (float) ($matchedDeal->discount_value ?? 0);
+                    $lineTotal  = $unitPrice * $qty;
+                    $itemName   = $matchedDeal->title;
+                    $menuItemId = null;
                 } else {
                     // Unknown item: fall back to AI-parsed price, but log it
                     $linePrice = 0;
@@ -859,6 +916,7 @@ PROMPT;
                     $parsedItems[] = [
                         'menu_item_id' => $menuItemId,
                         'name'         => $itemName,
+                        'size'         => $itemSize,
                         'quantity'     => $qty,
                         'unit_price'   => $unitPrice,
                         'subtotal'     => $lineTotal,
@@ -876,8 +934,9 @@ PROMPT;
             $total    = $subtotal + $deliveryCharge;
             Log::info("WhatsApp AI: Prices recalculated from DB — subtotal: Rs.{$subtotal}, total: Rs.{$total}");
         } else {
-            // No DB items matched — totals remain as AI-parsed (logged above)
-            $deliveryCharge = (float) ($restaurant->delivery_charge ?? 0);
+            // No DB items matched — enforce backend delivery charge and calculated total
+            $subtotal = max(0.0, (float) $subtotal);
+            $total    = $subtotal + $deliveryCharge;
         }
 
         try {
@@ -902,6 +961,7 @@ PROMPT;
                     'order_id'     => $order->id,
                     'menu_item_id' => $it['menu_item_id'],
                     'name'         => $it['name'],
+                    'size'         => $it['size'] ?? null,
                     'quantity'     => $it['quantity'],
                     'unit_price'   => $it['unit_price'],
                     'subtotal'     => $it['subtotal'],
