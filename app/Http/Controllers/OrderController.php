@@ -53,15 +53,69 @@ class OrderController extends Controller
                     $normName = strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $rawName));
                     $normName = trim(preg_replace('/\s+/', ' ', $normName));
 
-                    $matchedItem = $dbMenuItems->first(function ($mi) use ($normName) {
-                        $normMi = strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $mi->name));
-                        $normMi = trim(preg_replace('/\s+/', ' ', $normMi));
-                        return $normMi === $normName || stripos($normMi, $normName) !== false || stripos($normName, $normMi) !== false;
-                    });
+                    $candidates = [];
+                    if ($rawSize !== '') {
+                        $cand1 = strtolower(trim(preg_replace('/\s+/', ' ', preg_replace('/[^\p{L}\p{N}\s]/u', ' ', "{$rawSize} {$rawName}"))));
+                        $cand2 = strtolower(trim(preg_replace('/\s+/', ' ', preg_replace('/[^\p{L}\p{N}\s]/u', ' ', "{$rawName} {$rawSize}"))));
+                        if ($cand1 !== '') $candidates[] = ['name' => $cand1, 'is_composite' => true];
+                        if ($cand2 !== '') $candidates[] = ['name' => $cand2, 'is_composite' => true];
+                    }
+                    if ($normName !== '') {
+                        $candidates[] = ['name' => $normName, 'is_composite' => false];
+                    }
+
+                    $matchedItem = null;
+                    $matchedCandidateIsComposite = false;
+
+                    // 1. Exact match against DB menu items (composite candidates first, then base)
+                    foreach ($candidates as $cand) {
+                        $found = $dbMenuItems->first(function ($mi) use ($cand) {
+                            $normMi = strtolower(trim(preg_replace('/\s+/', ' ', preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $mi->name))));
+                            return $normMi === $cand['name'];
+                        });
+                        if ($found) {
+                            $matchedItem = $found;
+                            $matchedCandidateIsComposite = $cand['is_composite'];
+                            break;
+                        }
+                    }
+
+                    // 2. Substring match: DB menu item contains candidate
+                    if (!$matchedItem) {
+                        foreach ($candidates as $cand) {
+                            $found = $dbMenuItems->first(function ($mi) use ($cand) {
+                                $normMi = strtolower(trim(preg_replace('/\s+/', ' ', preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $mi->name))));
+                                return $normMi !== '' && stripos($normMi, $cand['name']) !== false;
+                            });
+                            if ($found) {
+                                $matchedItem = $found;
+                                $matchedCandidateIsComposite = $cand['is_composite'];
+                                break;
+                            }
+                        }
+                    }
+
+                    // 3. Substring match: candidate contains DB menu item, sorted by longest item name first
+                    if (!$matchedItem) {
+                        $sortedDbMenuItems = $dbMenuItems->sortByDesc(function ($mi) {
+                            return mb_strlen($mi->name ?? '');
+                        });
+                        foreach ($candidates as $cand) {
+                            $found = $sortedDbMenuItems->first(function ($mi) use ($cand) {
+                                $normMi = strtolower(trim(preg_replace('/\s+/', ' ', preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $mi->name))));
+                                return $normMi !== '' && stripos($cand['name'], $normMi) !== false;
+                            });
+                            if ($found) {
+                                $matchedItem = $found;
+                                $matchedCandidateIsComposite = $cand['is_composite'];
+                                break;
+                            }
+                        }
+                    }
 
                     $unitPrice = 0.0;
                     if ($matchedItem) {
-                        if ($matchedItem->hasSizes() && is_array($matchedItem->sizes) && count($matchedItem->sizes) > 0) {
+                        if (!$matchedCandidateIsComposite && $matchedItem->hasSizes() && is_array($matchedItem->sizes) && count($matchedItem->sizes) > 0) {
                             if ($rawSize !== '') {
                                 $normSize = strtolower($rawSize);
                                 foreach ($matchedItem->sizes as $s) {
@@ -81,15 +135,37 @@ class OrderController extends Controller
                         if ($unitPrice === 0.0) {
                             $unitPrice = (float) $matchedItem->price;
                         }
+                        if ($matchedCandidateIsComposite) {
+                            $it['size'] = null;
+                        }
                         $it['menu_item_id'] = $matchedItem->id;
                         $it['name']         = $matchedItem->name;
                     } else {
-                        $matchedDeal = $dbDeals->first(function ($deal) use ($normName) {
-                            $dealTitle = $deal->title ?? $deal->name ?? '';
-                            $normDeal  = strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $dealTitle));
-                            $normDeal  = trim(preg_replace('/\s+/', ' ', $normDeal));
-                            return $normDeal === $normName || stripos($normDeal, $normName) !== false || stripos($normName, $normDeal) !== false;
-                        });
+                        $matchedDeal = null;
+                        foreach ($candidates as $cand) {
+                            $foundDeal = $dbDeals->first(function ($deal) use ($cand) {
+                                $dealTitle = $deal->title ?? $deal->name ?? '';
+                                $normDeal  = strtolower(trim(preg_replace('/\s+/', ' ', preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $dealTitle))));
+                                return $normDeal === $cand['name'];
+                            });
+                            if ($foundDeal) {
+                                $matchedDeal = $foundDeal;
+                                break;
+                            }
+                        }
+                        if (!$matchedDeal) {
+                            foreach ($candidates as $cand) {
+                                $foundDeal = $dbDeals->first(function ($deal) use ($cand) {
+                                    $dealTitle = $deal->title ?? $deal->name ?? '';
+                                    $normDeal  = strtolower(trim(preg_replace('/\s+/', ' ', preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $dealTitle))));
+                                    return $normDeal !== '' && (stripos($normDeal, $cand['name']) !== false || stripos($cand['name'], $normDeal) !== false);
+                                });
+                                if ($foundDeal) {
+                                    $matchedDeal = $foundDeal;
+                                    break;
+                                }
+                            }
+                        }
                         if ($matchedDeal) {
                             $unitPrice = (float) ($matchedDeal->discount_value ?? 0);
                             $it['name'] = $matchedDeal->title;
@@ -113,13 +189,16 @@ class OrderController extends Controller
             // Backend is the only authority for totals: subtotal + delivery = total
             $total = $subtotal + $deliveryCharge;
 
-            // ── Create order (no tracking code yet — need ID first) ──
+            // Generate cryptographically secure tracking code
+            $trackingCode = Order::generateTrackingCode($restaurant);
+
+            // ── Create order ──
             $order = Order::create([
                 ...$validated,
                 'subtotal'        => $subtotal,
                 'delivery_charge' => $deliveryCharge,
                 'total'           => $total,
-                'tracking_code'   => 'TEMP', // placeholder
+                'tracking_code'   => $trackingCode,
                 'status'          => $validated['status'] ?? 'pending',
                 'payment_method'  => $validated['payment_method'] ?? 'cash_on_delivery',
             ]);
@@ -138,9 +217,11 @@ class OrderController extends Controller
                 }
             }
 
-            // ── Generate tracking code using order ID ──
-            $trackingCode = Order::generateTrackingCode($restaurant, $order->id);
-            $order->update(['tracking_code' => $trackingCode]);
+            // Ensure tracking code is set
+            if (empty($order->tracking_code) || $order->tracking_code === 'TEMP') {
+                $trackingCode = Order::generateTrackingCode($restaurant, $order->id);
+                $order->update(['tracking_code' => $trackingCode]);
+            }
 
             // ── Notify owner on WhatsApp ──
             $this->notifyOwnerWhatsApp($order, $restaurant);

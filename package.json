@@ -7,7 +7,7 @@
         "dev": "vite",
         "bot": "node bot/index.js",
         "bot:dev": "node --watch bot/index.js",
-        "test": "node --test \"bot/tests/**/*.test.mjs\"",
+        "test": "node --test --test-force-exit \"bot/tests/**/*.test.mjs\"",
         "test:groq": "node scripts/testing/test-groq.js"
     },
     "devDependencies": {

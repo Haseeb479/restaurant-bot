@@ -27,20 +27,33 @@ const EXCEL_EXTS = new Set(['.xlsx', '.xls', '.csv', '.tsv', '.txt']);
 /**
  * Helper to find the latest menu files (image and/or excel) on disk for a restaurant
  */
-function findRestaurantMenuFiles(restaurantId, dbMenuFile, dbMenuImage) {
+export function findRestaurantMenuFiles(restaurantId, dbMenuFile, dbMenuImage) {
     let imagePath = null;
     let excelPath = null;
 
-    const resolvePath = (p) => {
-        if (!p) return null;
-        if (path.isAbsolute(p) || p.startsWith('http')) return p;
-        return path.join(LARAVEL_PUBLIC, p.replace(/^\//, ''));
-    };
-
     const checkFile = (p) => {
         if (!p) return null;
-        const resolved = resolvePath(p);
-        return (resolved && fs.existsSync(resolved)) ? resolved : null;
+        if (typeof p !== 'string') return null;
+        if (path.isAbsolute(p)) return fs.existsSync(p) ? p : null;
+        if (p.startsWith('http')) return null;
+
+        const clean = p.replace(/^\//, '');
+        const filename = path.basename(clean);
+
+        const candidates = [
+            path.join(LARAVEL_PUBLIC, clean),
+            path.join(LARAVEL_PUBLIC, 'menus', filename),
+            path.join(LARAVEL_PUBLIC, 'uploads', 'menus', filename),
+            path.join(LARAVEL_PUBLIC, 'uploads', filename),
+            path.join(LARAVEL_PUBLIC, filename),
+        ];
+
+        for (const cand of candidates) {
+            if (fs.existsSync(cand)) {
+                return cand;
+            }
+        }
+        return null;
     };
 
     // 1. Check direct DB columns
@@ -59,16 +72,21 @@ function findRestaurantMenuFiles(restaurantId, dbMenuFile, dbMenuImage) {
         else if (EXCEL_EXTS.has(ext)) excelPath = resolvedFile;
     }
 
-    // 2. Scan uploads/menus directory if missing either image or excel
-    const menusDir = path.join(LARAVEL_PUBLIC, 'uploads', 'menus');
-    if (fs.existsSync(menusDir)) {
-        try {
-            const files = fs.readdirSync(menusDir);
-            const prefix = `menu_${restaurantId}_`;
+    // 2. Scan menus and uploads directories if missing either image or excel
+    const scanDirs = [
+        path.join(LARAVEL_PUBLIC, 'menus'),
+        path.join(LARAVEL_PUBLIC, 'uploads', 'menus'),
+        path.join(LARAVEL_PUBLIC, 'uploads'),
+    ];
 
+    const prefix = `menu_${restaurantId}_`;
+    for (const dir of scanDirs) {
+        if ((imagePath && excelPath) || !fs.existsSync(dir)) continue;
+        try {
+            const files = fs.readdirSync(dir);
             for (const file of files) {
                 if (file.startsWith(prefix)) {
-                    const fullPath = path.join(menusDir, file);
+                    const fullPath = path.join(dir, file);
                     const ext = path.extname(file).toLowerCase();
 
                     if (IMAGE_EXTS.has(ext) && !imagePath) {
@@ -79,7 +97,7 @@ function findRestaurantMenuFiles(restaurantId, dbMenuFile, dbMenuImage) {
                 }
             }
         } catch (e) {
-            console.warn('⚠️ Could not scan menus directory:', e.message);
+            console.warn(`⚠️ Could not scan directory ${dir}:`, e.message);
         }
     }
 
@@ -152,6 +170,10 @@ export class ChatHandler {
             const parsedExcel = excelMenu.parseExcel(restaurant.id, excelPath);
             if (parsedExcel) {
                 restaurant.menu_excel_text = parsedExcel.menuText;
+                restaurant.menu_excel_items = parsedExcel.items;
+                if (!restaurant.menu_items || restaurant.menu_items.length === 0) {
+                    restaurant.menu_items = parsedExcel.items;
+                }
                 console.log(`📊 Injected ${parsedExcel.items.length} items from Excel sheet for ${restaurant.name}`);
             }
         }
@@ -222,22 +244,36 @@ export class ChatHandler {
             }
         }
 
-        // ── Send text reply ────────────────────────────────────────────────────
-        if (!sentMedia || reply.length > 50) {
-            await msg.reply(reply);
-        }
-        console.log(`✅ Replied to ${customerPhone}`);
-
-        // ── Structured Logging to File & Database for Owner Review ─────────────
-        Logger.info('Chat reply sent', { customerPhone, restaurantId: restaurant.id, replyLength: reply.length });
-        Logger.logToDb(restaurant.id, customerPhone, text, reply, this.isOrderConfirmed(reply) ? 'order_confirmed' : 'chat');
-
-        // ── Order confirmed? ───────────────────────────────────────────────────
+        // ── Order confirmed detection & gated fulfillment ─────────────────────
         if (this.isOrderConfirmed(reply)) {
-            console.log(`🎯 Order confirmed for ${customerPhone}`);
-            const trackingCode = await this.orders.save(customerPhone, session);
+            console.log(`🎯 Order confirmed detection triggered for ${customerPhone}`);
+            let saveResult = null;
+            try {
+                // Validate cart and save to database BEFORE sending confirmation to the customer
+                saveResult = await this.orders.save(customerPhone, session);
+            } catch (err) {
+                console.error(`❌ Error saving order for ${customerPhone}:`, err.message);
+                saveResult = null;
+            }
+
+            const trackingCode = (typeof saveResult === 'object' && saveResult?.trackingCode)
+                ? saveResult.trackingCode
+                : (saveResult ? String(saveResult) : null);
+            const savedOrder = (typeof saveResult === 'object' && saveResult?.order)
+                ? saveResult.order
+                : (session.lastOrder || null);
 
             if (trackingCode) {
+                // Cart validated and order saved successfully!
+                // Only now send the confirmation message to the customer.
+                let confirmationText = reply;
+                if (savedOrder && savedOrder.total > 0) {
+                    confirmationText = this.harmonizeConfirmationBill(reply, savedOrder);
+                }
+
+                await msg.reply(confirmationText);
+                console.log(`✅ Replied with order confirmation to ${customerPhone}`);
+
                 const trackingMsg =
                     `🎉 *Your tracking code is: ${trackingCode}*\n\n` +
                     `Send this code anytime to check your order status!`;
@@ -249,10 +285,10 @@ export class ChatHandler {
                     await this.orders.markOwnerNotified(trackingCode);
                 }
                 Logger.info('Order saved & notified', { customerPhone, trackingCode, restaurantId: restaurant.id, ownerNotified });
+                Logger.logToDb(restaurant.id, customerPhone, text, reply, 'order_confirmed');
             } else {
-                // The AI has already told the customer their order is placed, so
-                // silence here means they wait for food that no one is cooking.
-                // Retract it explicitly instead.
+                // The order was NOT placed because cart validation or saving failed.
+                // Do NOT send the AI's confirmation text. Instead inform customer.
                 const failMsg =
                     `⚠️ Sorry — something went wrong saving your order, so it has *not* been placed.\n\n` +
                     `Please send your order again in a moment, or contact us directly.`;
@@ -261,7 +297,18 @@ export class ChatHandler {
 
                 console.error(`❌ Order for ${customerPhone} was NOT saved — customer informed.`);
                 Logger.error('Order save failed', { customerPhone, restaurantId: restaurant.id });
+                Logger.logToDb(restaurant.id, customerPhone, text, failMsg, 'order_failed');
             }
+        } else {
+            // ── Send normal text reply ─────────────────────────────────────────
+            if (!sentMedia || reply.length > 50) {
+                await msg.reply(reply);
+            }
+            console.log(`✅ Replied to ${customerPhone}`);
+
+            // ── Structured Logging to File & Database for Owner Review ─────────
+            Logger.info('Chat reply sent', { customerPhone, restaurantId: restaurant.id, replyLength: reply.length });
+            Logger.logToDb(restaurant.id, customerPhone, text, reply, 'chat');
         }
     }
 
@@ -282,6 +329,55 @@ export class ChatHandler {
             lower.includes('آرڈر ہوگیا')             ||
             (lower.includes('total') && lower.includes('placed'))
         );
+    }
+
+    /**
+     * Reconciles the confirmation message so totals and item line prices
+     * strictly match the backend database calculation.
+     */
+    harmonizeConfirmationBill(reply, order) {
+        if (!order || !order.total) return reply;
+
+        let harmonized = reply;
+        const authTotal = Number(order.total);
+        const authSubtotal = Number(order.subtotal);
+        const authDelivery = Number(order.deliveryCharge);
+
+        // 1. Reconcile Grand Total
+        harmonized = harmonized.replace(
+            /(total(?:\s*payable)?\s*[:*–-]?\s*(?:\*\*)?rs\.?\s*)([0-9,]+(?:\.[0-9]{1,2})?)((?:\*\*)?)/gi,
+            `$1${authTotal}$3`
+        );
+
+        // 2. Reconcile Subtotal
+        harmonized = harmonized.replace(
+            /(subtotal\s*[:*–-]?\s*(?:\*\*)?rs\.?\s*)([0-9,]+(?:\.[0-9]{1,2})?)((?:\*\*)?)/gi,
+            `$1${authSubtotal}$3`
+        );
+
+        // 3. Reconcile Delivery Fee
+        harmonized = harmonized.replace(
+            /(delivery(?:\s*charge|\s*fee)?\s*[:*–-]?\s*(?:\*\*)?rs\.?\s*)([0-9,]+(?:\.[0-9]{1,2})?)((?:\*\*)?)/gi,
+            `$1${authDelivery}$3`
+        );
+
+        // 4. Reconcile item lines if present in text
+        if (Array.isArray(order.items)) {
+            for (const item of order.items) {
+                if (item.name && item.subtotal !== undefined) {
+                    const escName = item.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const itemRe = new RegExp(`(${item.quantity || '\\d+'}\\s*[xX×]\\s*${escName}[^\\n\\r]*?(?:rs\\.?\\s*))([0-9,]+(?:\\.[0-9]{1,2})?)`, 'i');
+                    harmonized = harmonized.replace(itemRe, `$1${item.subtotal}`);
+                }
+            }
+        }
+
+        // If the authoritative total is somehow not present in the reply, append authoritative summary
+        if (!harmonized.includes(`Rs.${authTotal}`) && !harmonized.includes(`Rs. ${authTotal}`)) {
+            harmonized += `\n\n🧾 *Bill Details:*\nSubtotal: Rs.${authSubtotal}\nDelivery: Rs.${authDelivery}\n*Total: Rs.${authTotal}*`;
+        }
+
+        return harmonized;
     }
 
     // ── Fallback when AI is unavailable — uses THIS restaurant's name ──────────

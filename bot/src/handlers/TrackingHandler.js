@@ -1,19 +1,27 @@
 import { getDbPool } from '../services/Database.js';
 
 /**
- * Codes issued with the new short format: 2–3 letter restaurant prefix followed
- * immediately by 4–6 digits. E.g. `FZ1234`, `ORD5821`, `FB10042`.
+ * Cryptographically secure random tracking codes: 1–5 letter restaurant prefix,
+ * hyphen, followed by 16 characters from Crockford Base32.
+ * E.g. `FZ-7K2MQX9P4TVBNH3R`, `ORD-8X9K2M1PQ4TVBNH3`, `F-FBPJBPM1WJY6WYS5`.
  *
  * Must stay in step with `Order::generateTrackingCode()` (app/Models/Order.php).
  */
-const CURRENT_CODE = /^[A-Z]{2,3}\d{4,6}$/;
+const SECURE_CODE = /^[A-Z]{1,5}-[0-9A-HJKMNP-TV-Z]{16}$/;
+
+/**
+ * Short sequential format issued during the interim period: 2–3 letter prefix
+ * followed immediately by 4–6 digits (e.g. FZ1234, ORD5821).
+ */
+const SHORT_CODE = /^[A-Z]{2,3}\d{4,6}$/;
 
 /**
  * Shapes issued *before* this change. Real orders still carry them, so they stay
  * recognised — the DB lookup below matches on the literal string either way.
  */
 const LEGACY_CODES = [
-    /^[A-Z]{1,5}-[0-9A-HJKMNP-TV-Z]{16}$/, // F-FBPJBPM1WJY6WYS5 (previous long format)
+    SHORT_CODE,
+    SECURE_CODE,
     /^[A-Z]{1,5}-\d{4}-\d{2,6}$/,           // JC-2026-00042
     /^[A-Z]{2,4}-\d{3,6}$/,                 // FEZ-001
 ];
@@ -55,7 +63,9 @@ export class TrackingHandler {
         // whatever follows it.
         if (clean.startsWith('TRK-')) return true;
 
-        if (CURRENT_CODE.test(clean)) return true;
+        if (SECURE_CODE.test(clean)) return true;
+
+        if (SHORT_CODE.test(clean)) return true;
 
         return LEGACY_CODES.some(pattern => pattern.test(clean));
     }

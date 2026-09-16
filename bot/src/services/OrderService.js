@@ -1,4 +1,14 @@
+import { randomInt } from 'crypto';
 import { getDbPool } from './Database.js';
+
+/**
+ * Crockford Base32 — omits I, L, O and U so a code can't be misread (1/I, 0/O).
+ * Must match Order::TRACKING_CODE_ALPHABET in app/Models/Order.php.
+ */
+export const TRACKING_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+
+/** 16 symbols x 5 bits = 80 bits of entropy. */
+export const TRACKING_LENGTH = 16;
 
 /** Up to 3 A–Z initials from the restaurant name, for human recognisability. */
 function trackingPrefix(restaurantName) {
@@ -10,6 +20,15 @@ function trackingPrefix(restaurantName) {
         .slice(0, 3);
 
     return initials || 'ORD';
+}
+
+/** CSPRNG-backed suffix (`crypto.randomInt`, not `Math.random`). */
+export function randomTrackingSuffix() {
+    let code = '';
+    for (let i = 0; i < TRACKING_LENGTH; i++) {
+        code += TRACKING_ALPHABET[randomInt(TRACKING_ALPHABET.length)];
+    }
+    return code;
 }
 
 /**
@@ -79,64 +98,119 @@ export function resolveItemPriceFromMenu(itemName, itemSize, menuItems = [], dea
     const normSearch = normalizeItemName(itemName);
     if (!normSearch) return null;
 
-    // 1. Check menu_items
-    for (const mi of menuItems) {
-        const normMi = normalizeItemName(mi.name);
-        if (normMi === normSearch || normMi.includes(normSearch) || normSearch.includes(normMi)) {
-            let unitPrice = 0;
-            let matchedSize = null;
+    const normSize = itemSize ? normalizeItemName(itemSize) : '';
 
-            // Check sizes if item has size variations
-            let sizes = mi.sizes;
-            if (typeof sizes === 'string') {
-                try { sizes = JSON.parse(sizes); } catch (e) { sizes = null; }
-            }
+    // If itemSize exists, construct composite candidates first (e.g. "Butter Naan", "Naan Butter")
+    const candidates = [];
+    if (normSize) {
+        candidates.push({ name: `${normSize} ${normSearch}`, isComposite: true });
+        candidates.push({ name: `${normSearch} ${normSize}`, isComposite: true });
+    }
+    candidates.push({ name: normSearch, isComposite: false });
 
-            if (Array.isArray(sizes) && sizes.length > 0) {
-                if (itemSize) {
-                    const normSize = normalizeItemName(itemSize);
-                    const sMatch = sizes.find(s => {
-                        const sName = normalizeItemName(s.size || s.name);
-                        return sName === normSize || sName.startsWith(normSize) || normSize.startsWith(sName);
-                    });
-                    if (sMatch && sMatch.price !== undefined) {
-                        unitPrice = parseFloat(sMatch.price) || 0;
-                        matchedSize = sMatch.size || itemSize;
-                    }
+    const extractPrice = (mi, isComposite = false) => {
+        let unitPrice = 0;
+        let matchedSize = null;
+
+        let sizes = mi.sizes;
+        if (typeof sizes === 'string') {
+            try { sizes = JSON.parse(sizes); } catch (e) { sizes = null; }
+        }
+
+        if (Array.isArray(sizes) && sizes.length > 0) {
+            if (itemSize && !isComposite) {
+                const normS = normalizeItemName(itemSize);
+                const sMatch = sizes.find(s => {
+                    const sName = normalizeItemName(s.size || s.name);
+                    return sName === normS || sName.startsWith(normS) || normS.startsWith(sName);
+                });
+                if (sMatch && sMatch.price !== undefined) {
+                    unitPrice = parseFloat(sMatch.price) || 0;
+                    matchedSize = sMatch.size || itemSize;
                 }
-                // If size wasn't matched or wasn't specified, but base price is 0, default to first size
-                if (unitPrice === 0 && (mi.price === null || mi.price === undefined || parseFloat(mi.price) <= 0) && sizes[0]?.price) {
-                    unitPrice = parseFloat(sizes[0].price) || 0;
-                    matchedSize = sizes[0].size;
-                }
             }
-
-            if (unitPrice === 0 && mi.price !== undefined && mi.price !== null) {
-                unitPrice = parseFloat(mi.price) || 0;
+            if (unitPrice === 0 && (mi.price === null || mi.price === undefined || parseFloat(mi.price) <= 0) && sizes[0]?.price) {
+                unitPrice = parseFloat(sizes[0].price) || 0;
+                matchedSize = sizes[0].size;
             }
+        }
 
-            return {
-                matched: true,
-                menuItemId: mi.id || null,
-                canonicalName: mi.name,
-                size: matchedSize || itemSize,
-                unitPrice,
-            };
+        if (unitPrice === 0 && mi.price !== undefined && mi.price !== null) {
+            unitPrice = parseFloat(mi.price) || 0;
+        }
+
+        return {
+            matched: true,
+            menuItemId: mi.id || null,
+            canonicalName: mi.name,
+            size: isComposite ? null : (matchedSize || itemSize),
+            unitPrice,
+        };
+    };
+
+    // 1a. Check menu_items for EXACT match against candidates (composite variants first)
+    for (const cand of candidates) {
+        for (const mi of menuItems) {
+            const normMi = normalizeItemName(mi.name);
+            if (normMi === cand.name) {
+                return extractPrice(mi, cand.isComposite);
+            }
         }
     }
 
-    // 2. Check active deals
-    for (const deal of deals) {
-        const normDeal = normalizeItemName(deal.title || deal.name);
-        if (normDeal === normSearch || normDeal.includes(normSearch) || normSearch.includes(normDeal)) {
-            const dealPrice = parseFloat(deal.discount_value || deal.price || 0);
-            return {
-                matched: true,
-                dealId: deal.id || null,
-                canonicalName: deal.title || deal.name,
-                size: itemSize,
-                unitPrice: dealPrice,
-            };
+    // 2a. Check active deals for EXACT match against candidates
+    for (const cand of candidates) {
+        for (const deal of deals) {
+            const normDeal = normalizeItemName(deal.title || deal.name);
+            if (normDeal === cand.name) {
+                const dealPrice = parseFloat(deal.discount_value || deal.price || 0);
+                return {
+                    matched: true,
+                    dealId: deal.id || null,
+                    canonicalName: deal.title || deal.name,
+                    size: cand.isComposite ? null : itemSize,
+                    unitPrice: dealPrice,
+                };
+            }
+        }
+    }
+
+    // 1b. Check menu_items where menu item name contains candidate
+    for (const cand of candidates) {
+        for (const mi of menuItems) {
+            const normMi = normalizeItemName(mi.name);
+            if (normMi && normMi.includes(cand.name)) {
+                return extractPrice(mi, cand.isComposite);
+            }
+        }
+    }
+
+    // 1c. Check menu_items where candidate contains menu item name, sorting menu items by length DESCENDING
+    // so longer/more specific item names (e.g. "Butter Naan") match before generic short ones (e.g. "Naan")
+    const sortedMenuItems = [...menuItems].sort((a, b) => (b.name?.length || 0) - (a.name?.length || 0));
+    for (const cand of candidates) {
+        for (const mi of sortedMenuItems) {
+            const normMi = normalizeItemName(mi.name);
+            if (normMi && cand.name.includes(normMi)) {
+                return extractPrice(mi, cand.isComposite);
+            }
+        }
+    }
+
+    // 2b. Check active deals for substring match
+    for (const cand of candidates) {
+        for (const deal of deals) {
+            const normDeal = normalizeItemName(deal.title || deal.name);
+            if (normDeal && (normDeal.includes(cand.name) || cand.name.includes(normDeal))) {
+                const dealPrice = parseFloat(deal.discount_value || deal.price || 0);
+                return {
+                    matched: true,
+                    dealId: deal.id || null,
+                    canonicalName: deal.title || deal.name,
+                    size: cand.isComposite ? null : itemSize,
+                    unitPrice: dealPrice,
+                };
+            }
         }
     }
 
@@ -154,13 +228,22 @@ export class OrderService {
         const assistantHistory = (session.history || []).filter(h => h.role === 'assistant');
         const assistantMsgs = assistantHistory.map(h => h.content).join('\n');
 
-        // Find the FINAL/LATEST Order Summary message block
+        // Find the FINAL/LATEST Order Summary message block (prioritizing messages with item lines)
         let finalSummaryMsg = '';
         for (let i = assistantHistory.length - 1; i >= 0; i--) {
             const content = assistantHistory[i].content || '';
-            if (/order summary|aapka order|subtotal|total payable/i.test(content)) {
+            if (/order summary|aapka order/i.test(content) && /\d+\s*[xX×]/.test(content)) {
                 finalSummaryMsg = content;
                 break;
+            }
+        }
+        if (!finalSummaryMsg) {
+            for (let i = assistantHistory.length - 1; i >= 0; i--) {
+                const content = assistantHistory[i].content || '';
+                if (/order summary|aapka order|subtotal|total payable/i.test(content)) {
+                    finalSummaryMsg = content;
+                    break;
+                }
             }
         }
         if (!finalSummaryMsg && assistantHistory.length > 0) {
@@ -268,8 +351,11 @@ export class OrderService {
             }
         }
 
-        // 6. Extract Line Items strictly from the final summary message
-        const items = this.extractOrderItems(finalSummaryMsg || assistantMsgs);
+        // 6. Extract Line Items strictly from the final summary message, falling back to assistant history
+        let items = this.extractOrderItems(finalSummaryMsg);
+        if (!items || items.length === 0) {
+            items = this.extractOrderItems(assistantMsgs);
+        }
 
         // 7. Notes / Summary
         const notes = (session.history || [])
@@ -327,7 +413,7 @@ export class OrderService {
                     anyItemMatched = true;
                     item.menu_item_id = resolved.menuItemId || null;
                     item.name = resolved.canonicalName || item.name;
-                    item.size = resolved.size || item.size;
+                    item.size = resolved.size !== undefined ? resolved.size : item.size;
                     item.unit_price = resolved.unitPrice;
                     item.subtotal = resolved.unitPrice * (item.quantity || 1);
                 } else if (item.unit_price) {
@@ -410,25 +496,69 @@ export class OrderService {
     }
 
     /**
-     * Generate a unique short tracking code, e.g. `FZ1048` or `ORD5821`.
+     * Generate a unique, cryptographically secure random tracking code,
+     * e.g. `FZ-7K2MQX9P4TVBNH3R` or `ORD-8X9K2M1PQ4TVBNH3`.
      *
      * Must stay in sync with Order::generateTrackingCode() on the Laravel side
      * (app/Models/Order.php) — both paths write to the same `tracking_code`
      * column and customers look codes up through either.
+     *
+     * Uses CSPRNG with 80 bits of entropy from Crockford Base32 alphabet.
      */
-    async generateTrackingCode(restaurantId, restaurantName) {
+    async generateTrackingCode(restaurantIdOrName, maybeRestaurantName) {
+        const restaurantName = maybeRestaurantName !== undefined ? maybeRestaurantName : restaurantIdOrName;
         const prefix = trackingPrefix(restaurantName);
-        try {
-            const db = getDbPool();
-            const [rows] = await db.query('SELECT COUNT(*) as count FROM orders WHERE restaurant_id = ?', [restaurantId || 1]);
-            const existingCount = rows[0]?.count || 0;
-            const offset = (((Number(restaurantId || 1) * 37) % 100) + 10);
-            const num = existingCount + offset + 1;
-            return `${prefix}${String(num).padStart(4, '0')}`;
-        } catch (e) {
-            const fallback = Math.floor(1000 + Math.random() * 9000);
-            return `${prefix}${fallback}`;
+
+        for (let attempt = 0; attempt < 5; attempt++) {
+            const code = `${prefix}-${randomTrackingSuffix()}`;
+            try {
+                const db = getDbPool();
+                const [rows] = await db.query('SELECT id FROM orders WHERE tracking_code = ? LIMIT 1', [code]);
+                if (!rows || rows.length === 0) {
+                    return code;
+                }
+            } catch (e) {
+                // If DB query fails for uniqueness check, return the CSPRNG code directly
+                // (collision probability across 80 bits is ~10^-24).
+                return code;
+            }
         }
+
+        return `${prefix}-${randomTrackingSuffix()}`;
+    }
+
+    /**
+     * Validates the parsed cart before attempting to save the order to the database.
+     * Ensures:
+     * 1. At least one line item exists.
+     * 2. Every item has quantity > 0.
+     * 3. Authoritative subtotal > 0 and final total > 0.
+     */
+    validateCart(parsed) {
+        if (!parsed) return false;
+
+        if (!Array.isArray(parsed.items) || parsed.items.length === 0) {
+            return false;
+        }
+
+        for (const item of parsed.items) {
+            if (!item.name || !item.quantity || item.quantity <= 0) {
+                return false;
+            }
+        }
+
+        const subtotal = parseFloat(parsed.subtotal);
+        const total = parseFloat(parsed.total);
+
+        if (isNaN(subtotal) || subtotal <= 0) {
+            return false;
+        }
+
+        if (isNaN(total) || total <= 0) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -457,9 +587,30 @@ export class OrderService {
             ).catch(() => [[]]);
 
             const dbDelivery = restRows?.[0]?.delivery_charge !== undefined ? restRows[0].delivery_charge : (session.restaurant?.delivery_charge ?? 0);
-            this.recalculateTotalsFromMenu(parsed, menuRows || [], dealRows || [], dbDelivery);
+
+            // Combine DB menu items with any parsed Excel/CSV items from session
+            const allItems = [...(menuRows || [])];
+            if (Array.isArray(session.restaurant?.menu_excel_items)) {
+                for (const exItem of session.restaurant.menu_excel_items) {
+                    if (!allItems.some(mi => normalizeItemName(mi.name) === normalizeItemName(exItem.name))) {
+                        allItems.push(exItem);
+                    }
+                }
+            }
+
+            this.recalculateTotalsFromMenu(parsed, allItems, dealRows || [], dbDelivery);
         } catch (dbErr) {
             console.warn('⚠️ Could not fetch fresh DB prices for recalculation, using session prices:', dbErr.message);
+        }
+
+        // Validate cart before proceeding
+        if (!this.validateCart(parsed)) {
+            console.warn(`⚠️ Cart validation failed for ${customerPhone}:`, {
+                itemsCount: parsed.items?.length || 0,
+                subtotal: parsed.subtotal,
+                total: parsed.total,
+            });
+            return null;
         }
 
         const trackingCode = await this.generateTrackingCode(restaurantId, session.restaurant?.name);
@@ -555,7 +706,12 @@ export class OrderService {
                     ]
                 ).catch(cErr => console.warn('⚠️ customer profile upsert note:', cErr.message));
 
-                return trackingCode;
+                session.lastOrder = parsed;
+
+                const result = new String(trackingCode);
+                result.trackingCode = trackingCode;
+                result.order = parsed;
+                return result;
             }
 
             // An INSERT that neither threw nor produced an id should be

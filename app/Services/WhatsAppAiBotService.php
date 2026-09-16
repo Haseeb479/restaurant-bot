@@ -353,6 +353,12 @@ class WhatsAppAiBotService
         if ($this->isOrderConfirmed($reply, $history)) {
             $trackingCode = $this->saveOrderFromHistory($restaurant, $customerPhone, $history);
             if ($trackingCode) {
+                // Harmonize bill in reply with authoritative database record
+                $savedOrder = \App\Models\Order::where('tracking_code', $trackingCode)->first();
+                if ($savedOrder) {
+                    $reply = $this->harmonizeConfirmationBill($reply, $savedOrder);
+                }
+
                 $trackUrl = url('/track/' . $trackingCode);
                 $reply .= "\n\n🎉 *Order Confirmed!*\n📦 *Your Tracking Code:* *{$trackingCode}*\n🔗 *Live Order Tracking:* {$trackUrl}\n\nSend this code anytime to check your live order & rider status!";
 
@@ -575,6 +581,7 @@ Payment: [Payment Method]
 Deliver to: [Delivery Address]
 
 Kya main aapka order confirm kar doon? ✅
+- In Order Summary line items, always write the exact full item name as listed in the MENU (e.g. write "3x Butter Naan", "1x Garlic Naan", "2x Butter Roti"). Never shorten or split item names into parenthetical variants unless the item has explicit size options.
 
 6. STRICT STYLE RULES:
 - Short, crisp replies (2-5 lines max).
@@ -638,6 +645,30 @@ PROMPT;
             }
         }
 
+        // Fallback: parse menu file (CSV/Excel) if items are still not found
+        if ($menuLines === '' && !empty($restaurant->menu_file)) {
+            $menuPath = $this->resolveMenuFilePath($restaurant);
+            if ($menuPath && file_exists($menuPath)) {
+                try {
+                    $ext = strtolower(pathinfo($menuPath, PATHINFO_EXTENSION));
+                    $ctrl = new \App\Http\Controllers\DashboardController();
+                    $refExtract = new \ReflectionMethod($ctrl, 'extractMenuItemsFromFile');
+                    $refExtract->setAccessible(true);
+                    $fileItems = $refExtract->invoke($ctrl, $menuPath, $ext);
+
+                    if (!empty($fileItems)) {
+                        $menuLines = "\nMENU (from official menu sheet):\n";
+                        foreach ($fileItems as $it) {
+                            $price = number_format((float) ($it['price'] ?? 0), 0);
+                            $menuLines .= "• {$it['name']} — Rs.{$price}\n";
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning("WhatsApp AI: Could not parse menu file for {$restaurant->name}: " . $e->getMessage());
+                }
+            }
+        }
+
         if ($menuLines !== '') {
             return "MENU (REAL ITEMS & PRICES — DO NOT INVENT ANYTHING ELSE):\n{$menuLines}\n" .
                    "CALCULATION INSTRUCTIONS:\n" .
@@ -645,6 +676,31 @@ PROMPT;
         }
 
         return "MENU:\n- No menu items set up yet for {$name}.\n\n";
+    }
+
+    private function resolveMenuFilePath(Restaurant $restaurant): ?string
+    {
+        $file = $restaurant->menu_file;
+        if (empty($file)) return null;
+
+        $publicPath = public_path();
+        $filename   = basename($file);
+
+        $candidates = [
+            $publicPath . '/' . ltrim($file, '/'),
+            $publicPath . '/menus/' . $filename,
+            $publicPath . '/uploads/menus/' . $filename,
+            $publicPath . '/uploads/' . $filename,
+            $publicPath . '/' . $filename,
+        ];
+
+        foreach ($candidates as $cand) {
+            if (file_exists($cand)) {
+                return $cand;
+            }
+        }
+
+        return null;
     }
 
     private function buildDealsText(Restaurant $restaurant): string
@@ -842,24 +898,143 @@ PROMPT;
                 $itemName = preg_replace('/(?:—|-|–|:|@|\(|→|Rs\.|PKR|₹).*$/iu', '', $rest);
                 $itemName = trim($itemName, " *–—-\t\n\r\0\x0B");
                 $normItemName = strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $itemName));
+                $normItemName = strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $itemName));
                 $normItemName = trim(preg_replace('/\s+/', ' ', $normItemName));
 
-                // Look up the authoritative price from database menu items (C1)
-                $matchedDbItem = $dbMenuItems->first(function ($mi) use ($normItemName) {
-                    $normMi = strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $mi->name));
-                    $normMi = trim(preg_replace('/\s+/', ' ', $normMi));
-                    return $normMi === $normItemName || stripos($normMi, $normItemName) !== false || stripos($normItemName, $normMi) !== false;
-                });
+                $candidates = [];
+                if ($itemSize !== null && $itemSize !== '') {
+                    $cand1 = strtolower(trim(preg_replace('/\s+/', ' ', preg_replace('/[^\p{L}\p{N}\s]/u', ' ', "{$itemSize} {$normItemName}"))));
+                    $cand2 = strtolower(trim(preg_replace('/\s+/', ' ', preg_replace('/[^\p{L}\p{N}\s]/u', ' ', "{$normItemName} {$itemSize}"))));
+                    if ($cand1 !== '') $candidates[] = ['name' => $cand1, 'is_composite' => true];
+                    if ($cand2 !== '') $candidates[] = ['name' => $cand2, 'is_composite' => true];
+                }
+                if ($normItemName !== '') {
+                    $candidates[] = ['name' => $normItemName, 'is_composite' => false];
+                }
+
+                $matchedDbItem = null;
+                $matchedCandidateIsComposite = false;
+
+                // Look up authoritative price from database menu items (C1) — exact match first
+                foreach ($candidates as $cand) {
+                    $found = $dbMenuItems->first(function ($mi) use ($cand) {
+                        $normMi = strtolower(trim(preg_replace('/\s+/', ' ', preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $mi->name))));
+                        return $normMi === $cand['name'];
+                    });
+                    if ($found) {
+                        $matchedDbItem = $found;
+                        $matchedCandidateIsComposite = $cand['is_composite'];
+                        break;
+                    }
+                }
+
+                if (!$matchedDbItem) {
+                    foreach ($candidates as $cand) {
+                        $found = $dbMenuItems->first(function ($mi) use ($cand) {
+                            $normMi = strtolower(trim(preg_replace('/\s+/', ' ', preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $mi->name))));
+                            return $normMi !== '' && stripos($normMi, $cand['name']) !== false;
+                        });
+                        if ($found) {
+                            $matchedDbItem = $found;
+                            $matchedCandidateIsComposite = $cand['is_composite'];
+                            break;
+                        }
+                    }
+                }
+
+                if (!$matchedDbItem) {
+                    $sortedDbMenuItems = $dbMenuItems->sortByDesc(function ($mi) {
+                        return mb_strlen($mi->name ?? '');
+                    });
+                    foreach ($candidates as $cand) {
+                        $found = $sortedDbMenuItems->first(function ($mi) use ($cand) {
+                            $normMi = strtolower(trim(preg_replace('/\s+/', ' ', preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $mi->name))));
+                            return $normMi !== '' && stripos($cand['name'], $normMi) !== false;
+                        });
+                        if ($found) {
+                            $matchedDbItem = $found;
+                            $matchedCandidateIsComposite = $cand['is_composite'];
+                            break;
+                        }
+                    }
+                }
+
+                if (!$matchedDbItem && !empty($restaurant->menu_file)) {
+                    // Fallback to menu file items if DB items missed it
+                    $menuPath = $this->resolveMenuFilePath($restaurant);
+                    if ($menuPath && file_exists($menuPath)) {
+                        try {
+                            $ext = strtolower(pathinfo($menuPath, PATHINFO_EXTENSION));
+                            $ctrl = new \App\Http\Controllers\DashboardController();
+                            $refExtract = new \ReflectionMethod($ctrl, 'extractMenuItemsFromFile');
+                            $refExtract->setAccessible(true);
+                            $fileItems = $refExtract->invoke($ctrl, $menuPath, $ext);
+
+                            foreach ($candidates as $cand) {
+                                $foundFileItem = collect($fileItems)->first(function($fi) use ($cand) {
+                                    $n = strtolower(trim(preg_replace('/\s+/', ' ', preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $fi['name'] ?? ''))));
+                                    return $n === $cand['name'];
+                                });
+                                if ($foundFileItem) {
+                                    $matchedDbItem = new \App\Models\MenuItem([
+                                        'name'  => $foundFileItem['name'],
+                                        'price' => (float) ($foundFileItem['price'] ?? 0),
+                                        'sizes' => $foundFileItem['sizes'] ?? null,
+                                    ]);
+                                    $matchedCandidateIsComposite = $cand['is_composite'];
+                                    break;
+                                }
+                            }
+
+                            if (!$matchedDbItem) {
+                                foreach ($candidates as $cand) {
+                                    $foundFileItem = collect($fileItems)->first(function($fi) use ($cand) {
+                                        $n = strtolower(trim(preg_replace('/\s+/', ' ', preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $fi['name'] ?? ''))));
+                                        return $n !== '' && stripos($n, $cand['name']) !== false;
+                                    });
+                                    if ($foundFileItem) {
+                                        $matchedDbItem = new \App\Models\MenuItem([
+                                            'name'  => $foundFileItem['name'],
+                                            'price' => (float) ($foundFileItem['price'] ?? 0),
+                                            'sizes' => $foundFileItem['sizes'] ?? null,
+                                        ]);
+                                        $matchedCandidateIsComposite = $cand['is_composite'];
+                                        break;
+                                    }
+                                }
+                            }
+                        } catch (\Throwable $e) {}
+                    }
+                }
 
                 $matchedDeal = null;
                 if (!$matchedDbItem) {
-                    // Check active deals
-                    $matchedDeal = $dbDeals->first(function ($deal) use ($normItemName) {
-                        $dealTitle = $deal->title ?? $deal->name ?? '';
-                        $normDeal = strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $dealTitle));
-                        $normDeal = trim(preg_replace('/\s+/', ' ', $normDeal));
-                        return $normDeal === $normItemName || stripos($normDeal, $normItemName) !== false || stripos($normItemName, $normDeal) !== false;
-                    });
+                    // Check active deals — exact match first
+                    foreach ($candidates as $cand) {
+                        $foundDeal = $dbDeals->first(function ($deal) use ($cand) {
+                            $dealTitle = $deal->title ?? $deal->name ?? '';
+                            $normDeal = strtolower(trim(preg_replace('/\s+/', ' ', preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $dealTitle))));
+                            return $normDeal === $cand['name'];
+                        });
+                        if ($foundDeal) {
+                            $matchedDeal = $foundDeal;
+                            break;
+                        }
+                    }
+
+                    if (!$matchedDeal) {
+                        foreach ($candidates as $cand) {
+                            $foundDeal = $dbDeals->first(function ($deal) use ($cand) {
+                                $dealTitle = $deal->title ?? $deal->name ?? '';
+                                $normDeal = strtolower(trim(preg_replace('/\s+/', ' ', preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $dealTitle))));
+                                return $normDeal !== '' && (stripos($normDeal, $cand['name']) !== false || stripos($cand['name'], $normDeal) !== false);
+                            });
+                            if ($foundDeal) {
+                                $matchedDeal = $foundDeal;
+                                break;
+                            }
+                        }
+                    }
                 }
 
                 if ($matchedDbItem) {
@@ -867,7 +1042,7 @@ PROMPT;
                     $matchedSize = null;
 
                     // Handle size variations if defined on MenuItem
-                    if ($matchedDbItem->hasSizes() && is_array($matchedDbItem->sizes) && count($matchedDbItem->sizes) > 0) {
+                    if (!$matchedCandidateIsComposite && $matchedDbItem->hasSizes() && is_array($matchedDbItem->sizes) && count($matchedDbItem->sizes) > 0) {
                         if ($itemSize) {
                             $normSize = strtolower(trim($itemSize));
                             foreach ($matchedDbItem->sizes as $s) {
@@ -893,7 +1068,7 @@ PROMPT;
 
                     $lineTotal  = $unitPrice * $qty;
                     $itemName   = $matchedDbItem->name;
-                    $itemSize   = $matchedSize ?: $itemSize;
+                    $itemSize   = $matchedCandidateIsComposite ? null : ($matchedSize ?: $itemSize);
                     $menuItemId = $matchedDbItem->id;
                 } elseif ($matchedDeal) {
                     $unitPrice  = (float) ($matchedDeal->discount_value ?? 0);
@@ -937,6 +1112,12 @@ PROMPT;
             // No DB items matched — enforce backend delivery charge and calculated total
             $subtotal = max(0.0, (float) $subtotal);
             $total    = $subtotal + $deliveryCharge;
+        }
+
+        // Cart validation: must have at least 1 line item and a positive subtotal (> 0)
+        if (empty($parsedItems) || $subtotal <= 0) {
+            Log::warning("WhatsApp AI: Order cart validation failed for {$customerPhone} — empty cart or non-positive subtotal.");
+            return null;
         }
 
         try {
@@ -1622,5 +1803,53 @@ PROMPT;
         $out .= "_(Example: \"1 Zinger Burger aur 1 Cold Drink\")_";
 
         return $out;
+    }
+
+    /**
+     * Harmonizes the assistant reply with authoritative database order totals and line items.
+     */
+    public function harmonizeConfirmationBill(string $reply, Order $order): string
+    {
+        $authTotal    = number_format((float) $order->total, 0, '.', '');
+        $authSubtotal = number_format((float) $order->subtotal, 0, '.', '');
+        $authDelivery = number_format((float) $order->delivery_charge, 0, '.', '');
+
+        // 1. Reconcile Grand Total in reply
+        $reply = preg_replace(
+            '/(total(?:\s*payable)?\s*[:*–-]?\s*(?:\*\*)?rs\.?\s*)([0-9,]+(?:\.[0-9]{1,2})?)((?:\*\*)?)/iu',
+            "\${1}{$authTotal}\${3}",
+            $reply
+        );
+
+        // 2. Reconcile Subtotal in reply
+        $reply = preg_replace(
+            '/(subtotal\s*[:*–-]?\s*(?:\*\*)?rs\.?\s*)([0-9,]+(?:\.[0-9]{1,2})?)((?:\*\*)?)/iu',
+            "\${1}{$authSubtotal}\${3}",
+            $reply
+        );
+
+        // 3. Reconcile Delivery Fee in reply
+        $reply = preg_replace(
+            '/(delivery(?:\s*charge|\s*fee)?\s*[:*–-]?\s*(?:\*\*)?rs\.?\s*)([0-9,]+(?:\.[0-9]{1,2})?)((?:\*\*)?)/iu',
+            "\${1}{$authDelivery}\${3}",
+            $reply
+        );
+
+        // 4. Reconcile line item subtotals if listed in reply
+        if ($order->relationLoaded('items') || $order->items()->exists()) {
+            foreach ($order->items as $item) {
+                $itemSubtotal = number_format((float) $item->subtotal, 0, '.', '');
+                $escName = preg_quote($item->name, '/');
+                $itemPattern = '/(' . $item->quantity . '\s*[xX×]\s*' . $escName . '[^\n\r]*?rs\.?\s*)([0-9,]+(?:\.[0-9]{1,2})?)/iu';
+                $reply = preg_replace($itemPattern, "\${1}{$itemSubtotal}", $reply);
+            }
+        }
+
+        // If the authoritative total is not in the text, append the authoritative breakdown
+        if (!str_contains($reply, "Rs.{$authTotal}") && !str_contains($reply, "Rs. {$authTotal}")) {
+            $reply .= "\n\n🧾 *Confirmed Bill:*\nSubtotal: Rs.{$authSubtotal}\nDelivery: Rs.{$authDelivery}\n*Total Payable: Rs.{$authTotal}*";
+        }
+
+        return $reply;
     }
 }

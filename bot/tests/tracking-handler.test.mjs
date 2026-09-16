@@ -13,7 +13,29 @@ import { TrackingHandler } from '../src/handlers/TrackingHandler.js';
  * So: whenever the generator changes, this file must fail.
  */
 describe('TrackingHandler.isTrackingCode', () => {
-    // New short format: 2–3 letter prefix + 4–6 digits (e.g. FZ1234, ORD5821)
+    // Cryptographically secure random format: 1–5 letter prefix + hyphen + 16 Crockford Base32 chars
+    const SECURE = [
+        'FZ-7K2MQX9P4TVBNH3R',
+        'ORD-8X9K2M1PQ4TVBNH3',
+        'F-FBPJBPM1WJY6WYS5',
+        'FB-ABCDEFGHJKMNPQRS',
+    ];
+
+    for (const code of SECURE) {
+        test(`recognises the secure CSPRNG format: ${code}`, () => {
+            assert.equal(TrackingHandler.isTrackingCode(code), true);
+        });
+    }
+
+    test('recognises the secure format typed in lower case', () => {
+        assert.equal(TrackingHandler.isTrackingCode('fz-7k2mqx9p4tvbnh3r'), true);
+    });
+
+    test('recognises the secure format with surrounding whitespace', () => {
+        assert.equal(TrackingHandler.isTrackingCode('  FZ-7K2MQX9P4TVBNH3R \n'), true);
+    });
+
+    // Short sequential format (old orders)
     const CURRENT = [
         'FZ1234',
         'FB5001',
@@ -23,16 +45,16 @@ describe('TrackingHandler.isTrackingCode', () => {
     ];
 
     for (const code of CURRENT) {
-        test(`recognises the current format: ${code}`, () => {
+        test(`recognises the legacy short format: ${code}`, () => {
             assert.equal(TrackingHandler.isTrackingCode(code), true);
         });
     }
 
-    test('recognises the current format typed in lower case', () => {
+    test('recognises the short format typed in lower case', () => {
         assert.equal(TrackingHandler.isTrackingCode('fz1234'), true);
     });
 
-    test('recognises it with surrounding whitespace', () => {
+    test('recognises the short format with surrounding whitespace', () => {
         assert.equal(TrackingHandler.isTrackingCode('  FZ1234 \n'), true);
     });
 

@@ -100,40 +100,57 @@ class Order extends Model
     }
 
     /**
-     * Generate a short, human-friendly tracking code like `FZ1234` or `ORD5821`.
+     * Crockford Base32 — omits I, L, O and U so a code can't be misread (1/I,
+     * 0/O) or spell something unfortunate. 32 symbols = 5 bits each.
+     */
+    public const TRACKING_CODE_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+
+    /** 16 symbols x 5 bits = 80 bits of entropy. */
+    public const TRACKING_CODE_LENGTH = 16;
+
+    /**
+     * Generate a unique, cryptographically secure random tracking code,
+     * e.g. `FZ-7K2MQX9P4TVBNH3R` or `ORD-8X9K2M1PQ4TVBNH3`.
      *
-     * Format: {2–3 letter prefix}{4-digit padded number} — total 6–7 characters.
-     * The number is the restaurant's current order count + 1, offset by a small
-     * per-restaurant constant (derived from the restaurant id) to avoid starting
-     * every new restaurant at 0001 and revealing order volume.
+     * The tracking code is a bearer token: anyone holding it can check order status
+     * and details via /track or WhatsApp. Predictable or sequential codes allow
+     * unauthorized enumeration of customer orders. Using a CSPRNG with 80 bits
+     * of entropy (16 characters from Crockford Base32) makes brute-forcing impossible.
      *
-     * Collision resistance: the UNIQUE constraint on `tracking_code` combined with
-     * the retry loop handles the rare case where two orders are created at the
-     * exact same millisecond. If all 4-digit slots are taken (>9999 orders) the
-     * suffix widens to 5 digits automatically.
+     * $orderId is accepted for signature compatibility with existing callers.
      */
     public static function generateTrackingCode(Restaurant $restaurant, ?int $orderId = null): string
     {
         $prefix = static::trackingPrefix($restaurant->name ?? '');
 
-        // Count this restaurant's existing orders so each gets a sequential number.
-        $existingCount = static::where('restaurant_id', $restaurant->id)->count();
-
-        // Offset by a small scramble derived from restaurant id to avoid 0001.
-        $offset = (($restaurant->id * 37) % 100) + 10;
-
+        // 80 bits makes a collision practically impossible (~10^24 combinations),
+        // but retry loop guarantees uniqueness against the UNIQUE database column.
         for ($attempt = 0; $attempt < 10; $attempt++) {
-            $num  = $existingCount + $offset + $attempt + 1;
-            $code = $prefix . str_pad($num, 4, '0', STR_PAD_LEFT);
+            $code = $prefix . '-' . static::randomTrackingSuffix();
 
             if (! static::where('tracking_code', $code)->exists()) {
                 return $code;
             }
         }
 
-        // Safety fallback: append a 2-digit random suffix if all sequential slots
-        // happen to be taken (extremely unlikely but handled gracefully).
-        return $prefix . ($existingCount + $offset + random_int(10, 99));
+        // Safety fallback: widen suffix if attempts are exhausted
+        return $prefix . '-' . static::randomTrackingSuffix() . static::randomTrackingSuffix();
+    }
+
+    /**
+     * Cryptographically secure random suffix. `random_int` is a CSPRNG.
+     */
+    private static function randomTrackingSuffix(): string
+    {
+        $alphabet = self::TRACKING_CODE_ALPHABET;
+        $max      = strlen($alphabet) - 1;
+        $code     = '';
+
+        for ($i = 0; $i < self::TRACKING_CODE_LENGTH; $i++) {
+            $code .= $alphabet[random_int(0, $max)];
+        }
+
+        return $code;
     }
 
     /**
