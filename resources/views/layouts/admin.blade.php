@@ -873,7 +873,7 @@
         <div class="brand-box">
             <div class="brand-icon">🤖</div>
             <div class="brand-info">
-                <h2>RestaurantBot</h2>
+                <h2>Foodio</h2>
                 <span>Super Admin</span>
             </div>
         </div>
