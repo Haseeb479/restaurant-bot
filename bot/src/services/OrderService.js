@@ -366,11 +366,18 @@ export class OrderService {
             .substring(0, 1000)
             || 'Order placed via WhatsApp bot';
 
+        // Override delivery address if GPS pin provided
+        if (session.locationSource === 'whatsapp_pin' && session.deliveryAddress) {
+            deliveryAddress = session.deliveryAddress;
+        }
+
         const parsed = {
             subtotal,
             deliveryCharge,
             total,
             deliveryAddress,
+            deliveryLat: session.deliveryLat || null,
+            deliveryLng: session.deliveryLng || null,
             customerName,
             contactPhone,
             paymentMethod,
@@ -640,13 +647,15 @@ export class OrderService {
 
             const [result] = await db.query(
                 `INSERT INTO orders
-                 (restaurant_id, customer_phone, customer_name, delivery_address, tracking_code, status, subtotal, delivery_charge, total, payment_method, notes, created_at, updated_at)
-                 VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)`,
+                 (restaurant_id, customer_phone, customer_name, delivery_address, delivery_lat, delivery_lng, tracking_code, status, subtotal, delivery_charge, total, payment_method, notes, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     restaurantId,
                     finalCustomerPhone,
                     parsed.customerName,
                     parsed.deliveryAddress,
+                    parsed.deliveryLat,
+                    parsed.deliveryLng,
                     trackingCode,
                     parsed.subtotal,
                     parsed.deliveryCharge,

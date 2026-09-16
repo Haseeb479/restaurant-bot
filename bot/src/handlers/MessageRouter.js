@@ -38,7 +38,8 @@ export class MessageRouter {
         // ── Skip non-customer messages ─────────────────────────────────────────
         if (msg.from.includes('@g.us'))      return; // group chats
         if (msg.from === 'status@broadcast') return; // broadcast
-        if (!msg.body?.trim())              return; // empty message
+        const isLocation = msg.type === 'location' || msg.type === 'live_location' || typeof msg.location?.latitude === 'number';
+        if (!msg.body?.trim() && !isLocation) return; // empty message
 
         // ── Resolve the real diallable phone number ────────────────────────────
         // msg.from is a WhatsApp JID. For personal accounts it is
@@ -68,7 +69,17 @@ export class MessageRouter {
         }
 
         const botNumber = this.client.info?.wid?.user;
-        const text      = msg.body.trim();
+        const text      = msg.body?.trim() || '';
+
+        let locationCoords = null;
+        if (isLocation && msg.location && typeof msg.location.latitude === 'number' && typeof msg.location.longitude === 'number') {
+            locationCoords = {
+                lat: msg.location.latitude,
+                lng: msg.location.longitude,
+                name: msg.location.name || '',
+                address: msg.location.address || ''
+            };
+        }
 
         console.log(`\n📩 [${customerPhone}] → [${botNumber || 'BOT'}]: ${text}`);
 
@@ -126,7 +137,7 @@ export class MessageRouter {
             }
 
             // ── 5. Normal AI chat ──────────────────────────────────────────────
-            await this.chat.handle(msg, customerPhone, botNumber, text);
+            await this.chat.handle(msg, customerPhone, botNumber, text, locationCoords);
 
         } catch (err) {
             console.error('❌ MessageRouter error:', err.message);

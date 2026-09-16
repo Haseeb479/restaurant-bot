@@ -20,6 +20,8 @@ class OrderController extends Controller
             'restaurant_id'   => 'required|integer',
             'customer_name'   => 'nullable|string',
             'delivery_address'=> 'required|string',
+            'delivery_lat'    => 'nullable|numeric|between:-90,90',
+            'delivery_lng'    => 'nullable|numeric|between:-180,180',
             'subtotal'        => 'required|numeric',
             'delivery_charge' => 'required|numeric',
             'total'           => 'required|numeric',
@@ -33,6 +35,12 @@ class OrderController extends Controller
 
             if (!$restaurant) {
                 return response()->json(['success' => false, 'error' => 'Restaurant not found'], 404);
+            }
+
+            if (isset($validated['delivery_lat'], $validated['delivery_lng'])) {
+                if ($validated['delivery_lat'] == 0 && $validated['delivery_lng'] == 0) {
+                    return response()->json(['success' => false, 'error' => 'Invalid delivery coordinates (0,0)'], 422);
+                }
             }
 
             $deliveryCharge = (float) ($restaurant->delivery_charge ?? 0);

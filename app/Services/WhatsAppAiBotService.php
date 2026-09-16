@@ -156,11 +156,11 @@ class WhatsAppAiBotService
         $sessionKey = "wa_session_{$restaurant->id}_{$customerPhone}";
         $history    = Cache::get($sessionKey, []);
 
-        // ── Handle Native WhatsApp Location Attachment (locationMessage) ──────
         if ($locationCoords && isset($locationCoords['lat'], $locationCoords['lng'])) {
             $lat = (float) $locationCoords['lat'];
             $lng = (float) $locationCoords['lng'];
             Cache::put("verified_delivery_coords_{$sessionKey}", [$lat, $lng], now()->addMinutes(self::SESSION_TTL));
+            Cache::put("verified_delivery_source_{$sessionKey}", 'whatsapp_pin', now()->addMinutes(self::SESSION_TTL));
 
             // Extract or reverse-geocode textual address
             $resolvedAddress = ! empty($locationCoords['address']) ? trim($locationCoords['address']) : '';
@@ -244,10 +244,11 @@ class WhatsAppAiBotService
 
             // 2. GPS Radius Distance Check:
             $cachedGps  = Cache::get("verified_delivery_coords_{$sessionKey}");
+            $cachedSource = Cache::get("verified_delivery_source_{$sessionKey}");
             $restCoords = $this->getRestaurantCoords($restaurant);
             if ($restCoords) {
                 $cleanAddr  = $this->extractAddressFromText($text);
-                $custCoords = $cachedGps ?: $this->geocodeAddress($cleanAddr, $restaurant->city ?? '');
+                $custCoords = ($cachedGps && $cachedSource === 'whatsapp_pin') ? $cachedGps : ($cachedGps ?: $this->geocodeAddress($cleanAddr, $restaurant->city ?? ''));
                 if ($custCoords) {
                     $distKm = $this->calculateHaversineDistance($restCoords[0], $restCoords[1], $custCoords[0], $custCoords[1]);
                     if ($distKm > $maxRadius) {
@@ -259,7 +260,9 @@ class WhatsAppAiBotService
                         return;
                     } else {
                         // Location verified within radius! Store coordinates for order save
-                        Cache::put("verified_delivery_coords_{$sessionKey}", $custCoords, now()->addMinutes(self::SESSION_TTL));
+                        if ($cachedSource !== 'whatsapp_pin') {
+                            Cache::put("verified_delivery_coords_{$sessionKey}", $custCoords, now()->addMinutes(self::SESSION_TTL));
+                        }
                     }
                 }
             }
@@ -509,9 +512,14 @@ class WhatsAppAiBotService
         $dealsText = $this->buildDealsText($restaurant);
 
         $hasVerifiedGps = $sessionKey ? (bool) Cache::get("verified_delivery_coords_{$sessionKey}") : false;
-        $verifiedNotice = $hasVerifiedGps
-            ? "  • CUSTOMER PIN STATUS: Customer's exact location pin has ALREADY been verified on the map! Accept their delivery address and proceed directly to Order Summary.\n"
-            : '';
+        $cachedAddr = $sessionKey ? Cache::get("verified_delivery_address_{$sessionKey}") : '';
+        $verifiedNotice = '';
+        if ($hasVerifiedGps) {
+            $verifiedNotice = "  • CUSTOMER PIN STATUS: Customer's exact location pin has ALREADY been verified on the map! Accept their delivery address and proceed directly to Order Summary.\n";
+            if ($cachedAddr) {
+                $verifiedNotice .= "  • IMPORTANT: You MUST use exactly 'Deliver to: {$cachedAddr}' in the Order Summary. NEVER change or invent another address.\n";
+            }
+        }
 
         $deliveryZoneRule = implode("\n", array_filter([
             "- DELIVERY & ADDRESS INSTRUCTIONS:",
@@ -839,9 +847,17 @@ PROMPT;
             $contactPhone = $customerPhone;
         }
 
-        // 6. Parse Delivery Address
+        // 6. Parse Delivery Address (Apply Location Priority)
         preg_match('/deliver\s*to\s*[:*–-]?\s*([^\n\r*]+)/i', $summaryMsg, $addrMatch);
         $address = isset($addrMatch[1]) ? trim(str_replace(['*', '`'], '', $addrMatch[1])) : 'Delivery order via WhatsApp';
+        
+        $sessionKey = "wa_session_{$restaurant->id}_{$customerPhone}";
+        $cachedGps  = Cache::get("verified_delivery_coords_{$sessionKey}");
+        $cachedAddr = Cache::get("verified_delivery_address_{$sessionKey}");
+        
+        if ($cachedGps && $cachedAddr) {
+            $address = $cachedAddr; // Override AI hallucination completely
+        }
 
         // 7. Parse Payment Method
         preg_match('/payment\s*[:*–-]?\s*([^\n\r*]+)/i', $summaryMsg, $payMatch);
@@ -1843,6 +1859,15 @@ PROMPT;
                 $itemPattern = '/(' . $item->quantity . '\s*[xX×]\s*' . $escName . '[^\n\r]*?rs\.?\s*)([0-9,]+(?:\.[0-9]{1,2})?)/iu';
                 $reply = preg_replace($itemPattern, "\${1}{$itemSubtotal}", $reply);
             }
+        }
+        
+        // 5. Reconcile Deliver to address in reply
+        if ($order->delivery_address) {
+            $reply = preg_replace(
+                '/(deliver\s*to\s*[:*–-]?\s*)([^\n\r*]+)/i',
+                "\${1}{$order->delivery_address}",
+                $reply
+            );
         }
 
         // If the authoritative total is not in the text, append the authoritative breakdown

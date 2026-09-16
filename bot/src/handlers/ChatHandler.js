@@ -118,7 +118,7 @@ export class ChatHandler {
         this.groq        = new GroqClient();
     }
 
-    async handle(msg, customerPhone, botNumber, text) {
+    async handle(msg, customerPhone, botNumber, text, locationCoords = null) {
         // ── Load restaurant by bot's own WhatsApp number ───────────────────────
         if (!botNumber) {
             console.log('⚠️  botNumber not available yet — bot may still be initializing');
@@ -132,9 +132,6 @@ export class ChatHandler {
         try {
             restaurant = await this.restaurants.getByBotNumber(botNumber);
         } catch (lookupErr) {
-            // A database outage, not an unregistered number. Telling the customer
-            // "this number isn't linked to a restaurant" here would send them off
-            // to chase the owner about a registration that is perfectly fine.
             console.error(`❌ Restaurant lookup unavailable for ${botNumber}:`, lookupErr.message);
             await msg.reply("⚠️ We're having a brief technical problem. Please send your message again in a moment!");
             return;
@@ -189,6 +186,36 @@ export class ChatHandler {
 
         // ── Session — isolated per restaurant+customer ─────────────────────────
         const session = this.sessions.getOrCreate(customerPhone, restaurant);
+
+        if (locationCoords) {
+            session.deliveryLat = locationCoords.lat;
+            session.deliveryLng = locationCoords.lng;
+            session.locationSource = 'whatsapp_pin';
+            let addressStr = locationCoords.name || locationCoords.address || '';
+            if (!addressStr) {
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${locationCoords.lat}&lon=${locationCoords.lng}&zoom=18&addressdetails=1`, { headers: { 'User-Agent': 'Foodio-RestaurantBot/1.0' } });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && data.display_name) {
+                            const parts = data.display_name.split(',').map(p => p.trim());
+                            addressStr = parts.slice(0, Math.min(parts.length, 4)).join(', ');
+                        }
+                    }
+                } catch (e) {
+                    console.error('Reverse geocoding failed:', e.message);
+                }
+            }
+            if (addressStr) {
+                session.deliveryAddress = addressStr;
+            }
+            const ackMsg = `📍 *Shukriya! Aapki exact delivery location pin receive ho gayi hai!* ✅\n\nBarah-e-karam apna *Order* ya *Naam* batayein, ya agar order ready hai toh reply karein *'CONFIRM'*! 😊`;
+            session.history.push({ role: 'user', content: `Shared GPS Pin: [Lat: ${locationCoords.lat}, Lng: ${locationCoords.lng}] Address: ${addressStr}` });
+            session.history.push({ role: 'assistant', content: ackMsg });
+            this.sessions.trim(customerPhone, restaurant.id);
+            await msg.reply(ackMsg);
+            return;
+        }
 
         // ── Build AI messages ──────────────────────────────────────────────────
         const systemPrompt = PromptBuilder.build(session.restaurant);
