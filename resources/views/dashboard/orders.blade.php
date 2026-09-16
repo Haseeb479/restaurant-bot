@@ -468,6 +468,59 @@
         cursor: pointer;
     }
     .btn-action-secondary:hover { background: #e2e8f0; }
+    .btn-action-danger {
+        padding: 10px 14px;
+        background: #fff1f1;
+        color: #b91c1c;
+        border: 1px solid #fca5a5;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s;
+        white-space: nowrap;
+    }
+    .btn-action-danger:hover { background: #fee2e2; border-color: #f87171; }
+
+    /* Cancel Order Confirmation Modal */
+    #cancelOrderModal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 9998;
+        background: rgba(0,0,0,0.45);
+        align-items: center;
+        justify-content: center;
+    }
+    #cancelOrderModal.open { display: flex; }
+    .cancel-modal-box {
+        background: #fff;
+        border-radius: 18px;
+        padding: 28px 28px 22px;
+        max-width: 380px;
+        width: 92%;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+        text-align: center;
+    }
+    .cancel-modal-icon { font-size: 38px; margin-bottom: 10px; }
+    .cancel-modal-title { font-size: 17px; font-weight: 800; color: #0f172a; margin-bottom: 6px; }
+    .cancel-modal-sub { font-size: 13px; color: #64748b; margin-bottom: 20px; line-height: 1.5; }
+    .cancel-modal-reason {
+        width: 100%; padding: 9px 12px; border-radius: 9px; border: 1px solid #cbd5e1;
+        font-size: 13px; color: #0f172a; resize: none; margin-bottom: 16px;
+        font-family: inherit;
+    }
+    .cancel-modal-actions { display: flex; gap: 10px; }
+    .cancel-modal-actions .btn-keep {
+        flex: 1; padding: 10px; border-radius: 10px; border: 1px solid #cbd5e1;
+        background: #f8fafc; color: #334155; font-weight: 700; font-size: 13px; cursor: pointer;
+    }
+    .cancel-modal-actions .btn-confirm-cancel {
+        flex: 1; padding: 10px; border-radius: 10px; border: none;
+        background: #dc2626; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer;
+    }
+    .cancel-modal-actions .btn-confirm-cancel:hover { background: #b91c1c; }
+    .cancel-modal-actions .btn-keep:hover { background: #e2e8f0; }
 
     /* Right Column: Active Riders List */
     .rider-list {
@@ -999,6 +1052,14 @@
                         </div>
                     @endif
 
+                    @if(!in_array($selectedOrder->status, ['delivered', 'cancelled']))
+                        <button type="button" class="btn-action-danger"
+                            onclick="confirmCancelOrder('{{ $selectedOrder->id }}', '{{ $selectedOrder->tracking_code }}')"
+                            title="Cancel this order">
+                            ✕ Cancel
+                        </button>
+                    @endif
+
                     <a href="{{ route('order.track.live', $selectedOrder->tracking_code) }}" target="_blank" class="btn-action-secondary" title="View Customer Live Tracking Page">
                         🌐 Live Track
                     </a>
@@ -1194,7 +1255,23 @@
 
 </div>
 
-<!-- 5. DISPATCH TO RIDER MODAL -->
+<!-- 5. CANCEL ORDER MODAL -->
+<div id="cancelOrderModal">
+    <div class="cancel-modal-box">
+        <div class="cancel-modal-icon">❌</div>
+        <div class="cancel-modal-title">Cancel This Order?</div>
+        <div class="cancel-modal-sub">
+            Order <strong id="cancelOrderCode"></strong> will be marked as <strong>Cancelled</strong> and the customer will be notified via WhatsApp.
+        </div>
+        <textarea class="cancel-modal-reason" id="cancelReason" rows="2" placeholder="Reason for cancellation (optional)…"></textarea>
+        <div class="cancel-modal-actions">
+            <button class="btn-keep" type="button" onclick="closeCancelModal()">Keep Order</button>
+            <button class="btn-confirm-cancel" type="button" onclick="executeCancelOrder()">Yes, Cancel It</button>
+        </div>
+    </div>
+</div>
+
+<!-- 6. DISPATCH TO RIDER MODAL -->
 <div id="dispatchModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center; padding: 16px;">
     <div style="background: #ffffff; border-radius: 20px; width: 500px; max-width: 100%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); border: 1px solid #e2e8f0; overflow: hidden; animation: modalFadeIn 0.2s ease;">
         <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #ffffff; padding: 20px 24px; display: flex; align-items: center; justify-content: space-between;">
@@ -1466,6 +1543,78 @@
         return false;
     }
 
+    // ── Cancel Order Modal ──
+    let _cancelOrderId   = null;
+    let _cancelOrderCode = null;
+
+    function confirmCancelOrder(orderId, trackingCode) {
+        _cancelOrderId   = orderId;
+        _cancelOrderCode = trackingCode;
+        document.getElementById('cancelOrderCode').textContent = '#' + trackingCode;
+        document.getElementById('cancelReason').value = '';
+        document.getElementById('cancelOrderModal').classList.add('open');
+    }
+
+    function closeCancelModal() {
+        document.getElementById('cancelOrderModal').classList.remove('open');
+        _cancelOrderId   = null;
+        _cancelOrderCode = null;
+    }
+
+    async function executeCancelOrder() {
+        if (!_cancelOrderId) return;
+        const confirmBtn = document.querySelector('#cancelOrderModal .btn-confirm-cancel');
+        if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.style.opacity = '0.6'; }
+
+        const reason   = (document.getElementById('cancelReason').value || '').trim();
+        const url      = `/dashboard/${RESTAURANT_ID}/orders/${_cancelOrderId}/status`;
+
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept':       'application/json',
+                    'X-CSRF-TOKEN': CSRF_TOKEN,
+                },
+                body: JSON.stringify({ status: 'cancelled', notes: reason || undefined }),
+            });
+
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message || 'Cancellation failed');
+
+            closeCancelModal();
+            showToast('❌ Order cancelled successfully', 'success');
+
+            // Update in-memory order
+            if (currentOrdersMap[_cancelOrderId ?? SELECTED_ORDER_ID]) {
+                const o = currentOrdersMap[SELECTED_ORDER_ID];
+                if (o) {
+                    o.status       = 'cancelled';
+                    o.status_label = data.status_label || 'Cancelled';
+                    renderOrderDetail(o);
+                }
+            }
+
+            // Update left-list pill
+            const listItem = document.querySelector(`[data-order-id="${SELECTED_ORDER_ID}"] .status-pill`);
+            if (listItem) {
+                listItem.textContent = data.status_label || 'Cancelled';
+                listItem.className   = 'status-pill cancelled';
+            }
+
+        } catch (err) {
+            showToast('❌ Error: ' + err.message, 'error');
+        } finally {
+            if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.style.opacity = '1'; }
+        }
+    }
+
+    // Close cancel modal when clicking the backdrop
+    document.getElementById('cancelOrderModal').addEventListener('click', function(e) {
+        if (e.target === this) closeCancelModal();
+    });
+
     // ── AJAX: Update order status without page reload ──
     async function ajaxUpdateStatus(url, status, btn) {
         if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
@@ -1678,6 +1827,12 @@
             <!-- Action Buttons -->
             <div class="action-btn-row" id="action-btn-row">
                 ${actionBtnHtml}
+                ${!['delivered','cancelled'].includes(o.status) ? `
+                <button type="button" class="btn-action-danger"
+                    onclick="confirmCancelOrder(${o.id}, '${escHtml(o.tracking_code)}')"
+                    title="Cancel this order">
+                    ✕ Cancel
+                </button>` : ''}
                 <a href="/track/${escHtml(o.tracking_code)}" target="_blank" class="btn-action-secondary" title="View Customer Live Tracking Page">
                     🌐 Live Track
                 </a>
