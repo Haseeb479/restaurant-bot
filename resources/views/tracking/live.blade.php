@@ -418,29 +418,51 @@
     let destLng = dbDeliveryLng || null;
     const hasRealDest = !!(destLat && destLng);
 
-    // Initial Rider position
-    let currentRiderLat = originLat;
-    let currentRiderLng = originLng;
+    const initialRiderUpdated = @json($order->rider_location_updated_at?->diffForHumans());
+
+    // Initial Rider position — STRICTLY REAL COORDINATES ONLY, NEVER FAKE/INTERPOLATED
+    let currentRiderLat = null;
+    let currentRiderLng = null;
+    let hasRiderGps = false;
+
     if (initialLiveGps && initialRiderLat && initialRiderLng) {
         currentRiderLat = initialRiderLat;
         currentRiderLng = initialRiderLng;
-    } else if (orderStatus === 'out_for_delivery' && destLat && destLng) {
-        currentRiderLat = (originLat * 0.45) + (destLat * 0.55);
-        currentRiderLng = (originLng * 0.45) + (destLng * 0.55);
+        hasRiderGps = true;
     } else if (orderStatus === 'delivered' && destLat && destLng) {
         currentRiderLat = destLat;
         currentRiderLng = destLng;
+        hasRiderGps = true;
+    } else if (orderStatus === 'out_for_delivery') {
+        // Rider dispatched, but live GPS coordinates haven't arrived yet.
+        // Place at kitchen origin as the last known starting point.
+        // NEVER interpolate fake coordinates between restaurant and customer!
+        currentRiderLat = originLat;
+        currentRiderLng = originLng;
+        hasRiderGps = false;
+    } else {
+        // Preparing / Confirmed / Pending
+        currentRiderLat = originLat;
+        currentRiderLng = originLng;
+        hasRiderGps = false;
     }
 
-    // Distance calculation (Haversine)
-    function calcDistanceKm(lat1, lon1, lat2, lon2) {
-        const R = 6371;
+    // Distance calculation (Haversine in meters)
+    function distanceBetweenMeters(lat1, lon1, lat2, lon2) {
+        const R = 6371000;
         const dLat = (lat2 - lat1) * Math.PI / 180;
         const dLon = (lon2 - lon1) * Math.PI / 180;
         const a = Math.sin(dLat/2)**2 +
                   Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
                   Math.sin(dLon/2)**2;
-        return (R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))).toFixed(1);
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>"']/g, function(m) {
+            return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m];
+        });
     }
 
     // ── Leaflet Custom HTML Marker Icons ──────────────────────────────────────
@@ -495,53 +517,108 @@
     let kitchenMarker = null;
     let customerMarker = null;
     let riderMarker = null;
-    let routePolyline = null;
+    let currentRouteGlow = null;
+    let currentRoutePolyline = null;
+    let originToRiderPolyline = null;
     let currentTileLayer = null;
     let isSatellite = false;
+    let userInteracted = false;
+
+    let lastRoutedRiderLat = null;
+    let lastRoutedRiderLng = null;
+    let lastKnownDistanceMeters = null;
+    let lastKnownDurationSeconds = null;
+    let routeRecalcTimeout = null;
 
     const distTextElem = document.getElementById('distance-text');
 
-    function updateDistanceBadge(rLat, rLng, isLive) {
+    // ── Real Road Routing (OSRM Driving Engine) ──────────────────────────────
+    async function fetchRoadRoute(startLat, startLng, endLat, endLng) {
+        const url = `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 7000);
+
+        try {
+            const response = await fetch(url, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (!response.ok) throw new Error('Route HTTP status ' + response.status);
+            const data = await response.json();
+            if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+                const route = data.routes[0];
+                const path = route.geometry.coordinates.map(pt => [pt[1], pt[0]]);
+                return {
+                    path: path,
+                    distanceMeters: route.distance,
+                    durationSeconds: route.duration,
+                    success: true
+                };
+            }
+            throw new Error('No route in response');
+        } catch (err) {
+            clearTimeout(timeoutId);
+            // Graceful fallback: straight line between the points
+            const straightDist = distanceBetweenMeters(startLat, startLng, endLat, endLng);
+            return {
+                path: [[startLat, startLng], [endLat, endLng]],
+                distanceMeters: straightDist,
+                durationSeconds: Math.round((straightDist / 1000) * 180),
+                success: false
+            };
+        }
+    }
+
+    function updateRoutingBadge(distanceMeters, durationSeconds, isLiveRiderLeg, updatedText) {
         if (!distTextElem) return;
         if (orderStatus === 'delivered') {
             distTextElem.textContent = 'Delivered 🎉';
             return;
         }
-        if (destLat && destLng) {
-            const rem = parseFloat(calcDistanceKm(rLat, rLng, destLat, destLng));
-            if (isLive) {
-                distTextElem.innerHTML = `<span class="text-emerald-600">Live GPS:</span> ${rem} km away (~${Math.max(1, Math.round(rem * 3))} mins)`;
-            } else if (orderStatus === 'out_for_delivery') {
-                distTextElem.textContent = `${rem} km away • On the way 🛵`;
+        if (!hasRealDest) {
+            distTextElem.textContent = orderStatus === 'out_for_delivery' ? 'On the way 🛵' : 'Awaiting pin confirmation 📍';
+            return;
+        }
+
+        const distKm = (distanceMeters / 1000).toFixed(1);
+        const etaMins = Math.max(1, Math.round(durationSeconds / 60));
+
+        if (orderStatus === 'out_for_delivery') {
+            if (isLiveRiderLeg && hasRiderGps) {
+                let badgeHtml = `~${etaMins} min • ${distKm} km remaining`;
+                if (updatedText) {
+                    badgeHtml += ` • <span class="text-slate-500 font-normal">Updated ${escapeHtml(updatedText)}</span>`;
+                }
+                distTextElem.innerHTML = badgeHtml;
             } else {
-                const total = parseFloat(calcDistanceKm(originLat, originLng, destLat, destLng));
-                distTextElem.textContent = `${total} km total distance`;
+                distTextElem.innerHTML = `~${etaMins} min • ${distKm} km • <span class="text-amber-600 font-medium">Awaiting rider GPS 🛵</span>`;
             }
         } else {
-            distTextElem.textContent = orderStatus === 'out_for_delivery' ? 'On the way 🛵' : 'Awaiting pin confirmation 📍';
+            distTextElem.textContent = `~${etaMins} min • ${distKm} km road distance`;
         }
     }
 
-    function fitDeliveryBounds() {
+    function fitDeliveryBounds(force) {
         if (!leafletMap) return;
+        if (userInteracted && !force) return;
+
         const pts = [[originLat, originLng]];
         if (hasRealDest && destLat && destLng) pts.push([destLat, destLng]);
         if (currentRiderLat && currentRiderLng) pts.push([currentRiderLat, currentRiderLng]);
+
         if (pts.length === 1) {
             leafletMap.setView(pts[0], 15);
         } else {
-            leafletMap.fitBounds(pts, { padding: [60, 60], maxZoom: 16 });
+            leafletMap.fitBounds(pts, { padding: [70, 70], maxZoom: 16 });
         }
     }
 
-    function drawRoute(dLat, dLng) {
-        destLat = dLat;
-        destLng = dLng;
+    async function renderActiveRoadRoute(fromLat, fromLng, toLat, toLng, isLiveRiderLeg, updatedText) {
+        if (!leafletMap) return;
 
+        // Ensure customer destination marker sits exactly on WhatsApp coordinates
         if (customerMarker) {
-            customerMarker.setLatLng([dLat, dLng]);
+            customerMarker.setLatLng([toLat, toLng]);
         } else {
-            customerMarker = L.marker([dLat, dLng], {
+            customerMarker = L.marker([toLat, toLng], {
                 icon: makeLeafletIcon(customerIconHtml, [44, 54]),
                 title: 'Delivery Destination: ' + customerName,
                 zIndexOffset: 150
@@ -549,34 +626,64 @@
               .bindPopup(`<b>🏠 ${customerName}</b><br><span style="color:#64748b;">Delivery Destination</span>`);
         }
 
-        // Smooth curved route using a quadratic Bezier approximation
-        const midLat = (originLat + dLat) / 2 + 0.0012;
-        const midLng = (originLng + dLng) / 2 - 0.0012;
-        const routePath = [[originLat, originLng], [midLat, midLng], [dLat, dLng]];
+        const routeResult = await fetchRoadRoute(fromLat, fromLng, toLat, toLng);
+        lastKnownDistanceMeters = routeResult.distanceMeters;
+        lastKnownDurationSeconds = routeResult.durationSeconds;
 
-        if (routePolyline) {
-            routePolyline.setLatLngs(routePath);
-        } else {
-            routePolyline = L.polyline(routePath, {
-                color: '#10b981',
-                weight: 5,
-                opacity: 0.9,
-                dashArray: null,
-                lineJoin: 'round'
-            }).addTo(leafletMap);
+        if (currentRouteGlow) { leafletMap.removeLayer(currentRouteGlow); }
+        if (currentRoutePolyline) { leafletMap.removeLayer(currentRoutePolyline); }
+
+        // Foodpanda-style high-contrast casing / glow
+        currentRouteGlow = L.polyline(routeResult.path, {
+            color: '#065f46',
+            weight: 8,
+            opacity: 0.35,
+            lineJoin: 'round',
+            lineCap: 'round'
+        }).addTo(leafletMap);
+
+        // Vibrant emerald road line following real street networks
+        currentRoutePolyline = L.polyline(routeResult.path, {
+            color: '#10b981',
+            weight: 5,
+            opacity: 0.95,
+            lineJoin: 'round',
+            lineCap: 'round'
+        }).addTo(leafletMap);
+
+        // If rider is actively on the road, draw subtle dashed leg connecting restaurant to rider's current position
+        if (isLiveRiderLeg && (Math.abs(originLat - fromLat) > 0.0001 || Math.abs(originLng - fromLng) > 0.0001)) {
+            if (!originToRiderPolyline) {
+                originToRiderPolyline = L.polyline([[originLat, originLng], [fromLat, fromLng]], {
+                    color: '#94a3b8',
+                    weight: 3,
+                    dashArray: '5, 8',
+                    opacity: 0.65,
+                    lineJoin: 'round'
+                }).addTo(leafletMap);
+            } else {
+                originToRiderPolyline.setLatLngs([[originLat, originLng], [fromLat, fromLng]]);
+            }
+        } else if (originToRiderPolyline) {
+            leafletMap.removeLayer(originToRiderPolyline);
+            originToRiderPolyline = null;
         }
 
-        fitDeliveryBounds();
-        updateDistanceBadge(currentRiderLat, currentRiderLng, initialLiveGps);
+        updateRoutingBadge(routeResult.distanceMeters, routeResult.durationSeconds, isLiveRiderLeg, updatedText);
+
+        if (!userInteracted) {
+            fitDeliveryBounds();
+        }
     }
 
-    // Smooth movement interpolation for rider marker (lerp over 1500ms)
+    // Smooth movement interpolation for rider marker (lerp over 1200ms)
     function smoothMoveRider(targetLat, targetLng) {
         if (!riderMarker) return;
-        const startLat = currentRiderLat;
-        const startLng = currentRiderLng;
+        const startPos = riderMarker.getLatLng();
+        const startLat = startPos.lat;
+        const startLng = startPos.lng;
         const startTime = performance.now();
-        const duration = 1500;
+        const duration = 1200;
 
         function step(now) {
             const elapsed = now - startTime;
@@ -596,10 +703,47 @@
                 currentRiderLat = targetLat;
                 currentRiderLng = targetLng;
                 riderMarker.setLatLng([targetLat, targetLng]);
-                updateDistanceBadge(targetLat, targetLng, true);
             }
         }
         requestAnimationFrame(step);
+    }
+
+    function onRiderLocationReceived(newLat, newLng, updatedText) {
+        hasRiderGps = true;
+        currentRiderLat = newLat;
+        currentRiderLng = newLng;
+
+        if (!riderMarker) {
+            riderMarker = L.marker([newLat, newLng], {
+                icon: makeLeafletIcon(riderIconHtml, [52, 52]),
+                title: 'Delivery Partner: ' + riderName,
+                zIndexOffset: 200
+            }).addTo(leafletMap)
+              .bindPopup(`<b>🛵 ${riderName}</b><br><span style="color:#10b981;font-weight:bold;">Delivery Partner (Live)</span>`);
+        } else {
+            smoothMoveRider(newLat, newLng);
+        }
+
+        if (orderStatus === 'out_for_delivery' && destLat && destLng) {
+            const movedMeters = (lastRoutedRiderLat !== null && lastRoutedRiderLng !== null)
+                ? distanceBetweenMeters(lastRoutedRiderLat, lastRoutedRiderLng, newLat, newLng)
+                : 9999;
+
+            // Recalculate route if rider has moved > 25 meters (debounced 500ms)
+            if (movedMeters >= 25) {
+                clearTimeout(routeRecalcTimeout);
+                routeRecalcTimeout = setTimeout(() => {
+                    lastRoutedRiderLat = newLat;
+                    lastRoutedRiderLng = newLng;
+                    renderActiveRoadRoute(newLat, newLng, destLat, destLng, true, updatedText);
+                }, 500);
+            } else {
+                // Update badge text with latest updated timestamp without hammering OSRM
+                if (lastKnownDistanceMeters && lastKnownDurationSeconds) {
+                    updateRoutingBadge(lastKnownDistanceMeters, lastKnownDurationSeconds, true, updatedText);
+                }
+            }
+        }
     }
 
     // ── Initialize Leaflet Map ─────────────────────────────────────────────────
@@ -627,6 +771,12 @@
             subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
         }).addTo(leafletMap);
 
+        // Track user interaction to prevent hijacking camera pan/zoom
+        leafletMap.on('dragstart', () => { userInteracted = true; });
+        leafletMap.on('zoomstart', (e) => {
+            if (e.originalEvent) { userInteracted = true; }
+        });
+
         // 1. Kitchen Marker
         kitchenMarker = L.marker([originLat, originLng], {
             icon: makeLeafletIcon(kitchenIconHtml, [42, 52]),
@@ -635,25 +785,31 @@
         }).addTo(leafletMap)
           .bindPopup(`<b>🏪 ${restaurantName}</b><br><span style="color:#64748b;">Kitchen Origin</span>`);
 
-        // 2. Rider Marker
-        riderMarker = L.marker([currentRiderLat, currentRiderLng], {
-            icon: makeLeafletIcon(riderIconHtml, [52, 52]),
-            title: 'Delivery Partner: ' + riderName,
-            zIndexOffset: 200
-        }).addTo(leafletMap)
-          .bindPopup(`<b>🛵 ${riderName}</b><br><span style="color:#10b981;font-weight:bold;">Delivery Partner</span>`);
+        // 2. Rider Marker (only if dispatched or assigned)
+        if (orderStatus === 'out_for_delivery' || orderStatus === 'delivered' || hasRiderGps) {
+            riderMarker = L.marker([currentRiderLat, currentRiderLng], {
+                icon: makeLeafletIcon(riderIconHtml, [52, 52]),
+                title: 'Delivery Partner: ' + riderName,
+                zIndexOffset: 200
+            }).addTo(leafletMap)
+              .bindPopup(`<b>🛵 ${riderName}</b><br><span style="color:#10b981;font-weight:bold;">Delivery Partner</span>`);
+        }
 
-        // 3. Destination & Route
+        // 3. Destination & Active Road Route
         if (hasRealDest) {
-            drawRoute(destLat, destLng);
+            if (orderStatus === 'out_for_delivery' && hasRiderGps && currentRiderLat && currentRiderLng) {
+                lastRoutedRiderLat = currentRiderLat;
+                lastRoutedRiderLng = currentRiderLng;
+                renderActiveRoadRoute(currentRiderLat, currentRiderLng, destLat, destLng, true, initialRiderUpdated);
+            } else {
+                renderActiveRoadRoute(originLat, originLng, destLat, destLng, false, initialRiderUpdated);
+            }
         } else {
-            fitDeliveryBounds();
+            fitDeliveryBounds(true);
             if (distTextElem) {
                 distTextElem.textContent = 'Awaiting pin confirmation 📍';
             }
         }
-
-        updateDistanceBadge(currentRiderLat, currentRiderLng, initialLiveGps);
 
         // ── Map Mode Toggle (Roadmap / Satellite) ──────────────────────────
         const btnRoadmap   = document.getElementById('btn-mode-roadmap');
@@ -681,21 +837,21 @@
             });
         }
 
-
-
-        // Custom Zoom Controls
+        // Custom Zoom & Recenter Controls
         const btnZoomIn   = document.getElementById('btn-zoom-in');
         const btnZoomOut  = document.getElementById('btn-zoom-out');
         const btnRecenter = document.getElementById('btn-map-recenter');
 
         if (btnZoomIn)  btnZoomIn.addEventListener('click', () => leafletMap.setZoom(leafletMap.getZoom() + 1));
         if (btnZoomOut) btnZoomOut.addEventListener('click', () => leafletMap.setZoom(leafletMap.getZoom() - 1));
-        if (btnRecenter) btnRecenter.addEventListener('click', fitDeliveryBounds);
+        if (btnRecenter) btnRecenter.addEventListener('click', () => {
+            userInteracted = false;
+            fitDeliveryBounds(true);
+        });
 
         // Expose live polling updater
-        window.updateRiderLivePosition = function(lat, lng) {
-            smoothMoveRider(lat, lng);
-            updateDistanceBadge(lat, lng, true);
+        window.updateRiderLivePosition = function(lat, lng, riderUpdated) {
+            onRiderLocationReceived(lat, lng, riderUpdated || initialRiderUpdated);
         };
     }
 
@@ -733,7 +889,7 @@
             // If real-time GPS coordinates are streaming from rider's device
             if (data.has_live_gps && data.rider_lat && data.rider_lng) {
                 if (typeof window.updateRiderLivePosition === 'function') {
-                    window.updateRiderLivePosition(Number(data.rider_lat), Number(data.rider_lng));
+                    window.updateRiderLivePosition(Number(data.rider_lat), Number(data.rider_lng), data.rider_updated);
                 }
             }
         } catch (e) {
