@@ -16,14 +16,39 @@ class WhatsAppLocationPinTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config(['services.evolution.api_key' => 'test_evo_secret_key']);
+    }
+
+    private function makeRestaurant(string $instanceId): Restaurant
+    {
+        $r = new Restaurant([
+            'name'            => 'Location Test Rest',
+            'whatsapp_number' => '9230' . random_int(10000000, 99999999),
+            'owner_phone'     => '923001234567',
+            'delivery_charge' => 100.00,
+            'is_open'         => true,
+            'city'            => 'Lahore',
+            'address'         => 'Mall Road',
+        ]);
+        $r->status                = 'active';
+        $r->registration_status   = 'approved';
+        $r->is_active             = true;
+        $r->email_verified_at     = now();
+        $r->plan                  = 'trial';
+        $r->evolution_instance_id = $instanceId;
+        $r->owner_password        = \Illuminate\Support\Facades\Hash::make('owner-secret-password');
+        $r->save();
+        return $r;
+    }
+
     public function test_native_location_pin_is_extracted_and_queued()
     {
         Queue::fake();
 
-        $restaurant = Restaurant::factory()->create([
-            'evolution_instance_id' => 'rest_100',
-            'is_active' => true,
-        ]);
+        $restaurant = $this->makeRestaurant('rest_100');
 
         $payload = [
             'event' => 'messages.upsert',
@@ -44,7 +69,8 @@ class WhatsAppLocationPinTest extends TestCase
             ]
         ];
 
-        $response = $this->postJson('/api/webhooks/evolution', $payload);
+        $response = $this->withHeaders(['apikey' => 'test_evo_secret_key'])
+            ->postJson(route('webhook.whatsapp'), $payload);
         $response->assertStatus(200);
 
         Queue::assertPushed(ProcessWhatsAppMessage::class, function ($job) {
@@ -57,10 +83,7 @@ class WhatsAppLocationPinTest extends TestCase
     {
         Queue::fake();
 
-        $restaurant = Restaurant::factory()->create([
-            'evolution_instance_id' => 'rest_101',
-            'is_active' => true,
-        ]);
+        $restaurant = $this->makeRestaurant('rest_101');
 
         $payload = [
             'event' => 'messages.upsert',
@@ -81,7 +104,8 @@ class WhatsAppLocationPinTest extends TestCase
             ]
         ];
 
-        $response = $this->postJson('/api/webhooks/evolution', $payload);
+        $response = $this->withHeaders(['apikey' => 'test_evo_secret_key'])
+            ->postJson(route('webhook.whatsapp'), $payload);
         $response->assertStatus(200);
 
         // It should NOT queue a job since it's an empty text with invalid coordinates

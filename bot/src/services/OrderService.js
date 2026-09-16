@@ -1,5 +1,6 @@
 import { randomInt } from 'crypto';
 import { getDbPool } from './Database.js';
+import { LogSanitizer } from '../utils/LogSanitizer.js';
 
 /**
  * Crockford Base32 — omits I, L, O and U so a code can't be misread (1/I, 0/O).
@@ -640,12 +641,16 @@ export class OrderService {
         session.customerName = parsed.customerName;
         session.contactPhone = finalCustomerPhone;
 
+        let connection = null;
         try {
-            // 1. Direct MySQL insert for 0ms reliability (all required columns included)
-            const db = getDbPool();
+            // 1. Direct MySQL insert with full transaction support for atomicity
+            const pool = getDbPool();
+            connection = await pool.getConnection();
+            await connection.beginTransaction();
+
             const now = new Date();
 
-            const [result] = await db.query(
+            const [result] = await connection.query(
                 `INSERT INTO orders
                  (restaurant_id, customer_phone, customer_name, delivery_address, delivery_lat, delivery_lng, tracking_code, status, subtotal, delivery_charge, total, payment_method, notes, created_at, updated_at)
                  VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)`,
@@ -667,68 +672,80 @@ export class OrderService {
                 ]
             );
 
-            if (result && result.insertId) {
-                const orderId = result.insertId;
-                console.log(`✅ Order #${orderId} saved directly to MySQL — Phone: ${finalCustomerPhone}, Tracking: ${trackingCode}, Total: Rs.${parsed.total}, Address: ${parsed.deliveryAddress}`);
-
-                // Insert itemized records into order_items table
-                if (parsed.items && parsed.items.length > 0) {
-                    for (const item of parsed.items) {
-                        await db.query(
-                            `INSERT INTO order_items (order_id, name, size, unit_price, quantity, subtotal, created_at, updated_at) 
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                            [
-                                orderId,
-                                item.name,
-                                item.size,
-                                item.unit_price,
-                                item.quantity,
-                                item.subtotal,
-                                now,
-                                now,
-                            ]
-                        ).catch(itemErr => console.warn('⚠️ order_item insert note:', itemErr.message));
-                    }
-                    console.log(`📦 Saved ${parsed.items.length} itemized records for Order #${orderId}`);
-                }
-
-                // Auto-upsert customer record into customers table for CRM and deal broadcasts
-                await db.query(
-                    `INSERT INTO customers (restaurant_id, phone, name, address, total_orders, total_spent, last_order_at, created_at, updated_at)
-                     VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)
-                     ON DUPLICATE KEY UPDATE
-                       total_orders = total_orders + 1,
-                       total_spent = total_spent + VALUES(total_spent),
-                       name = COALESCE(VALUES(name), name),
-                       address = IF(VALUES(address) != 'Collected via WhatsApp chat', VALUES(address), address),
-                       last_order_at = VALUES(last_order_at),
-                       updated_at = VALUES(updated_at)`,
-                    [
-                        restaurantId,
-                        finalCustomerPhone,
-                        parsed.customerName,
-                        parsed.deliveryAddress,
-                        parsed.total,
-                        now,
-                        now,
-                        now
-                    ]
-                ).catch(cErr => console.warn('⚠️ customer profile upsert note:', cErr.message));
-
-                session.lastOrder = parsed;
-
-                const result = new String(trackingCode);
-                result.trackingCode = trackingCode;
-                result.order = parsed;
-                return result;
+            if (!result || !result.insertId) {
+                throw new Error('Order INSERT returned no insertId');
             }
 
-            // An INSERT that neither threw nor produced an id should be
-            // impossible; treat it as the failure it is rather than reporting
-            // a tracking code for a row that does not exist.
-            console.error('❌ Order INSERT returned no insertId — order NOT saved.');
+            const orderId = result.insertId;
+            const maskedPhone = LogSanitizer.maskPhone(finalCustomerPhone);
+            const maskedAddress = LogSanitizer.redactAddress(parsed.deliveryAddress);
+            console.log(`✅ Order #${orderId} saved directly to MySQL — Phone: ${maskedPhone}, Tracking: ${trackingCode}, Total: Rs.${parsed.total}, Address: ${maskedAddress}`);
+
+            // Insert itemized records into order_items table atomically
+            if (parsed.items && parsed.items.length > 0) {
+                for (const item of parsed.items) {
+                    await connection.query(
+                        `INSERT INTO order_items (order_id, name, size, unit_price, quantity, subtotal, created_at, updated_at) 
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                        [
+                            orderId,
+                            item.name,
+                            item.size,
+                            item.unit_price,
+                            item.quantity,
+                            item.subtotal,
+                            now,
+                            now,
+                        ]
+                    );
+                }
+                console.log(`📦 Saved ${parsed.items.length} itemized records for Order #${orderId}`);
+            }
+
+            // Auto-upsert customer record into customers table for CRM and deal broadcasts
+            await connection.query(
+                `INSERT INTO customers (restaurant_id, phone, name, address, total_orders, total_spent, last_order_at, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE
+                   total_orders = total_orders + 1,
+                   total_spent = total_spent + VALUES(total_spent),
+                   name = COALESCE(VALUES(name), name),
+                   address = IF(VALUES(address) != 'Collected via WhatsApp chat', VALUES(address), address),
+                   last_order_at = VALUES(last_order_at),
+                   updated_at = VALUES(updated_at)`,
+                [
+                    restaurantId,
+                    finalCustomerPhone,
+                    parsed.customerName,
+                    parsed.deliveryAddress,
+                    parsed.total,
+                    now,
+                    now,
+                    now
+                ]
+            ).catch(cErr => console.warn('⚠️ customer profile upsert note:', cErr.message));
+
+            await connection.commit();
+
+            session.lastOrder = parsed;
+
+            const resObj = new String(trackingCode);
+            resObj.trackingCode = trackingCode;
+            resObj.order = parsed;
+            return resObj;
         } catch (dbErr) {
-            console.error('❌ Order INSERT failed — order NOT saved:', dbErr.message);
+            if (connection) {
+                try {
+                    await connection.rollback();
+                } catch (rbErr) {
+                    console.error('❌ Rollback failed:', rbErr.message);
+                }
+            }
+            console.error('❌ Order transaction failed — order rolled back / NOT saved:', dbErr.message);
+        } finally {
+            if (connection) {
+                connection.release();
+            }
         }
 
         // There is deliberately no HTTP fallback. It used to POST to

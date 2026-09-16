@@ -8,6 +8,7 @@ use App\Models\OrderItem;
 use App\Models\Restaurant;
 use App\Support\BotEvolutionClient;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -1092,15 +1093,10 @@ PROMPT;
                     $itemName   = $matchedDeal->title;
                     $menuItemId = null;
                 } else {
-                    // Unknown item: fall back to AI-parsed price, but log it
-                    $linePrice = 0;
-                    if (preg_match_all('/(?:rs\.?|pkr\.?|₹)\s*([0-9,]+(?:\.\d+)?)/i', $rest, $pMatches)) {
-                        $linePrice = (float) str_replace(',', '', end($pMatches[1]));
-                    }
-                    $unitPrice  = ($qty > 0 && $linePrice > 0) ? ($linePrice / $qty) : 0;
-                    $lineTotal  = $linePrice;
-                    $menuItemId = null;
-                    Log::warning("WhatsApp AI: Item '{$itemName}' not found in DB for {$restaurant->name} — using AI price Rs.{$linePrice}");
+                    // SECURITY: Database menu pricing is the ONLY price authority.
+                    // If an item cannot be matched to the DB menu or deals, STOP order creation.
+                    Log::warning("WhatsApp AI: Item '{$itemName}' not found in DB menu or deals for {$restaurant->name} — aborting order creation.");
+                    return null;
                 }
 
                 if ($itemName !== '' && $qty > 0) {
@@ -1137,43 +1133,53 @@ PROMPT;
         }
 
         try {
-            // $deliveryCharge and $subtotal/$total are already set above (DB-validated).
-            $order = Order::create([
-                'restaurant_id'    => $restaurant->id,
-                'tracking_code'    => $trackingCode,
-                'customer_name'    => $customerName,
-                'customer_phone'   => $contactPhone,
-                'delivery_address' => $address,
-                'subtotal'         => $subtotal,
-                'delivery_charge'  => $deliveryCharge,
-                'total'            => $total,
-                'status'           => 'pending',
-                'payment_method'   => $paymentMethod,
-                'notes'            => 'Placed via AI WhatsApp Bot',
-            ]);
-
-            // Save order items
-            foreach ($parsedItems as $it) {
-                OrderItem::create([
-                    'order_id'     => $order->id,
-                    'menu_item_id' => $it['menu_item_id'],
-                    'name'         => $it['name'],
-                    'size'         => $it['size'] ?? null,
-                    'quantity'     => $it['quantity'],
-                    'unit_price'   => $it['unit_price'],
-                    'subtotal'     => $it['subtotal'],
+            // Atomic transaction: Order header + OrderItems must succeed together
+            $order = DB::transaction(function () use (
+                $restaurant, $trackingCode, $customerName, $contactPhone,
+                $address, $subtotal, $deliveryCharge, $total, $paymentMethod, $parsedItems
+            ) {
+                $order = Order::create([
+                    'restaurant_id'    => $restaurant->id,
+                    'tracking_code'    => $trackingCode,
+                    'customer_name'    => $customerName,
+                    'customer_phone'   => $contactPhone,
+                    'delivery_address' => $address,
+                    'subtotal'         => $subtotal,
+                    'delivery_charge'  => $deliveryCharge,
+                    'total'            => $total,
+                    'status'           => 'pending',
+                    'payment_method'   => $paymentMethod,
+                    'notes'            => 'Placed via AI WhatsApp Bot',
                 ]);
-            }
+
+                // Save order items
+                foreach ($parsedItems as $it) {
+                    OrderItem::create([
+                        'order_id'     => $order->id,
+                        'menu_item_id' => $it['menu_item_id'],
+                        'name'         => $it['name'],
+                        'size'         => $it['size'] ?? null,
+                        'quantity'     => $it['quantity'],
+                        'unit_price'   => $it['unit_price'],
+                        'subtotal'     => $it['subtotal'],
+                    ]);
+                }
+
+                return $order;
+            });
 
             // Geocode delivery address and persist for live tracking map
-            $cachedGps  = Cache::get("verified_delivery_coords_{$sessionKey}");
-            $cachedAddr = Cache::get("verified_delivery_address_{$sessionKey}");
+            $cachedGps    = Cache::get("verified_delivery_coords_{$sessionKey}");
+            $cachedAddr   = Cache::get("verified_delivery_address_{$sessionKey}");
+            $cachedSource = Cache::get("verified_delivery_source_{$sessionKey}");
+
             if ($cachedAddr && ($address === 'Delivery order via WhatsApp' || empty($address))) {
                 $address = $cachedAddr;
                 $order->update(['delivery_address' => $address]);
             }
 
-            $gpsCoords = $cachedGps ?: $this->geocodeAddress($address, $restaurant->city ?? '');
+            // Location Safety: Never replace valid WhatsApp pin coordinates with geocoded or guessed coordinates
+            $gpsCoords = ($cachedGps && $cachedSource === 'whatsapp_pin') ? $cachedGps : ($cachedGps ?: $this->geocodeAddress($address, $restaurant->city ?? ''));
             if ($gpsCoords) {
                 $order->update([
                     'delivery_lat' => $gpsCoords[0],

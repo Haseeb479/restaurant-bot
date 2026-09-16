@@ -7,6 +7,7 @@ use App\Models\Restaurant;
 use App\Support\BotControlClient;
 use App\Support\WebhookUrlValidator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 
@@ -178,7 +179,19 @@ class OrderController extends Controller
                             $unitPrice = (float) ($matchedDeal->discount_value ?? 0);
                             $it['name'] = $matchedDeal->title;
                         } else {
-                            $unitPrice = (float) ($it['unit_price'] ?? 0);
+                            // ── SECURITY: No AI price fallback ──────────────────────────────────
+                            // If an item cannot be matched to the DB menu or active deals,
+                            // we MUST NOT use the AI-provided unit_price as a fallback.
+                            // Doing so would allow price manipulation via the AI.
+                            // Abort the entire order so the customer can retry/clarify.
+                            Log::warning('Order aborted: item not found in DB menu', [
+                                'restaurant_id' => $validated['restaurant_id'],
+                                'item_name'     => $rawName,
+                            ]);
+                            return response()->json([
+                                'success' => false,
+                                'error'   => "Menu item '{$rawName}' could not be matched. Please retry your order.",
+                            ], 422);
                         }
                     }
 
@@ -200,36 +213,41 @@ class OrderController extends Controller
             // Generate cryptographically secure tracking code
             $trackingCode = Order::generateTrackingCode($restaurant);
 
-            // ── Create order ──
-            $order = Order::create([
-                ...$validated,
-                'subtotal'        => $subtotal,
-                'delivery_charge' => $deliveryCharge,
-                'total'           => $total,
-                'tracking_code'   => $trackingCode,
-                'status'          => $validated['status'] ?? 'pending',
-                'payment_method'  => $validated['payment_method'] ?? 'cash_on_delivery',
-            ]);
+            // ── Create order atomically inside a database transaction ──
+            $order = DB::transaction(function () use ($validated, $subtotal, $deliveryCharge, $total, $trackingCode, $itemsData) {
+                $order = Order::create([
+                    ...$validated,
+                    'subtotal'        => $subtotal,
+                    'delivery_charge' => $deliveryCharge,
+                    'total'           => $total,
+                    'tracking_code'   => $trackingCode,
+                    'status'          => $validated['status'] ?? 'pending',
+                    'payment_method'  => $validated['payment_method'] ?? 'cash_on_delivery',
+                ]);
 
-            // Save order items if passed
-            if (is_array($itemsData) && count($itemsData) > 0) {
-                foreach ($itemsData as $itemRow) {
-                    $order->items()->create([
-                        'menu_item_id' => $itemRow['menu_item_id'] ?? null,
-                        'name'         => $itemRow['name'] ?? 'Item',
-                        'size'         => $itemRow['size'] ?? null,
-                        'quantity'     => max(1, (int) ($itemRow['quantity'] ?? 1)),
-                        'unit_price'   => (float) ($itemRow['unit_price'] ?? 0),
-                        'subtotal'     => (float) ($itemRow['subtotal'] ?? 0),
-                    ]);
+                // Save order items if passed
+                if (is_array($itemsData) && count($itemsData) > 0) {
+                    foreach ($itemsData as $itemRow) {
+                        $order->items()->create([
+                            'menu_item_id' => $itemRow['menu_item_id'] ?? null,
+                            'name'         => $itemRow['name'] ?? 'Item',
+                            'size'         => $itemRow['size'] ?? null,
+                            'quantity'     => max(1, (int) ($itemRow['quantity'] ?? 1)),
+                            'unit_price'   => (float) ($itemRow['unit_price'] ?? 0),
+                            'subtotal'     => (float) ($itemRow['subtotal'] ?? 0),
+                        ]);
+                    }
                 }
-            }
 
-            // Ensure tracking code is set
-            if (empty($order->tracking_code) || $order->tracking_code === 'TEMP') {
-                $trackingCode = Order::generateTrackingCode($restaurant, $order->id);
-                $order->update(['tracking_code' => $trackingCode]);
-            }
+                // Ensure tracking code is set
+                if (empty($order->tracking_code) || $order->tracking_code === 'TEMP') {
+                    $trackingCode = Order::generateTrackingCode($order->restaurant, $order->id);
+                    $order->update(['tracking_code' => $trackingCode]);
+                }
+
+                return $order;
+            });
+            $trackingCode = $order->tracking_code;
 
             // ── Notify owner on WhatsApp ──
             $this->notifyOwnerWhatsApp($order, $restaurant);
