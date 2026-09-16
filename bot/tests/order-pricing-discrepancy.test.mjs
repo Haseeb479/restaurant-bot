@@ -93,7 +93,14 @@ test('ChatHandler.harmonizeConfirmationBill — corrects hallucinated totals in 
     assert.ok(!harmonized.includes('Rs. 600') && !harmonized.includes('Rs.600'), 'Hallucinated 600 must be completely removed');
 });
 
-test('findRestaurantMenuFiles — finds CSV file located under public/menus', () => {
+test('findRestaurantMenuFiles — finds CSV file located under public/menus', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const testDir = path.resolve(process.cwd(), 'public/menus');
+    if (!fs.existsSync(testDir)) fs.mkdirSync(testDir, { recursive: true });
+    const testFilePath = path.join(testDir, 'menu_1_1787037269.csv');
+    if (!fs.existsSync(testFilePath)) fs.writeFileSync(testFilePath, 'Name,Price\nTest Item,100\n');
+
     const res = findRestaurantMenuFiles(1, 'uploads/menus/menu_1_1787037269.csv', null);
     assert.ok(res.excelPath, 'excelPath must be resolved even if DB path has uploads/menus prefix');
     assert.ok(res.excelPath.includes('menu_1_1787037269.csv'), 'Resolved path must target menu_1_1787037269.csv');

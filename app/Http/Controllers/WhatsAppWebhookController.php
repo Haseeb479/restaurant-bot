@@ -84,23 +84,21 @@ class WhatsAppWebhookController extends Controller
         // 3. Incoming message (MESSAGES_UPSERT)
         if ($event === 'messages_upsert' || isset($data['key']) || isset($data['message'])) {
             // ── Req 17: Controller-level Message ID Deduplication Guard ──────
-            // Check dedup here so the HTTP response can signal 'deduplicated'.
-            // The inner handleIncomingMessage also has a guard as a second fence.
             $msgData  = $data;
             if (isset($data[0]) && is_array($data[0])) {
                 $msgData = $data[0]; // Batch — check first message ID
             }
             $msgKey    = $msgData['key'] ?? $msgData['message']['key'] ?? [];
             $messageId = (string) ($msgKey['id'] ?? '');
-            if ($messageId !== '' && !\Illuminate\Support\Facades\Cache::has("wa_msg_seen_{$restaurant->id}_{$messageId}")) {
-                // Not seen yet — proceed to process
-                $this->handleIncomingMessage($restaurant, $data);
-            } elseif ($messageId !== '') {
-                Log::info("Evolution Webhook: Duplicate message event [{$messageId}] ignored (controller) for restaurant {$restaurant->name}");
-                return response()->json(['status' => 'deduplicated', 'event' => 'messages.upsert']);
-            } else {
-                $this->handleIncomingMessage($restaurant, $data);
+            if ($messageId !== '') {
+                $dedupKey = "wa_msg_seen_{$restaurant->id}_{$messageId}";
+                if (\Illuminate\Support\Facades\Cache::has($dedupKey)) {
+                    Log::info("Evolution Webhook: Duplicate message event [{$messageId}] ignored (controller) for restaurant {$restaurant->name}");
+                    return response()->json(['status' => 'deduplicated', 'event' => 'messages.upsert']);
+                }
+                \Illuminate\Support\Facades\Cache::put($dedupKey, true, now()->addMinutes(10));
             }
+            $this->handleIncomingMessage($restaurant, $data);
             return response()->json(['status' => 'processed', 'event' => 'messages.upsert']);
         }
 
@@ -169,17 +167,6 @@ class WhatsAppWebhookController extends Controller
         // Ignore status broadcasts and group chats
         if (str_contains($remoteJid, '@g.us') || $remoteJid === 'status@broadcast') {
             return;
-        }
-
-        // ── Req 17: Message ID Deduplication Guard ────────────────────────────
-        $messageId = (string) ($key['id'] ?? '');
-        if ($messageId !== '') {
-            $dedupKey = "wa_msg_seen_{$restaurant->id}_{$messageId}";
-            if (\Illuminate\Support\Facades\Cache::has($dedupKey)) {
-                Log::info("Evolution Webhook: Duplicate message event [{$messageId}] ignored for restaurant {$restaurant->name}");
-                return;
-            }
-            \Illuminate\Support\Facades\Cache::put($dedupKey, true, now()->addMinutes(10));
         }
 
         // Extract customer phone number

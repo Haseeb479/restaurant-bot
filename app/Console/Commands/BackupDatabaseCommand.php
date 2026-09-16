@@ -29,6 +29,10 @@ class BackupDatabaseCommand extends Command
 
         if ($connection === 'sqlite') {
             $dbPath = config('database.connections.sqlite.database');
+            if ($dbPath === ':memory:') {
+                $this->info("In-memory SQLite database in use; skipping file backup.");
+                return 0;
+            }
             if (File::exists($dbPath)) {
                 // For SQLite, perform a safe copy
                 $targetGz = "{$filepath}.gz";
