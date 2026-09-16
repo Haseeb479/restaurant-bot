@@ -27,21 +27,25 @@
             --table-hover-bg: #fafafa;
         }
 
+        /* ── Foodio Midnight Aurora — Admin Dark Mode Tokens ── */
         [data-theme="dark"] {
-            --sidebar-bg: #0b0f19;
-            --sidebar-hover: rgba(255, 255, 255, 0.08);
-            --sidebar-active: #6366f1;
-            --sidebar-text: #94a3b8;
+            --sidebar-bg: #0A0E18;
+            --sidebar-hover: rgba(124, 92, 252, 0.08);
+            --sidebar-active: #7C5CFC;
+            --sidebar-text: #94A3B8;
             --sidebar-text-active: #ffffff;
-            --bg-page: #0f172a;
-            --card-bg: #1e293b;
-            --border-color: #334155;
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --input-bg: #0f172a;
-            --table-header-bg: #182234;
-            --table-hover-bg: #26334d;
+            --bg-page: #080B14;
+            --card-bg: #111827;
+            --card-elevated: #151D2D;
+            --hover-bg: #192338;
+            --border-color: rgba(255, 255, 255, 0.07);
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+            --input-bg: #0A0E18;
+            --table-header-bg: #0D1220;
+            --table-hover-bg: #192338;
         }
+
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -737,7 +741,126 @@
                 gap: 8px;
             }
         }
+
+        /* ═══════════════════════════════════════════════════
+           FOODIO MIDNIGHT AURORA — Admin Dark Mode Overrides
+           ═══════════════════════════════════════════════════ */
+
+        /* HEADER */
+        [data-theme="dark"] header {
+            background: #0D1220 !important;
+            border-bottom-color: rgba(255, 255, 255, 0.07) !important;
+            box-shadow: 0 1px 0 rgba(255,255,255,0.04), 0 4px 20px rgba(0,0,0,0.3) !important;
+        }
+        [data-theme="dark"] .avatar {
+            background: linear-gradient(135deg, #7C5CFC, #38BDF8) !important;
+        }
+        [data-theme="dark"] .theme-toggle-btn:hover {
+            border-color: rgba(124, 92, 252, 0.4) !important;
+            background: #192338 !important;
+        }
+
+        /* SIDEBAR ACTIVE GLOW */
+        [data-theme="dark"] .nav-item.active {
+            background: linear-gradient(135deg, rgba(124, 92, 252, 0.25), rgba(124, 92, 252, 0.15)) !important;
+            box-shadow: 0 2px 12px rgba(124, 92, 252, 0.2), inset 0 0 0 1px rgba(124, 92, 252, 0.25) !important;
+            color: #F8FAFC !important;
+        }
+        [data-theme="dark"] .nav-category {
+            color: #475569 !important;
+        }
+
+        /* BADGES — upgrade light-only pill backgrounds */
+        [data-theme="dark"] .badge-green  { background: rgba(34, 197, 94, 0.12) !important;  color: #22C55E !important; }
+        [data-theme="dark"] .badge-red    { background: rgba(239, 68, 68, 0.12) !important;   color: #EF4444 !important; }
+        [data-theme="dark"] .badge-yellow { background: rgba(245, 158, 11, 0.12) !important;  color: #F59E0B !important; }
+        [data-theme="dark"] .badge-blue   { background: rgba(56, 189, 248, 0.15) !important;  color: #38BDF8 !important; }
+        [data-theme="dark"] .badge-gray   { background: rgba(100, 116, 139, 0.12) !important; color: #94A3B8 !important; }
+
+        /* METRIC ICONS */
+        [data-theme="dark"] .metric-icon.green  { background: rgba(34, 197, 94, 0.12) !important;  color: #22C55E !important; }
+        [data-theme="dark"] .metric-icon.blue   { background: rgba(56, 189, 248, 0.12) !important;  color: #38BDF8 !important; }
+        [data-theme="dark"] .metric-icon.orange { background: rgba(245, 158, 11, 0.12) !important;  color: #F59E0B !important; }
+        [data-theme="dark"] .metric-icon.purple { background: rgba(124, 92, 252, 0.15) !important;  color: #9B85FF !important; }
+        [data-theme="dark"] .metric-icon.red    { background: rgba(239, 68, 68, 0.12) !important;   color: #EF4444 !important; }
+
+        /* BUTTONS */
+        [data-theme="dark"] .btn-primary {
+            background: #7C5CFC !important;
+            color: #fff !important;
+            box-shadow: 0 2px 12px rgba(124, 92, 252, 0.3) !important;
+        }
+        [data-theme="dark"] .btn-primary:hover {
+            background: #6d4ef0 !important;
+            box-shadow: 0 4px 20px rgba(124, 92, 252, 0.45) !important;
+        }
+        [data-theme="dark"] .btn-secondary:hover { background: #192338 !important; }
+
+        /* FORMS */
+        [data-theme="dark"] .form-input:focus,
+        [data-theme="dark"] .form-select:focus,
+        [data-theme="dark"] .form-textarea:focus {
+            border-color: rgba(124, 92, 252, 0.6) !important;
+            box-shadow: 0 0 0 3px rgba(124, 92, 252, 0.12) !important;
+        }
+        [data-theme="dark"] input::placeholder,
+        [data-theme="dark"] textarea::placeholder {
+            color: #64748B !important;
+        }
+
+        /* CARDS */
+        [data-theme="dark"] .panel-card {
+            box-shadow: 0 4px 24px rgba(0,0,0,0.4) !important;
+        }
+        [data-theme="dark"] .metric-card {
+            box-shadow: 0 4px 24px rgba(0,0,0,0.35) !important;
+        }
+
+        /* TABLES */
+        [data-theme="dark"] .data-table td {
+            color: #CBD5E1 !important;
+        }
+        [data-theme="dark"] .data-table tbody td strong {
+            color: #F8FAFC !important;
+        }
+
+        /* MODALS & CODE */
+        [data-theme="dark"] code {
+            background: #0A0E18 !important;
+            color: #9B85FF !important;
+            border: 1px solid rgba(124, 92, 252, 0.2) !important;
+            padding: 2px 6px;
+            border-radius: 6px;
+        }
+
+        /* MOBILE BOTTOM NAV */
+        [data-theme="dark"] .mobile-bottom-nav {
+            background: rgba(10, 14, 24, 0.96) !important;
+            border-top-color: rgba(255, 255, 255, 0.07) !important;
+            box-shadow: 0 -4px 24px rgba(0,0,0,0.5) !important;
+        }
+        [data-theme="dark"] .mob-nav-item.active {
+            color: #9B85FF !important;
+            background: rgba(124, 92, 252, 0.12) !important;
+        }
+        [data-theme="dark"] .mob-badge {
+            border-color: #080B14 !important;
+        }
+
+        /* FLASH ALERTS */
+        [data-theme="dark"] .admin-alert-success {
+            background: rgba(34, 197, 94, 0.1) !important;
+            border-color: rgba(34, 197, 94, 0.3) !important;
+            color: #22C55E !important;
+        }
+        [data-theme="dark"] .admin-alert-error {
+            background: rgba(239, 68, 68, 0.1) !important;
+            border-color: rgba(239, 68, 68, 0.3) !important;
+            color: #EF4444 !important;
+        }
+
     </style>
+
 </head>
 <body>
 
@@ -895,19 +1018,20 @@
     <!-- CONTENT -->
     <main>
         @if(session('success'))
-            <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid #10b981; color: #10b981; padding: 12px 18px; border-radius: 10px; margin-bottom: 20px; font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 8px;">
+            <div class="admin-alert-success" style="background: rgba(16, 185, 129, 0.12); border: 1px solid #10b981; color: #10b981; padding: 12px 18px; border-radius: 10px; margin-bottom: 20px; font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 8px;">
                 <span>✓</span>
                 <span>{{ session('success') }}</span>
             </div>
         @endif
 
         @if($errors->any())
-            <div style="background: rgba(239, 68, 68, 0.12); border: 1px solid #ef4444; color: #ef4444; padding: 12px 18px; border-radius: 10px; margin-bottom: 20px; font-weight: 600; font-size: 13px;">
+            <div class="admin-alert-error" style="background: rgba(239, 68, 68, 0.12); border: 1px solid #ef4444; color: #ef4444; padding: 12px 18px; border-radius: 10px; margin-bottom: 20px; font-weight: 600; font-size: 13px;">
                 @foreach($errors->all() as $err)
                     <div>• {{ $err }}</div>
                 @endforeach
             </div>
         @endif
+
 
         @yield('content')
     </main>

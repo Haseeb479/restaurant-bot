@@ -51,19 +51,23 @@
             --header-bg: #ffffff;
         }
 
+        /* ── Foodio Midnight Aurora — Dark Mode Tokens ── */
         [data-theme="dark"] {
-            --sidebar-bg: #0b0f19;
-            --sidebar-hover: rgba(255, 255, 255, 0.08);
-            --sidebar-active: #6366f1;
-            --sidebar-text: #94a3b8;
+            --sidebar-bg: #0A0E18;
+            --sidebar-hover: rgba(124, 92, 252, 0.08);
+            --sidebar-active: #7C5CFC;
+            --sidebar-text: #94A3B8;
             --sidebar-text-active: #ffffff;
-            --main-bg: #0f172a;
-            --card-bg: #1e293b;
-            --border-color: #334155;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --input-bg: #0f172a;
-            --header-bg: #1e293b;
+            --main-bg: #080B14;
+            --card-bg: #111827;
+            --card-elevated: #151D2D;
+            --hover-bg: #192338;
+            --border-color: rgba(255, 255, 255, 0.07);
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
+            --text-faint: #64748B;
+            --input-bg: #0A0E18;
+            --header-bg: #0D1220;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -79,23 +83,57 @@
             transition: background-color 0.2s ease, color 0.2s ease;
         }
 
-        /* ── Dark Mode Element Overrides ────────────────── */
+        /* ═══════════════════════════════════════════════════
+           FOODIO MIDNIGHT AURORA — Premium Dark Mode Overrides
+           ═══════════════════════════════════════════════════ */
+
+        /* HEADER */
         [data-theme="dark"] header {
-            background: var(--header-bg) !important;
-            border-bottom: 1px solid var(--border-color) !important;
+            background: #0D1220 !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+            box-shadow: 0 1px 0 rgba(255,255,255,0.04), 0 4px 20px rgba(0,0,0,0.3) !important;
         }
         [data-theme="dark"] .header-title h1,
         [data-theme="dark"] .user-name {
-            color: #f8fafc !important;
+            color: #F8FAFC !important;
         }
         [data-theme="dark"] .header-title p {
-            color: #94a3b8 !important;
+            color: #94A3B8 !important;
         }
         [data-theme="dark"] .date-pill {
-            background: #1e293b !important;
-            border-color: #334155 !important;
-            color: #f8fafc !important;
+            background: #151D2D !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+            color: #F8FAFC !important;
         }
+        [data-theme="dark"] .status-online-pill {
+            background: rgba(34, 197, 94, 0.1) !important;
+            border-color: rgba(34, 197, 94, 0.25) !important;
+            color: #22C55E !important;
+        }
+        [data-theme="dark"] .status-dot {
+            background: #22C55E !important;
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2) !important;
+        }
+        [data-theme="dark"] #notif-bell-wrap {
+            background: #151D2D !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+            color: #F8FAFC !important;
+        }
+        [data-theme="dark"] .theme-toggle-btn {
+            background: #151D2D !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+            color: #F8FAFC !important;
+        }
+        [data-theme="dark"] .theme-toggle-btn:hover {
+            background: #192338 !important;
+            border-color: rgba(124, 92, 252, 0.4) !important;
+        }
+        [data-theme="dark"] .avatar {
+            background: linear-gradient(135deg, #7C5CFC, #38BDF8) !important;
+            color: #fff !important;
+        }
+
+        /* CARDS & SURFACES */
         [data-theme="dark"] .stat-card,
         [data-theme="dark"] .panel-card,
         [data-theme="dark"] .card,
@@ -108,200 +146,14 @@
         [data-theme="dark"] .orders-col,
         [data-theme="dark"] .table-card,
         [data-theme="dark"] .bg-white {
-            background-color: var(--card-bg) !important;
-            border-color: var(--border-color) !important;
-            color: var(--text-main) !important;
+            background-color: #111827 !important;
+            border-color: rgba(255, 255, 255, 0.07) !important;
+            color: #F8FAFC !important;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.4) !important;
         }
-        [data-theme="dark"] .stat-val,
-        [data-theme="dark"] .panel-title,
-        [data-theme="dark"] .order-detail-title h3,
-        [data-theme="dark"] h1, [data-theme="dark"] h2, [data-theme="dark"] h3, [data-theme="dark"] h4,
-        [data-theme="dark"] strong {
-            color: #f8fafc !important;
-        }
-        [data-theme="dark"] .stat-label,
-        [data-theme="dark"] .stat-footer,
-        [data-theme="dark"] .info-col-label,
-        [data-theme="dark"] .text-muted,
-        [data-theme="dark"] .stat-sub {
-            color: #94a3b8 !important;
-        }
-        [data-theme="dark"] .panel-header {
-            border-bottom-color: #334155 !important;
-        }
-        [data-theme="dark"] .stat-icon-wrap.purple { background: rgba(124, 58, 237, 0.2) !important; color: #a78bfa !important; }
-        [data-theme="dark"] .stat-icon-wrap.green  { background: rgba(22, 163, 74, 0.2) !important; color: #4ade80 !important; }
-        [data-theme="dark"] .stat-icon-wrap.blue   { background: rgba(2, 132, 199, 0.2) !important; color: #38bdf8 !important; }
-        [data-theme="dark"] .stat-icon-wrap.orange { background: rgba(234, 88, 12, 0.2) !important; color: #fb923c !important; }
-        [data-theme="dark"] .stat-icon-wrap.teal   { background: rgba(13, 148, 136, 0.2) !important; color: #2dd4bf !important; }
-        [data-theme="dark"] .stat-growth { background: rgba(22, 163, 74, 0.15) !important; color: #4ade80 !important; }
-        [data-theme="dark"] .stat-link { color: #818cf8 !important; }
-        [data-theme="dark"] .badge-count { background: rgba(124, 58, 237, 0.2) !important; color: #a78bfa !important; }
-
-        /* Route map graphic */
-        [data-theme="dark"] .route-map-preview {
-            background: linear-gradient(135deg, #131d2e 0%, #1a2436 50%, #151d2c 100%) !important;
-            border-color: #334155 !important;
-        }
-        [data-theme="dark"] .map-distance-badge {
-            background: #0f172a !important;
-            color: #f8fafc !important;
-            border-color: #334155 !important;
-        }
-        [data-theme="dark"] .route-line-svg path {
-            stroke: #6366f1 !important;
-        }
-
-        /* Customer & Order details */
-        [data-theme="dark"] .customer-info-box {
-            background: #131d2e !important;
-            border-color: #334155 !important;
-        }
-        [data-theme="dark"] .info-col-label { color: #818cf8 !important; }
-        [data-theme="dark"] .info-col-val { color: #f8fafc !important; }
-        [data-theme="dark"] .info-col-sub { color: #94a3b8 !important; }
-
-        /* Assigned Rider Card */
-        [data-theme="dark"] .assigned-rider-box {
-            background: #131d2e !important;
-            border-color: #334155 !important;
-        }
-        [data-theme="dark"] .rider-name-status h4 span { color: #f8fafc !important; }
-        [data-theme="dark"] .rider-phone-sub { color: #94a3b8 !important; }
-        [data-theme="dark"] .rider-avatar {
-            background: #1e293b !important;
-            border: 1px solid #334155 !important;
-        }
-        [data-theme="dark"] .btn-call-rider {
-            background: #1e293b !important;
-            border-color: #334155 !important;
-            color: #10b981 !important;
-        }
-
-        /* Order items & totals */
-        [data-theme="dark"] .order-item-qty-name { color: #cbd5e1 !important; }
-        [data-theme="dark"] .order-item-qty-badge { color: #818cf8 !important; }
-        [data-theme="dark"] .order-item-price { color: #f8fafc !important; }
-        [data-theme="dark"] .order-bill-divider { background: #334155 !important; }
-        [data-theme="dark"] .order-total-row { color: #f8fafc !important; }
-        [data-theme="dark"] .order-total-row span:last-child { color: #818cf8 !important; }
-
-        /* Live Orders List */
-        [data-theme="dark"] .live-order-item {
-            background: #1e293b !important;
-            border-color: #334155 !important;
-        }
-        [data-theme="dark"] .live-order-item:hover {
-            background: #26354a !important;
-            border-color: #6366f1 !important;
-        }
-        [data-theme="dark"] .live-order-item.active {
-            background: #1a2536 !important;
-            border-color: #6366f1 !important;
-            box-shadow: 0 0 0 1px #6366f1, inset 0 0 0 1px #6366f1 !important;
-        }
-        [data-theme="dark"] .order-code-text { color: #f8fafc !important; }
-        [data-theme="dark"] .order-time-text,
-        [data-theme="dark"] .order-customer-text { color: #94a3b8 !important; }
-        [data-theme="dark"] .order-price-bold { color: #818cf8 !important; }
-        [data-theme="dark"] .wa-avatar-box {
-            background: rgba(22, 163, 74, 0.2) !important;
-            color: #4ade80 !important;
-        }
-
-        /* Riders Column */
-        [data-theme="dark"] .rider-item-card {
-            background: #131d2e !important;
-            border-color: #334155 !important;
-        }
-        [data-theme="dark"] .rider-pic { background: #1e293b !important; }
-        [data-theme="dark"] .rider-meta-left > div > div:first-child { color: #f8fafc !important; }
-        [data-theme="dark"] .rider-meta-left > div > div:last-child { color: #94a3b8 !important; }
-        [data-theme="dark"] .rider-tag.delivery { background: rgba(22, 163, 74, 0.2) !important; color: #4ade80 !important; }
-        [data-theme="dark"] .rider-tag.offline { background: rgba(100, 116, 139, 0.2) !important; color: #94a3b8 !important; }
-
-        /* Status Pills */
-        [data-theme="dark"] .status-pill.pending   { background: rgba(245, 158, 11, 0.2) !important; color: #fbbf24 !important; }
-        [data-theme="dark"] .status-pill.confirmed { background: rgba(22, 163, 74, 0.2) !important; color: #4ade80 !important; }
-        [data-theme="dark"] .status-pill.preparing { background: rgba(124, 58, 237, 0.2) !important; color: #a78bfa !important; }
-        [data-theme="dark"] .status-pill.out_for_delivery { background: rgba(2, 132, 199, 0.2) !important; color: #38bdf8 !important; }
-        [data-theme="dark"] .status-pill.delivered { background: rgba(100, 116, 139, 0.2) !important; color: #cbd5e1 !important; }
-        [data-theme="dark"] .status-pill.cancelled { background: rgba(239, 68, 68, 0.2) !important; color: #f87171 !important; }
-
-        /* Forms, inputs, tables, modals */
-        [data-theme="dark"] input,
-        [data-theme="dark"] select,
-        [data-theme="dark"] textarea,
-        [data-theme="dark"] .form-input,
-        [data-theme="dark"] .form-control,
-        [data-theme="dark"] .form-select {
-            background-color: #0f172a !important;
-            color: #f8fafc !important;
-            border-color: #334155 !important;
-        }
-        [data-theme="dark"] input::placeholder,
-        [data-theme="dark"] textarea::placeholder,
-        [data-theme="dark"] .form-input::placeholder {
-            color: #64748b !important;
-        }
-        [data-theme="dark"] .form-label,
-        [data-theme="dark"] label {
-            color: #cbd5e1 !important;
-        }
-        [data-theme="dark"] table th {
-            background-color: #182234 !important;
-            color: #94a3b8 !important;
-            border-color: #334155 !important;
-        }
-        [data-theme="dark"] table td {
-            border-color: #334155 !important;
-            color: #f8fafc !important;
-        }
-        [data-theme="dark"] table tr:hover {
-            background-color: #26334d !important;
-        }
-        [data-theme="dark"] .btn-sub-action,
-        [data-theme="dark"] .btn-action-secondary,
-        [data-theme="dark"] .btn-secondary,
-        [data-theme="dark"] .btn-light,
-        [data-theme="dark"] .btn-outline {
-            background: #182234 !important;
-            border-color: #334155 !important;
-            color: #f8fafc !important;
-        }
-        [data-theme="dark"] .btn-sub-action:hover,
-        [data-theme="dark"] .btn-action-secondary:hover {
-            background: #26354a !important;
-            border-color: #6366f1 !important;
-        }
-        [data-theme="dark"] #notif-bell-wrap,
-        [data-theme="dark"] .theme-toggle-btn {
-            background: #1e293b !important;
-            border-color: #334155 !important;
-            color: #f8fafc !important;
-        }
-        [data-theme="dark"] .theme-toggle-btn:hover {
-            background: #2d3d54 !important;
-        }
-        [data-theme="dark"] #dispatchModal > div,
-        [data-theme="dark"] .modal-box,
-        [data-theme="dark"] .modal-content {
-            background: #1e293b !important;
-            border-color: #334155 !important;
-            color: #f8fafc !important;
-        }
-        [data-theme="dark"] .modal-close {
-            color: #94a3b8 !important;
-        }
-        [data-theme="dark"] .modal-close:hover {
-            color: #f8fafc !important;
-        }
-
-        /* Other Pages (Menu, Settings, WhatsApp Connect, Customers, Reports, History) */
         [data-theme="dark"] .card-panel,
         [data-theme="dark"] .status-banner,
         [data-theme="dark"] .metric-card,
-        [data-theme="dark"] .panel-card,
         [data-theme="dark"] .menu-card,
         [data-theme="dark"] .menu-item-box,
         [data-theme="dark"] .menu-item-card,
@@ -316,149 +168,354 @@
         [data-theme="dark"] .chart-card,
         [data-theme="dark"] .metric-box,
         [data-theme="dark"] .qr-box-container {
-            background: #1e293b !important;
-            border-color: #334155 !important;
-            color: #f8fafc !important;
+            background: #111827 !important;
+            border-color: rgba(255, 255, 255, 0.07) !important;
+            color: #F8FAFC !important;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.35) !important;
         }
 
-        [data-theme="dark"] .card-panel-header,
-        [data-theme="dark"] .panel-header {
-            border-bottom-color: #334155 !important;
+        /* PANEL HEADERS */
+        [data-theme="dark"] .panel-header,
+        [data-theme="dark"] .card-panel-header {
+            border-bottom-color: rgba(255, 255, 255, 0.07) !important;
         }
+        [data-theme="dark"] .panel-title h3,
         [data-theme="dark"] .card-panel-header h3,
+        [data-theme="dark"] .stat-val,
+        [data-theme="dark"] .order-detail-title h3,
         [data-theme="dark"] .status-banner-left h3,
         [data-theme="dark"] .step-text h4,
         [data-theme="dark"] .metric-value {
-            color: #f8fafc !important;
+            color: #F8FAFC !important;
         }
+        [data-theme="dark"] .panel-title p,
+        [data-theme="dark"] .stat-label,
+        [data-theme="dark"] .stat-footer,
+        [data-theme="dark"] .stat-sub,
+        [data-theme="dark"] .info-col-label,
+        [data-theme="dark"] .text-muted,
         [data-theme="dark"] .card-panel-header p,
         [data-theme="dark"] .status-banner-left p,
         [data-theme="dark"] .step-text p,
         [data-theme="dark"] .metric-title,
-        [data-theme="dark"] .metric-footer,
-        [data-theme="dark"] .form-hint {
-            color: #94a3b8 !important;
+        [data-theme="dark"] .form-hint,
+        [data-theme="dark"] .settings-desc,
+        [data-theme="dark"] .setting-desc,
+        [data-theme="dark"] .donut-legend-item {
+            color: #94A3B8 !important;
+        }
+        [data-theme="dark"] h1, [data-theme="dark"] h2, [data-theme="dark"] h3,
+        [data-theme="dark"] h4, [data-theme="dark"] strong {
+            color: #F8FAFC !important;
         }
         [data-theme="dark"] .metric-footer {
-            border-top-color: #334155 !important;
+            color: #94A3B8 !important;
+            border-top-color: rgba(255, 255, 255, 0.07) !important;
         }
 
-        /* Metric Icon Boxes */
-        [data-theme="dark"] .metric-icon-box.blue { background: rgba(2, 132, 199, 0.2) !important; color: #38bdf8 !important; }
-        [data-theme="dark"] .metric-icon-box.green { background: rgba(22, 163, 74, 0.2) !important; color: #4ade80 !important; }
-        [data-theme="dark"] .metric-icon-box.purple { background: rgba(124, 58, 237, 0.2) !important; color: #a78bfa !important; }
-        [data-theme="dark"] .sub-badge.green { background: rgba(22, 163, 74, 0.15) !important; color: #4ade80 !important; }
-        [data-theme="dark"] .sub-badge.blue  { background: rgba(2, 132, 199, 0.15) !important; color: #38bdf8 !important; }
+        /* KPI / STAT ICON CONTAINERS */
+        [data-theme="dark"] .stat-icon-wrap.purple { background: rgba(124, 92, 252, 0.15) !important; color: #9B85FF !important; }
+        [data-theme="dark"] .stat-icon-wrap.green  { background: rgba(34, 197, 94, 0.12) !important;  color: #22C55E !important; }
+        [data-theme="dark"] .stat-icon-wrap.blue   { background: rgba(56, 189, 248, 0.12) !important;  color: #38BDF8 !important; }
+        [data-theme="dark"] .stat-icon-wrap.orange { background: rgba(245, 158, 11, 0.12) !important;  color: #F59E0B !important; }
+        [data-theme="dark"] .stat-icon-wrap.teal   { background: rgba(34, 197, 94, 0.12) !important;   color: #22C55E !important; }
+        [data-theme="dark"] .stat-growth  { background: rgba(34, 197, 94, 0.12) !important; color: #22C55E !important; }
+        [data-theme="dark"] .stat-link    { color: #9B85FF !important; }
+        [data-theme="dark"] .badge-count  { background: rgba(124, 92, 252, 0.15) !important; color: #9B85FF !important; }
 
-        /* QR Code & Guide Steps */
+        /* METRIC ICON BOXES */
+        [data-theme="dark"] .metric-icon-box.blue   { background: rgba(56, 189, 248, 0.12) !important;  color: #38BDF8 !important; }
+        [data-theme="dark"] .metric-icon-box.green  { background: rgba(34, 197, 94, 0.12) !important;   color: #22C55E !important; }
+        [data-theme="dark"] .metric-icon-box.purple { background: rgba(124, 92, 252, 0.15) !important;  color: #9B85FF !important; }
+        [data-theme="dark"] .metric-icon-box.orange { background: rgba(245, 158, 11, 0.12) !important;  color: #F59E0B !important; }
+        [data-theme="dark"] .metric-icon-box.red    { background: rgba(239, 68, 68, 0.12) !important;   color: #EF4444 !important; }
+        [data-theme="dark"] .sub-badge.green  { background: rgba(34, 197, 94, 0.12) !important;  color: #22C55E !important; }
+        [data-theme="dark"] .sub-badge.blue   { background: rgba(56, 189, 248, 0.12) !important; color: #38BDF8 !important; }
+        [data-theme="dark"] .sub-badge.orange { background: rgba(245, 158, 11, 0.12) !important; color: #F59E0B !important; }
+        [data-theme="dark"] .sub-badge.red    { background: rgba(239, 68, 68, 0.12) !important;  color: #EF4444 !important; }
+
+        /* ROUTE MAP */
+        [data-theme="dark"] .route-map-preview {
+            background: linear-gradient(135deg, #0D1220 0%, #111827 50%, #0A0E18 100%) !important;
+            border-color: rgba(255, 255, 255, 0.07) !important;
+        }
+        [data-theme="dark"] .map-distance-badge {
+            background: #0A0E18 !important;
+            color: #F8FAFC !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+        }
+        [data-theme="dark"] .route-line-svg path { stroke: #7C5CFC !important; }
+
+        /* CUSTOMER & ORDER DETAILS */
+        [data-theme="dark"] .customer-info-box {
+            background: #0D1220 !important;
+            border-color: rgba(255, 255, 255, 0.07) !important;
+        }
+        [data-theme="dark"] .info-col-label { color: #9B85FF !important; }
+        [data-theme="dark"] .info-col-val   { color: #F8FAFC !important; }
+        [data-theme="dark"] .info-col-sub   { color: #94A3B8 !important; }
+
+        /* ASSIGNED RIDER CARD */
+        [data-theme="dark"] .assigned-rider-box {
+            background: #0D1220 !important;
+            border-color: rgba(255, 255, 255, 0.07) !important;
+        }
+        [data-theme="dark"] .rider-name-status h4 span { color: #F8FAFC !important; }
+        [data-theme="dark"] .rider-phone-sub { color: #94A3B8 !important; }
+        [data-theme="dark"] .rider-avatar {
+            background: #151D2D !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }
+        [data-theme="dark"] .btn-call-rider {
+            background: #151D2D !important;
+            border-color: rgba(34, 197, 94, 0.3) !important;
+            color: #22C55E !important;
+        }
+
+        /* ORDER ITEMS & TOTALS */
+        [data-theme="dark"] .order-item-qty-name  { color: #CBD5E1 !important; }
+        [data-theme="dark"] .order-item-qty-badge { color: #9B85FF !important; }
+        [data-theme="dark"] .order-item-price     { color: #F8FAFC !important; }
+        [data-theme="dark"] .order-bill-divider   { background: rgba(255, 255, 255, 0.07) !important; }
+        [data-theme="dark"] .order-total-row      { color: #F8FAFC !important; }
+        [data-theme="dark"] .order-total-row span:last-child { color: #9B85FF !important; }
+
+        /* LIVE ORDERS LIST */
+        [data-theme="dark"] .live-order-item {
+            background: #111827 !important;
+            border-color: rgba(255, 255, 255, 0.07) !important;
+            transition: all 0.15s ease !important;
+        }
+        [data-theme="dark"] .live-order-item:hover {
+            background: #151D2D !important;
+            border-color: rgba(124, 92, 252, 0.3) !important;
+        }
+        [data-theme="dark"] .live-order-item.active {
+            background: #151D2D !important;
+            border-color: rgba(124, 92, 252, 0.5) !important;
+            box-shadow: 0 0 0 1px rgba(124, 92, 252, 0.35), inset 0 0 20px rgba(124, 92, 252, 0.06) !important;
+        }
+        [data-theme="dark"] .order-code-text     { color: #F8FAFC !important; }
+        [data-theme="dark"] .order-time-text,
+        [data-theme="dark"] .order-customer-text { color: #94A3B8 !important; }
+        [data-theme="dark"] .order-price-bold    { color: #9B85FF !important; }
+        [data-theme="dark"] .wa-avatar-box {
+            background: rgba(34, 197, 94, 0.12) !important;
+            color: #22C55E !important;
+        }
+
+        /* RIDERS COLUMN */
+        [data-theme="dark"] .rider-item-card {
+            background: #0D1220 !important;
+            border-color: rgba(255, 255, 255, 0.07) !important;
+        }
+        [data-theme="dark"] .rider-pic { background: #151D2D !important; }
+        [data-theme="dark"] .rider-meta-left > div > div:first-child { color: #F8FAFC !important; }
+        [data-theme="dark"] .rider-meta-left > div > div:last-child  { color: #94A3B8 !important; }
+        [data-theme="dark"] .rider-tag.delivery { background: rgba(34, 197, 94, 0.12) !important;  color: #22C55E !important; }
+        [data-theme="dark"] .rider-tag.offline  { background: rgba(100, 116, 139, 0.12) !important; color: #94A3B8 !important; }
+
+        /* STATUS PILLS */
+        [data-theme="dark"] .status-pill.pending          { background: rgba(245, 158, 11, 0.15) !important; color: #F59E0B !important; }
+        [data-theme="dark"] .status-pill.confirmed        { background: rgba(34, 197, 94, 0.12) !important;  color: #22C55E !important; }
+        [data-theme="dark"] .status-pill.preparing        { background: rgba(124, 92, 252, 0.15) !important; color: #9B85FF !important; }
+        [data-theme="dark"] .status-pill.out_for_delivery { background: rgba(56, 189, 248, 0.15) !important; color: #38BDF8 !important; }
+        [data-theme="dark"] .status-pill.delivered        { background: rgba(100, 116, 139, 0.12) !important; color: #94A3B8 !important; }
+        [data-theme="dark"] .status-pill.cancelled        { background: rgba(239, 68, 68, 0.12) !important;  color: #EF4444 !important; }
+
+        /* ORDER STATUS BADGES */
+        [data-theme="dark"] .badge-status.pending          { background: rgba(245, 158, 11, 0.15) !important; color: #F59E0B !important; }
+        [data-theme="dark"] .badge-status.confirmed        { background: rgba(56, 189, 248, 0.15) !important;  color: #38BDF8 !important; }
+        [data-theme="dark"] .badge-status.preparing        { background: rgba(124, 92, 252, 0.15) !important; color: #9B85FF !important; }
+        [data-theme="dark"] .badge-status.out_for_delivery { background: rgba(56, 189, 248, 0.15) !important;  color: #38BDF8 !important; }
+        [data-theme="dark"] .badge-status.delivered        { background: rgba(34, 197, 94, 0.12) !important;   color: #22C55E !important; }
+        [data-theme="dark"] .badge-status.cancelled        { background: rgba(239, 68, 68, 0.12) !important;   color: #EF4444 !important; }
+
+        /* FORMS, INPUTS, SELECTS */
+        [data-theme="dark"] input,
+        [data-theme="dark"] select,
+        [data-theme="dark"] textarea,
+        [data-theme="dark"] .form-input,
+        [data-theme="dark"] .form-control,
+        [data-theme="dark"] .form-select {
+            background-color: #0A0E18 !important;
+            color: #F8FAFC !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+        }
+        [data-theme="dark"] input:focus,
+        [data-theme="dark"] select:focus,
+        [data-theme="dark"] textarea:focus {
+            border-color: rgba(124, 92, 252, 0.6) !important;
+            box-shadow: 0 0 0 3px rgba(124, 92, 252, 0.12) !important;
+        }
+        [data-theme="dark"] input::placeholder,
+        [data-theme="dark"] textarea::placeholder,
+        [data-theme="dark"] .form-input::placeholder {
+            color: #64748B !important;
+        }
+        [data-theme="dark"] .form-label,
+        [data-theme="dark"] label {
+            color: #CBD5E1 !important;
+        }
+
+        /* TABLES */
+        [data-theme="dark"] .data-table,
+        [data-theme="dark"] .custom-table {
+            color: #F8FAFC !important;
+        }
+        [data-theme="dark"] .data-table thead th,
+        [data-theme="dark"] .custom-table thead th,
+        [data-theme="dark"] table thead th,
+        [data-theme="dark"] table th {
+            background-color: #0D1220 !important;
+            color: #64748B !important;
+            border-color: rgba(255, 255, 255, 0.07) !important;
+        }
+        [data-theme="dark"] .data-table tbody td,
+        [data-theme="dark"] .custom-table tbody td,
+        [data-theme="dark"] table tbody td,
+        [data-theme="dark"] table td {
+            border-color: rgba(255, 255, 255, 0.05) !important;
+            color: #CBD5E1 !important;
+        }
+        [data-theme="dark"] .data-table tbody td strong,
+        [data-theme="dark"] .custom-table tbody td strong,
+        [data-theme="dark"] table tbody td strong {
+            color: #F8FAFC !important;
+        }
+        [data-theme="dark"] .data-table tbody tr:hover td,
+        [data-theme="dark"] .custom-table tbody tr:hover td,
+        [data-theme="dark"] table tbody tr:hover td,
+        [data-theme="dark"] table tr:hover {
+            background-color: #192338 !important;
+        }
+
+        /* CODE BLOCKS */
+        [data-theme="dark"] code {
+            background: #0A0E18 !important;
+            color: #9B85FF !important;
+            padding: 2px 6px;
+            border-radius: 6px;
+            border: 1px solid rgba(124, 92, 252, 0.2) !important;
+        }
+
+        /* BUTTONS */
+        [data-theme="dark"] .btn-primary {
+            background: #7C5CFC !important;
+            border-color: #7C5CFC !important;
+            color: #fff !important;
+            box-shadow: 0 2px 12px rgba(124, 92, 252, 0.3) !important;
+        }
+        [data-theme="dark"] .btn-primary:hover {
+            background: #6d4ef0 !important;
+            box-shadow: 0 4px 20px rgba(124, 92, 252, 0.45) !important;
+        }
+        [data-theme="dark"] .btn-sub-action,
+        [data-theme="dark"] .btn-action-secondary,
+        [data-theme="dark"] .btn-secondary,
+        [data-theme="dark"] .btn-light,
+        [data-theme="dark"] .btn-outline {
+            background: #151D2D !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+            color: #F8FAFC !important;
+        }
+        [data-theme="dark"] .btn-sub-action:hover,
+        [data-theme="dark"] .btn-action-secondary:hover,
+        [data-theme="dark"] .btn-secondary:hover {
+            background: #192338 !important;
+            border-color: rgba(124, 92, 252, 0.35) !important;
+        }
+
+        /* MODALS & DIALOGS */
+        [data-theme="dark"] #dispatchModal > div,
+        [data-theme="dark"] .modal-box {
+            background: #111827 !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+            color: #F8FAFC !important;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.65) !important;
+        }
+        [data-theme="dark"] div[id^="modal-"] > div {
+            background: #111827 !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            color: #F8FAFC !important;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.65) !important;
+        }
+        [data-theme="dark"] .modal-close       { color: #94A3B8 !important; }
+        [data-theme="dark"] .modal-close:hover { color: #F8FAFC !important; }
+
+        /* CATEGORY PILLS */
+        [data-theme="dark"] .cat-pill {
+            background: #151D2D !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+            color: #94A3B8 !important;
+        }
+        [data-theme="dark"] .cat-pill.active-pill,
+        [data-theme="dark"] .cat-pill.active {
+            background: #7C5CFC !important;
+            color: #ffffff !important;
+            border-color: #7C5CFC !important;
+            box-shadow: 0 2px 12px rgba(124, 92, 252, 0.3) !important;
+        }
+        [data-theme="dark"] .item-disabled { background: #0D1220 !important; }
+        [data-theme="dark"] .toggle-off    { background: #151D2D !important; color: #64748B !important; }
+
+        /* DONUT CHART */
+        [data-theme="dark"] .donut-circle-wrap svg path:first-child { stroke: rgba(255,255,255,0.06) !important; }
+        [data-theme="dark"] .donut-center-num { color: #F8FAFC !important; }
+        [data-theme="dark"] .legend-name      { color: #CBD5E1 !important; }
+
+        /* QR BOX & GUIDE STEPS */
         [data-theme="dark"] .qr-box {
-            background: #131d2e !important;
-            border-color: #334155 !important;
+            background: #0D1220 !important;
+            border-color: rgba(255, 255, 255, 0.07) !important;
         }
         [data-theme="dark"] .step-num {
-            background: #334155 !important;
-            color: #f8fafc !important;
+            background: #151D2D !important;
+            color: #F8FAFC !important;
         }
         [data-theme="dark"] div[style*="background: #ecfdf5"],
         [data-theme="dark"] div[style*="background:#ecfdf5"],
         [data-theme="dark"] div[style*="background: #f0fdf4"],
         [data-theme="dark"] div[style*="background:#f0fdf4"] {
-            background: rgba(22, 163, 74, 0.15) !important;
-            border-color: rgba(22, 163, 74, 0.3) !important;
-            color: #4ade80 !important;
+            background: rgba(34, 197, 94, 0.1) !important;
+            border-color: rgba(34, 197, 94, 0.25) !important;
+            color: #22C55E !important;
         }
 
-        /* Settings Info Rows */
+        /* SETTINGS INFO ROWS */
         [data-theme="dark"] .info-row,
-        [data-theme="dark"] .detail-row {
-            border-color: #334155 !important;
-        }
-        [data-theme="dark"] .info-label { color: #94a3b8 !important; }
-        [data-theme="dark"] .info-value { color: #f8fafc !important; }
+        [data-theme="dark"] .detail-row   { border-color: rgba(255, 255, 255, 0.07) !important; }
+        [data-theme="dark"] .info-label   { color: #94A3B8 !important; }
+        [data-theme="dark"] .info-value   { color: #F8FAFC !important; }
 
-        /* Data Tables */
-        [data-theme="dark"] .data-table {
-            color: #f8fafc !important;
+        /* FLASH ALERTS */
+        [data-theme="dark"] .flash-success-banner {
+            background: rgba(34, 197, 94, 0.1) !important;
+            border-color: rgba(34, 197, 94, 0.3) !important;
+            color: #22C55E !important;
         }
-        [data-theme="dark"] .data-table thead th,
-        [data-theme="dark"] table thead th {
-            background-color: #182234 !important;
-            color: #94a3b8 !important;
-            border-color: #334155 !important;
+        [data-theme="dark"] .bot-alert-banner {
+            background: rgba(245, 158, 11, 0.1) !important;
+            border-color: rgba(245, 158, 11, 0.25) !important;
+            color: #F59E0B !important;
         }
-        [data-theme="dark"] .data-table tbody td,
-        [data-theme="dark"] table tbody td {
-            border-color: #334155 !important;
-            color: #cbd5e1 !important;
-        }
-        [data-theme="dark"] .data-table tbody td strong,
-        [data-theme="dark"] table tbody td strong {
-            color: #f8fafc !important;
-        }
-        [data-theme="dark"] .data-table tbody tr:hover,
-        [data-theme="dark"] table tbody tr:hover {
-            background-color: #26334d !important;
-        }
-        [data-theme="dark"] code {
-            background: #131d2e !important;
-            color: #818cf8 !important;
-            padding: 2px 6px;
-            border-radius: 6px;
-            border: 1px solid #334155;
+        [data-theme="dark"] .bot-alert-banner a {
+            background: #F59E0B !important;
+            color: #080B14 !important;
         }
 
-        /* Modals & Dialogs */
-        [data-theme="dark"] div[id^="modal-"] > div {
-            background: #1e293b !important;
-            border: 1px solid #334155 !important;
-            color: #f8fafc !important;
-        }
-
-        /* Category pills & badges */
-        [data-theme="dark"] .cat-pill {
-            background: #182234 !important;
-            border-color: #334155 !important;
-            color: #94a3b8 !important;
-        }
-        [data-theme="dark"] .cat-pill.active-pill,
-        [data-theme="dark"] .cat-pill.active {
-            background: #4f46e5 !important;
-            color: #ffffff !important;
-            border-color: #4f46e5 !important;
-        }
-        [data-theme="dark"] .item-disabled {
-            background: #131d2e !important;
-        }
-        [data-theme="dark"] .toggle-off {
-            background: #334155 !important;
-            color: #94a3b8 !important;
-        }
-        [data-theme="dark"] .donut-circle-wrap svg path:first-child {
-            stroke: #334155 !important;
-        }
-        [data-theme="dark"] .donut-center-num {
-            color: #f8fafc !important;
-        }
-        [data-theme="dark"] .donut-legend-item,
-        [data-theme="dark"] .settings-desc,
-        [data-theme="dark"] .setting-desc {
-            color: #94a3b8 !important;
-        }
-        [data-theme="dark"] .legend-name {
-            color: #cbd5e1 !important;
-        }
-
-        /* Pagination in dark mode */
+        /* PAGINATION */
         [data-theme="dark"] .pagination a,
         [data-theme="dark"] .pagination span {
-            background: #1e293b !important;
-            border-color: #334155 !important;
-            color: #94a3b8 !important;
+            background: #151D2D !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+            color: #94A3B8 !important;
         }
         [data-theme="dark"] .pagination .active span {
-            background: #4f46e5 !important;
+            background: #7C5CFC !important;
             color: #ffffff !important;
-            border-color: #4f46e5 !important;
+            border-color: #7C5CFC !important;
+            box-shadow: 0 2px 12px rgba(124, 92, 252, 0.3) !important;
         }
 
         /* SIDEBAR */
@@ -473,7 +530,7 @@
             left: 0;
             bottom: 0;
             z-index: 100;
-            border-right: 1px solid #1e293b;
+            border-right: 1px solid var(--border-color);
             overflow-y: auto;
         }
 
@@ -548,7 +605,7 @@
         .nav-item.active {
             background: var(--sidebar-active);
             color: var(--sidebar-text-active);
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+            box-shadow: 0 4px 14px rgba(124, 92, 252, 0.35);
         }
 
         .nav-item .icon {
@@ -681,9 +738,9 @@
         }
 
         [data-theme="dark"] .mobile-bottom-nav {
-            background: rgba(15, 23, 42, 0.94);
-            border-top-color: var(--border-color);
-            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
+            background: rgba(10, 14, 24, 0.96);
+            border-top-color: rgba(255, 255, 255, 0.07);
+            box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.5);
         }
 
         .mob-nav-item {
@@ -714,8 +771,8 @@
         }
 
         [data-theme="dark"] .mob-nav-item.active {
-            color: #818cf8;
-            background: rgba(99, 102, 241, 0.15);
+            color: #9B85FF;
+            background: rgba(124, 92, 252, 0.12);
         }
 
         .mob-badge {
@@ -733,7 +790,7 @@
             border: 1.5px solid #fff;
         }
         [data-theme="dark"] .mob-badge {
-            border-color: #0f172a;
+            border-color: #080B14;
         }
 
         .status-online-pill {
@@ -1105,28 +1162,28 @@
     <div style="padding: 20px 18px 14px; border-bottom: 1px solid rgba(255,255,255,0.06);">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
             <div style="display: flex; align-items: center; gap: 12px;">
-                <div style="width: 38px; height: 38px; border-radius: 12px; background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.4); display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                <div style="width: 38px; height: 38px; border-radius: 12px; background: rgba(124, 92, 252, 0.18); border: 1px solid rgba(124, 92, 252, 0.35); display: flex; align-items: center; justify-content: center; font-size: 20px;">
                     🤖
                 </div>
                 <div>
-                    <h2 style="font-size: 16px; font-weight: 800; color: #fff; letter-spacing: -0.3px;">RestoBot</h2>
-                    <p style="font-size: 11px; color: #94a3b8;">WhatsApp Ordering System</p>
+                    <h2 style="font-size: 16px; font-weight: 800; color: #fff; letter-spacing: -0.3px;">Foodio</h2>
+                    <p style="font-size: 11px; color: #64748B;">WhatsApp Ordering System</p>
                 </div>
             </div>
             <button type="button" class="sidebar-close-btn" onclick="toggleOwnerSidebar()" title="Close menu">✕</button>
         </div>
 
-        <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(51, 65, 85, 0.6); padding: 8px 12px; border-radius: 12px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(8, 11, 20, 0.7); border: 1px solid rgba(255,255,255,0.08); padding: 8px 12px; border-radius: 12px;">
             <div style="display: flex; align-items: center; gap: 10px;">
-                <div style="width: 28px; height: 28px; border-radius: 8px; background: #6366f1; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800;">
+                <div style="width: 28px; height: 28px; border-radius: 8px; background: #7C5CFC; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800;">
                     {{ strtoupper(substr($currentRest->name ?? 'RB', 0, 2)) }}
                 </div>
                 <div>
-                    <h4 style="font-size: 12px; font-weight: 700; color: #f1f5f9; line-height: 1.1;">{{ Str::limit($currentRest->name ?? 'My Restaurant', 13) }}</h4>
-                    <span style="font-size: 10px; color: #64748b;">Restaurant Owner</span>
+                    <h4 style="font-size: 12px; font-weight: 700; color: #F8FAFC; line-height: 1.1;">{{ Str::limit($currentRest->name ?? 'My Restaurant', 13) }}</h4>
+                    <span style="font-size: 10px; color: #64748B;">Restaurant Owner</span>
                 </div>
             </div>
-            <span style="color: #64748b; font-size: 10px;">▾</span>
+            <span style="color: #64748B; font-size: 10px;">▾</span>
         </div>
     </div>
 
@@ -1140,7 +1197,7 @@
             <span class="icon">🛍️</span>
             <span>Live Orders</span>
             @if(isset($liveOrdersCount) && $liveOrdersCount > 0)
-                <span class="badge-pill" style="background: #6366f1;">{{ $liveOrdersCount }}</span>
+                <span class="badge-pill" style="background: #7C5CFC;">{{ $liveOrdersCount }}</span>
             @endif
         </a>
 
@@ -1185,16 +1242,16 @@
         </a>
 
         <!-- Bot Status Box -->
-        <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(51, 65, 85, 0.7); border-radius: 14px; padding: 14px; margin: 16px 4px 10px;">
+        <div style="background: rgba(8, 11, 20, 0.9); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 14px; margin: 16px 4px 10px;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-                <span style="font-size: 11px; font-weight: 700; color: #cbd5e1;">Bot Status</span>
-                <span style="display: flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; color: #10b981; background: rgba(16,185,129,0.15); padding: 2px 6px; border-radius: 99px;">
-                    <span style="width: 5px; height: 5px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                <span style="font-size: 11px; font-weight: 700; color: #CBD5E1;">Bot Status</span>
+                <span style="display: flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; color: #22C55E; background: rgba(34,197,94,0.12); padding: 2px 8px; border-radius: 99px;">
+                    <span style="width: 5px; height: 5px; border-radius: 50%; background: #22C55E; display: inline-block;"></span>
                     Online
                 </span>
             </div>
-            <p style="font-size: 10px; color: #64748b; margin-bottom: 10px;">Everything is working fine</p>
-            <a href="{{ route('dashboard.connect-whatsapp', $restId) }}" style="display: block; width: 100%; text-align: center; padding: 6px 10px; background: rgba(51,65,85,0.5); border: 1px solid rgba(71,85,105,0.5); border-radius: 8px; font-size: 10px; font-weight: 700; color: #cbd5e1; text-decoration: none;">
+            <p style="font-size: 10px; color: #64748B; margin-bottom: 10px;">Everything is working fine</p>
+            <a href="{{ route('dashboard.connect-whatsapp', $restId) }}" style="display: block; width: 100%; text-align: center; padding: 6px 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; font-size: 10px; font-weight: 700; color: #94A3B8; text-decoration: none;">
                 View Bot Activity ↗
             </a>
         </div>
@@ -1257,7 +1314,7 @@
             $currentRest = $restaurant ?? ($r ?? null);
         @endphp
         @if($currentRest && ($currentRest->bot_status === 'disconnected' || $currentRest->bot_status === 'qr_pending'))
-            <div style="background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 12px 18px; border-radius: 12px; margin-bottom: 20px; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+            <div class="bot-alert-banner" style="background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 12px 18px; border-radius: 12px; margin-bottom: 20px; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <span style="font-size: 18px;">⚠️</span>
                     <span>WhatsApp Bot is <strong>{{ $currentRest->bot_status === 'qr_pending' ? 'Awaiting QR Scan' : 'Offline / Disconnected' }}</strong>. Your customers cannot place orders until connected!</span>
@@ -1269,7 +1326,7 @@
         @endif
 
         @if(session('success'))
-            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 12px 18px; border-radius: 12px; margin-bottom: 20px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+            <div class="flash-success-banner" style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 12px 18px; border-radius: 12px; margin-bottom: 20px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
                 <span>✓</span> {{ session('success') }}
             </div>
         @endif
