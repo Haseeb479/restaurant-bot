@@ -20,10 +20,7 @@ class WhatsAppLocationPinTest extends TestCase
     {
         Queue::fake();
 
-        $restaurant = Restaurant::create([
-            'name' => 'Test Restaurant',
-            'phone' => '03001234567',
-            'city' => 'Lahore',
+        $restaurant = Restaurant::factory()->create([
             'evolution_instance_id' => 'rest_100',
             'is_active' => true,
         ]);
@@ -60,9 +57,7 @@ class WhatsAppLocationPinTest extends TestCase
     {
         Queue::fake();
 
-        $restaurant = Restaurant::create([
-            'name' => 'Test Restaurant',
-            'phone' => '03001234567',
+        $restaurant = Restaurant::factory()->create([
             'evolution_instance_id' => 'rest_101',
             'is_active' => true,
         ]);
