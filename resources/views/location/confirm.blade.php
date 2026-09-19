@@ -96,7 +96,7 @@
             <label for="address-input" class="block text-xs font-medium text-slate-300 mb-1">
                 House / Flat / Street / Landmark (Barah-e-karam tafseel likhein):
             </label>
-            <input type="text" id="address-input" value="{{ $address }}" placeholder="e.g. House #14, Street 3, near Bilal Masjid" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
+            <input type="text" id="address-input" value="" placeholder="e.g. House #14, Street 3, near Bilal Masjid (Optional)" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
         </div>
 
         <!-- Confirm Button -->
@@ -183,34 +183,101 @@
         const successModal = document.getElementById('success-modal');
 
         let reverseTimer = null;
+        let currentSelectedLocation = '';
+
+        function isNoise(text) {
+            if (!text) return true;
+            const lower = text.toLowerCase().trim();
+            return (
+                lower.includes('tehsil') ||
+                lower.includes('district') ||
+                lower.includes('division') ||
+                lower.includes('historical_division') ||
+                lower.includes('تحصیل') ||
+                lower.includes('ضلع') ||
+                lower.includes('ڈویژن') ||
+                lower.includes('punjab') ||
+                lower.includes('پنجاب') ||
+                lower.includes('sindh') ||
+                lower.includes('pakistan') ||
+                lower.includes('پاکستان') ||
+                /^\d{4,6}$/.test(lower)
+            );
+        }
+
+        function extractGranularLocality(nomData, phoData, lat, lng) {
+            const addr = nomData?.address || {};
+            const phoProps = phoData?.features?.[0]?.properties || {};
+
+            // 1. POI / Landmark / Shop / Amenity / Building
+            const poi = addr.amenity || addr.shop || addr.building || addr.office || addr.tourism || addr.historic || addr.leisure || addr.healthcare || nomData?.name || phoProps.name || '';
+            
+            // 2. Road / Street / Highway
+            const road = addr.road || addr.street || addr.highway || phoProps.street || '';
+            
+            // 3. Locality / Basti / Neighborhood / Village / Hamlet
+            const locality = addr.neighbourhood || addr.suburb || addr.hamlet || addr.isolated_dwelling || addr.village || addr.locality || phoProps.district || phoProps.locality || '';
+            
+            // 4. Town / City
+            const city = addr.town || addr.city || phoProps.city || '';
+
+            let components = [poi, road, locality, city];
+
+            // If components are too sparse, check raw display_name parts
+            if (components.filter(Boolean).length < 2 && nomData?.display_name) {
+                const rawParts = nomData.display_name.split(',').map(p => p.trim());
+                for (const p of rawParts) {
+                    if (!isNoise(p) && !components.includes(p)) {
+                        components.push(p);
+                    }
+                }
+            }
+
+            // Deduplicate and filter out administrative noise
+            const seen = new Set();
+            const result = [];
+            for (const c of components) {
+                const trimmed = (c || '').trim();
+                if (trimmed && !isNoise(trimmed)) {
+                    const key = trimmed.toLowerCase();
+                    if (!seen.has(key)) {
+                        seen.add(key);
+                        result.push(trimmed);
+                    }
+                }
+            }
+
+            if (result.length === 0) {
+                return 'Selected Pin Location (' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ')';
+            }
+
+            return result.slice(0, 3).join(', ');
+        }
 
         function reverseGeocode(lat, lng) {
             coordsText.textContent = lat.toFixed(5) + ', ' + lng.toFixed(5);
             areaText.innerHTML = '<span class="text-slate-400 font-normal animate-pulse">Detecting address...</span>';
             clearTimeout(reverseTimer);
-            reverseTimer = setTimeout(() => {
-                fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng, {
-                    headers: { 'Accept': 'application/json' }
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data && data.display_name) {
-                        const parts = data.display_name.split(',');
-                        areaText.textContent = parts.slice(0, 3).join(', ').trim();
-                        // Authoritative: Always update address input when pin moves to new coordinates
-                        addrInput.value = data.display_name;
-                    } else {
-                        areaText.textContent = 'Selected Pin Location (' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ')';
-                        addrInput.value = 'GPS: ' + lat.toFixed(5) + ', ' + lng.toFixed(5);
-                    }
-                })
-                .catch(() => {
-                    areaText.textContent = 'Selected Pin Location (' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ')';
-                    if (!addrInput.value) {
-                        addrInput.value = 'GPS: ' + lat.toFixed(5) + ', ' + lng.toFixed(5);
-                    }
-                });
-            }, 400);
+            reverseTimer = setTimeout(async () => {
+                try {
+                    const nomP = fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&zoom=19&addressdetails=1&accept-language=en,ur', {
+                        headers: { 'Accept': 'application/json' }
+                    }).then(r => r.json()).catch(() => null);
+
+                    const phoP = fetch('https://photon.komoot.io/reverse?lat=' + lat + '&lon=' + lng + '&lang=en')
+                        .then(r => r.json()).catch(() => null);
+
+                    const [nomData, phoData] = await Promise.all([nomP, phoP]);
+                    const cleanLoc = extractGranularLocality(nomData, phoData, lat, lng);
+
+                    currentSelectedLocation = cleanLoc;
+                    areaText.textContent = cleanLoc;
+                } catch (e) {
+                    currentSelectedLocation = 'Selected Pin Location (' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ')';
+                    areaText.textContent = currentSelectedLocation;
+                }
+                // Keep addrInput empty so the user can optionally enter their house/flat details without clutter
+            }, 350);
         }
 
         // Sync center on map move
@@ -280,10 +347,14 @@
             confirmBtn.disabled = true;
             confirmBtn.innerHTML = '<span>Saving...</span> ⏳';
 
+            const userExtra = addrInput.value.trim();
+            const baseLoc = currentSelectedLocation || areaText.textContent.trim();
+            const finalAddress = userExtra ? (userExtra + (baseLoc ? ', ' + baseLoc : '')) : baseLoc;
+
             const payload = {
                 lat: currentLat,
                 lng: currentLng,
-                address: addrInput.value,
+                address: finalAddress,
                 location_source: 'customer_pin'
             };
 
