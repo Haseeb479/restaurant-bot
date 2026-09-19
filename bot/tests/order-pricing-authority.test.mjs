@@ -70,6 +70,20 @@ describe('resolveItemPriceFromMenu — Authoritative Price Resolution', () => {
         assert.equal(res.unitPrice, 1250);
     });
 
+    test('resolves item with size abbreviation (M, L, S)', () => {
+        const resM = resolveItemPriceFromMenu('Crown Crust Pizza', 'M', sampleMenuItems, sampleDeals);
+        assert.ok(resM);
+        assert.equal(resM.unitPrice, 1250);
+
+        const resL = resolveItemPriceFromMenu('Crown Crust Pizza', 'L', sampleMenuItems, sampleDeals);
+        assert.ok(resL);
+        assert.equal(resL.unitPrice, 1750);
+
+        const resS = resolveItemPriceFromMenu('Crown Crust Pizza', 'S', sampleMenuItems, sampleDeals);
+        assert.ok(resS);
+        assert.equal(resS.unitPrice, 650);
+    });
+
     test('resolves active deal by title', () => {
         const res = resolveItemPriceFromMenu('Midnight Zinger Deal', null, sampleMenuItems, sampleDeals);
         assert.ok(res);

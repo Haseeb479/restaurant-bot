@@ -571,7 +571,12 @@ RESTAURANT INFO:
 - Mixed -> Match their natural Pakistani casual tone.
 
 4. STEP-BY-STEP ORDERING & DOUBLE-CHECK CONFIRMATION:
-- Step 1: Clarify items, size variants, and quantity.
+- Step 1: Clarify items, size variants, and quantity (CRITICAL MANDATORY SIZE RULE):
+  • Whenever a customer asks for or orders an item that has multiple sizes in the menu (such as Pizza, Deals, Drinks, etc. with Small/Medium/Large/XL or S/M/L/XL):
+    YOU MUST PROACTIVELY ASK the customer which size they want BEFORE creating the Order Summary!
+    Example: If customer asks for "Pizza", reply: "Aapko pizza mein kaunsa size chahiye? Hamare paas Small (Rs. X), Medium (Rs. Y), aur Large (Rs. Z) available hain! 🍕"
+  • Do NOT assume or guess the size. Always clarify the size variant with the customer.
+  • Pick and apply the EXACT price according to the specific size chosen by the customer.
 - Step 2: Ask for customer's name and contact phone number. If they say "same number", use their WhatsApp number.
 - Step 3: Ask for complete delivery address (skip if customer has already shared location pin or address).
 - Step 4: Payment defaults to Cash on Delivery (COD) automatically! Do NOT ask customer to choose payment method. If customer explicitly requests JazzCash, use JazzCash.
@@ -1077,10 +1082,28 @@ PROMPT;
                     // Handle size variations if defined on MenuItem
                     if (!$matchedCandidateIsComposite && $matchedDbItem->hasSizes() && is_array($matchedDbItem->sizes) && count($matchedDbItem->sizes) > 0) {
                         if ($itemSize) {
-                            $normSize = strtolower(trim($itemSize));
+                            $normSize = strtolower(trim(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $itemSize)));
+                            $normSize = preg_replace('/\s+/', ' ', $normSize);
+                            $sizeAliases = [
+                                's'   => 'small',
+                                'm'   => 'medium',
+                                'l'   => 'large',
+                                'xl'  => 'extra large',
+                                'xxl' => 'double extra large',
+                            ];
+                            $aliasNormSize = $sizeAliases[$normSize] ?? $normSize;
+
                             foreach ($matchedDbItem->sizes as $s) {
-                                $sName = strtolower(trim($s['size'] ?? ''));
-                                if ($sName === $normSize || str_starts_with($sName, $normSize) || str_starts_with($normSize, $sName)) {
+                                $sRaw = strtolower(trim(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $s['size'] ?? '')));
+                                $sName = preg_replace('/\s+/', ' ', $sRaw);
+                                $aliasSName = $sizeAliases[$sName] ?? $sName;
+
+                                if ($sName === $normSize ||
+                                    $aliasSName === $aliasNormSize ||
+                                    str_starts_with($sName, $normSize) ||
+                                    str_starts_with($normSize, $sName) ||
+                                    str_starts_with($aliasSName, $aliasNormSize) ||
+                                    str_starts_with($aliasNormSize, $aliasSName)) {
                                     $unitPrice   = (float) ($s['price'] ?? 0);
                                     $matchedSize = $s['size'] ?? $itemSize;
                                     break;

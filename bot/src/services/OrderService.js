@@ -121,9 +121,24 @@ export function resolveItemPriceFromMenu(itemName, itemSize, menuItems = [], dea
         if (Array.isArray(sizes) && sizes.length > 0) {
             if (itemSize && !isComposite) {
                 const normS = normalizeItemName(itemSize);
+                const sizeAliases = {
+                    's': 'small',
+                    'm': 'medium',
+                    'l': 'large',
+                    'xl': 'extra large',
+                    'xxl': 'double extra large',
+                };
+                const aliasNormS = sizeAliases[normS] || normS;
+
                 const sMatch = sizes.find(s => {
                     const sName = normalizeItemName(s.size || s.name);
-                    return sName === normS || sName.startsWith(normS) || normS.startsWith(sName);
+                    const aliasSName = sizeAliases[sName] || sName;
+                    return sName === normS ||
+                           aliasSName === aliasNormS ||
+                           sName.startsWith(normS) ||
+                           normS.startsWith(sName) ||
+                           aliasSName.startsWith(aliasNormS) ||
+                           aliasNormS.startsWith(aliasSName);
                 });
                 if (sMatch && sMatch.price !== undefined) {
                     unitPrice = parseFloat(sMatch.price) || 0;
