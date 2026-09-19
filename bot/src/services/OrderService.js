@@ -769,6 +769,192 @@ export class OrderService {
     }
 
     /**
+     * Save order directly from session cart (for rule-based menu flow).
+     */
+    async saveFromCart(customerPhone, session) {
+        const restaurantId = session.restaurant?.id || 1;
+        const cart = session.cart || [];
+        const orderData = session.orderData || {};
+
+        if (cart.length === 0) {
+            console.warn(`⚠️ Cannot save order: cart is empty for ${customerPhone}`);
+            return null;
+        }
+
+        let subtotal = 0;
+        const items = [];
+        for (const item of cart) {
+            const qty = item.quantity || 1;
+            const price = parseFloat(item.unitPrice || item.price || 0);
+            const lineSub = price * qty;
+            subtotal += lineSub;
+            items.push({
+                menu_item_id: item.menuItemId || null,
+                deal_id: item.dealId || null,
+                name: item.displayName || item.name,
+                size: item.size || null,
+                unit_price: price,
+                quantity: qty,
+                subtotal: lineSub,
+            });
+        }
+
+        const deliveryCharge = parseFloat(session.restaurant?.delivery_charge || 0);
+        const total = subtotal + deliveryCharge;
+
+        // Clean phone
+        let finalCustomerPhone = cleanCustomerPhone(orderData.contactPhone, null);
+        if (!finalCustomerPhone) {
+            finalCustomerPhone = cleanCustomerPhone(session.contactPhone, null);
+        }
+        if (!finalCustomerPhone) {
+            const cleanDigits = String(customerPhone || '').replace(/\D/g, '');
+            if (cleanDigits.length === 12 && cleanDigits.startsWith('923')) {
+                finalCustomerPhone = '0' + cleanDigits.slice(2);
+            } else if (cleanDigits.length === 10 && cleanDigits.startsWith('3')) {
+                finalCustomerPhone = '0' + cleanDigits;
+            } else {
+                finalCustomerPhone = customerPhone;
+            }
+        }
+
+        const deliveryAddress = orderData.deliveryAddress || session.deliveryAddress || 'Collected via WhatsApp';
+        const deliveryLat = orderData.deliveryLat || session.deliveryLat || null;
+        const deliveryLng = orderData.deliveryLng || session.deliveryLng || null;
+        const customerName = cleanCustomerName(orderData.customerName) || cleanCustomerName(session.customerName) || null;
+        const paymentMethod = orderData.paymentMethod || 'cash_on_delivery';
+
+        const parsed = {
+            subtotal,
+            deliveryCharge,
+            total,
+            deliveryAddress,
+            deliveryLat,
+            deliveryLng,
+            customerName,
+            contactPhone: finalCustomerPhone,
+            paymentMethod,
+            items,
+            notes: 'Order placed via WhatsApp rule-based bot',
+        };
+
+        if (!this.validateCart(parsed)) {
+            console.warn(`⚠️ Cart validation failed in saveFromCart for ${customerPhone}:`, parsed);
+            return null;
+        }
+
+        const trackingCode = await this.generateTrackingCode(restaurantId, session.restaurant?.name);
+
+        session.customerName = customerName;
+        session.contactPhone = finalCustomerPhone;
+
+        let connection = null;
+        try {
+            const pool = getDbPool();
+            connection = await pool.getConnection();
+            await connection.beginTransaction();
+
+            const now = new Date();
+
+            const [result] = await connection.query(
+                `INSERT INTO orders
+                 (restaurant_id, customer_phone, customer_name, delivery_address, delivery_lat, delivery_lng, tracking_code, status, subtotal, delivery_charge, total, payment_method, notes, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    restaurantId,
+                    finalCustomerPhone,
+                    parsed.customerName,
+                    parsed.deliveryAddress,
+                    parsed.deliveryLat,
+                    parsed.deliveryLng,
+                    trackingCode,
+                    parsed.subtotal,
+                    parsed.deliveryCharge,
+                    parsed.total,
+                    parsed.paymentMethod,
+                    parsed.notes,
+                    now,
+                    now,
+                ]
+            );
+
+            if (!result || !result.insertId) {
+                throw new Error('Order INSERT returned no insertId');
+            }
+
+            const orderId = result.insertId;
+            const maskedPhone = LogSanitizer.maskPhone(finalCustomerPhone);
+            const maskedAddress = LogSanitizer.redactAddress(parsed.deliveryAddress);
+            console.log(`✅ Order #${orderId} saved directly to MySQL via cart — Phone: ${maskedPhone}, Tracking: ${trackingCode}, Total: Rs.${parsed.total}, Address: ${maskedAddress}`);
+
+            if (parsed.items && parsed.items.length > 0) {
+                for (const item of parsed.items) {
+                    await connection.query(
+                        `INSERT INTO order_items (order_id, name, size, unit_price, quantity, subtotal, created_at, updated_at) 
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                        [
+                            orderId,
+                            item.name,
+                            item.size,
+                            item.unit_price,
+                            item.quantity,
+                            item.subtotal,
+                            now,
+                            now,
+                        ]
+                    );
+                }
+            }
+
+            // Auto-upsert customer record
+            await connection.query(
+                `INSERT INTO customers (restaurant_id, phone, name, address, total_orders, total_spent, last_order_at, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE
+                   total_orders = total_orders + 1,
+                   total_spent = total_spent + VALUES(total_spent),
+                   name = COALESCE(VALUES(name), name),
+                   address = IF(VALUES(address) != 'Collected via WhatsApp chat', VALUES(address), address),
+                   last_order_at = VALUES(last_order_at),
+                   updated_at = VALUES(updated_at)`,
+                [
+                    restaurantId,
+                    finalCustomerPhone,
+                    parsed.customerName,
+                    parsed.deliveryAddress,
+                    parsed.total,
+                    now,
+                    now,
+                    now
+                ]
+            ).catch(cErr => console.warn('⚠️ customer profile upsert note:', cErr.message));
+
+            await connection.commit();
+
+            session.lastOrder = parsed;
+
+            const resObj = new String(trackingCode);
+            resObj.trackingCode = trackingCode;
+            resObj.order = parsed;
+            return resObj;
+        } catch (dbErr) {
+            if (connection) {
+                try {
+                    await connection.rollback();
+                } catch (rbErr) {
+                    console.error('❌ Rollback failed:', rbErr.message);
+                }
+            }
+            console.error('❌ saveFromCart transaction failed:', dbErr.message);
+            return null;
+        } finally {
+            if (connection) {
+                connection.release();
+            }
+        }
+    }
+
+    /**
      * Flag an order's `owner_notified` column after the owner WhatsApp alert
      * actually succeeded. Matches on the unique tracking_code.
      */
