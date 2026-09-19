@@ -51,23 +51,24 @@
             --header-bg: #ffffff;
         }
 
-        /* ── Foodio Midnight Aurora — Dark Mode Tokens ── */
+        /* ── Foodio Obsidian Midnight — Dark Mode Tokens ── */
         [data-theme="dark"] {
-            --sidebar-bg: #0A0E18;
-            --sidebar-hover: rgba(124, 92, 252, 0.08);
-            --sidebar-active: #7C5CFC;
-            --sidebar-text: #94A3B8;
+            --sidebar-bg: #0b0f19;
+            --sidebar-hover: rgba(255, 255, 255, 0.05);
+            --sidebar-active: #4f46e5;
+            --sidebar-text: #94a3b8;
             --sidebar-text-active: #ffffff;
-            --main-bg: #080B14;
-            --card-bg: #111827;
-            --card-elevated: #151D2D;
-            --hover-bg: #192338;
+            --main-bg: #0b0f19;
+            --card-bg: #131b2e;
+            --card-elevated: #162035;
+            --hover-bg: #1a233a;
             --border-color: rgba(255, 255, 255, 0.07);
-            --text-main: #F8FAFC;
-            --text-muted: #94A3B8;
-            --text-faint: #64748B;
-            --input-bg: #0A0E18;
-            --header-bg: #0D1220;
+            --border-subtle: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --text-faint: #64748b;
+            --input-bg: #0e1424;
+            --header-bg: #0b0f19;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -83,54 +84,120 @@
             transition: background-color 0.2s ease, color 0.2s ease;
         }
 
+        /* ── Luxury Pill Theme Toggle ── */
+        .theme-toggle-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px 4px 5px;
+            border-radius: 9999px;
+            background: #151d2e;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #f8fafc;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 700;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        .theme-toggle-pill:hover {
+            background: #192338;
+            border-color: rgba(99, 102, 241, 0.4);
+            transform: translateY(-1px);
+        }
+        .theme-pill-icon {
+            font-size: 11px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        .theme-pill-icon.moon.active {
+            background: #4f46e5;
+            box-shadow: 0 0 10px rgba(79, 70, 229, 0.6);
+            color: #ffffff;
+        }
+        .theme-pill-icon.sun.active {
+            background: #f59e0b;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+            color: #ffffff;
+        }
+        [data-theme="light"] .theme-toggle-pill {
+            background: #f1f5f9;
+            border-color: #e2e8f0;
+            color: #0f172a;
+        }
+        [data-theme="light"] .theme-pill-icon.moon {
+            background: transparent;
+            box-shadow: none;
+            opacity: 0.35;
+        }
+        [data-theme="dark"] .theme-pill-icon.sun {
+            background: transparent;
+            box-shadow: none;
+            opacity: 0.35;
+        }
+
         /* ═══════════════════════════════════════════════════
-           FOODIO MIDNIGHT AURORA — Premium Dark Mode Overrides
+           FOODIO OBSIDIAN MIDNIGHT — Dark Mode Overrides
            ═══════════════════════════════════════════════════ */
 
         /* HEADER */
         [data-theme="dark"] header {
-            background: #0D1220 !important;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
-            box-shadow: 0 1px 0 rgba(255,255,255,0.04), 0 4px 20px rgba(0,0,0,0.3) !important;
+            background: #0b0f19 !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+            box-shadow: 0 1px 0 rgba(255,255,255,0.03), 0 4px 20px rgba(0,0,0,0.3) !important;
         }
         [data-theme="dark"] .header-title h1,
         [data-theme="dark"] .user-name {
-            color: #F8FAFC !important;
+            color: #f8fafc !important;
         }
         [data-theme="dark"] .header-title p {
-            color: #94A3B8 !important;
+            color: #94a3b8 !important;
         }
         [data-theme="dark"] .date-pill {
-            background: #151D2D !important;
+            background: #151d2e !important;
             border-color: rgba(255, 255, 255, 0.08) !important;
-            color: #F8FAFC !important;
+            color: #f8fafc !important;
         }
         [data-theme="dark"] .status-online-pill {
             background: rgba(34, 197, 94, 0.1) !important;
             border-color: rgba(34, 197, 94, 0.25) !important;
-            color: #22C55E !important;
+            color: #22c55e !important;
         }
         [data-theme="dark"] .status-dot {
-            background: #22C55E !important;
+            background: #22c55e !important;
             box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2) !important;
         }
         [data-theme="dark"] #notif-bell-wrap {
-            background: #151D2D !important;
+            background: #151d2e !important;
             border-color: rgba(255, 255, 255, 0.08) !important;
-            color: #F8FAFC !important;
-        }
-        [data-theme="dark"] .theme-toggle-btn {
-            background: #151D2D !important;
-            border-color: rgba(255, 255, 255, 0.08) !important;
-            color: #F8FAFC !important;
-        }
-        [data-theme="dark"] .theme-toggle-btn:hover {
-            background: #192338 !important;
-            border-color: rgba(124, 92, 252, 0.4) !important;
+            color: #f8fafc !important;
         }
         [data-theme="dark"] .avatar {
-            background: linear-gradient(135deg, #7C5CFC, #38BDF8) !important;
-            color: #fff !important;
+            background: #4f46e5 !important;
+            color: #ffffff !important;
+        }
+
+        /* SIDEBAR */
+        [data-theme="dark"] aside {
+            background: #0b0f19 !important;
+            border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+        }
+        [data-theme="dark"] .nav-item {
+            color: #94a3b8 !important;
+        }
+        [data-theme="dark"] .nav-item:hover {
+            color: #ffffff !important;
+            background: rgba(255, 255, 255, 0.05) !important;
+        }
+        [data-theme="dark"] .nav-item.active {
+            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%) !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35) !important;
         }
 
         /* CARDS & SURFACES */
@@ -1196,8 +1263,9 @@
         <a href="{{ route('dashboard.live-orders', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.live-orders*') ? 'active' : '' }}">
             <span class="icon">🛍️</span>
             <span>Live Orders</span>
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #10b981; display: inline-block; box-shadow: 0 0 8px #10b981; margin-left: 2px;"></span>
             @if(isset($liveOrdersCount) && $liveOrdersCount > 0)
-                <span class="badge-pill" style="background: #7C5CFC;">{{ $liveOrdersCount }}</span>
+                <span class="badge-pill" style="background: #4f46e5; margin-left: auto;">{{ $liveOrdersCount }}</span>
             @endif
         </a>
 
@@ -1278,10 +1346,11 @@
         </div>
 
         <div class="header-actions">
-            <!-- Dark / Light Mode Toggle -->
-            <button type="button" class="theme-toggle-btn" onclick="toggleOwnerTheme()" title="Toggle Dark/Light Theme" style="background: var(--card-bg); border: 1px solid var(--border-color); padding: 7px 12px; border-radius: 10px; color: var(--text-main); cursor: pointer; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
-                <span id="themeIcon">🌙</span>
-                <span id="themeText" style="font-size: 11.5px;">Dark</span>
+            <!-- Dark / Light Mode Toggle Pill (Screenshot Style) -->
+            <button type="button" class="theme-toggle-pill" id="themeToggleBtn" onclick="toggleOwnerTheme()" title="Toggle Dark/Light Mode">
+                <span class="theme-pill-icon sun" id="themeSunIcon">☀️</span>
+                <span class="theme-pill-icon moon active" id="themeMoonIcon">🌙</span>
+                <span class="theme-pill-text" id="themeText">Dark</span>
             </button>
 
             <div class="status-online-pill" style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 6px 12px; border-radius: 99px; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px;">
@@ -1440,14 +1509,17 @@ function toggleOwnerTheme() {
 }
 
 function updateOwnerThemeButton(theme) {
-    const icon = document.getElementById('themeIcon');
+    const sun = document.getElementById('themeSunIcon');
+    const moon = document.getElementById('themeMoonIcon');
     const text = document.getElementById('themeText');
     if (theme === 'dark') {
-        if (icon) icon.textContent = '☀️';
-        if (text) text.textContent = 'Light';
-    } else {
-        if (icon) icon.textContent = '🌙';
+        if (sun) sun.classList.remove('active');
+        if (moon) moon.classList.add('active');
         if (text) text.textContent = 'Dark';
+    } else {
+        if (sun) sun.classList.add('active');
+        if (moon) moon.classList.remove('active');
+        if (text) text.textContent = 'Light';
     }
 }
 

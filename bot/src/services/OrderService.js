@@ -367,8 +367,8 @@ export class OrderService {
             .substring(0, 1000)
             || 'Order placed via WhatsApp bot';
 
-        // Override delivery address if GPS pin provided
-        if (session.locationSource === 'whatsapp_pin' && session.deliveryAddress) {
+        // Override delivery address if GPS pin or confirmed location provided
+        if ((session.locationSource === 'whatsapp_pin' || session.locationSource === 'customer_pin' || session.deliveryLocationConfirmed) && session.deliveryAddress) {
             deliveryAddress = session.deliveryAddress;
         }
 

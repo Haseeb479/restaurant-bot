@@ -186,6 +186,7 @@
 
         function reverseGeocode(lat, lng) {
             coordsText.textContent = lat.toFixed(5) + ', ' + lng.toFixed(5);
+            areaText.innerHTML = '<span class="text-slate-400 font-normal animate-pulse">Detecting address...</span>';
             clearTimeout(reverseTimer);
             reverseTimer = setTimeout(() => {
                 fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng, {
@@ -196,17 +197,20 @@
                     if (data && data.display_name) {
                         const parts = data.display_name.split(',');
                         areaText.textContent = parts.slice(0, 3).join(', ').trim();
-                        if (!addrInput.value) {
-                            addrInput.value = data.display_name;
-                        }
+                        // Authoritative: Always update address input when pin moves to new coordinates
+                        addrInput.value = data.display_name;
                     } else {
-                        areaText.textContent = 'Selected Pin Location';
+                        areaText.textContent = 'Selected Pin Location (' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ')';
+                        addrInput.value = 'GPS: ' + lat.toFixed(5) + ', ' + lng.toFixed(5);
                     }
                 })
                 .catch(() => {
-                    areaText.textContent = 'Selected Pin Location';
+                    areaText.textContent = 'Selected Pin Location (' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ')';
+                    if (!addrInput.value) {
+                        addrInput.value = 'GPS: ' + lat.toFixed(5) + ', ' + lng.toFixed(5);
+                    }
                 });
-            }, 600);
+            }, 400);
         }
 
         // Sync center on map move
@@ -222,6 +226,11 @@
             currentLat = center.lat;
             currentLng = center.lng;
             reverseGeocode(currentLat, currentLng);
+        });
+
+        // Click anywhere on map to pan pin to that location
+        map.on('click', function(e) {
+            map.panTo(e.latlng);
         });
 
         // Trigger initial reverse geocode
@@ -274,7 +283,8 @@
             const payload = {
                 lat: currentLat,
                 lng: currentLng,
-                address: addrInput.value
+                address: addrInput.value,
+                location_source: 'customer_pin'
             };
 
             const token = @json($token);

@@ -27,23 +27,23 @@
             --table-hover-bg: #fafafa;
         }
 
-        /* ── Foodio Midnight Aurora — Admin Dark Mode Tokens ── */
+        /* ── Foodio Obsidian Midnight — Admin Dark Mode Tokens ── */
         [data-theme="dark"] {
-            --sidebar-bg: #0A0E18;
-            --sidebar-hover: rgba(124, 92, 252, 0.08);
-            --sidebar-active: #7C5CFC;
-            --sidebar-text: #94A3B8;
+            --sidebar-bg: #0b0f19;
+            --sidebar-hover: rgba(99, 102, 241, 0.08);
+            --sidebar-active: #4f46e5;
+            --sidebar-text: #94a3b8;
             --sidebar-text-active: #ffffff;
-            --bg-page: #080B14;
+            --bg-page: #0b0f19;
             --card-bg: #111827;
-            --card-elevated: #151D2D;
+            --card-elevated: #131b2e;
             --hover-bg: #192338;
             --border-color: rgba(255, 255, 255, 0.07);
-            --text-primary: #F8FAFC;
-            --text-secondary: #94A3B8;
-            --input-bg: #0A0E18;
-            --table-header-bg: #0D1220;
-            --table-hover-bg: #192338;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --input-bg: #0b0f19;
+            --table-header-bg: #0e1422;
+            --table-hover-bg: #151e33;
         }
 
 
@@ -243,22 +243,60 @@
             gap: 12px;
         }
 
-        .theme-toggle-btn {
-            background: var(--bg-page);
-            border: 1px solid var(--border-color);
-            padding: 7px 11px;
-            border-radius: 8px;
-            color: var(--text-primary);
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 700;
-            display: flex;
+        .theme-toggle-pill {
+            display: inline-flex;
             align-items: center;
             gap: 6px;
-            transition: 0.15s;
+            background: #151d2e;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 9999px;
+            padding: 4px 10px 4px 6px;
+            color: #f8fafc;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 700;
+            transition: all 0.2s ease;
+            user-select: none;
         }
-        .theme-toggle-btn:hover {
-            border-color: #6366f1;
+        .theme-toggle-pill:hover {
+            background: #192338;
+            border-color: rgba(99, 102, 241, 0.4);
+            transform: translateY(-1px);
+        }
+        .theme-pill-icon {
+            font-size: 11px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        .theme-pill-icon.moon.active {
+            background: #4f46e5;
+            box-shadow: 0 0 10px rgba(79, 70, 229, 0.6);
+            color: #ffffff;
+        }
+        .theme-pill-icon.sun.active {
+            background: #f59e0b;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+            color: #ffffff;
+        }
+        [data-theme="light"] .theme-toggle-pill {
+            background: #f1f5f9;
+            border-color: #e2e8f0;
+            color: #0f172a;
+        }
+        [data-theme="light"] .theme-pill-icon.moon {
+            background: transparent;
+            box-shadow: none;
+            opacity: 0.35;
+        }
+        [data-theme="dark"] .theme-pill-icon.sun {
+            background: transparent;
+            box-shadow: none;
+            opacity: 0.35;
         }
 
         .user-profile {
@@ -995,9 +1033,10 @@
 
         <div class="header-actions">
             <!-- Theme toggle -->
-            <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeBtn" title="Toggle Light/Dark Mode">
-                <span id="themeIcon">🌙</span>
-                <span id="themeText">Dark</span>
+            <button type="button" class="theme-toggle-pill" onclick="toggleTheme()" id="themeBtn" title="Toggle Light/Dark Mode">
+                <span class="theme-pill-icon sun" id="themeSunIcon">☀️</span>
+                <span class="theme-pill-icon moon active" id="themeMoonIcon">🌙</span>
+                <span class="theme-pill-text" id="themeText">Dark</span>
             </button>
 
             <!-- Super Admin Profile -->
@@ -1086,14 +1125,17 @@ function toggleTheme() {
 }
 
 function updateThemeButton(theme) {
-    const icon = document.getElementById('themeIcon');
+    const sun = document.getElementById('themeSunIcon');
+    const moon = document.getElementById('themeMoonIcon');
     const text = document.getElementById('themeText');
     if (theme === 'dark') {
-        if (icon) icon.textContent = '☀️';
-        if (text) text.textContent = 'Light';
-    } else {
-        if (icon) icon.textContent = '🌙';
+        if (sun) sun.classList.remove('active');
+        if (moon) moon.classList.add('active');
         if (text) text.textContent = 'Dark';
+    } else {
+        if (sun) sun.classList.add('active');
+        if (moon) moon.classList.remove('active');
+        if (text) text.textContent = 'Light';
     }
 }
 

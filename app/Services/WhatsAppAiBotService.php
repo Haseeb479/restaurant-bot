@@ -157,11 +157,13 @@ class WhatsAppAiBotService
         $sessionKey = "wa_session_{$restaurant->id}_{$customerPhone}";
         $history    = Cache::get($sessionKey, []);
 
+        $distKm = null;
         if ($locationCoords && isset($locationCoords['lat'], $locationCoords['lng'])) {
             $lat = (float) $locationCoords['lat'];
             $lng = (float) $locationCoords['lng'];
             Cache::put("verified_delivery_coords_{$sessionKey}", [$lat, $lng], now()->addMinutes(self::SESSION_TTL));
             Cache::put("verified_delivery_source_{$sessionKey}", 'whatsapp_pin', now()->addMinutes(self::SESSION_TTL));
+            Cache::put("delivery_location_confirmed_{$sessionKey}", true, now()->addMinutes(self::SESSION_TTL));
 
             // Extract or reverse-geocode textual address
             $resolvedAddress = ! empty($locationCoords['address']) ? trim($locationCoords['address']) : '';
@@ -189,18 +191,30 @@ class WhatsAppAiBotService
             }
 
             // Location is verified and within radius!
-            $locAck = "📍 *Shukriya! Aapki exact delivery location pin receive ho gayi hai!* ✅\n" .
-                      "_(Kitchen se faasla: {$distKm} km)_\n";
-            if ($resolvedAddress !== '') {
-                $locAck .= "🏠 *Pata:* {$resolvedAddress}\n";
-            }
-            $locAck .= "\nBarah-e-karam apna *Order* ya *Naam* batayein, ya agar order ready hai toh reply karein *'CONFIRM'*! 😊";
+            $pinAddress = $resolvedAddress !== '' ? $resolvedAddress : "Pinned Location (GPS: {$lat}, {$lng})";
+            $pinUserMsg = "📍 [Customer shared location pin: {$pinAddress} (Coordinates: {$lat}, {$lng})]";
 
-            $history[] = ['role' => 'user', 'content' => "Shared GPS Pin: [Lat: {$lat}, Lng: {$lng}]" . ($resolvedAddress !== '' ? " Address: {$resolvedAddress}" : "")];
-            $history[] = ['role' => 'assistant', 'content' => $locAck];
-            Cache::put($sessionKey, $history, now()->addMinutes(self::SESSION_TTL));
-            BotEvolutionClient::sendMessage($restaurant, $recipientJid, $locAck);
-            return;
+            // Check if customer already has food items selected or discussed in conversation history
+            $hasItemsInHistory = $this->hasFoodItemsInHistory($restaurant, $history);
+
+            if ($hasItemsInHistory) {
+                // Customer already chose food items! Set message to location pin and let execution continue directly
+                // into Groq AI (or smart fallback) to IMMEDIATELY output the complete itemized Order Summary.
+                $text = $pinUserMsg;
+            } else {
+                // Customer sent location pin before choosing any food items
+                $locAck = "📍 *Shukriya! Aapki location pin receive ho gayi hai!* ✅\n" .
+                          "_(Kitchen se faasla: {$distKm} km)_\n" .
+                          "🏠 *Pata:* {$pinAddress}\n\n" .
+                          "Ab barah-e-karam batayein aap kya order karna pasand karein ge? 🍔\n" .
+                          "_(Menu dekhne ke liye *Menu* likhein 😊)_";
+
+                $history[] = ['role' => 'user', 'content' => $pinUserMsg];
+                $history[] = ['role' => 'assistant', 'content' => $locAck];
+                Cache::put($sessionKey, $history, now()->addMinutes(self::SESSION_TTL));
+                BotEvolutionClient::sendMessage($restaurant, $recipientJid, $locAck);
+                return;
+            }
         }
 
         $history[] = ['role' => 'user', 'content' => $text];
@@ -348,6 +362,11 @@ class WhatsAppAiBotService
             Log::warning("WhatsApp AI: Groq unavailable, using fallback for {$restaurant->name} — customer: {$customerPhone}");
         }
 
+        // If location pin was provided in this turn, prepend location pin confirmation header if not already present
+        if ($locationCoords && isset($distKm) && stripos($reply, 'location pin receive') === false && stripos($reply, 'pin receive') === false) {
+            $reply = "📍 *Location Pin Received!* ✅\n_(Kitchen se faasla: {$distKm} km)_\n\n" . $reply;
+        }
+
         $history[] = ['role' => 'assistant', 'content' => $reply];
         if (count($history) > 20) {
             $history = array_slice($history, -20);
@@ -418,9 +437,9 @@ class WhatsAppAiBotService
         } else {
             Cache::put($sessionKey, $history, now()->addMinutes(self::SESSION_TTL));
 
-            // Pre-order pin confirmation link: when AI presents summary or asks for address
-            $hasVerifiedCoords = (bool) Cache::get("verified_delivery_coords_{$sessionKey}");
-            if (! $hasVerifiedCoords && (
+            // Pre-order pin confirmation link: only show if location is NOT yet confirmed
+            $isLocationConfirmed = (bool) Cache::get("delivery_location_confirmed_{$sessionKey}") || (bool) Cache::get("verified_delivery_coords_{$sessionKey}");
+            if (! $isLocationConfirmed && (
                 stripos($reply, 'order summary') !== false ||
                 stripos($reply, 'deliver to') !== false ||
                 preg_match('/(?:address|ghar\s*ka\s*pata|location)\b/iu', $reply)
@@ -512,14 +531,42 @@ class WhatsAppAiBotService
         $menuText  = $this->buildMenuText($restaurant);
         $dealsText = $this->buildDealsText($restaurant);
 
-        $hasVerifiedGps = $sessionKey ? (bool) Cache::get("verified_delivery_coords_{$sessionKey}") : false;
+        $isLocationConfirmed = $sessionKey ? (bool) Cache::get("delivery_location_confirmed_{$sessionKey}") : false;
+        $cachedGps = $sessionKey ? Cache::get("verified_delivery_coords_{$sessionKey}") : null;
         $cachedAddr = $sessionKey ? Cache::get("verified_delivery_address_{$sessionKey}") : '';
-        $verifiedNotice = '';
-        if ($hasVerifiedGps) {
-            $verifiedNotice = "  • CUSTOMER PIN STATUS: Customer's exact location pin has ALREADY been verified on the map! Accept their delivery address and proceed directly to Order Summary.\n";
-            if ($cachedAddr) {
-                $verifiedNotice .= "  • IMPORTANT: You MUST use exactly 'Deliver to: {$cachedAddr}' in the Order Summary. NEVER change or invent another address.\n";
-            }
+        if (! $isLocationConfirmed && ! empty($cachedGps)) {
+            $isLocationConfirmed = true;
+        }
+
+        $checkoutStateNotice = '';
+        if ($isLocationConfirmed && ! empty($cachedGps)) {
+            $latStr = number_format((float) $cachedGps[0], 5, '.', '');
+            $lngStr = number_format((float) $cachedGps[1], 5, '.', '');
+            $addrStr = $cachedAddr ?: "Pinned GPS Location ({$latStr}, {$lngStr})";
+
+            $checkoutStateNotice = <<<STATE
+
+BACKEND AUTHORITATIVE CHECKOUT STATE:
+- deliveryLocationConfirmed: TRUE ✅
+- deliveryLat: {$latStr}
+- deliveryLng: {$lngStr}
+- deliveryAddress: "{$addrStr}"
+- defaultPaymentMethod: "Cash on Delivery (COD)" 💵
+
+STRICT RULES FOR CONFIRMED LOCATION:
+1. The customer's exact delivery location has ALREADY been confirmed by GPS pin!
+2. You MUST NOT ask for an address, location pin, house number, or directions again under ANY circumstances!
+3. Deliver to line in Order Summary MUST be: "Deliver to: {$addrStr}"
+4. Payment MUST be: "Payment: Cash on Delivery (COD) 💵" (unless customer explicitly asked for JazzCash).
+5. Proceed directly to the complete itemized Order Summary and ask for confirmation.
+STATE;
+        } else {
+            $checkoutStateNotice = <<<STATE
+
+BACKEND CHECKOUT STATE:
+- deliveryLocationConfirmed: FALSE (Customer needs to provide address or location pin)
+- defaultPaymentMethod: "Cash on Delivery (COD)" 💵
+STATE;
         }
 
         $deliveryZoneRule = implode("\n", array_filter([
@@ -527,9 +574,8 @@ class WhatsAppAiBotService
             "  • Base City: {$city}. Operating Delivery Radius: {$radius} km.",
             "  • The backend system automatically verifies distance and GPS radius before messages reach you.",
             $areas !== '' ? "  • Whitelisted operational neighborhoods: {$areas}." : null,
-            $verifiedNotice ?: null,
-            "  • When the customer gives their name, delivery address, and payment method, accept the address and immediately output the complete itemized Order Summary (Step 5). Do not refuse or question local addresses.",
-            "  • ONLY refuse an address if the customer explicitly demands delivery to a completely different distant major city (e.g. asking to deliver to Karachi or Islamabad when restaurant is in {$city}).",
+            "  • When customer gives address or location pin, proceed directly to Order Summary. Do not refuse or question local addresses.",
+            "  • ONLY refuse an address if customer explicitly demands delivery to a completely different distant major city.",
         ]));
 
         return <<<PROMPT
@@ -544,6 +590,8 @@ RESTAURANT INFO:
 - Minimum Order: Rs. {$minOrder}
 - Hours: {$hours}
 {$areasNotice}
+{$checkoutStateNotice}
+
 {$menuText}{$dealsText}CORE PILLARS & STRICT OPERATING RULES:
 
 1. MENU IS THE ONLY SOURCE OF TRUTH (STRICT ZERO HALLUCINATION):
@@ -564,17 +612,30 @@ RESTAURANT INFO:
 - English message -> Reply in English
 - Mixed -> Match their natural Pakistani casual tone.
 
-4. STEP-BY-STEP ORDERING & DOUBLE-CHECK CONFIRMATION:
-- Step 1: Clarify items, size variants, and quantity.
-- Step 2: Ask for customer's name and contact phone number. If they say "same number", use their WhatsApp number.
-- Step 3: Ask for complete delivery address.
-- Step 4: Ask payment method: Cash on Delivery / JazzCash / EasyPaisa.
-- Step 5: Show full itemized Order Summary with exact subtotal, delivery fee, and grand total.
-- Step 6: Ask clearly: "Kya main aapka order confirm kar doon? ✅"
-- Step 7: ONLY when customer confirms (e.g. "haan", "yes", "confirm", "theek hai", "kr do", "kar do"), say: "Your order is placed!" and state the total.
+4. STREAMLINED STEP-BY-STEP ORDERING (FAST & PROFESSIONAL):
+- STEP 1 (ITEM SELECTION):
+  • Clarify items, size variants, and quantity. Confirm items warmly.
+- STEP 2 (COLLECT DETAILS — DEFAULT COD):
+  • If deliveryLocationConfirmed is TRUE: Address is ALREADY confirmed! DO NOT ask for address. Ask only for customer name if not known, or output Order Summary immediately.
+  • If deliveryLocationConfirmed is FALSE: Ask for customer's Name and Delivery Address (or ask them to share their WhatsApp location pin 📍 via 📎 -> Location).
+  • AUTOMATIC PAYMENT (DEFAULT COD): Set Payment to "Cash on Delivery (COD)" automatically on your own! Do NOT ask the customer to choose a payment method.
+  • Contact number defaults to their WhatsApp number unless they specify a different one.
+  • Mention COD casually: "Payment: Cash on Delivery (COD) 💵 (Agar JazzCash chahiye toh bata dein)".
+  • JAZZCASH EXCEPTION: If and only if the customer explicitly mentions JazzCash (e.g. "JazzCash karna hai" or "online payment"), provide JazzCash instructions and set Payment: JazzCash. Otherwise, ALWAYS use "Cash on Delivery (COD)".
+- STEP 3 (INSTANT ORDER SUMMARY):
+  • Once items are chosen and location is confirmed (or address given), IMMEDIATELY output the complete itemized Order Summary!
+  • NEVER ask for the order or items again!
+  • NEVER ask for the address again if deliveryLocationConfirmed is TRUE!
+  • Use the customer's name (or "WhatsApp Customer" if not given).
+  • Payment line MUST be: "Payment: Cash on Delivery (COD) 💵" (or JazzCash if requested).
+  • Deliver to line MUST be the confirmed address.
+  • Immediately follow the summary with:
+    "Kya main aapka order confirm kar doon? Reply *YES* to confirm ya *CANCEL* karein ✅"
+- STEP 4 (FINAL CONFIRMATION):
+  • ONLY when customer confirms (e.g. "haan", "yes", "confirm", "theek hai", "kr do", "kar do", "ok"), say: "Your order is placed!" and state the total.
 
 5. ORDER SUMMARY FORMAT (CRITICAL):
-When you have collected all info, always output the summary in this EXACT structure:
+When you output the Order Summary, always use this EXACT structure:
 ─────────────────
 🧾 *Order Summary*
 1x [Item Name] — Rs.[Line Total]
@@ -586,10 +647,10 @@ Delivery: Rs.{$delivery}
 ─────────────────
 Name: [Customer Name]
 Phone: [Contact Phone]
-Payment: [Payment Method]
-Deliver to: [Delivery Address]
+Payment: Cash on Delivery (COD) 💵
+Deliver to: [Delivery Address or Pinned Location]
 
-Kya main aapka order confirm kar doon? ✅
+Kya main aapka order confirm kar doon? Reply *YES* to confirm ya *CANCEL* karein ✅
 - In Order Summary line items, always write the exact full item name as listed in the MENU (e.g. write "3x Butter Naan", "1x Garlic Naan", "2x Butter Roti"). Never shorten or split item names into parenthetical variants unless the item has explicit size options.
 
 6. STRICT STYLE RULES:
@@ -780,6 +841,44 @@ PROMPT;
         return false;
     }
 
+    /**
+     * Check if customer conversation history already contains selected or discussed food items.
+     */
+    public function hasFoodItemsInHistory(Restaurant $restaurant, array $history): bool
+    {
+        if (empty($history)) {
+            return false;
+        }
+
+        $allText = '';
+        foreach ($history as $msg) {
+            $allText .= ' ' . ($msg['content'] ?? '');
+        }
+        $allTextLower = mb_strtolower($allText);
+
+        try {
+            $items = $restaurant->menuItems()->where('is_available', true)->pluck('name');
+            foreach ($items as $name) {
+                if (mb_strlen($name) >= 3 && mb_stripos($allTextLower, mb_strtolower($name)) !== false) {
+                    return true;
+                }
+            }
+        } catch (\Throwable $e) {
+            // DB lookup failed, proceed with keyword checks
+        }
+
+        if (preg_match('/\b(?:\d+\s*x|\d+\s*(?:burger|pizza|biryani|roll|deal|half|full|plate|bottle|piece|paratha|naan|karahi|tikka|wrap|fries|drink|pepsi|coke|sprite))\b/i', $allTextLower) ||
+            preg_match('/\b(?:chahiye|mangwana|pack|bhej do|order karna|order krna)\b/i', $allTextLower)) {
+            return true;
+        }
+
+        if (mb_stripos($allTextLower, 'subtotal') !== false || mb_stripos($allTextLower, 'order summary') !== false) {
+            return true;
+        }
+
+        return false;
+    }
+
     // ──────────────────────────────────────────────────────────────────────────
     //  Order saving to database & creating OrderItem records
     // ──────────────────────────────────────────────────────────────────────────
@@ -848,27 +947,25 @@ PROMPT;
             $contactPhone = $customerPhone;
         }
 
-        // 6. Parse Delivery Address (Apply Location Priority)
+        // 6. Parse Delivery Address (Authoritative priority: confirmed GPS pin / cached address)
         preg_match('/deliver\s*to\s*[:*–-]?\s*([^\n\r*]+)/i', $summaryMsg, $addrMatch);
-        $address = isset($addrMatch[1]) ? trim(str_replace(['*', '`'], '', $addrMatch[1])) : 'Delivery order via WhatsApp';
+        $parsedAddr = isset($addrMatch[1]) ? trim(str_replace(['*', '`'], '', $addrMatch[1])) : '';
         
         $sessionKey = "wa_session_{$restaurant->id}_{$customerPhone}";
         $cachedGps  = Cache::get("verified_delivery_coords_{$sessionKey}");
         $cachedAddr = Cache::get("verified_delivery_address_{$sessionKey}");
         
-        if ($cachedGps && $cachedAddr) {
-            $address = $cachedAddr; // Override AI hallucination completely
-        }
+        $address = $cachedAddr ?: ($parsedAddr ?: 'Delivery order via WhatsApp');
 
-        // 7. Parse Payment Method
-        preg_match('/payment\s*[:*–-]?\s*([^\n\r*]+)/i', $summaryMsg, $payMatch);
-        $paymentRaw = strtolower(trim($payMatch[1] ?? 'cash on delivery'));
-        $paymentMethod = match(true) {
-            str_contains($paymentRaw, 'jazzcash') => 'jazzcash',
-            str_contains($paymentRaw, 'easypaisa') => 'easypaisa',
-            str_contains($paymentRaw, 'bank') || str_contains($paymentRaw, 'transfer') => 'bank_transfer',
-            default => 'cash_on_delivery',
-        };
+        // 7. Parse Payment Method (Backend authoritative: default COD unless customer explicitly requested JazzCash)
+        $allUserText = '';
+        foreach ($history as $m) {
+            if (($m['role'] ?? '') === 'user') {
+                $allUserText .= ' ' . ($m['content'] ?? '');
+            }
+        }
+        $customerWantsJazzCash = (bool) preg_match('/(?:jazzcash|jazz\s*cash)/i', $allUserText);
+        $paymentMethod = $customerWantsJazzCash ? 'jazzcash' : 'cash_on_delivery';
 
         // 8. Generate Tracking Code
         $trackingCode = Order::generateTrackingCode($restaurant);
@@ -1168,18 +1265,18 @@ PROMPT;
                 return $order;
             });
 
-            // Geocode delivery address and persist for live tracking map
+            // Authoritative delivery location & address persistence
             $cachedGps    = Cache::get("verified_delivery_coords_{$sessionKey}");
             $cachedAddr   = Cache::get("verified_delivery_address_{$sessionKey}");
             $cachedSource = Cache::get("verified_delivery_source_{$sessionKey}");
 
-            if ($cachedAddr && ($address === 'Delivery order via WhatsApp' || empty($address))) {
+            if ($cachedAddr) {
                 $address = $cachedAddr;
                 $order->update(['delivery_address' => $address]);
             }
 
-            // Location Safety: Never replace valid WhatsApp pin coordinates with geocoded or guessed coordinates
-            $gpsCoords = ($cachedGps && $cachedSource === 'whatsapp_pin') ? $cachedGps : ($cachedGps ?: $this->geocodeAddress($address, $restaurant->city ?? ''));
+            // Customer GPS pin (whatsapp_pin or customer_pin) is the absolute source of truth
+            $gpsCoords = $cachedGps ?: $this->geocodeAddress($address, $restaurant->city ?? '');
             if ($gpsCoords) {
                 $order->update([
                     'delivery_lat' => $gpsCoords[0],
@@ -1683,8 +1780,8 @@ PROMPT;
             return "Your order is placed! Shukriya 😊 Aapka order kitchen ko bhej diya gaya hai.";
         }
 
-        // 2. If user provides name, address, or payment details
-        if (preg_match('/(?:name|naam|address|pata|ghar|street|road|delivery|payment|cash|cod|jazzcash|easypaisa)\b/i', $lower)) {
+        // 2. If user provides name, address, location pin, or payment details
+        if (preg_match('/(?:name|naam|address|pata|ghar|street|road|delivery|payment|cash|cod|jazzcash|easypaisa|location pin|gps|lat)\b/i', $lower)) {
             $dbItems = $restaurant->menuItems()->where('is_available', true)->get();
             $orderLines = [];
             $subtotal = 0.0;
@@ -1708,6 +1805,9 @@ PROMPT;
                 $grandTotal = $subtotal + $deliveryFee;
                 $itemsText = implode("\n", $orderLines);
 
+                $paymentMethod = preg_match('/(?:jazzcash|jazz cash)/i', $allUserText) ? 'JazzCash 📱' : 'Cash on Delivery (COD) 💵';
+                $deliverTo = (preg_match('/(?:pin|gps|location|lat)/i', $text)) ? 'Pinned Location 📍' : $text;
+
                 return "─────────────────\n" .
                        "🧾 *Order Summary*\n" .
                        "{$itemsText}\n" .
@@ -1716,9 +1816,9 @@ PROMPT;
                        "Delivery: Rs.{$deliveryFee}\n" .
                        "*Total: Rs.{$grandTotal}*\n" .
                        "─────────────────\n" .
-                       "Deliver to: {$text}\n\n" .
-                       "Kya main aapka order confirm kar doon? ✅\n" .
-                       "_(Reply 'CONFIRM' ya 'HAAN' to place order)_";
+                       "Payment: {$paymentMethod}\n" .
+                       "Deliver to: {$deliverTo}\n\n" .
+                       "Kya main aapka order confirm kar doon? Reply *YES* to confirm ya *CANCEL* karein ✅";
             }
         }
 

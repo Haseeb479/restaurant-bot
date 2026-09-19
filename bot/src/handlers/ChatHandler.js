@@ -191,6 +191,7 @@ export class ChatHandler {
             session.deliveryLat = locationCoords.lat;
             session.deliveryLng = locationCoords.lng;
             session.locationSource = 'whatsapp_pin';
+            session.deliveryLocationConfirmed = true;
             let addressStr = locationCoords.name || locationCoords.address || '';
             if (!addressStr) {
                 try {
@@ -209,16 +210,24 @@ export class ChatHandler {
             if (addressStr) {
                 session.deliveryAddress = addressStr;
             }
-            const ackMsg = `📍 *Shukriya! Aapki exact delivery location pin receive ho gayi hai!* ✅\n\nBarah-e-karam apna *Order* ya *Naam* batayein, ya agar order ready hai toh reply karein *'CONFIRM'*! 😊`;
-            session.history.push({ role: 'user', content: `Shared GPS Pin: [Lat: ${locationCoords.lat}, Lng: ${locationCoords.lng}] Address: ${addressStr}` });
-            session.history.push({ role: 'assistant', content: ackMsg });
-            this.sessions.trim(customerPhone, restaurant.id);
-            await msg.reply(ackMsg);
-            return;
+
+            const hasItemsInHistory = this.hasFoodItemsInHistory(session.history);
+            if (hasItemsInHistory) {
+                // Customer already chose food items! Let execution continue straight into Groq AI
+                // to immediately generate the complete itemized Order Summary with COD default.
+                text = `📍 [Customer shared location pin: ${addressStr || 'Pinned Location'} (Coordinates: ${locationCoords.lat}, ${locationCoords.lng})]`;
+            } else {
+                const ackMsg = `📍 *Shukriya! Aapki exact delivery location pin receive ho gayi hai!* ✅\n\nAb barah-e-karam batayein aap kya order karna pasand karein ge? 🍔\n_(Menu dekhne ke liye *Menu* likhein 😊)_`;
+                session.history.push({ role: 'user', content: `Shared GPS Pin: [Lat: ${locationCoords.lat}, Lng: ${locationCoords.lng}] Address: ${addressStr}` });
+                session.history.push({ role: 'assistant', content: ackMsg });
+                this.sessions.trim(customerPhone, restaurant.id);
+                await msg.reply(ackMsg);
+                return;
+            }
         }
 
         // ── Build AI messages ──────────────────────────────────────────────────
-        const systemPrompt = PromptBuilder.build(session.restaurant);
+        const systemPrompt = PromptBuilder.build(session.restaurant, session);
         session.history.push({ role: 'user', content: text });
 
         const messages = [
@@ -234,6 +243,9 @@ export class ChatHandler {
             session.history.pop();
             reply = this.fallback(text, restaurant);
         } else {
+            if (locationCoords && !reply.includes('Location Pin Received') && !reply.includes('Location pin')) {
+                reply = `📍 *Location Pin Received!* ✅\n\n` + reply;
+            }
             session.history.push({ role: 'assistant', content: reply });
             this.sessions.trim(customerPhone, restaurant.id);
         }
@@ -380,6 +392,20 @@ export class ChatHandler {
         }
 
         return true;
+    }
+
+    /**
+     * Check if customer conversation history already contains selected or discussed food items.
+     */
+    hasFoodItemsInHistory(history = []) {
+        if (!Array.isArray(history) || history.length === 0) return false;
+        const allText = history.map(h => h.content || '').join(' ').toLowerCase();
+        return (
+            /\b(?:\d+\s*x|\d+\s*(?:burger|pizza|biryani|roll|deal|half|full|plate|bottle|piece|paratha|naan|karahi|tikka|wrap|fries|drink|pepsi|coke|sprite))\b/i.test(allText) ||
+            /\b(?:chahiye|mangwana|pack|bhej do|order karna|order krna)\b/i.test(allText) ||
+            allText.includes('subtotal') ||
+            allText.includes('order summary')
+        );
     }
 
     /**

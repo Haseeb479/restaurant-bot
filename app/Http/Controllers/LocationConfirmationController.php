@@ -98,6 +98,11 @@ class LocationConfirmationController extends Controller
         $lng = (float) $request->input('lng');
         $address = trim((string) $request->input('address', ''));
 
+        // If address is empty or default, reverse geocode on the server as well
+        if ($address === '') {
+            $address = $this->reverseGeocodeServer($lat, $lng) ?? "Pinned GPS Location ({$lat}, {$lng})";
+        }
+
         // 1. Session token (pre-order)
         $sessionData = Cache::get("loc_token_{$token}");
         if ($sessionData && !empty($sessionData['restaurant_id'])) {
@@ -106,11 +111,10 @@ class LocationConfirmationController extends Controller
             $recipientJid = (string) ($sessionData['recipient_jid'] ?? $phone);
 
             $sessionKey = "wa_session_{$restaurantId}_{$phone}";
-            Cache::put("verified_delivery_coords_{$sessionKey}", [$lat, $lng], now()->addMinutes(45));
-
-            if ($address !== '') {
-                Cache::put("verified_delivery_address_{$sessionKey}", $address, now()->addMinutes(45));
-            }
+            Cache::put("verified_delivery_coords_{$sessionKey}", [$lat, $lng], now()->addMinutes(60));
+            Cache::put("verified_delivery_address_{$sessionKey}", $address, now()->addMinutes(60));
+            Cache::put("verified_delivery_source_{$sessionKey}", 'customer_pin', now()->addMinutes(60));
+            Cache::put("delivery_location_confirmed_{$sessionKey}", true, now()->addMinutes(60));
 
             Log::info("Customer confirmed location pin before order", [
                 'restaurant_id' => $restaurantId,
@@ -124,14 +128,33 @@ class LocationConfirmationController extends Controller
             $restaurant = Restaurant::find($restaurantId);
             if ($restaurant && $recipientJid) {
                 try {
-                    $addrNote = $address ? "\n🏠 *Address:* {$address}" : "";
-                    BotEvolutionClient::sendMessage(
-                        $restaurant,
-                        $recipientJid,
-                        "📍 *Delivery Pin Confirmed!* ✅\n" .
-                        "Hamain aapki exact location mil gayi hai.{$addrNote}\n\n" .
-                        "Aap WhatsApp par apna order continue ya confirm kar sakte hain! 😊"
-                    );
+                    $aiBot = app(\App\Services\WhatsAppAiBotService::class);
+                    $history = Cache::get($sessionKey, []);
+                    $hasItems = $aiBot->hasFoodItemsInHistory($restaurant, $history);
+
+                    if ($hasItems) {
+                        // Customer has items in cart! Feed confirmed pin into bot to immediately output full Order Summary
+                        $pinMsg = "📍 [Customer confirmed delivery pin on map: {$address} (Coordinates: {$lat}, {$lng})]";
+                        $aiBot->handle($restaurant, [
+                            'key' => [
+                                'remoteJid' => $recipientJid,
+                                'fromMe'    => false,
+                            ],
+                            'message' => [
+                                'conversation' => $pinMsg,
+                            ],
+                        ]);
+                    } else {
+                        $addrNote = $address ? "\n🏠 *Address:* {$address}" : "";
+                        BotEvolutionClient::sendMessage(
+                            $restaurant,
+                            $recipientJid,
+                            "📍 *Delivery Pin Confirmed!* ✅\n" .
+                            "Hamain aapki exact doorstep location mil gayi hai.{$addrNote}\n\n" .
+                            "Ab barah-e-karam batayein aap kya order karna pasand karein ge? 🍔\n" .
+                            "_(Menu dekhne ke liye *Menu* likhein 😊)_"
+                        );
+                    }
                 } catch (\Throwable $e) {
                     Log::warning("Failed to send WhatsApp confirmation message: " . $e->getMessage());
                 }
@@ -181,5 +204,32 @@ class LocationConfirmationController extends Controller
             'success' => false,
             'message' => 'Invalid or expired token.',
         ], 404);
+    }
+
+    /**
+     * Server-side reverse geocoding via OpenStreetMap Nominatim.
+     */
+    private function reverseGeocodeServer(float $lat, float $lng): ?string
+    {
+        try {
+            $url = "https://nominatim.openstreetmap.org/reverse?format=json&lat={$lat}&lon={$lng}&zoom=18&addressdetails=1";
+            $ctx = stream_context_create([
+                'http' => [
+                    'timeout' => 4,
+                    'header'  => "User-Agent: Foodio-RestaurantBot/1.0\r\nAccept: application/json\r\n",
+                ],
+            ]);
+            $json = @file_get_contents($url, false, $ctx);
+            if ($json) {
+                $data = json_decode($json, true);
+                if (!empty($data['display_name'])) {
+                    return trim($data['display_name']);
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning("Server reverse geocoding failed for [{$lat}, {$lng}]: " . $e->getMessage());
+        }
+
+        return null;
     }
 }
