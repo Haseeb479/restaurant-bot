@@ -307,8 +307,14 @@ class WhatsAppAiBotService
         $isOrdering = (bool) preg_match('/\b\d+\s*(?:x|burger|pizza|biryani|deal|half|full|plate|bottle|piece|roll|chahiye|mangwana|pack|dona|bhej\s+do)\b/i', $text);
 
         if ($isMenuQuery && ! $isOrdering) {
-            // 1. Send visual menu flyer if uploaded
+            // 1. Send visual menu flyer (restaurant uploaded or default menu flyer)
             $menuFile = $restaurant->menu_image ?: $restaurant->menu_file;
+            if (!$menuFile || (!file_exists($menuFile) && !file_exists(public_path(ltrim($menuFile, '/'))))) {
+                $defaultFlyer = public_path('menus/menu_flyer.jpg');
+                if (file_exists($defaultFlyer)) {
+                    $menuFile = $defaultFlyer;
+                }
+            }
             if ($menuFile) {
                 $ext = strtolower(pathinfo($menuFile, PATHINFO_EXTENSION));
                 if (in_array($ext, ['jpg', 'jpeg', 'jfif', 'png', 'webp', 'gif', 'pdf'], true)) {

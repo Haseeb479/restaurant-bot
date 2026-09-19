@@ -101,6 +101,14 @@ export function findRestaurantMenuFiles(restaurantId, dbMenuFile, dbMenuImage) {
         }
     }
 
+    // 3. Fallback to committed menu flyer if no custom image exists
+    if (!imagePath) {
+        const defaultFlyer = path.join(LARAVEL_PUBLIC, 'menus', 'menu_flyer.jpg');
+        if (fs.existsSync(defaultFlyer)) {
+            imagePath = defaultFlyer;
+        }
+    }
+
     return { imagePath, excelPath, genericFile: resolvedFile };
 }
 
@@ -217,6 +225,47 @@ export class ChatHandler {
             return;
         }
 
+        // ── Direct Menu Request: Send Flyer + Clean Formatted Text Menu ───────
+        const isMenuQuery = /^(?:menu|show\s+menu|send\s+menu|menu\s+dikhao|menu\s+bhejo|menu\s+card|menu\s+pdf|menu\s+photo|flyer|rate\s+list)\b/i.test(text.trim())
+            || /^(?:منو|مینو)$/u.test(text.trim())
+            || /^(?:kya\s+hai|kya\s+items\s+hain|list\s+bhejo|menu\s+chahiye|apna\s+menu\s+bhejo)$/i.test(text.trim());
+        const isOrdering = /\b\d+\s*(?:x|burger|pizza|biryani|deal|half|full|plate|bottle|piece|roll|chahiye|mangwana|pack|dona|bhej\s+do)\b/i.test(text);
+
+        if (isMenuQuery && !isOrdering) {
+            // 1. Send visual menu flyer if available
+            const fileToSend = imagePath || (genericFile && !EXCEL_EXTS.has(path.extname(genericFile).toLowerCase()) ? genericFile : null);
+            if (fileToSend && fs.existsSync(fileToSend)) {
+                try {
+                    const ext = path.extname(fileToSend).toLowerCase();
+                    const media = MessageMedia.fromFilePath(fileToSend);
+
+                    if (IMAGE_EXTS.has(ext)) {
+                        media.mimetype = 'image/jpeg';
+                        media.filename = undefined;
+                        await msg.reply(media, undefined, {
+                            caption: `📋 *${restaurant.name} — Official Menu Flyer*`
+                        });
+                    } else {
+                        const fileTitle = restaurant?.menu_file_name || `${restaurant.name} Menu`;
+                        await msg.reply(media, undefined, { caption: `📋 *${fileTitle}*` });
+                    }
+                    console.log(`📎 Sent menu photo (${ext}) to ${customerPhone}`);
+                } catch (err) {
+                    console.error('❌ Could not send menu file:', err.message);
+                }
+            }
+
+            // 2. Send clean, structured text menu
+            const formattedMenu = this.buildFormattedCustomerMenu(session.restaurant);
+            await msg.reply(formattedMenu);
+            console.log(`📋 Sent maintained formatted text menu to ${customerPhone}`);
+
+            session.history.push({ role: 'user', content: text });
+            session.history.push({ role: 'assistant', content: formattedMenu });
+            this.sessions.trim(customerPhone, restaurant.id);
+            return;
+        }
+
         // ── Build AI messages ──────────────────────────────────────────────────
         const systemPrompt = PromptBuilder.build(session.restaurant);
         session.history.push({ role: 'user', content: text });
@@ -238,7 +287,7 @@ export class ChatHandler {
             this.sessions.trim(customerPhone, restaurant.id);
         }
 
-        // ── Send Menu Picture / Document to Customer ───────────────────────────
+        // ── Send Menu Picture / Document to Customer (Mid-conversation reference) ──
         const isMenuRequest = /menu|dikhao|prices|kya hai|list|card|items|منو|مینو|pdf|sheet|flyer|photo|document|picture/i.test(text);
         let sentMedia = false;
 
@@ -328,7 +377,8 @@ export class ChatHandler {
             }
         } else {
             // ── Send normal text reply ─────────────────────────────────────────
-            if (!sentMedia || reply.length > 50) {
+            // Do not suppress text if it's a menu request so customer always gets textual prices too
+            if (!sentMedia || reply.length > 50 || isMenuRequest) {
                 await msg.reply(reply);
             }
             console.log(`✅ Replied to ${customerPhone}`);
@@ -445,5 +495,65 @@ export class ChatHandler {
         if (/track|tracking/.test(m))
             return `Please send your tracking code and I'll check your order status!`;
         return `Hey! I'm here to help with *${name}* 😊 What would you like today? (You can type *menu* to see our items!)`;
+    }
+
+    // ── Build formatted customer menu text ─────────────────────────────────────
+    buildFormattedCustomerMenu(restaurant) {
+        const name = (restaurant?.name || 'Restaurant').toUpperCase();
+        let out  = `📋 *${name} — OFFICIAL MENU*\n`;
+        out += `───────────────────\n`;
+
+        const categories = Array.isArray(restaurant?.categories) ? restaurant.categories : [];
+        const menuItems  = Array.isArray(restaurant?.menu_items)  ? restaurant.menu_items  : [];
+
+        let hasItems = false;
+        if (categories.length > 0) {
+            for (const cat of categories) {
+                const items = menuItems.filter(i => String(i.category_id) === String(cat.id));
+                if (items.length === 0) continue;
+                hasItems = true;
+                out += `\n🍽️ *${cat.name.toUpperCase()}*\n`;
+                for (const item of items) {
+                    let priceStr = `Rs. ${item.price}`;
+                    let sizes = item.sizes;
+                    if (typeof sizes === 'string') {
+                        try { sizes = JSON.parse(sizes); } catch (e) { sizes = null; }
+                    }
+                    if (Array.isArray(sizes) && sizes.length > 0) {
+                        priceStr = sizes.map(s => `${s.size || s.name}: Rs. ${s.price}`).join(' / ');
+                    }
+                    const desc = item.description ? ` _(${item.description})_` : '';
+                    out += `• *${item.name}* — ${priceStr}${desc}\n`;
+                }
+            }
+        }
+
+        if (!hasItems && menuItems.length > 0) {
+            for (const item of menuItems) {
+                let priceStr = `Rs. ${item.price}`;
+                let sizes = item.sizes;
+                if (typeof sizes === 'string') {
+                    try { sizes = JSON.parse(sizes); } catch (e) { sizes = null; }
+                }
+                if (Array.isArray(sizes) && sizes.length > 0) {
+                    priceStr = sizes.map(s => `${s.size || s.name}: Rs. ${s.price}`).join(' / ');
+                }
+                const desc = item.description ? ` _(${item.description})_` : '';
+                out += `• *${item.name}* — ${priceStr}${desc}\n`;
+            }
+        }
+
+        const fee = restaurant?.delivery_charge ?? 50;
+        const min = restaurant?.minimum_order ?? 0;
+
+        out += `\n───────────────────\n`;
+        out += `🛵 *Delivery Fee:* Rs. ${fee}\n`;
+        if (min > 0) {
+            out += `🏷️ *Minimum Order:* Rs. ${min}\n`;
+        }
+        out += `✨ *Order karne ke liye:* Reply with item name & quantity!\n`;
+        out += `_(Example: "1 Zinger Burger aur 1 Cold Drink")_`;
+
+        return out;
     }
 }
