@@ -162,6 +162,16 @@ class WhatsAppWebhookController extends Controller
             return;
         }
 
+        // Duplicate webhook protection: drop re-delivered webhooks within 10 minutes
+        $msgId = (string) ($key['id'] ?? '');
+        if ($msgId !== '') {
+            $dedupKey = "wa_msg_seen_{$msgId}";
+            if (! \Illuminate\Support\Facades\Cache::add($dedupKey, true, now()->addMinutes(10))) {
+                \Illuminate\Support\Facades\Log::info("Evolution Webhook: Duplicate message ID rejected: {$msgId}");
+                return;
+            }
+        }
+
         $remoteJid = (string) ($key['remoteJid'] ?? '');
 
         // Ignore status broadcasts and group chats

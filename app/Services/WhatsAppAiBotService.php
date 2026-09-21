@@ -155,208 +155,21 @@ class WhatsAppAiBotService
             return;
         }
 
-        // 4. Load / create session history (max 20 messages)
-        $sessionKey = "wa_session_{$restaurant->id}_{$customerPhone}";
-        $history    = Cache::get($sessionKey, []);
-
+        // 4. Handle GPS location pin natively if received
         if ($locationCoords && isset($locationCoords['lat'], $locationCoords['lng'])) {
-            $lat = (float) $locationCoords['lat'];
-            $lng = (float) $locationCoords['lng'];
-            Cache::put("verified_delivery_coords_{$sessionKey}", [$lat, $lng], now()->addMinutes(self::SESSION_TTL));
-
-            // POI-aware location resolution: Google Places API (New) Nearby Search -> Reverse geocode fallback
-            $resolution = app(\App\Services\LocationResolutionService::class)->resolve($lat, $lng);
-            $placeName = $resolution['delivery_place_name'] ?? (! empty($locationCoords['name']) ? trim($locationCoords['name']) : null);
-            $placeId = $resolution['delivery_place_id'] ?? null;
-            $locationSource = ($resolution['location_source'] === 'google_places') ? 'google_places' : 'whatsapp_pin';
-
-            $resolvedAddress = ! empty($locationCoords['address']) ? trim($locationCoords['address']) : '';
-            if ($resolvedAddress === '') {
-                $resolvedAddress = $resolution['delivery_address'] ?? ($placeName ?: "Selected Pin Location ({$lat}, {$lng})");
-            }
-
-            Cache::put("verified_delivery_source_{$sessionKey}", $locationSource, now()->addMinutes(self::SESSION_TTL));
-            if ($resolvedAddress !== '') {
-                Cache::put("verified_delivery_address_{$sessionKey}", $resolvedAddress, now()->addMinutes(self::SESSION_TTL));
-            }
-            if ($placeName) {
-                Cache::put("verified_delivery_place_name_{$sessionKey}", $placeName, now()->addMinutes(self::SESSION_TTL));
-            }
-            if ($placeId) {
-                Cache::put("verified_delivery_place_id_{$sessionKey}", $placeId, now()->addMinutes(self::SESSION_TTL));
-            }
-
-            $restCoords = $this->getRestaurantCoords($restaurant);
-            $distKm     = $restCoords ? $this->calculateHaversineDistance($restCoords[0], $restCoords[1], $lat, $lng) : 1.0;
-            $maxRadius  = $restaurant->maxDeliveryRadiusKm();
-
-            if ($distKm > $maxRadius) {
-                $refusal = "❌ *Maafi chahte hain!* Aapki pin ki gayi location hamare restaurant se *{$distKm} km* door hai.\n\n" .
-                           "Hamari maximum delivery limit *{$maxRadius} km* tak hai 🛵.\n\n" .
-                           "Barah-e-karam apna koi qareebi address bhejein ya take-away order karein! 😊";
-                BotEvolutionClient::sendMessage($restaurant, $recipientJid, $refusal);
-                return;
-            }
-
-            // Location is verified and within radius!
-            $locAck = "📍 *Shukriya! Aapki exact delivery location pin receive ho gayi hai!* ✅\n" .
-                      "_(Kitchen se faasla: {$distKm} km)_\n";
-            if ($placeName) {
-                $locAck .= "📍 *Landmark:* {$placeName}\n";
-            }
-            if ($resolvedAddress !== '' && $resolvedAddress !== $placeName) {
-                $locAck .= "🏠 *Pata:* {$resolvedAddress}\n";
-            }
-            $locAck .= "\nBarah-e-karam apna *Order* ya *Naam* batayein, ya agar order ready hai toh reply karein *'CONFIRM'*! 😊";
-
-            $pinLog = "Shared GPS Pin: [Lat: {$lat}, Lng: {$lng}]" .
-                ($placeName ? " Landmark: {$placeName}" : "") .
-                ($resolvedAddress !== '' ? " Address: {$resolvedAddress}" : "");
-            $history[] = ['role' => 'user', 'content' => $pinLog];
-            $history[] = ['role' => 'assistant', 'content' => $locAck];
-            Cache::put($sessionKey, $history, now()->addMinutes(self::SESSION_TTL));
-            BotEvolutionClient::sendMessage($restaurant, $recipientJid, $locAck);
+            $engine = new OrderingStateEngine($restaurant, $customerPhone);
+            $reply = $engine->handleLocationPin((float) $locationCoords['lat'], (float) $locationCoords['lng']);
+            BotEvolutionClient::sendMessage($restaurant, $recipientJid, $reply);
             return;
         }
 
-        // ── Deterministic Size Variant Selection Interceptor ────────────────
-        $pendingSizeKey = "pending_size_selection_{$sessionKey}";
-        $pendingSizeData = Cache::get($pendingSizeKey);
-        if ($pendingSizeData && !empty($pendingSizeData['variants'])) {
-            $matchedVariant = $this->matchPendingVariantSelection($text, $pendingSizeData['variants']);
-            if ($matchedVariant) {
-                Cache::forget($pendingSizeKey);
-                $qty = (int) ($pendingSizeData['quantity'] ?? 1);
-                $itemName = $pendingSizeData['item_name'];
-                $varName = $matchedVariant['name'];
-                $unitPrice = (float) $matchedVariant['price'];
-                $lineTotal = $unitPrice * $qty;
-                $formattedTotal = number_format($lineTotal, 0);
+        // 5. Deterministic Ordering State Engine with LLM NLU extraction
+        $nlu = $this->extractNlu($restaurant, $text);
 
-                $cartMsg = "{$qty} × {$itemName} ({$varName}) — Rs. {$formattedTotal}\nAdded to your cart.";
-                $reply = "{$cartMsg} 😊\n\nApna delivery address aur contact number batayein ya kuch aur mangwana hai?";
-
-                $history[] = ['role' => 'user', 'content' => $text];
-                $history[] = ['role' => 'assistant', 'content' => $cartMsg];
-                Cache::put($sessionKey, $history, now()->addMinutes(self::SESSION_TTL));
-
-                BotEvolutionClient::sendMessage($restaurant, $recipientJid, $reply);
-                return;
-            }
-        }
-
-        // Check if customer is ordering an item with multiple sizes without specifying size
-        if ($this->checkAndHandlePendingSizePrompt($restaurant, $text, $sessionKey, $recipientJid, $history)) {
-            return;
-        }
-
-        $history[] = ['role' => 'user', 'content' => $text];
-        if (count($history) > 20) {
-            $history = array_slice($history, -20);
-        }
-
-        // ── Foodpanda-Style Delivery Radius & City Protection ────────────────
-        // Validate delivery address against city lock and maximum KM radius limit
-        // BEFORE invoking AI to prevent rogue deliveries or AI hallucinations.
-        $looksLikeAddress = (bool) preg_match(
-            '/deliver\s*to|address|ghar|house|flat|block|phase|sector|street|road|lane|bazar|colony|town|city|near|opposite|behind|mahallah|mohallah|پتہ|ایڈریس/iu',
-            $text
-        );
-
-        if ($looksLikeAddress) {
-            $msgLower = mb_strtolower($text);
-            $restCity = mb_strtolower(trim($restaurant->city ?? ''));
-            $maxRadius = $restaurant->maxDeliveryRadiusKm();
-
-            // 1. City Lock Check:
-            // If the customer explicitly mentions a major Pakistani city that does NOT match the restaurant's base city, block immediately.
-            $majorCities = [
-                'karachi', 'lahore', 'islamabad', 'rawalpindi', 'faisalabad', 'multan', 'peshawar',
-                'quetta', 'gujranwala', 'sialkot', 'hyderabad', 'bahawalpur', 'sargodha', 'lodhran',
-                'sukkur', 'larkana', 'abbottabad', 'mardan', 'kasur', 'sahiwal', 'okara', 'gujrat',
-                'sheikhupura', 'jhang', 'rahim yar khan', 'muzaffargarh', 'dera ghazi khan'
-            ];
-
-            foreach ($majorCities as $city) {
-                if (mb_strpos($msgLower, $city) !== false) {
-                    if ($restCity !== '' && mb_strpos($restCity, $city) === false && mb_strpos($city, $restCity) === false) {
-                        $refusal = "❌ *Maafi chahte hain!* Hamara restaurant *" . ucwords($restaurant->city) . "* mein waqia hai.\n\n" .
-                                   "Hum sirf *" . ucwords($restaurant->city) . "* aur uske ird-gird *{$maxRadius} km* tak deliver karte hain 🛵. " .
-                                   "Doosre sheheron mein delivery dastiyab nahi hai.";
-                        Cache::put($sessionKey, $history, now()->addMinutes(self::SESSION_TTL));
-                        BotEvolutionClient::sendMessage($restaurant, $recipientJid, $refusal);
-                        return;
-                    }
-                }
-            }
-
-            // 2. GPS Radius Distance Check:
-            $cachedGps  = Cache::get("verified_delivery_coords_{$sessionKey}");
-            $cachedSource = Cache::get("verified_delivery_source_{$sessionKey}");
-            $restCoords = $this->getRestaurantCoords($restaurant);
-            if ($restCoords) {
-                $cleanAddr  = $this->extractAddressFromText($text);
-                $custCoords = ($cachedGps && $cachedSource === 'whatsapp_pin') ? $cachedGps : ($cachedGps ?: $this->geocodeAddress($cleanAddr, $restaurant->city ?? ''));
-                if ($custCoords) {
-                    $distKm = $this->calculateHaversineDistance($restCoords[0], $restCoords[1], $custCoords[0], $custCoords[1]);
-                    if ($distKm > $maxRadius) {
-                        $refusal = "❌ *Maafi chahte hain!* Aapka address hamare restaurant se *{$distKm} km* door hai.\n\n" .
-                                   "Hamari maximum delivery limit *{$maxRadius} km* tak hai 🛵.\n\n" .
-                                   "Barah-e-karam apna koi qareebi address bhejein ya take-away / pickup order karein! 😊";
-                        Cache::put($sessionKey, $history, now()->addMinutes(self::SESSION_TTL));
-                        BotEvolutionClient::sendMessage($restaurant, $recipientJid, $refusal);
-                        return;
-                    } else {
-                        // Location verified within radius! Store coordinates for order save
-                        if ($cachedSource !== 'whatsapp_pin') {
-                            Cache::put("verified_delivery_coords_{$sessionKey}", $custCoords, now()->addMinutes(self::SESSION_TTL));
-                        }
-                    }
-                }
-            }
-
-            // 3. Fallback: Configured manual delivery areas whitelist (if owner specified any)
-            $configuredAreas = array_filter(array_map(
-                fn ($a) => mb_strtolower(trim($a)),
-                explode(',', $restaurant->delivery_areas ?? '')
-            ));
-
-            if (! empty($configuredAreas)) {
-                $matched = false;
-                foreach ($configuredAreas as $area) {
-                    if ($area !== '' && mb_strpos($msgLower, $area) !== false) {
-                        $matched = true;
-                        break;
-                    }
-                }
-
-                // Only block on manual whitelist if we also didn't get a valid geocoded GPS match
-                if (! $matched && empty($custCoords)) {
-                    $areaList = implode(', ', array_map('ucwords', $configuredAreas));
-                    $refusal  =
-                        "❌ *Maafi chahte hain!* Hum abhi sirf in areas mein deliver karte hain:\n\n" .
-                        "📍 *{$areaList}*\n\n" .
-                        "Kya aapka address in mein se kisi area mein hai? 😊 " .
-                        "Agar haan, toh apna poora address dobara bhejein!";
-
-                    Cache::put($sessionKey, $history, now()->addMinutes(self::SESSION_TTL));
-                    BotEvolutionClient::sendMessage($restaurant, $recipientJid, $refusal);
-                    return;
-                }
-            }
-        }
-
-        // ── Direct Menu Request: Send Flyer + Clean Formatted Text Menu ───────
-        $isMenuQuery = (bool) preg_match('/^(?:menu|show\s+menu|send\s+menu|menu\s+dikhao|menu\s+bhejo|menu\s+card|menu\s+pdf|menu\s+photo|flyer|rate\s+list)\b/iu', $text)
-            || (bool) preg_match('/^(?:منو|مینو)$/u', $text)
-            || (bool) preg_match('/^(?:kya\s+hai|kya\s+items\s+hain|list\s+bhejo|menu\s+chahiye|apna\s+menu\s+bhejo)$/iu', $text);
-
-        $isOrdering = (bool) preg_match('/\b\d+\s*(?:x|burger|pizza|biryani|deal|half|full|plate|bottle|piece|roll|chahiye|mangwana|pack|dona|bhej\s+do)\b/i', $text);
-
-        if ($isMenuQuery && ! $isOrdering) {
-            // 1. Send visual menu flyer (restaurant uploaded or default menu flyer)
+        // If customer requested menu, send flyer photo if available
+        if (($nlu['intent'] ?? '') === 'SHOW_MENU') {
             $menuFile = $restaurant->menu_image ?: $restaurant->menu_file;
-            if (!$menuFile || (!file_exists($menuFile) && !file_exists(public_path(ltrim($menuFile, '/'))))) {
+            if (! $menuFile || (! file_exists($menuFile) && ! file_exists(public_path(ltrim($menuFile, '/'))))) {
                 $defaultFlyer = public_path('menus/menu_flyer.jpg');
                 if (file_exists($defaultFlyer)) {
                     $menuFile = $defaultFlyer;
@@ -373,122 +186,161 @@ class WhatsAppAiBotService
                     );
                 }
             }
-
-            // 2. Send clean, structured text menu
-            $formattedMenu = $this->buildFormattedCustomerMenu($restaurant);
-            BotEvolutionClient::sendMessage($restaurant, $recipientJid, $formattedMenu);
-
-            $history[] = ['role' => 'user', 'content' => $text];
-            $history[] = ['role' => 'assistant', 'content' => "Menu sent! Please let me know what items and quantity you would like to order."];
-            Cache::put($sessionKey, $history, now()->addMinutes(self::SESSION_TTL));
-            return;
         }
 
-        // 3. Build system prompt from live DB menu
-        $systemPrompt = $this->buildSystemPrompt($restaurant, $sessionKey);
+        $engine = new OrderingStateEngine($restaurant, $customerPhone);
+        $reply = $engine->process($nlu);
 
-        // 4. Call Groq AI
-        $messages = array_merge(
-            [['role' => 'system', 'content' => $systemPrompt]],
-            $history
-        );
-
-        $reply = $this->callGroq($messages);
-
-        if ($reply === null) {
-            // AI unavailable — smart fallback
-            $reply = $this->smartFallback($text, $restaurant, $history);
-            Log::warning("WhatsApp AI: Groq unavailable, using fallback for {$restaurant->name} — customer: {$customerPhone}");
-        }
-
-        $history[] = ['role' => 'assistant', 'content' => $reply];
-        if (count($history) > 20) {
-            $history = array_slice($history, -20);
-        }
-
-        // 5. Detect order confirmation and save to database
-        if ($this->isOrderConfirmed($reply, $history)) {
-            $trackingCode = $this->saveOrderFromHistory($restaurant, $customerPhone, $history);
-            if ($trackingCode) {
-                // Harmonize bill in reply with authoritative database record
-                $savedOrder = \App\Models\Order::where('tracking_code', $trackingCode)->first();
-                if ($savedOrder) {
-                    $reply = $this->harmonizeConfirmationBill($reply, $savedOrder);
-                }
-
-                $trackUrl = url('/track/' . $trackingCode);
-                $reply .= "\n\n🎉 *Order Confirmed!*\n📦 *Your Tracking Code:* *{$trackingCode}*\n🔗 *Live Order Tracking:* {$trackUrl}\n\nSend this code anytime to check your live order & rider status!";
-
-                // Reset session so next conversation starts fresh
-                Cache::forget($sessionKey);
-
-                // ── GAP 3: Notify owner/manager via WhatsApp ──────────────────
-                // Send the restaurant owner or manager a new-order WhatsApp
-                // alert immediately after saving, just like the Node.js
-                // NotifyService does. Uses the same Evolution instance so no
-                // extra infra is required.
-                $notifyPhone = $restaurant->manager_phone ?: $restaurant->owner_phone;
-                if ($notifyPhone) {
-                    // Retrieve saved order to get exact parsed total
-                    $savedOrder  = \App\Models\Order::where('tracking_code', $trackingCode)->first();
-                    $totalStr    = $savedOrder ? 'Rs. ' . number_format((float) $savedOrder->total, 0) : '';
-                    $addressStr  = $savedOrder?->delivery_address ?: 'N/A';
-                    $itemsStr    = '';
-                    if ($savedOrder && $savedOrder->items()->exists()) {
-                        $itemsStr = "\n🍽️ *Items:* " . $savedOrder->items->map(
-                            fn ($i) => "{$i->quantity}x {$i->name}"
-                        )->implode(', ');
-                    }
-
-                    $ownerMsg =
-                        "🔔 *New Order — {$restaurant->name}!*\n\n" .
-                        "📦 *#{$trackingCode}*\n" .
-                        "📱 *Customer:* {$customerPhone}" .
-                        $itemsStr .
-                        ($totalStr ? "\n💰 *Total:* {$totalStr}" : '') .
-                        "\n📍 *Address:* {$addressStr}\n\n" .
-                        "✅ Login to your dashboard to confirm the order.";
-
-                    BotEvolutionClient::sendMessage($restaurant, $notifyPhone, $ownerMsg);
-                }
-
-                // If saved order doesn't have confirmed GPS coordinates, offer pin setting link
-                $savedOrder = \App\Models\Order::where('tracking_code', $trackingCode)->first();
-                if ($savedOrder && (! $savedOrder->delivery_lat || ! $savedOrder->delivery_lng)) {
-                    $pinLink = url('/confirm-location/' . $trackingCode);
-                    $reply .= "\n\n📍 *Doorstep Pin:* Rider ke liye apna exact map pin set karein:\n👉 {$pinLink}";
-                }
-            } else {
-                // ── GAP 5: Order save failed — don't leave customer hanging ───
-                // Clear the session so the AI doesn't loop into another spurious
-                // "order confirmed" on the next message. Override the AI's reply
-                // with a clear retry message so the customer knows to re-order.
-                Cache::forget($sessionKey);
-                $reply =
-                    "⚠️ Sorry — something went wrong saving your order, so it has *not* been placed.\n\n" .
-                    "Please send your order again in a moment, or contact us directly.";
-            }
-        } else {
-            Cache::put($sessionKey, $history, now()->addMinutes(self::SESSION_TTL));
-
-            // Pre-order pin confirmation link: when AI presents summary or asks for address
-            $hasVerifiedCoords = (bool) Cache::get("verified_delivery_coords_{$sessionKey}");
-            if (! $hasVerifiedCoords && (
-                stripos($reply, 'order summary') !== false ||
-                stripos($reply, 'deliver to') !== false ||
-                preg_match('/(?:address|ghar\s*ka\s*pata|location)\b/iu', $reply)
-            )) {
-                $locToken = self::getOrCreateLocationToken($restaurant, $customerPhone, $recipientJid);
-                $pinUrl = url("/confirm-location/{$locToken}");
-                $reply .= "\n\n📍 *Set / Confirm Pin on Map:*\n" .
-                          "Apna exact doorstep pin set karne ke liye tap karein:\n" .
-                          "👉 {$pinUrl}\n" .
-                          "_(Ya WhatsApp par 📎 -> Location se direct pin share karein)_";
-            }
-        }
-
-        // Send AI conversational reply (taking orders, answering queries, confirmations)
         BotEvolutionClient::sendMessage($restaurant, $recipientJid, $reply);
+    }
+
+    /**
+     * Extract structured NLU intent and entities using Groq with deterministic regex fallback.
+     */
+    public function extractNlu(Restaurant $restaurant, string $text): array
+    {
+        $clean = trim($text);
+
+        // Fast path: obvious global intents can bypass Groq API latency
+        if (preg_match('/^(?:cancel|radd|order\s+cancel|cancel\s+order|stop|nahi\s+chahiye)$/i', $clean)) {
+            return ['intent' => 'CANCEL_ORDER', 'items' => [], 'raw_text' => $clean];
+        }
+
+        if (preg_match('/^(?:confirm|yes|haan|theek|ok|jee|g|order\s+kar\s+do|done)$/i', $clean)) {
+            return ['intent' => 'CONFIRM_ORDER', 'items' => [], 'raw_text' => $clean];
+        }
+
+        if (preg_match('/^(?:menu|rate\s*list|kya\s*items\s*hain)$/i', $clean)) {
+            return ['intent' => 'SHOW_MENU', 'items' => [], 'raw_text' => $clean];
+        }
+
+        if (preg_match('/^(?:small|medium|large|xl|s|m|l)$/i', $clean)) {
+            return ['intent' => 'SELECT_VARIANT', 'variant' => ucfirst(strtolower($clean)), 'raw_text' => $clean];
+        }
+
+        // Groq NLU Extraction
+        try {
+            $systemPrompt = <<<SYS
+You are an expert NLU intent and entity extractor for a Pakistani restaurant WhatsApp ordering system.
+Analyze the customer's message and output ONLY a valid JSON object matching this schema:
+{
+  "intent": "SHOW_MENU" | "ADD_ITEM" | "REMOVE_ITEM" | "CHANGE_QUANTITY" | "SELECT_VARIANT" | "VIEW_CART" | "CHECKOUT" | "CONFIRM_ORDER" | "CANCEL_ORDER" | "ASK_ORDER_STATUS" | "UNKNOWN",
+  "items": [
+    {
+      "name": "Item name without size or price",
+      "quantity": 1,
+      "size": "Small" | "Medium" | "Large" | "XL" | null
+    }
+  ],
+  "variant": "Small" | "Medium" | "Large" | "XL" | null,
+  "name": "Customer name if provided or null",
+  "address": "Customer delivery address if provided or null",
+  "tracking_code": "Order tracking code if provided or null"
+}
+Rules:
+- NEVER calculate prices or totals.
+- Extract quantities as integers (default 1).
+- Detect Pakistani size variations: S, M, L, XL, chota, bara, darmiyana.
+- If customer says "confirm", "yes", "haan", "theek hai", "order kar do", intent is CONFIRM_ORDER.
+- If customer says "cancel", "radd", intent is CANCEL_ORDER.
+- If customer asks for menu or rates, intent is SHOW_MENU.
+- Output valid, raw JSON only. No markdown formatting, no backticks, no extra text.
+SYS;
+
+            $groqResult = $this->callGroq([
+                ['role' => 'system', 'content' => $systemPrompt],
+                ['role' => 'user', 'content' => $clean],
+            ]);
+
+            if ($groqResult !== null) {
+                $cleanJson = trim(preg_replace('/^```(?:json)?|```$/i', '', trim($groqResult)));
+                $decoded = json_decode($cleanJson, true);
+                if (is_array($decoded) && isset($decoded['intent'])) {
+                    $decoded['raw_text'] = $clean;
+                    return $decoded;
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning("WhatsApp AI: Groq NLU exception: " . $e->getMessage());
+        }
+
+        // Resilient Fallback Parser if Groq is unavailable, times out, or fails
+        return $this->extractNluFallback($clean);
+    }
+
+    /**
+     * Fast deterministic regex keyword & entity extractor fallback.
+     */
+    public function extractNluFallback(string $text): array
+    {
+        $clean = trim($text);
+
+        if (preg_match('/\b(cancel|radd|rehne do|khatam|stop|nahi chahiye)\b/i', $clean)) {
+            return ['intent' => 'CANCEL_ORDER', 'items' => [], 'raw_text' => $clean];
+        }
+
+        if (preg_match('/\b(yes|confirm|theek|haan|jee|ok|order kar do|done)\b/i', $clean) && ! preg_match('/\b(pizza|burger|roll|biryani|bottle|coke|deal)\b/i', $clean)) {
+            return ['intent' => 'CONFIRM_ORDER', 'items' => [], 'raw_text' => $clean];
+        }
+
+        if (preg_match('/\b(status|track|kahan hai|order status)\b/i', $clean)) {
+            preg_match('/\b([A-Za-z0-9-]{6,25})\b/', $clean, $m);
+            return ['intent' => 'ASK_ORDER_STATUS', 'tracking_code' => $m[1] ?? null, 'raw_text' => $clean];
+        }
+
+        if (preg_match('/\b(menu|rate list|kya items|list bhejo)\b/i', $clean) && ! preg_match('/\b(chahiye|bhej do|pack)\b/i', $clean)) {
+            return ['intent' => 'SHOW_MENU', 'items' => [], 'raw_text' => $clean];
+        }
+
+        if (preg_match('/^(small|medium|large|xl|s|m|l)$/i', $clean)) {
+            return ['intent' => 'SELECT_VARIANT', 'variant' => ucfirst(strtolower($clean)), 'raw_text' => $clean];
+        }
+
+        $name = null;
+        if (preg_match('/(?:naam|name|im|i am)\s*(?:hai|is|:)?\s*([A-Za-z\s]{2,30}?)(?:aur|address|,|$)/i', $clean, $nm)) {
+            $name = trim(preg_replace('/\b(mera|hai|my|is)\b/i', '', $nm[1]));
+        }
+
+        $address = null;
+        if (preg_match('/(?:address|deliver to|location|pata|ghar)\s*(?:hai|is|:)?\s*([A-Za-z0-9\s,\-\/]{3,60}?)(?:aur|,|$)/i', $clean, $am)) {
+            $address = trim(preg_replace('/\b(hai|is|mera)\b/i', '', $am[1]));
+        }
+
+        // Strip price tampering attempt before extracting items
+        $cleanWithoutPrices = preg_replace('/(?:for\s*)?(?:rs\.?|pkr\.?)\s*\d+/i', '', $clean);
+
+        $items = [];
+        $itemSearchStr = $cleanWithoutPrices;
+        if ($name) {
+            $itemSearchStr = str_ireplace($name, '', $itemSearchStr);
+        }
+        if ($address) {
+            $itemSearchStr = str_ireplace($address, '', $itemSearchStr);
+        }
+
+        if (preg_match_all('/(?:(\d+)\s*(?:x\s*)?)?(?:\b(small|medium|large|xl|chota|bara)\b)?\s*([a-zA-Z\s]+?)(?:aur|and|,|$)/i', $itemSearchStr, $matches, PREG_SET_ORDER)) {
+            foreach ($matches as $match) {
+                $qty = ! empty($match[1]) ? (int) $match[1] : 1;
+                $size = ! empty($match[2]) ? ucfirst(strtolower($match[2])) : null;
+                $rawItem = trim($match[3] ?? '');
+                $rawItem = preg_replace('/\b(chahiye|mangwana|bhej do|pack kar do|mera|naam|address|hai|deliver|for)\b/i', '', $rawItem);
+                $rawItem = trim($rawItem);
+                if (strlen($rawItem) >= 3 && ! in_array(strtolower($rawItem), ['pizza', 'burger', 'deal', 'large', 'small', 'medium', 'menu', 'yes', 'no'])) {
+                    $items[] = ['name' => $rawItem, 'quantity' => $qty, 'size' => $size];
+                }
+            }
+        }
+
+        $intent = ! empty($items) ? 'ADD_ITEM' : ($name || $address ? 'COLLECT_CUSTOMER_INFO' : 'UNKNOWN');
+
+        return [
+            'intent' => $intent,
+            'items' => $items,
+            'variant' => $items[0]['size'] ?? null,
+            'name' => $name,
+            'address' => $address,
+            'raw_text' => $clean,
+        ];
     }
 
     // ──────────────────────────────────────────────────────────────────────────
