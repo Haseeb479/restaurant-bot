@@ -1534,6 +1534,20 @@ class DashboardController extends Controller
                 // B. Parse from sizes column if present
                 if (empty($parsedSizes) && $sizesCell !== '') {
                     $parsedSizes = $parseInlineSizes($sizesCell);
+                    if (empty($parsedSizes)) {
+                        $singleNorm = MenuItem::normalizeSizeName($sizesCell);
+                        if (!empty($singleNorm) && $basePrice > 0) {
+                            $parsedSizes = [
+                                [
+                                    'name'       => $singleNorm,
+                                    'size'       => $singleNorm,
+                                    'price'      => $basePrice,
+                                    'sort_order' => MenuItem::getSizeSortOrder($singleNorm),
+                                    'is_active'  => true,
+                                ]
+                            ];
+                        }
+                    }
                 }
 
                 // C. Parse from price cell if it contains multiple sizes
@@ -1566,11 +1580,12 @@ class DashboardController extends Controller
                 ];
             }
 
-            // Consolidate row-based size items (e.g. "Bonfire Pizza - Small", "Bonfire Pizza - Medium")
+            // Consolidate row-based size items (e.g. "Bonfire Pizza - Small", "Bonfire Pizza - Medium", stacked rows, repeated rows)
             $items = [];
             $itemMap = [];
 
             foreach ($rawItems as $item) {
+                $baseName = $item['name'];
                 if (empty($item['sizes']) && preg_match('/^(.+?)[\s\-_(\[]+(small|medium|large|extra\s*large|xlarge|xl|x-large|family|jumbo|personal|regular|half|full|s|m|l)[)\s\]]*$/i', $item['name'], $suffixMatch)) {
                     $baseName = trim($suffixMatch[1]);
                     $rawSize = strtolower(trim(preg_replace('/[\s\-_]+/', ' ', $suffixMatch[2])));
@@ -1583,50 +1598,68 @@ class DashboardController extends Controller
                         'sort_order' => MenuItem::getSizeSortOrder($normSize),
                         'is_active'  => true,
                     ];
+                    $item['sizes'] = [$variantObj];
+                }
 
-                    $key = strtolower($item['category']) . ':::' . strtolower($baseName);
-                    if (isset($itemMap[$key])) {
-                        $idx = $itemMap[$key];
+                $item['name'] = $baseName;
+                $key = strtolower($item['category']) . ':::' . strtolower($baseName);
+
+                if (isset($itemMap[$key])) {
+                    $idx = $itemMap[$key];
+                    if (!empty($item['sizes'])) {
                         if (empty($items[$idx]['sizes'])) {
                             $items[$idx]['sizes'] = [];
                         }
-                        $hasSize = false;
-                        foreach ($items[$idx]['sizes'] as $s) {
-                            if (($s['size'] ?? $s['name']) === $normSize) { $hasSize = true; break; }
-                        }
-                        if (!$hasSize) {
-                            $items[$idx]['sizes'][] = $variantObj;
-                            $items[$idx]['sizes'] = $sortSizes($items[$idx]['sizes']);
-                        }
-                        if (!empty($item['description']) && empty($items[$idx]['description'])) {
-                            $items[$idx]['description'] = $item['description'];
-                        }
-                        continue;
-                    } else {
-                        $item['name'] = $baseName;
-                        $item['sizes'] = [$variantObj];
-                        $itemMap[$key] = count($items);
-                        $items[] = $item;
-                        continue;
-                    }
-                }
-
-                $key = strtolower($item['category']) . ':::' . strtolower($item['name']);
-                if (isset($itemMap[$key])) {
-                    $idx = $itemMap[$key];
-                    if (!empty($item['sizes']) && !empty($items[$idx]['sizes'])) {
                         foreach ($item['sizes'] as $s) {
-                            $hasSize = false;
-                            foreach ($items[$idx]['sizes'] as $es) {
-                                if ($es['size'] === $s['size']) { $hasSize = true; break; }
+                            $sName = $s['size'] ?? $s['name'];
+                            $found = false;
+                            foreach ($items[$idx]['sizes'] as &$es) {
+                                if (strcasecmp($es['size'] ?? $es['name'], $sName) === 0) {
+                                    if ($s['price'] > 0) $es['price'] = $s['price'];
+                                    $found = true;
+                                    break;
+                                }
                             }
-                            if (!$hasSize) {
+                            unset($es);
+                            if (!$found) {
                                 $items[$idx]['sizes'][] = $s;
                             }
                         }
                         $items[$idx]['sizes'] = $sortSizes($items[$idx]['sizes']);
+                        if (!empty($items[$idx]['sizes'])) {
+                            $items[$idx]['price'] = $items[$idx]['sizes'][0]['price'];
+                        }
+                    } elseif ($item['price'] > 0 && ($items[$idx]['price'] ?? 0) != $item['price']) {
+                        if (empty($items[$idx]['sizes'])) {
+                            $items[$idx]['sizes'] = [
+                                [
+                                    'name'       => 'Regular',
+                                    'size'       => 'Regular',
+                                    'price'      => $items[$idx]['price'],
+                                    'sort_order' => 1.5,
+                                    'is_active'  => true,
+                                ]
+                            ];
+                        }
+                        $items[$idx]['sizes'][] = [
+                            'name'       => 'Variant ' . (count($items[$idx]['sizes']) + 1),
+                            'size'       => 'Variant ' . (count($items[$idx]['sizes']) + 1),
+                            'price'      => $item['price'],
+                            'sort_order' => 10 + count($items[$idx]['sizes']),
+                            'is_active'  => true,
+                        ];
+                        $items[$idx]['sizes'] = $sortSizes($items[$idx]['sizes']);
+                        $items[$idx]['price'] = $items[$idx]['sizes'][0]['price'];
+                    }
+
+                    if (!empty($item['description']) && empty($items[$idx]['description'])) {
+                        $items[$idx]['description'] = $item['description'];
                     }
                 } else {
+                    if (!empty($item['sizes'])) {
+                        $item['sizes'] = $sortSizes($item['sizes']);
+                        $item['price'] = $item['sizes'][0]['price'];
+                    }
                     $itemMap[$key] = count($items);
                     $items[] = $item;
                 }

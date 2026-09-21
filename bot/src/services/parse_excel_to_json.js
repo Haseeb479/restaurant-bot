@@ -39,6 +39,22 @@ try {
         'Jumbo': 6
     };
 
+    function normalizeSizeName(raw) {
+        if (!raw || typeof raw !== 'string') return '';
+        const s = raw.trim().toLowerCase().replace(/[\s\-_]+/g, ' ');
+        if (s.includes('family')) return 'Family';
+        if (s.includes('jumbo') || s.includes('party')) return 'Jumbo';
+        if (s.includes('personal')) return 'Personal';
+        if (/\b(extra\s*large|xlarge|xl|x-large)\b/i.test(s) || /(?:16["”]|16\s*inch\b)/i.test(s)) return 'XL';
+        if (/\b(large|lg)\b/i.test(s) || /(?:13["”]|13\s*inch\b)/i.test(s) || s === 'l') return 'Large';
+        if (/\b(medium|med)\b/i.test(s) || /(?:10["”]|10\s*inch\b)/i.test(s) || s === 'm') return 'Medium';
+        if (/\b(small|sm)\b/i.test(s) || /(?:7["”]|7\s*inch\b)/i.test(s) || s === 's') return 'Small';
+        if (/\b(regular|reg)\b/i.test(s)) return 'Regular';
+        if (/\b(half|single)\b/i.test(s)) return 'Half';
+        if (/\b(full|double)\b/i.test(s)) return 'Full';
+        return raw.trim().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+    }
+
     function detectSizeFromHeader(headerStr) {
         const s = String(headerStr || '').trim().toLowerCase();
         if (!s) return null;
@@ -48,10 +64,10 @@ try {
         if (/\b(family)\b/i.test(s)) return 'Family';
         if (/\b(jumbo|monster|party)\b/i.test(s)) return 'Jumbo';
         if (/\b(personal)\b/i.test(s)) return 'Personal';
-        if (/\b(extra\s*large|xlarge|xl|x-large)\b/i.test(s) || /16["”\s]/i.test(s)) return 'XL';
-        if (/\b(large|lg)\b/i.test(s) || /13["”\s]/i.test(s) || s === 'l' || /^l\s*[\(\[]/i.test(s) || /[\(\[]\s*l\s*[\)\]]/i.test(s) || /^price[\s_\-]+l$/i.test(s) || /^l[\s_\-]+price$/i.test(s)) return 'Large';
-        if (/\b(medium|med)\b/i.test(s) || /10["”\s]/i.test(s) || s === 'm' || /^m\s*[\(\[]/i.test(s) || /[\(\[]\s*m\s*[\)\]]/i.test(s) || /^price[\s_\-]+m$/i.test(s) || /^m[\s_\-]+price$/i.test(s)) return 'Medium';
-        if (/\b(small|sm)\b/i.test(s) || /7["”\s]/i.test(s) || s === 's' || /^s\s*[\(\[]/i.test(s) || /[\(\[]\s*s\s*[\)\]]/i.test(s) || /^price[\s_\-]+s$/i.test(s) || /^s[\s_\-]+price$/i.test(s)) return 'Small';
+        if (/\b(extra\s*large|xlarge|xl|x-large)\b/i.test(s) || /(?:16["”]|16\s*inch\b)/i.test(s)) return 'XL';
+        if (/\b(large|lg)\b/i.test(s) || /(?:13["”]|13\s*inch\b)/i.test(s) || s === 'l' || /^l\s*[\(\[]/i.test(s) || /[\(\[]\s*l\s*[\)\]]/i.test(s) || /^price[\s_\-]+l$/i.test(s) || /^l[\s_\-]+price$/i.test(s)) return 'Large';
+        if (/\b(medium|med)\b/i.test(s) || /(?:10["”]|10\s*inch\b)/i.test(s) || s === 'm' || /^m\s*[\(\[]/i.test(s) || /[\(\[]\s*m\s*[\)\]]/i.test(s) || /^price[\s_\-]+m$/i.test(s) || /^m[\s_\-]+price$/i.test(s)) return 'Medium';
+        if (/\b(small|sm)\b/i.test(s) || /(?:7["”]|7\s*inch\b)/i.test(s) || s === 's' || /^s\s*[\(\[]/i.test(s) || /[\(\[]\s*s\s*[\)\]]/i.test(s) || /^price[\s_\-]+s$/i.test(s) || /^s[\s_\-]+price$/i.test(s)) return 'Small';
         if (/\b(regular|reg)\b/i.test(s)) return 'Regular';
         if (/\b(half|single)\b/i.test(s)) return 'Half';
         if (/\b(full|double)\b/i.test(s)) return 'Full';
@@ -71,19 +87,7 @@ try {
             const rawSize = match[1].toLowerCase().replace(/[\s\-_]+/g, ' ').trim();
             const price = parseFloat(match[2]);
             if (price > 0) {
-                let normSize = 'Small';
-                if (rawSize.includes('family')) normSize = 'Family';
-                else if (rawSize.includes('jumbo') || rawSize.includes('party')) normSize = 'Jumbo';
-                else if (rawSize.includes('personal')) normSize = 'Personal';
-                else if (rawSize.includes('extra') || rawSize.includes('xl')) normSize = 'XL';
-                else if (rawSize.includes('large') || rawSize === 'l' || rawSize === 'lg') normSize = 'Large';
-                else if (rawSize.includes('medium') || rawSize.includes('med') || rawSize === 'm') normSize = 'Medium';
-                else if (rawSize.includes('small') || rawSize.includes('sm') || rawSize === 's') normSize = 'Small';
-                else if (rawSize.includes('regular') || rawSize === 'reg') normSize = 'Regular';
-                else if (rawSize.includes('half') || rawSize === 'single') normSize = 'Half';
-                else if (rawSize.includes('full') || rawSize === 'double') normSize = 'Full';
-                else normSize = rawSize.charAt(0).toUpperCase() + rawSize.slice(1);
-
+                const normSize = normalizeSizeName(rawSize);
                 if (!seenSizes.has(normSize)) {
                     seenSizes.add(normSize);
                     results.push({
@@ -151,7 +155,7 @@ try {
                     const c = rowLower[idx];
                     if (c.includes('cat') || c.includes('section') || c.includes('type') || c.includes('group')) {
                         colMap.category = idx;
-                    } else if (c.includes('size') || c.includes('variant') || c.includes('portion')) {
+                    } else if (c.includes('size') || c.includes('variant') || c.includes('portion') || c.includes('option') || c.includes('serving')) {
                         colMap.sizes = idx;
                     } else if (c.includes('desc') || c.includes('detail') || c.includes('info') || c.includes('ingredient')) {
                         colMap.desc = idx;
@@ -234,7 +238,21 @@ try {
 
         // B. Extract from Sizes column text if no size columns found
         if (parsedSizes.length === 0 && sizesRaw) {
-            parsedSizes = parseInlineSizes(sizesRaw);
+            const inline = parseInlineSizes(sizesRaw);
+            if (inline.length > 0) {
+                parsedSizes = inline;
+            } else {
+                const singleNorm = normalizeSizeName(sizesRaw);
+                if (singleNorm && cleanPrice > 0) {
+                    parsedSizes = [{
+                        name: singleNorm,
+                        size: singleNorm,
+                        price: cleanPrice,
+                        sort_order: sizeOrderMap[singleNorm] || 99,
+                        is_active: true
+                    }];
+                }
+            }
         }
 
         // C. Check if priceRaw contains multiple size variants (e.g. "S: 650, M: 1150, L: 1750")
@@ -268,30 +286,18 @@ try {
         });
     }
 
-    // Consolidate row-based size items (e.g. "Bonfire Pizza - Small", "Bonfire Pizza - Medium")
+    // Consolidate row-based size items (e.g. "Bonfire Pizza - Small", "Bonfire Pizza - Medium", stacked rows, repeated rows)
     const consolidatedItems = [];
     const itemMap = new Map();
 
     for (const item of rawItems) {
+        let baseName = item.name;
+
         // Check if name has size suffix like "Item Name (Small)" or "Item Name - Large"
         const suffixMatch = item.name.match(/^(.+?)[\s\-_(\[]+(small|medium|large|extra\s*large|xlarge|xl|x-large|family|jumbo|personal|regular|half|full|s|m|l)[)\s\]]*$/i);
-        
-        if (suffixMatch && !item.sizes) {
-            const baseName = suffixMatch[1].trim();
-            const rawSize = suffixMatch[2].toLowerCase().replace(/[\s\-_]+/g, ' ').trim();
-            let normSize = 'Small';
-            if (rawSize.includes('family')) normSize = 'Family';
-            else if (rawSize.includes('jumbo') || rawSize.includes('party')) normSize = 'Jumbo';
-            else if (rawSize.includes('personal')) normSize = 'Personal';
-            else if (rawSize.includes('extra') || rawSize.includes('xl')) normSize = 'XL';
-            else if (rawSize.includes('large') || rawSize === 'l' || rawSize === 'lg') normSize = 'Large';
-            else if (rawSize.includes('medium') || rawSize.includes('med') || rawSize === 'm') normSize = 'Medium';
-            else if (rawSize.includes('small') || rawSize.includes('sm') || rawSize === 's') normSize = 'Small';
-            else if (rawSize.includes('regular')) normSize = 'Regular';
-            else if (rawSize.includes('half')) normSize = 'Half';
-            else if (rawSize.includes('full')) normSize = 'Full';
-            else normSize = rawSize.charAt(0).toUpperCase() + rawSize.slice(1);
-
+        if (suffixMatch && (!item.sizes || item.sizes.length === 0)) {
+            baseName = suffixMatch[1].trim();
+            const normSize = normalizeSizeName(suffixMatch[2]);
             const variantObj = {
                 name: normSize,
                 size: normSize,
@@ -299,44 +305,58 @@ try {
                 sort_order: sizeOrderMap[normSize] || 99,
                 is_active: true
             };
-
-            const key = `${item.category}:::${baseName.toLowerCase()}`;
-            if (itemMap.has(key)) {
-                const existing = itemMap.get(key);
-                if (!existing.sizes) {
-                    existing.sizes = [];
-                }
-                if (!existing.sizes.some(s => (s.size || s.name) === normSize)) {
-                    existing.sizes.push(variantObj);
-                    existing.sizes = sortSizes(existing.sizes);
-                }
-                if (item.description && !existing.description) {
-                    existing.description = item.description;
-                }
-                continue;
-            } else {
-                item.name = baseName;
-                item.sizes = [variantObj];
-                itemMap.set(key, item);
-                consolidatedItems.push(item);
-                continue;
-            }
+            item.sizes = [variantObj];
         }
 
-        // If not a suffixed row, check if already in map
-        const key = `${item.category}:::${item.name.toLowerCase()}`;
+        item.name = baseName;
+        const key = `${item.category.toLowerCase()}:::${baseName.toLowerCase()}`;
+
         if (itemMap.has(key)) {
             const existing = itemMap.get(key);
-            if (item.sizes && existing.sizes) {
-                // Merge sizes
+
+            if (item.sizes && item.sizes.length > 0) {
+                if (!existing.sizes || existing.sizes.length === 0) {
+                    existing.sizes = [];
+                }
                 for (const s of item.sizes) {
-                    if (!existing.sizes.some(es => es.size === s.size)) {
+                    const sName = s.size || s.name;
+                    const existingIdx = existing.sizes.findIndex(es => (es.size || es.name).toLowerCase() === sName.toLowerCase());
+                    if (existingIdx !== -1) {
+                        if (s.price > 0) existing.sizes[existingIdx].price = s.price;
+                    } else {
                         existing.sizes.push(s);
                     }
                 }
                 existing.sizes = sortSizes(existing.sizes);
+                if (existing.sizes && existing.sizes.length > 0) {
+                    existing.price = existing.sizes[0].price;
+                }
+            } else if (item.price > 0 && existing.price !== item.price) {
+                // Repeated row with different price: create variants
+                if (!existing.sizes || existing.sizes.length === 0) {
+                    existing.sizes = [
+                        { name: 'Regular', size: 'Regular', price: existing.price, sort_order: 1.5, is_active: true }
+                    ];
+                }
+                existing.sizes.push({
+                    name: 'Variant ' + (existing.sizes.length + 1),
+                    size: 'Variant ' + (existing.sizes.length + 1),
+                    price: item.price,
+                    sort_order: 10 + existing.sizes.length,
+                    is_active: true
+                });
+                existing.sizes = sortSizes(existing.sizes);
+                existing.price = existing.sizes[0].price;
+            }
+
+            if (item.description && !existing.description) {
+                existing.description = item.description;
             }
         } else {
+            if (item.sizes && item.sizes.length > 0) {
+                item.sizes = sortSizes(item.sizes);
+                item.price = item.sizes[0].price;
+            }
             itemMap.set(key, item);
             consolidatedItems.push(item);
         }

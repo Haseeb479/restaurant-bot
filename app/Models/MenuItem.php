@@ -84,10 +84,10 @@ class MenuItem extends Model
         if (str_contains($s, 'family')) return 'Family';
         if (str_contains($s, 'jumbo') || str_contains($s, 'party')) return 'Jumbo';
         if (str_contains($s, 'personal')) return 'Personal';
-        if (str_contains($s, 'extra') || str_contains($s, 'xl') || preg_match('/16["”\s]/i', $s)) return 'XL';
-        if (str_contains($s, 'large') || $s === 'l' || $s === 'lg') return 'Large';
-        if (str_contains($s, 'medium') || str_contains($s, 'med') || $s === 'm') return 'Medium';
-        if (str_contains($s, 'small') || $s === 'sm' || $s === 's') return 'Small';
+        if (preg_match('/\b(extra\s*large|xlarge|xl|x-large)\b/i', $s) || preg_match('/(?:16["”]|16\s*inch\b)/i', $s)) return 'XL';
+        if (preg_match('/\b(large|lg)\b/i', $s) || preg_match('/(?:13["”]|13\s*inch\b)/i', $s) || $s === 'l') return 'Large';
+        if (preg_match('/\b(medium|med)\b/i', $s) || preg_match('/(?:10["”]|10\s*inch\b)/i', $s) || $s === 'm') return 'Medium';
+        if (preg_match('/\b(small|sm)\b/i', $s) || preg_match('/(?:7["”]|7\s*inch\b)/i', $s) || $s === 's') return 'Small';
         if (str_contains($s, 'regular') || $s === 'reg') return 'Regular';
         if (str_contains($s, 'half') || $s === 'single') return 'Half';
         if (str_contains($s, 'full') || $s === 'double') return 'Full';
