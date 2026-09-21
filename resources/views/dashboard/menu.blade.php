@@ -88,7 +88,7 @@
                         @foreach($category->items as $item)
                             <div class="menu-card {{ $item->is_available ? '' : 'item-disabled' }}">
                                 <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px;">
-                                    <h3 style="font-size: 15px; font-weight: 700; color: #0f172a; line-height: 1.3;">
+                                    <h3 class="menu-card-title" style="font-size: 15px; font-weight: 700; line-height: 1.3;">
                                         {{ $item->name }}
                                     </h3>
                                     <!-- Toggle Availability Switch -->
@@ -101,30 +101,48 @@
                                 </div>
 
                                 @if($item->description)
-                                    <p style="font-size: 12px; color: #64748b; line-height: 1.4; margin-bottom: 12px; min-height: 32px;">
+                                    <p class="menu-card-desc" style="font-size: 12px; line-height: 1.4; margin-bottom: 12px; min-height: 32px;">
                                         {{ $item->description }}
                                     </p>
                                 @else
-                                    <p style="font-size: 12px; color: #94a3b8; font-style: italic; margin-bottom: 12px; min-height: 32px;">
+                                    <p class="menu-card-desc" style="font-size: 12px; font-style: italic; margin-bottom: 12px; min-height: 32px; opacity: 0.6;">
                                         No description
                                     </p>
                                 @endif
 
                                 <!-- Price / Sizes Section -->
-                                <div style="background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 10px; padding: 8px 12px; margin-bottom: 12px;">
+                                <div class="menu-price-box">
                                     @if($item->hasSizes())
-                                        <div style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 700; margin-bottom: 4px;">Size Options:</div>
-                                        <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                            <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; opacity: 0.7; letter-spacing: 0.04em;">
+                                                Sizes & Prices:
+                                            </span>
+                                            <span style="font-size: 11px; font-weight: 700; color: #10b981;">
+                                                {{ count($item->sizes) }} {{ Str::plural('size', count($item->sizes)) }}
+                                            </span>
+                                        </div>
+                                        <div class="size-grid">
                                             @foreach($item->sizes as $size)
-                                                <span style="font-size: 12px; font-weight: 600; background: #ffffff; border: 1px solid #e2e8f0; padding: 2px 8px; border-radius: 6px; color: #0f172a;">
-                                                    <strong>{{ $size['size'] }}:</strong> Rs. {{ number_format($size['price'], 0) }}
-                                                </span>
+                                                @php
+                                                    $sName = strtoupper(trim($size['size'] ?? ''));
+                                                    $badgeClass = match($sName) {
+                                                        'S', 'SMALL', '7"' => 'badge-size-s',
+                                                        'M', 'MEDIUM', '10"' => 'badge-size-m',
+                                                        'L', 'LARGE', '13"' => 'badge-size-l',
+                                                        'XL', 'EXTRA LARGE', '16"', 'FAMILY' => 'badge-size-xl',
+                                                        default => 'badge-size-default',
+                                                    };
+                                                @endphp
+                                                <div class="size-pill-item">
+                                                    <span class="badge-size {{ $badgeClass }}">{{ $size['size'] }}</span>
+                                                    <span class="size-price-val">Rs. {{ number_format($size['price'], 0) }}</span>
+                                                </div>
                                             @endforeach
                                         </div>
                                     @else
                                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                                            <span style="font-size: 12px; color: #64748b; font-weight: 600;">Price:</span>
-                                            <span style="font-size: 15px; font-weight: 800; color: #0f172a;">
+                                            <span style="font-size: 12px; font-weight: 600; opacity: 0.7;">Price:</span>
+                                            <span class="size-price-val" style="font-size: 16px;">
                                                 Rs. {{ number_format($item->price, 0) }}
                                             </span>
                                         </div>
@@ -132,12 +150,12 @@
                                 </div>
 
                                 <!-- Card Footer: Edit & Delete Actions -->
-                                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 8px; margin-top: 8px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color, #f1f5f9); padding-top: 8px; margin-top: 8px;">
                                     <button
                                         type="button"
                                         onclick="openEditItemModal({{ json_encode($item) }})"
-                                        style="background: none; border: none; color: #2563eb; font-size: 12px; font-weight: 600; cursor: pointer; padding: 4px 8px; border-radius: 6px; display: flex; align-items: center; gap: 4px;"
-                                        onmouseover="this.style.background='#eff6ff'"
+                                        style="background: none; border: none; color: #3b82f6; font-size: 12px; font-weight: 600; cursor: pointer; padding: 4px 8px; border-radius: 6px; display: flex; align-items: center; gap: 4px;"
+                                        onmouseover="this.style.background='rgba(59,130,246,0.1)'"
                                         onmouseout="this.style.background='none'"
                                     >
                                         ✏️ Edit
@@ -146,7 +164,7 @@
                                     <form method="POST" action="/dashboard/{{ $restaurant->id }}/menu/item/{{ $item->id }}" onsubmit="return confirm('Delete {{ $item->name }}?')">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" style="background: none; border: none; color: #ef4444; font-size: 12px; font-weight: 500; cursor: pointer; padding: 4px 8px; border-radius: 6px;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='none'">
+                                        <button type="submit" style="background: none; border: none; color: #ef4444; font-size: 12px; font-weight: 500; cursor: pointer; padding: 4px 8px; border-radius: 6px;" onmouseover="this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.background='none'">
                                             🗑️ Delete
                                         </button>
                                     </form>
@@ -201,22 +219,35 @@
             </div>
 
             <!-- Sizes Toggle -->
-            <div style="margin-bottom: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px;">
+            <div class="sizes-toggle-container" style="margin-bottom: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px;">
                 <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #334155; cursor: pointer;">
                     <input type="checkbox" id="modal-has-sizes" onchange="toggleModalSizes()" style="width: 16px; height: 16px;">
-                    This item has size variants (Small / Medium / Large)
+                    This item has size variants (Small / Medium / Large / XL)
                 </label>
 
                 <!-- Sizes Builder Container -->
                 <div id="modal-sizes-builder" style="display: none; margin-top: 12px;">
+                    <!-- Quick Presets -->
+                    <div style="display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap;">
+                        <button type="button" onclick="applyPresetToContainer('sizes-rows-container', ['S', 'M', 'L', 'XL'], false)" style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; cursor: pointer;">
+                            🍕 Pizza (S, M, L, XL)
+                        </button>
+                        <button type="button" onclick="applyPresetToContainer('sizes-rows-container', ['S', 'M', 'L'], false)" style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #047857; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; cursor: pointer;">
+                            🍔 3 Sizes (S, M, L)
+                        </button>
+                        <button type="button" onclick="applyPresetToContainer('sizes-rows-container', ['HALF', 'FULL'], false)" style="background: #f5f3ff; border: 1px solid #ddd6fe; color: #6d28d9; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; cursor: pointer;">
+                            🍛 2 Portions (Half, Full)
+                        </button>
+                    </div>
+
                     <div id="sizes-rows-container" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;">
                         <div class="size-input-row">
-                            <input type="text" name="sizes[0][size]" placeholder="Size (e.g. M)" class="form-input" style="width: 90px; text-transform: uppercase;">
+                            <input type="text" name="sizes[0][size]" value="S" placeholder="Size (e.g. S)" class="form-input" style="width: 90px; text-transform: uppercase;">
                             <input type="number" name="sizes[0][price]" placeholder="Price (Rs.)" class="form-input" style="flex: 1;">
                             <button type="button" onclick="removeSizeRow(this)" style="background: none; border: none; color: #ef4444; font-size: 18px; cursor: pointer;">&times;</button>
                         </div>
                         <div class="size-input-row">
-                            <input type="text" name="sizes[1][size]" placeholder="Size (e.g. L)" class="form-input" style="width: 90px; text-transform: uppercase;">
+                            <input type="text" name="sizes[1][size]" value="M" placeholder="Size (e.g. M)" class="form-input" style="width: 90px; text-transform: uppercase;">
                             <input type="number" name="sizes[1][price]" placeholder="Price (Rs.)" class="form-input" style="flex: 1;">
                             <button type="button" onclick="removeSizeRow(this)" style="background: none; border: none; color: #ef4444; font-size: 18px; cursor: pointer;">&times;</button>
                         </div>
@@ -403,14 +434,27 @@
             </div>
 
             <!-- Sizes Toggle -->
-            <div style="margin-bottom: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px;">
+            <div class="sizes-toggle-container" style="margin-bottom: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px;">
                 <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #334155; cursor: pointer;">
                     <input type="checkbox" id="edit-has-sizes" onchange="toggleEditModalSizes()" style="width: 16px; height: 16px;">
-                    This item has size variants (Small / Medium / Large)
+                    This item has size variants (Small / Medium / Large / XL)
                 </label>
 
                 <!-- Sizes Builder Container -->
                 <div id="edit-sizes-builder" style="display: none; margin-top: 12px;">
+                    <!-- Quick Presets -->
+                    <div style="display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap;">
+                        <button type="button" onclick="applyPresetToContainer('edit-sizes-rows-container', ['S', 'M', 'L', 'XL'], true)" style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; cursor: pointer;">
+                            🍕 Pizza (S, M, L, XL)
+                        </button>
+                        <button type="button" onclick="applyPresetToContainer('edit-sizes-rows-container', ['S', 'M', 'L'], true)" style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #047857; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; cursor: pointer;">
+                            🍔 3 Sizes (S, M, L)
+                        </button>
+                        <button type="button" onclick="applyPresetToContainer('edit-sizes-rows-container', ['HALF', 'FULL'], true)" style="background: #f5f3ff; border: 1px solid #ddd6fe; color: #6d28d9; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; cursor: pointer;">
+                            🍛 2 Portions (Half, Full)
+                        </button>
+                    </div>
+
                     <div id="edit-sizes-rows-container" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;"></div>
                     <button type="button" onclick="addEditSizeRow()" style="background: #eff6ff; border: 1px dashed #bfdbfe; color: #1d4ed8; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; width: 100%;">
                         + Add Another Size Variant
@@ -486,6 +530,147 @@
     transform: translateY(-2px);
 }
 .item-disabled { opacity: 0.6; background: #f8fafc; }
+
+/* Dark Theme Support */
+[data-theme="dark"] .menu-card {
+    background: var(--card-bg, #131b2e);
+    border-color: var(--border-color, rgba(255, 255, 255, 0.08));
+    color: var(--text-main, #f8fafc);
+}
+[data-theme="dark"] .menu-card-title {
+    color: var(--text-main, #f8fafc) !important;
+}
+[data-theme="dark"] .menu-card-desc {
+    color: var(--text-muted, #94a3b8) !important;
+}
+[data-theme="dark"] .modal-box {
+    background: var(--card-bg, #131b2e);
+    color: var(--text-main, #f8fafc);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
+}
+[data-theme="dark"] .modal-box h3 {
+    color: var(--text-main, #f8fafc) !important;
+}
+[data-theme="dark"] .form-input {
+    background: var(--input-bg, #0e1424);
+    border-color: var(--border-color, rgba(255, 255, 255, 0.15));
+    color: var(--text-main, #f8fafc);
+}
+[data-theme="dark"] .form-label {
+    color: var(--text-muted, #94a3b8);
+}
+[data-theme="dark"] .cat-pill {
+    background: #151d2e;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+}
+[data-theme="dark"] .cat-pill:hover {
+    color: #f8fafc;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+[data-theme="dark"] .active-pill {
+    background: #4f46e5 !important;
+    border-color: #4f46e5 !important;
+    color: #ffffff !important;
+}
+[data-theme="dark"] .sizes-toggle-container {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    color: var(--text-main, #f8fafc) !important;
+}
+[data-theme="dark"] .sizes-toggle-container label {
+    color: var(--text-main, #f8fafc) !important;
+}
+
+/* Price & Size Box */
+.menu-price-box {
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+}
+[data-theme="dark"] .menu-price-box {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.07);
+}
+
+.size-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 6px;
+}
+.size-pill-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    padding: 5px 8px;
+    border-radius: 8px;
+    gap: 6px;
+}
+[data-theme="dark"] .size-pill-item {
+    background: #0e1424;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.badge-size {
+    font-size: 11px;
+    font-weight: 800;
+    padding: 1px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+.badge-size-s {
+    background: #eff6ff;
+    color: #2563eb;
+}
+[data-theme="dark"] .badge-size-s {
+    background: rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
+}
+.badge-size-m {
+    background: #ecfdf5;
+    color: #059669;
+}
+[data-theme="dark"] .badge-size-m {
+    background: rgba(16, 185, 129, 0.2);
+    color: #6ee7b7;
+}
+.badge-size-l {
+    background: #fffbeb;
+    color: #d97706;
+}
+[data-theme="dark"] .badge-size-l {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fcd34d;
+}
+.badge-size-xl {
+    background: #fef2f2;
+    color: #dc2626;
+}
+[data-theme="dark"] .badge-size-xl {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+}
+.badge-size-default {
+    background: #f1f5f9;
+    color: #475569;
+}
+[data-theme="dark"] .badge-size-default {
+    background: rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+}
+
+.size-price-val {
+    font-size: 12px;
+    font-weight: 800;
+    color: #0f172a;
+}
+[data-theme="dark"] .size-price-val {
+    color: #f8fafc;
+}
 
 /* Toggle Button */
 .toggle-btn {
@@ -704,6 +889,44 @@
         `;
         container.appendChild(row);
         editSizeRowIndex++;
+    }
+
+    function applyPresetToContainer(containerId, presetSizes, isEdit) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        const existingPrices = {};
+        container.querySelectorAll('.size-input-row').forEach(row => {
+            const sizeInput = row.querySelector('input[name*="[size]"]');
+            const priceInput = row.querySelector('input[name*="[price]"]');
+            if (sizeInput && priceInput && sizeInput.value.trim()) {
+                existingPrices[sizeInput.value.trim().toUpperCase()] = priceInput.value.trim();
+            }
+        });
+
+        const singlePriceInput = isEdit 
+            ? document.getElementById('edit-item-price') 
+            : document.getElementById('modal-single-price');
+        const fallbackPrice = (singlePriceInput && parseFloat(singlePriceInput.value) > 0) ? singlePriceInput.value : '';
+
+        container.innerHTML = '';
+        presetSizes.forEach((sz, idx) => {
+            const row = document.createElement('div');
+            row.className = 'size-input-row';
+            const priceVal = existingPrices[sz] || (sz === 'L' || sz === 'FULL' ? fallbackPrice : '');
+            row.innerHTML = `
+                <input type="text" name="sizes[${idx}][size]" value="${sz}" placeholder="Size" class="form-input" style="width: 90px; text-transform: uppercase;">
+                <input type="number" name="sizes[${idx}][price]" value="${priceVal}" placeholder="Price (Rs.)" class="form-input" style="flex: 1;">
+                <button type="button" onclick="removeSizeRow(this)" style="background: none; border: none; color: #ef4444; font-size: 18px; cursor: pointer;">&times;</button>
+            `;
+            container.appendChild(row);
+        });
+
+        if (isEdit) {
+            editSizeRowIndex = presetSizes.length;
+        } else {
+            sizeRowIndex = presetSizes.length;
+        }
     }
 </script>
 

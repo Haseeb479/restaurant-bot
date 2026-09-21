@@ -49,26 +49,110 @@ export class ExcelMenuService {
 
             if (!rawRows || rawRows.length === 0) return null;
 
+            function detectSizeFromHeader(headerStr) {
+                const s = String(headerStr || '').trim().toLowerCase();
+                if (!s) return null;
+                if (s.includes('category') || s.includes('desc') || s.includes('detail') || s.includes('item') || s.includes('dish') || s.includes('product') || s.includes('total') || s.includes('count') || s.includes('avg')) {
+                    return null;
+                }
+                if (/\b(extra\s*large|xlarge|xl|x-large|family|party|jumbo|monster)\b/i.test(s) || /16["”\s]/i.test(s)) return 'XL';
+                if (/\b(large|lg)\b/i.test(s) || /13["”\s]/i.test(s) || s === 'l' || /^l\s*[\(\[]/i.test(s) || /[\(\[]\s*l\s*[\)\]]/i.test(s) || /^price[\s_\-]+l$/i.test(s) || /^l[\s_\-]+price$/i.test(s)) return 'L';
+                if (/\b(medium|med)\b/i.test(s) || /10["”\s]/i.test(s) || s === 'm' || /^m\s*[\(\[]/i.test(s) || /[\(\[]\s*m\s*[\)\]]/i.test(s) || /^price[\s_\-]+m$/i.test(s) || /^m[\s_\-]+price$/i.test(s)) return 'M';
+                if (/\b(small|sm)\b/i.test(s) || /7["”\s]/i.test(s) || s === 's' || /^s\s*[\(\[]/i.test(s) || /[\(\[]\s*s\s*[\)\]]/i.test(s) || /^price[\s_\-]+s$/i.test(s) || /^s[\s_\-]+price$/i.test(s)) return 'S';
+                if (/\b(regular|reg)\b/i.test(s)) return 'REGULAR';
+                if (/\b(half|single)\b/i.test(s)) return 'HALF';
+                if (/\b(full|double)\b/i.test(s)) return 'FULL';
+                return null;
+            }
+
+            function parseInlineSizes(rawText) {
+                if (!rawText || typeof rawText !== 'string') return [];
+                const text = rawText.trim();
+                if (!text) return [];
+
+                const results = [];
+                const seenSizes = new Set();
+                const regex = /(?:^|[\s,;|\/\n])(small|medium|large|extra\s*large|xlarge|xl|x-large|family|jumbo|party|regular|reg|half|full|single|double|s|m|l)\s*[:=\-\(]?\s*(?:rs\.?|pkr|₹)?\s*([0-9]+(?:\.[0-9]+)?)\s*\)?/gi;
+                let match;
+                while ((match = regex.exec(text)) !== null) {
+                    const rawSize = match[1].toLowerCase().replace(/[\s\-_]+/g, ' ').trim();
+                    const price = parseFloat(match[2]);
+                    if (price > 0) {
+                        let normSize = 'S';
+                        if (rawSize.includes('extra') || rawSize.includes('xl') || rawSize.includes('family') || rawSize.includes('jumbo') || rawSize.includes('party')) normSize = 'XL';
+                        else if (rawSize.includes('large') || rawSize === 'l') normSize = 'L';
+                        else if (rawSize.includes('medium') || rawSize.includes('med') || rawSize === 'm') normSize = 'M';
+                        else if (rawSize.includes('small') || rawSize.includes('sm') || rawSize === 's') normSize = 'S';
+                        else if (rawSize.includes('regular') || rawSize === 'reg') normSize = 'REGULAR';
+                        else if (rawSize.includes('half') || rawSize === 'single') normSize = 'HALF';
+                        else if (rawSize.includes('full') || rawSize === 'double') normSize = 'FULL';
+                        else normSize = rawSize.toUpperCase();
+
+                        if (!seenSizes.has(normSize)) {
+                            seenSizes.add(normSize);
+                            results.push({ size: normSize, price });
+                        }
+                    }
+                }
+                return results;
+            }
+
+            function sortSizes(sizesList) {
+                if (!sizesList || sizesList.length === 0) return null;
+                const sizeOrder = { 'S': 1, 'M': 2, 'L': 3, 'XL': 4, 'REGULAR': 1.5, 'HALF': 1, 'FULL': 2 };
+                return [...sizesList].sort((a, b) => (sizeOrder[a.size] || 99) - (sizeOrder[b.size] || 99));
+            }
+
             // Find header row or use default column indices
             let headerRowIndex = -1;
-            let colMap = { category: -1, name: -1, price: -1, sizes: -1, desc: -1 };
+            let colMap = { category: -1, name: -1, price: -1, sizes: -1, desc: -1, sizeCols: [] };
 
-            for (let r = 0; r < Math.min(rawRows.length, 10); r++) {
+            for (let r = 0; r < Math.min(rawRows.length, 30); r++) {
                 const row = rawRows[r];
                 if (!Array.isArray(row)) continue;
 
                 const rowLower = row.map(cell => String(cell || '').trim().toLowerCase());
 
-                const nameIdx = rowLower.findIndex(c => c.includes('item') || c.includes('name') || c.includes('dish') || c.includes('product'));
-                const priceIdx = rowLower.findIndex(c => c.includes('price') || c.includes('rate') || c.includes('rs') || c.includes('cost') || c.includes('amount'));
+                let nameIdx = -1;
+                let priceIdx = -1;
+                const detectedSizes = [];
 
-                if (nameIdx !== -1 && priceIdx !== -1) {
+                for (let idx = 0; idx < rowLower.length; idx++) {
+                    const c = rowLower[idx];
+                    if (!c) continue;
+
+                    const detectedSize = detectSizeFromHeader(c);
+                    if (detectedSize) {
+                        detectedSizes.push({ idx, size: detectedSize });
+                        continue;
+                    }
+
+                    if (nameIdx === -1 && (c.includes('item') || c.includes('name') || c.includes('dish') || c.includes('product') || c === 'flavor' || c === 'flavour')) {
+                        nameIdx = idx;
+                    }
+                    if (priceIdx === -1 && (c.includes('price') || c.includes('rate') || c.includes('rs') || c.includes('₹') || c.includes('pkr') || c.includes('cost') || c.includes('amount'))) {
+                        priceIdx = idx;
+                    }
+                }
+
+                if (nameIdx !== -1 && (priceIdx !== -1 || detectedSizes.length > 0)) {
                     headerRowIndex = r;
                     colMap.name = nameIdx;
                     colMap.price = priceIdx;
-                    colMap.category = rowLower.findIndex(c => c.includes('cat') || c.includes('section') || c.includes('type'));
-                    colMap.sizes = rowLower.findIndex(c => c.includes('size') || c.includes('variant') || c.includes('portion'));
-                    colMap.desc = rowLower.findIndex(c => c.includes('desc') || c.includes('detail') || c.includes('info'));
+                    colMap.sizeCols = detectedSizes;
+
+                    for (let idx = 0; idx < rowLower.length; idx++) {
+                        if (idx !== nameIdx && idx !== priceIdx && !detectedSizes.some(ds => ds.idx === idx)) {
+                            const c = rowLower[idx];
+                            if (c.includes('cat') || c.includes('section') || c.includes('type') || c.includes('group')) {
+                                colMap.category = idx;
+                            } else if (c.includes('size') || c.includes('variant') || c.includes('portion')) {
+                                colMap.sizes = idx;
+                            } else if (c.includes('desc') || c.includes('detail') || c.includes('info')) {
+                                colMap.desc = idx;
+                            }
+                        }
+                    }
                     break;
                 }
             }
@@ -76,12 +160,12 @@ export class ExcelMenuService {
             // Fallback column positions if no named header found: 0=Category, 1=Name, 2=Price, 3=Sizes, 4=Desc
             const startRow = headerRowIndex !== -1 ? headerRowIndex + 1 : 0;
             if (colMap.name === -1) colMap.name = 1;
-            if (colMap.price === -1) colMap.price = 2;
+            if (colMap.price === -1 && colMap.sizeCols.length === 0) colMap.price = 2;
             if (colMap.category === -1) colMap.category = 0;
             if (colMap.sizes === -1) colMap.sizes = 3;
             if (colMap.desc === -1) colMap.desc = 4;
 
-            const items = [];
+            const rawItems = [];
             let currentCategory = 'General';
 
             for (let r = startRow; r < rawRows.length; r++) {
@@ -97,40 +181,61 @@ export class ExcelMenuService {
                 if (!nameCell) continue;
 
                 if (catCell) {
-                    currentCategory = catCell;
+                    const cleanCat = catCell.replace(/[—─=\-\*~_\[\]]+/gu, '').trim();
+                    if (cleanCat && !/^(total|average|lowest|highest|summary|restaurant\s*menu)/i.test(cleanCat)) {
+                        currentCategory = cleanCat;
+                    }
                 }
 
-                // Clean price
-                const cleanPrice = parseFloat(priceRaw.replace(/[^0-9.]/g, '')) || 0;
-
-                // Parse sizes (e.g., "M:150, L:250" or "Small: 200 / Large: 350")
+                let cleanPrice = parseFloat(priceRaw.replace(/[^0-9.]/g, '')) || 0;
                 let parsedSizes = [];
-                if (sizesRaw) {
-                    const parts = sizesRaw.split(/[,|\/]/);
-                    for (const p of parts) {
-                        if (p.includes(':')) {
-                            const [sName, sPrice] = p.split(':');
-                            const numPrice = parseFloat(sPrice.replace(/[^0-9.]/g, '')) || 0;
-                            if (numPrice > 0) {
-                                parsedSizes.push({ size: sName.trim().toUpperCase(), price: numPrice });
-                            }
+
+                if (colMap.sizeCols && colMap.sizeCols.length > 0) {
+                    for (const sc of colMap.sizeCols) {
+                        const cellVal = String(row[sc.idx] || '').trim();
+                        const cellPrice = parseFloat(cellVal.replace(/[^0-9.]/g, '')) || 0;
+                        if (cellPrice > 0) {
+                            parsedSizes.push({ size: sc.size, price: cellPrice });
                         }
                     }
                 }
 
-                items.push({
+                if (parsedSizes.length === 0 && sizesRaw) {
+                    parsedSizes = parseInlineSizes(sizesRaw);
+                }
+
+                if (parsedSizes.length === 0 && priceRaw) {
+                    const fromPrice = parseInlineSizes(priceRaw);
+                    if (fromPrice.length > 0) {
+                        parsedSizes = fromPrice;
+                    }
+                }
+
+                parsedSizes = sortSizes(parsedSizes) || [];
+
+                if (cleanPrice <= 0 && parsedSizes.length === 0) {
+                    continue;
+                }
+
+                const effectivePrice = (parsedSizes && parsedSizes.length > 0)
+                    ? parsedSizes[0].price
+                    : cleanPrice;
+
+                rawItems.push({
                     category: currentCategory,
                     name: nameCell,
-                    price: cleanPrice,
+                    price: effectivePrice,
                     sizes: parsedSizes.length > 0 ? parsedSizes : null,
                     description: descCell || null,
                 });
             }
 
-            if (items.length === 0) {
+            if (rawItems.length === 0) {
                 console.warn(`⚠️ ExcelMenuService: No valid items found in ${filePath}`);
                 return null;
             }
+
+            const items = rawItems;
 
             // Build menu text
             let menuText = 'MENU (Extracted from official Excel Sheet — exact items & prices):\n';

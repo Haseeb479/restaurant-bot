@@ -1314,7 +1314,67 @@ class DashboardController extends Controller
 
             // 1. Scan first 30 rows for table header
             $headerRowIndex = -1;
-            $colMap = ['category' => -1, 'name' => -1, 'price' => -1, 'sizes' => -1, 'desc' => -1];
+            $colMap = [
+                'category' => -1,
+                'name'     => -1,
+                'price'    => -1,
+                'sizes'    => -1,
+                'desc'     => -1,
+                'sizeCols' => [],
+            ];
+
+            $detectSizeFromHeader = function (string $headerStr): ?string {
+                $s = strtolower(trim($headerStr));
+                if ($s === '') return null;
+                if (str_contains($s, 'category') || str_contains($s, 'desc') || str_contains($s, 'detail') || str_contains($s, 'item') || str_contains($s, 'dish') || str_contains($s, 'product') || str_contains($s, 'total') || str_contains($s, 'count') || str_contains($s, 'avg')) {
+                    return null;
+                }
+                if (preg_match('/\b(extra\s*large|xlarge|xl|x-large|family|party|jumbo|monster)\b/i', $s) || preg_match('/16["”\s]/i', $s)) return 'XL';
+                if (preg_match('/\b(large|lg)\b/i', $s) || preg_match('/13["”\s]/i', $s) || $s === 'l' || preg_match('/^l\s*[\(\[]/i', $s) || preg_match('/[\(\[]\s*l\s*[\)\]]/i', $s) || preg_match('/^price[\s_\-]+l$/i', $s) || preg_match('/^l[\s_\-]+price$/i', $s)) return 'L';
+                if (preg_match('/\b(medium|med)\b/i', $s) || preg_match('/10["”\s]/i', $s) || $s === 'm' || preg_match('/^m\s*[\(\[]/i', $s) || preg_match('/[\(\[]\s*m\s*[\)\]]/i', $s) || preg_match('/^price[\s_\-]+m$/i', $s) || preg_match('/^m[\s_\-]+price$/i', $s)) return 'M';
+                if (preg_match('/\b(small|sm)\b/i', $s) || preg_match('/7["”\s]/i', $s) || $s === 's' || preg_match('/^s\s*[\(\[]/i', $s) || preg_match('/[\(\[]\s*s\s*[\)\]]/i', $s) || preg_match('/^price[\s_\-]+s$/i', $s) || preg_match('/^s[\s_\-]+price$/i', $s)) return 'S';
+                if (preg_match('/\b(regular|reg)\b/i', $s)) return 'REGULAR';
+                if (preg_match('/\b(half|single)\b/i', $s)) return 'HALF';
+                if (preg_match('/\b(full|double)\b/i', $s)) return 'FULL';
+                return null;
+            };
+
+            $parseInlineSizes = function (string $rawText): array {
+                $text = trim($rawText);
+                if ($text === '') return [];
+                $results = [];
+                $seenSizes = [];
+                if (preg_match_all('/(?:^|[\s,;|\/\n])(small|medium|large|extra\s*large|xlarge|xl|x-large|family|jumbo|party|regular|reg|half|full|single|double|s|m|l)\s*[:=\-\(]?\s*(?:rs\.?|pkr|₹)?\s*([0-9]+(?:\.[0-9]+)?)\s*\)?/i', $text, $matches, PREG_SET_ORDER)) {
+                    foreach ($matches as $match) {
+                        $rawSize = strtolower(trim(preg_replace('/[\s\-_]+/', ' ', $match[1])));
+                        $price = (float) $match[2];
+                        if ($price > 0) {
+                            $normSize = 'S';
+                            if (str_contains($rawSize, 'extra') || str_contains($rawSize, 'xl') || str_contains($rawSize, 'family') || str_contains($rawSize, 'jumbo')) $normSize = 'XL';
+                            elseif (str_contains($rawSize, 'large') || $rawSize === 'l') $normSize = 'L';
+                            elseif (str_contains($rawSize, 'medium') || str_contains($rawSize, 'med') || $rawSize === 'm') $normSize = 'M';
+                            elseif (str_contains($rawSize, 'small') || str_contains($rawSize, 'sm') || $rawSize === 's') $normSize = 'S';
+                            elseif (str_contains($rawSize, 'regular')) $normSize = 'REGULAR';
+                            elseif (str_contains($rawSize, 'half')) $normSize = 'HALF';
+                            elseif (str_contains($rawSize, 'full')) $normSize = 'FULL';
+                            else $normSize = strtoupper($rawSize);
+
+                            if (!isset($seenSizes[$normSize])) {
+                                $seenSizes[$normSize] = true;
+                                $results[] = ['size' => $normSize, 'price' => $price];
+                            }
+                        }
+                    }
+                }
+                return $results;
+            };
+
+            $sortSizes = function (array $sizesList): ?array {
+                if (empty($sizesList)) return null;
+                $sizeOrder = ['S' => 1, 'M' => 2, 'L' => 3, 'XL' => 4, 'REGULAR' => 1.5, 'HALF' => 1, 'FULL' => 2];
+                usort($sizesList, fn($a, $b) => ($sizeOrder[$a['size']] ?? 99) <=> ($sizeOrder[$b['size']] ?? 99));
+                return $sizesList;
+            };
 
             for ($r = 0; $r < min(count($rows), 30); $r++) {
                 $row = $rows[$r];
@@ -1322,19 +1382,21 @@ class DashboardController extends Controller
 
                 $rowLower = array_map(fn($c) => strtolower(trim((string)$c)), $row);
 
-                $nameIdx  = -1;
-                $priceIdx = -1;
+                $nameIdx       = -1;
+                $priceIdx      = -1;
+                $detectedSizes = [];
 
                 foreach ($rowLower as $idx => $cell) {
                     $c = trim($cell);
                     if ($c === '') continue;
 
-                    // Skip summary headers on right side of sheet
-                    if (str_contains($c, 'count') || str_contains($c, 'avg') || str_contains($c, 'average') || str_contains($c, 'total')) {
+                    $detectedSize = $detectSizeFromHeader($c);
+                    if ($detectedSize !== null) {
+                        $detectedSizes[] = ['idx' => $idx, 'size' => $detectedSize];
                         continue;
                     }
 
-                    if ($nameIdx === -1 && ($c === 'name' || str_contains($c, 'item') || str_contains($c, 'dish') || str_contains($c, 'product'))) {
+                    if ($nameIdx === -1 && ($c === 'name' || str_contains($c, 'item') || str_contains($c, 'dish') || str_contains($c, 'product') || $c === 'flavor' || $c === 'flavour')) {
                         $nameIdx = $idx;
                     }
                     if ($priceIdx === -1 && (str_contains($c, 'price') || str_contains($c, 'rate') || str_contains($c, 'rs') || str_contains($c, '₹') || str_contains($c, 'pkr') || str_contains($c, 'amount') || str_contains($c, 'cost'))) {
@@ -1342,14 +1404,17 @@ class DashboardController extends Controller
                     }
                 }
 
-                if ($nameIdx !== -1 && $priceIdx !== -1) {
-                    $headerRowIndex = $r;
-                    $colMap['name']  = $nameIdx;
-                    $colMap['price'] = $priceIdx;
+                if ($nameIdx !== -1 && ($priceIdx !== -1 || !empty($detectedSizes))) {
+                    $headerRowIndex    = $r;
+                    $colMap['name']     = $nameIdx;
+                    $colMap['price']    = $priceIdx;
+                    $colMap['sizeCols'] = $detectedSizes;
+
+                    $sizeIndices = array_column($detectedSizes, 'idx');
 
                     foreach ($rowLower as $idx => $cell) {
                         $c = trim($cell);
-                        if ($idx !== $nameIdx && $idx !== $priceIdx && $c !== '') {
+                        if ($idx !== $nameIdx && $idx !== $priceIdx && !in_array($idx, $sizeIndices, true) && $c !== '') {
                             if (str_contains($c, 'count') || str_contains($c, 'avg') || str_contains($c, 'average') || str_contains($c, 'total')) {
                                 continue;
                             }
@@ -1357,7 +1422,7 @@ class DashboardController extends Controller
                                 $colMap['category'] = $idx;
                             } elseif ($colMap['sizes'] === -1 && (str_contains($c, 'size') || str_contains($c, 'variant') || str_contains($c, 'portion'))) {
                                 $colMap['sizes'] = $idx;
-                            } elseif ($colMap['desc'] === -1 && (str_contains($c, 'desc') || str_contains($c, 'detail') || str_contains($c, 'info'))) {
+                            } elseif ($colMap['desc'] === -1 && (str_contains($c, 'desc') || str_contains($c, 'detail') || str_contains($c, 'info') || str_contains($c, 'ingredient'))) {
                                 $colMap['desc'] = $idx;
                             }
                         }
@@ -1379,6 +1444,7 @@ class DashboardController extends Controller
             }
 
             $currentCategory = 'General';
+            $rawItems = [];
 
             for ($r = $startRow; $r < count($rows); $r++) {
                 $row = $rows[$r];
@@ -1395,11 +1461,10 @@ class DashboardController extends Controller
                 // Combine row cells to check for section banner across merged cells
                 $rowJoined = trim(implode(' ', array_filter($row, fn($c) => trim((string)$c) !== '')));
 
-                // Check for section banner row (e.g. ── STARTERS ──, — TANDOORI —, === MAIN COURSE ===, [DRINKS])
+                // Check for section banner row
                 if (preg_match('/^[—─=\-\*~_\[\s]+(.+?)[—─=\-\*~_\]\s]+$/u', $rowJoined, $bannerMatch) ||
                     preg_match('/^[—─=\-\*~_\[\s]+(.+?)[—─=\-\*~_\]\s]+$/u', $nameCell, $bannerMatch)) {
                     $bannerTitle = trim($bannerMatch[1]);
-                    // Ignore summary titles like RESTAURANT MENU or TOTAL
                     if (!preg_match('/^(restaurant\s*menu|good\s*food|menu|summary|total|overview)/i', $bannerTitle) && strlen($bannerTitle) >= 2) {
                         $currentCategory = ucwords(strtolower($bannerTitle));
                     }
@@ -1419,7 +1484,6 @@ class DashboardController extends Controller
                     continue;
                 }
 
-                // If explicit category is given in category column and not decorative
                 if ($catCell !== '') {
                     $cleanCat = trim(preg_replace('/[—─=\-\*~_\[\]]+/u', '', $catCell));
                     if ($cleanCat !== '' && !is_numeric($cleanCat) && !preg_match('/^(total|average|lowest|highest|summary|restaurant\s*menu)/i', $cleanCat)) {
@@ -1427,51 +1491,122 @@ class DashboardController extends Controller
                     }
                 }
 
-                // Clean price
                 $cleanPriceStr = preg_replace('/[^0-9.]/', '', $priceCell);
                 $basePrice = (float) $cleanPriceStr;
 
-                // Parse sizes
-                $sizes = null;
-                if ($sizesCell !== '') {
-                    $parts = preg_split('/[,|\/]/', $sizesCell);
-                    $parsedSizes = [];
-                    foreach ($parts as $part) {
-                        if (str_contains($part, ':')) {
-                            [$sName, $sPrice] = explode(':', $part, 2);
-                            $cleanNum = (float) preg_replace('/[^0-9.]/', '', $sPrice);
-                            if ($cleanNum > 0) {
-                                $parsedSizes[] = [
-                                    'size'  => strtoupper(trim($sName)),
-                                    'price' => $cleanNum,
-                                ];
+                $parsedSizes = [];
+
+                // A. Check dedicated size columns
+                if (!empty($colMap['sizeCols'])) {
+                    foreach ($colMap['sizeCols'] as $sc) {
+                        if (isset($row[$sc['idx']])) {
+                            $cPrice = (float) preg_replace('/[^0-9.]/', '', (string) $row[$sc['idx']]);
+                            if ($cPrice > 0) {
+                                $parsedSizes[] = ['size' => $sc['size'], 'price' => $cPrice];
                             }
-                        }
-                    }
-                    if (!empty($parsedSizes)) {
-                        $sizes = $parsedSizes;
-                        if ($basePrice <= 0 && !empty($sizes[0]['price'])) {
-                            $basePrice = $sizes[0]['price'];
                         }
                     }
                 }
 
-                // Skip items with 0 price if no sizes
-                if ($basePrice <= 0 && $sizes === null) {
-                    // Check if it's a category header masquerading as an item
+                // B. Parse from sizes column if present
+                if (empty($parsedSizes) && $sizesCell !== '') {
+                    $parsedSizes = $parseInlineSizes($sizesCell);
+                }
+
+                // C. Parse from price cell if it contains multiple sizes
+                if (empty($parsedSizes) && $priceCell !== '') {
+                    $fromPrice = $parseInlineSizes($priceCell);
+                    if (!empty($fromPrice)) {
+                        $parsedSizes = $fromPrice;
+                    }
+                }
+
+                $parsedSizes = $sortSizes($parsedSizes);
+
+                if ($basePrice <= 0 && empty($parsedSizes)) {
                     if (strlen($nameCell) >= 2 && strlen($nameCell) <= 40 && !is_numeric($nameCell) && !str_contains($nameCell, 'Rs') && !str_contains($nameCell, '₹') && !preg_match('/^(total|average|summary|count)/i', $nameCell)) {
                         $currentCategory = ucwords(strtolower($nameCell));
                     }
                     continue;
                 }
 
-                $items[] = [
+                $effectivePrice = !empty($parsedSizes)
+                    ? $parsedSizes[0]['price']
+                    : $basePrice;
+
+                $rawItems[] = [
                     'category'    => $currentCategory,
                     'name'        => $nameCell,
-                    'price'       => $basePrice,
-                    'sizes'       => $sizes,
+                    'price'       => $effectivePrice,
+                    'sizes'       => !empty($parsedSizes) ? $parsedSizes : null,
                     'description' => $descCell ?: null,
                 ];
+            }
+
+            // Consolidate row-based size items (e.g. "Bonfire Pizza - Small", "Bonfire Pizza - Medium")
+            $items = [];
+            $itemMap = [];
+
+            foreach ($rawItems as $item) {
+                if (empty($item['sizes']) && preg_match('/^(.+?)[\s\-_(\[]+(small|medium|large|extra\s*large|xlarge|xl|x-large|family|jumbo|regular|half|full|s|m|l)[)\s\]]*$/i', $item['name'], $suffixMatch)) {
+                    $baseName = trim($suffixMatch[1]);
+                    $rawSize = strtolower(trim(preg_replace('/[\s\-_]+/', ' ', $suffixMatch[2])));
+                    $normSize = 'S';
+                    if (str_contains($rawSize, 'extra') || str_contains($rawSize, 'xl') || str_contains($rawSize, 'family') || str_contains($rawSize, 'jumbo')) $normSize = 'XL';
+                    elseif (str_contains($rawSize, 'large') || $rawSize === 'l') $normSize = 'L';
+                    elseif (str_contains($rawSize, 'medium') || str_contains($rawSize, 'med') || $rawSize === 'm') $normSize = 'M';
+                    elseif (str_contains($rawSize, 'small') || str_contains($rawSize, 'sm') || $rawSize === 's') $normSize = 'S';
+                    elseif (str_contains($rawSize, 'regular')) $normSize = 'REGULAR';
+                    elseif (str_contains($rawSize, 'half')) $normSize = 'HALF';
+                    elseif (str_contains($rawSize, 'full')) $normSize = 'FULL';
+                    else $normSize = strtoupper($rawSize);
+
+                    $key = strtolower($item['category']) . ':::' . strtolower($baseName);
+                    if (isset($itemMap[$key])) {
+                        $idx = $itemMap[$key];
+                        if (empty($items[$idx]['sizes'])) {
+                            $items[$idx]['sizes'] = [];
+                        }
+                        $hasSize = false;
+                        foreach ($items[$idx]['sizes'] as $s) {
+                            if ($s['size'] === $normSize) { $hasSize = true; break; }
+                        }
+                        if (!$hasSize) {
+                            $items[$idx]['sizes'][] = ['size' => $normSize, 'price' => $item['price']];
+                            $items[$idx]['sizes'] = $sortSizes($items[$idx]['sizes']);
+                        }
+                        if (!empty($item['description']) && empty($items[$idx]['description'])) {
+                            $items[$idx]['description'] = $item['description'];
+                        }
+                        continue;
+                    } else {
+                        $item['name'] = $baseName;
+                        $item['sizes'] = [['size' => $normSize, 'price' => $item['price']]];
+                        $itemMap[$key] = count($items);
+                        $items[] = $item;
+                        continue;
+                    }
+                }
+
+                $key = strtolower($item['category']) . ':::' . strtolower($item['name']);
+                if (isset($itemMap[$key])) {
+                    $idx = $itemMap[$key];
+                    if (!empty($item['sizes']) && !empty($items[$idx]['sizes'])) {
+                        foreach ($item['sizes'] as $s) {
+                            $hasSize = false;
+                            foreach ($items[$idx]['sizes'] as $es) {
+                                if ($es['size'] === $s['size']) { $hasSize = true; break; }
+                            }
+                            if (!$hasSize) {
+                                $items[$idx]['sizes'][] = $s;
+                            }
+                        }
+                        $items[$idx]['sizes'] = $sortSizes($items[$idx]['sizes']);
+                    }
+                } else {
+                    $itemMap[$key] = count($items);
+                    $items[] = $item;
+                }
             }
         }
 
@@ -1531,12 +1666,14 @@ class DashboardController extends Controller
     // ── Download Sample CSV Template ───────────────────────
     public function downloadSampleCsv()
     {
-        $csvContent = "Category,Item Name,Price,Sizes,Description\n" .
-                      "Burgers,Zinger Burger,350,\"M:350, L:450\",Crispy fried chicken fillet with spicy mayo\n" .
-                      "Burgers,Beef Burger,400,,Juicy grilled beef patty with cheese\n" .
-                      "Biryani & Rice,Chicken Biryani,280,,Fragrant basmati rice with tender chicken\n" .
-                      "Drinks,Mango Juice,150,\"M:150, L:250\",Fresh seasonal mango juice\n" .
-                      "Drinks,Pepsi 500ml,80,,Chilled cold drink\n";
+        $csvContent = "Category,Item Name,Price,Small,Medium,Large,XL,Description\n" .
+                      "Special Pizza,Bonfire Pizza,,650,1150,1750,2250,\"Dip Sauce, Chicken, Onion, Sausage, Capsicum, Cheese\"\n" .
+                      "Special Pizza,Hot Mughlai Pizza,,650,1150,1750,2250,\"Sp. Sauce, Red Jalapeno, Mughlai Chicken, Cheese\"\n" .
+                      "Burgers,Zinger Burger,350,,,,,Crispy fried chicken fillet with spicy mayo\n" .
+                      "Burgers,Beef Burger,400,,,,,Juicy grilled beef patty with cheese\n" .
+                      "Biryani & Rice,Chicken Biryani,280,,,,,Fragrant basmati rice with tender chicken\n" .
+                      "Drinks,Mango Juice,150,150,250,,,Fresh seasonal mango juice\n" .
+                      "Drinks,Pepsi 500ml,80,,,,,Chilled cold drink\n";
 
         return response($csvContent, 200, [
             'Content-Type'        => 'text/csv',
