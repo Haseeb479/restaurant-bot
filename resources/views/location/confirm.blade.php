@@ -87,7 +87,7 @@
                 </span>
             </div>
             <p id="area-text" class="text-sm font-semibold text-white truncate">
-                Detecting location name...
+                {{ !empty($placeName) ? $placeName : (!empty($address) ? $address : 'Detecting location name...') }}
             </p>
         </div>
 
@@ -118,7 +118,16 @@
             </div>
             <div>
                 <h3 class="text-lg font-bold text-white">Location Pin Confirmed!</h3>
-                <p id="success-msg" class="text-xs text-slate-300 mt-1">
+                <div class="mt-3 bg-slate-900/90 border border-slate-700/80 rounded-xl p-3.5 text-left space-y-1">
+                    <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Selected Location</p>
+                    <p id="modal-place-name" class="text-base font-bold text-emerald-400 leading-snug">
+                        {{ !empty($placeName) ? $placeName : (!empty($address) ? $address : 'Confirmed GPS Pin') }}
+                    </p>
+                    <p id="modal-coords" class="text-xs font-mono text-slate-300">
+                        {{ number_format($initialLat, 5) }}, {{ number_format($initialLng, 5) }}
+                    </p>
+                </div>
+                <p id="success-msg" class="text-xs text-slate-300 mt-2">
                     Your exact delivery coordinates have been recorded.
                 </p>
             </div>
@@ -348,13 +357,11 @@
             confirmBtn.innerHTML = '<span>Saving...</span> ⏳';
 
             const userExtra = addrInput.value.trim();
-            const baseLoc = currentSelectedLocation || areaText.textContent.trim();
-            const finalAddress = userExtra ? (userExtra + (baseLoc ? ', ' + baseLoc : '')) : baseLoc;
 
             const payload = {
                 lat: currentLat,
                 lng: currentLng,
-                address: finalAddress,
+                address: userExtra,
                 location_source: 'customer_pin'
             };
 
@@ -371,6 +378,15 @@
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
+                    const resolvedTitle = data.place_name || data.address || (data.lat.toFixed(5) + ', ' + data.lng.toFixed(5));
+                    areaText.textContent = resolvedTitle;
+                    coordsText.textContent = data.lat.toFixed(5) + ', ' + data.lng.toFixed(5);
+
+                    const modalPlace = document.getElementById('modal-place-name');
+                    const modalCoords = document.getElementById('modal-coords');
+                    if (modalPlace) modalPlace.textContent = resolvedTitle;
+                    if (modalCoords) modalCoords.textContent = data.lat.toFixed(5) + ', ' + data.lng.toFixed(5);
+
                     document.getElementById('success-msg').textContent = data.message;
                     successModal.classList.remove('hidden');
                 } else {

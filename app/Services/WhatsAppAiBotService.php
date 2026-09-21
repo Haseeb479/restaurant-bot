@@ -161,19 +161,27 @@ class WhatsAppAiBotService
             $lat = (float) $locationCoords['lat'];
             $lng = (float) $locationCoords['lng'];
             Cache::put("verified_delivery_coords_{$sessionKey}", [$lat, $lng], now()->addMinutes(self::SESSION_TTL));
-            Cache::put("verified_delivery_source_{$sessionKey}", 'whatsapp_pin', now()->addMinutes(self::SESSION_TTL));
 
-            // Extract or reverse-geocode textual address
+            // POI-aware location resolution: Google Places API (New) Nearby Search -> Reverse geocode fallback
+            $resolution = app(\App\Services\LocationResolutionService::class)->resolve($lat, $lng);
+            $placeName = $resolution['delivery_place_name'] ?? (! empty($locationCoords['name']) ? trim($locationCoords['name']) : null);
+            $placeId = $resolution['delivery_place_id'] ?? null;
+            $locationSource = ($resolution['location_source'] === 'google_places') ? 'google_places' : 'whatsapp_pin';
+
             $resolvedAddress = ! empty($locationCoords['address']) ? trim($locationCoords['address']) : '';
-            if ($resolvedAddress === '' && ! empty($locationCoords['name'])) {
-                $resolvedAddress = trim($locationCoords['name']);
-            }
             if ($resolvedAddress === '') {
-                $resolvedAddress = $this->reverseGeocode($lat, $lng) ?? '';
+                $resolvedAddress = $resolution['delivery_address'] ?? ($placeName ?: "Selected Pin Location ({$lat}, {$lng})");
             }
 
+            Cache::put("verified_delivery_source_{$sessionKey}", $locationSource, now()->addMinutes(self::SESSION_TTL));
             if ($resolvedAddress !== '') {
                 Cache::put("verified_delivery_address_{$sessionKey}", $resolvedAddress, now()->addMinutes(self::SESSION_TTL));
+            }
+            if ($placeName) {
+                Cache::put("verified_delivery_place_name_{$sessionKey}", $placeName, now()->addMinutes(self::SESSION_TTL));
+            }
+            if ($placeId) {
+                Cache::put("verified_delivery_place_id_{$sessionKey}", $placeId, now()->addMinutes(self::SESSION_TTL));
             }
 
             $restCoords = $this->getRestaurantCoords($restaurant);
@@ -191,12 +199,18 @@ class WhatsAppAiBotService
             // Location is verified and within radius!
             $locAck = "📍 *Shukriya! Aapki exact delivery location pin receive ho gayi hai!* ✅\n" .
                       "_(Kitchen se faasla: {$distKm} km)_\n";
-            if ($resolvedAddress !== '') {
+            if ($placeName) {
+                $locAck .= "📍 *Landmark:* {$placeName}\n";
+            }
+            if ($resolvedAddress !== '' && $resolvedAddress !== $placeName) {
                 $locAck .= "🏠 *Pata:* {$resolvedAddress}\n";
             }
             $locAck .= "\nBarah-e-karam apna *Order* ya *Naam* batayein, ya agar order ready hai toh reply karein *'CONFIRM'*! 😊";
 
-            $history[] = ['role' => 'user', 'content' => "Shared GPS Pin: [Lat: {$lat}, Lng: {$lng}]" . ($resolvedAddress !== '' ? " Address: {$resolvedAddress}" : "")];
+            $pinLog = "Shared GPS Pin: [Lat: {$lat}, Lng: {$lng}]" .
+                ($placeName ? " Landmark: {$placeName}" : "") .
+                ($resolvedAddress !== '' ? " Address: {$resolvedAddress}" : "");
+            $history[] = ['role' => 'user', 'content' => $pinLog];
             $history[] = ['role' => 'assistant', 'content' => $locAck];
             Cache::put($sessionKey, $history, now()->addMinutes(self::SESSION_TTL));
             BotEvolutionClient::sendMessage($restaurant, $recipientJid, $locAck);
@@ -1207,24 +1221,40 @@ PROMPT;
                 return $order;
             });
 
-            // Geocode delivery address and persist for live tracking map
-            $cachedGps    = Cache::get("verified_delivery_coords_{$sessionKey}");
-            $cachedAddr   = Cache::get("verified_delivery_address_{$sessionKey}");
-            $cachedSource = Cache::get("verified_delivery_source_{$sessionKey}");
-            $isPinnedLocation = (bool) ($cachedGps && ($cachedSource === 'whatsapp_pin' || $cachedSource === 'customer_pin'));
+            // Persist verified location data for live tracking and order records
+            $cachedGps       = Cache::get("verified_delivery_coords_{$sessionKey}");
+            $cachedAddr      = Cache::get("verified_delivery_address_{$sessionKey}");
+            $cachedPlaceName = Cache::get("verified_delivery_place_name_{$sessionKey}");
+            $cachedPlaceId   = Cache::get("verified_delivery_place_id_{$sessionKey}");
+            $cachedSource    = Cache::get("verified_delivery_source_{$sessionKey}");
+            $isPinnedLocation = (bool) ($cachedGps && in_array($cachedSource, ['whatsapp_pin', 'customer_pin', 'google_places', 'reverse_geocode'], true));
 
             if ($cachedAddr && ($address === 'Delivery order via WhatsApp' || empty($address) || $isPinnedLocation)) {
                 $address = $cachedAddr;
-                $order->update(['delivery_address' => $address]);
             }
 
             // Location Safety: Never replace valid WhatsApp or map pin coordinates with geocoded or guessed coordinates
             $gpsCoords = $isPinnedLocation ? $cachedGps : ($cachedGps ?: $this->geocodeAddress($address, $restaurant->city ?? ''));
+
+            $orderUpdates = [];
+            if ($address) {
+                $orderUpdates['delivery_address'] = $address;
+            }
             if ($gpsCoords) {
-                $order->update([
-                    'delivery_lat' => $gpsCoords[0],
-                    'delivery_lng' => $gpsCoords[1],
-                ]);
+                $orderUpdates['delivery_lat'] = $gpsCoords[0];
+                $orderUpdates['delivery_lng'] = $gpsCoords[1];
+            }
+            if ($cachedPlaceName) {
+                $orderUpdates['delivery_place_name'] = $cachedPlaceName;
+            }
+            if ($cachedPlaceId) {
+                $orderUpdates['delivery_place_id'] = $cachedPlaceId;
+            }
+            if ($cachedSource) {
+                $orderUpdates['location_source'] = $cachedSource;
+            }
+            if (! empty($orderUpdates)) {
+                $order->update($orderUpdates);
             }
 
             // Geocode restaurant address if not already set

@@ -38,6 +38,8 @@ class LocationConfirmationController extends Controller
                 $initLat = $cachedCoords ? (float) $cachedCoords[0] : ($restLat ?: 31.5204);
                 $initLng = $cachedCoords ? (float) $cachedCoords[1] : ($restLng ?: 74.3587);
 
+                $cachedPlace = Cache::get("verified_delivery_place_name_{$sessionKey}", '');
+
                 return view('location.confirm', [
                     'restaurant'   => $restaurant,
                     'token'        => $token,
@@ -46,6 +48,7 @@ class LocationConfirmationController extends Controller
                     'initialLng'   => $initLng,
                     'hasCoords'    => !empty($cachedCoords),
                     'address'      => $cachedAddr,
+                    'placeName'    => $cachedPlace,
                     'order'        => null,
                     'trackingCode' => null,
                 ]);
@@ -74,6 +77,7 @@ class LocationConfirmationController extends Controller
                 'initialLng'   => $initLng,
                 'hasCoords'    => $hasCoords,
                 'address'      => $order->delivery_address ?: '',
+                'placeName'    => $order->delivery_place_name ?: '',
                 'order'        => $order,
                 'trackingCode' => $order->tracking_code,
             ]);
@@ -96,7 +100,28 @@ class LocationConfirmationController extends Controller
         $token = trim($token);
         $lat = (float) $request->input('lat');
         $lng = (float) $request->input('lng');
-        $address = trim((string) $request->input('address', ''));
+        $userInputAddress = trim((string) $request->input('address', ''));
+
+        // POI-aware location resolution: Google Places API (New) Nearby Search -> Reverse geocode fallback
+        // Customer exact GPS ($lat, $lng) is ALWAYS preserved as authoritative.
+        $resolution = app(\App\Services\LocationResolutionService::class)->resolve($lat, $lng);
+        $placeName = $resolution['delivery_place_name'] ?? null;
+        $placeId = $resolution['delivery_place_id'] ?? null;
+        $locationSource = ($resolution['location_source'] === 'google_places') ? 'google_places' : 'customer_pin';
+        $resolvedAddress = $resolution['delivery_address'] ?? ($placeName ?: "Selected Pin Location ({$lat}, {$lng})");
+
+        // Format final human-readable delivery address
+        if ($userInputAddress !== '') {
+            if ($placeName && stripos($userInputAddress, $placeName) === false) {
+                $finalAddress = $userInputAddress . ', ' . ($resolvedAddress ?: $placeName);
+            } elseif (! $placeName && $resolvedAddress && stripos($userInputAddress, $resolvedAddress) === false) {
+                $finalAddress = $userInputAddress . ', ' . $resolvedAddress;
+            } else {
+                $finalAddress = $userInputAddress;
+            }
+        } else {
+            $finalAddress = $resolvedAddress;
+        }
 
         // 1. Session token (pre-order)
         $sessionData = Cache::get("loc_token_{$token}");
@@ -107,10 +132,13 @@ class LocationConfirmationController extends Controller
 
             $sessionKey = "wa_session_{$restaurantId}_{$phone}";
             Cache::put("verified_delivery_coords_{$sessionKey}", [$lat, $lng], now()->addMinutes(45));
-            Cache::put("verified_delivery_source_{$sessionKey}", 'customer_pin', now()->addMinutes(45));
-
-            if ($address !== '') {
-                Cache::put("verified_delivery_address_{$sessionKey}", $address, now()->addMinutes(45));
+            Cache::put("verified_delivery_source_{$sessionKey}", $locationSource, now()->addMinutes(45));
+            Cache::put("verified_delivery_address_{$sessionKey}", $finalAddress, now()->addMinutes(45));
+            if ($placeName) {
+                Cache::put("verified_delivery_place_name_{$sessionKey}", $placeName, now()->addMinutes(45));
+            }
+            if ($placeId) {
+                Cache::put("verified_delivery_place_id_{$sessionKey}", $placeId, now()->addMinutes(45));
             }
 
             // Append confirmation event to session history so bot is fully aware upon return to WhatsApp
@@ -120,11 +148,15 @@ class LocationConfirmationController extends Controller
             }
             $history[] = [
                 'role' => 'user',
-                'content' => "Confirmed Map Pin: [Lat: {$lat}, Lng: {$lng}]" . ($address !== '' ? " Address: {$address}" : ""),
+                'content' => "Confirmed Map Pin: [Lat: {$lat}, Lng: {$lng}]" .
+                    ($placeName ? " Landmark: {$placeName}" : "") .
+                    " Address: {$finalAddress}",
             ];
             $history[] = [
                 'role' => 'assistant',
-                'content' => "📍 *Delivery Pin Confirmed!* ✅\nHamain aapki exact location mil gayi hai." . ($address ? "\n🏠 *Address:* {$address}" : ""),
+                'content' => "📍 *Delivery Pin Confirmed!* ✅\nHamain aapki exact location mil gayi hai." .
+                    ($placeName ? "\n📍 *Landmark:* {$placeName}" : "") .
+                    "\n🏠 *Address:* {$finalAddress}",
             ];
             if (count($history) > 20) {
                 $history = array_slice($history, -20);
@@ -136,19 +168,22 @@ class LocationConfirmationController extends Controller
                 'phone'         => $phone,
                 'lat'           => $lat,
                 'lng'           => $lng,
-                'address'       => $address,
+                'place_name'    => $placeName,
+                'address'       => $finalAddress,
+                'source'        => $locationSource,
             ]);
 
             // Notify customer in WhatsApp
             $restaurant = Restaurant::find($restaurantId);
             if ($restaurant && $recipientJid) {
                 try {
-                    $addrNote = $address ? "\n🏠 *Address:* {$address}" : "";
+                    $poiNote = $placeName ? "\n📍 *Landmark:* {$placeName}" : "";
+                    $addrNote = "\n🏠 *Address:* {$finalAddress}";
                     BotEvolutionClient::sendMessage(
                         $restaurant,
                         $recipientJid,
                         "📍 *Delivery Pin Confirmed!* ✅\n" .
-                        "Hamain aapki exact location mil gayi hai.{$addrNote}\n\n" .
+                        "Hamain aapki exact location mil gayi hai.{$poiNote}{$addrNote}\n\n" .
                         "Aap WhatsApp par apna order continue ya confirm kar sakte hain! 😊"
                     );
                 } catch (\Throwable $e) {
@@ -157,10 +192,13 @@ class LocationConfirmationController extends Controller
             }
 
             return response()->json([
-                'success' => true,
-                'message' => 'Delivery location pin confirmed! You can now return to WhatsApp.',
-                'lat'     => $lat,
-                'lng'     => $lng,
+                'success'         => true,
+                'message'         => 'Delivery location pin confirmed! You can now return to WhatsApp.',
+                'lat'             => $lat,
+                'lng'             => $lng,
+                'place_name'      => $placeName,
+                'address'         => $finalAddress,
+                'location_source' => $locationSource,
             ]);
         }
 
@@ -171,12 +209,13 @@ class LocationConfirmationController extends Controller
 
         if ($order) {
             $updateData = [
-                'delivery_lat' => $lat,
-                'delivery_lng' => $lng,
+                'delivery_lat'        => $lat,
+                'delivery_lng'        => $lng,
+                'delivery_address'    => $finalAddress,
+                'delivery_place_name' => $placeName,
+                'delivery_place_id'   => $placeId,
+                'location_source'     => $locationSource,
             ];
-            if ($address !== '') {
-                $updateData['delivery_address'] = $address;
-            }
             $order->update($updateData);
 
             Log::info("Customer updated order delivery pin", [
@@ -184,15 +223,20 @@ class LocationConfirmationController extends Controller
                 'tracking_code' => $order->tracking_code,
                 'lat'           => $lat,
                 'lng'           => $lng,
-                'address'       => $address,
+                'place_name'    => $placeName,
+                'address'       => $finalAddress,
+                'source'        => $locationSource,
             ]);
 
             return response()->json([
-                'success'      => true,
-                'message'      => 'Order delivery location updated successfully!',
-                'lat'          => $lat,
-                'lng'          => $lng,
-                'tracking_url' => url('/track/' . $order->tracking_code),
+                'success'         => true,
+                'message'         => 'Order delivery location updated successfully!',
+                'lat'             => $lat,
+                'lng'             => $lng,
+                'place_name'      => $placeName,
+                'address'         => $finalAddress,
+                'location_source' => $locationSource,
+                'tracking_url'    => url('/track/' . $order->tracking_code),
             ]);
         }
 

@@ -33,6 +33,9 @@ class Order extends Model
         'rider_location_updated_at',
         'delivery_lat',
         'delivery_lng',
+        'delivery_place_name',
+        'delivery_place_id',
+        'location_source',
     ];
 
     protected $casts = [

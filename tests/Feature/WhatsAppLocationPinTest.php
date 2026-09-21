@@ -20,6 +20,11 @@ class WhatsAppLocationPinTest extends TestCase
     {
         parent::setUp();
         config(['services.evolution.api_key' => 'test_evo_secret_key']);
+        Http::fake([
+            'http://127.0.0.1:8080/*' => Http::response(['status' => 'SUCCESS'], 200),
+            'https://nominatim.openstreetmap.org/*' => Http::response(['display_name' => 'Lahore, Pakistan'], 200),
+            'https://photon.komoot.io/*' => Http::response(['features' => []], 200),
+        ]);
     }
 
     private function makeRestaurant(string $instanceId): Restaurant
@@ -32,6 +37,8 @@ class WhatsAppLocationPinTest extends TestCase
             'is_open'         => true,
             'city'            => 'Lahore',
             'address'         => 'Mall Road',
+            'restaurant_lat'  => 31.5204,
+            'restaurant_lng'  => 74.3587,
         ]);
         $r->status                = 'active';
         $r->registration_status   = 'approved';
