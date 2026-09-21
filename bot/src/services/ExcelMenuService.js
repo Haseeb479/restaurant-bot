@@ -49,19 +49,35 @@ export class ExcelMenuService {
 
             if (!rawRows || rawRows.length === 0) return null;
 
+            const sizeOrderMap = {
+                'Personal': 0.5,
+                'Small': 1,
+                'Regular': 1.5,
+                'Half': 1.8,
+                'Medium': 2,
+                'Full': 2.8,
+                'Large': 3,
+                'XL': 4,
+                'Family': 5,
+                'Jumbo': 6
+            };
+
             function detectSizeFromHeader(headerStr) {
                 const s = String(headerStr || '').trim().toLowerCase();
                 if (!s) return null;
                 if (s.includes('category') || s.includes('desc') || s.includes('detail') || s.includes('item') || s.includes('dish') || s.includes('product') || s.includes('total') || s.includes('count') || s.includes('avg')) {
                     return null;
                 }
-                if (/\b(extra\s*large|xlarge|xl|x-large|family|party|jumbo|monster)\b/i.test(s) || /16["”\s]/i.test(s)) return 'XL';
-                if (/\b(large|lg)\b/i.test(s) || /13["”\s]/i.test(s) || s === 'l' || /^l\s*[\(\[]/i.test(s) || /[\(\[]\s*l\s*[\)\]]/i.test(s) || /^price[\s_\-]+l$/i.test(s) || /^l[\s_\-]+price$/i.test(s)) return 'L';
-                if (/\b(medium|med)\b/i.test(s) || /10["”\s]/i.test(s) || s === 'm' || /^m\s*[\(\[]/i.test(s) || /[\(\[]\s*m\s*[\)\]]/i.test(s) || /^price[\s_\-]+m$/i.test(s) || /^m[\s_\-]+price$/i.test(s)) return 'M';
-                if (/\b(small|sm)\b/i.test(s) || /7["”\s]/i.test(s) || s === 's' || /^s\s*[\(\[]/i.test(s) || /[\(\[]\s*s\s*[\)\]]/i.test(s) || /^price[\s_\-]+s$/i.test(s) || /^s[\s_\-]+price$/i.test(s)) return 'S';
-                if (/\b(regular|reg)\b/i.test(s)) return 'REGULAR';
-                if (/\b(half|single)\b/i.test(s)) return 'HALF';
-                if (/\b(full|double)\b/i.test(s)) return 'FULL';
+                if (/\b(family)\b/i.test(s)) return 'Family';
+                if (/\b(jumbo|monster|party)\b/i.test(s)) return 'Jumbo';
+                if (/\b(personal)\b/i.test(s)) return 'Personal';
+                if (/\b(extra\s*large|xlarge|xl|x-large)\b/i.test(s) || /16["”\s]/i.test(s)) return 'XL';
+                if (/\b(large|lg)\b/i.test(s) || /13["”\s]/i.test(s) || s === 'l' || /^l\s*[\(\[]/i.test(s) || /[\(\[]\s*l\s*[\)\]]/i.test(s) || /^price[\s_\-]+l$/i.test(s) || /^l[\s_\-]+price$/i.test(s)) return 'Large';
+                if (/\b(medium|med)\b/i.test(s) || /10["”\s]/i.test(s) || s === 'm' || /^m\s*[\(\[]/i.test(s) || /[\(\[]\s*m\s*[\)\]]/i.test(s) || /^price[\s_\-]+m$/i.test(s) || /^m[\s_\-]+price$/i.test(s)) return 'Medium';
+                if (/\b(small|sm)\b/i.test(s) || /7["”\s]/i.test(s) || s === 's' || /^s\s*[\(\[]/i.test(s) || /[\(\[]\s*s\s*[\)\]]/i.test(s) || /^price[\s_\-]+s$/i.test(s) || /^s[\s_\-]+price$/i.test(s)) return 'Small';
+                if (/\b(regular|reg)\b/i.test(s)) return 'Regular';
+                if (/\b(half|single)\b/i.test(s)) return 'Half';
+                if (/\b(full|double)\b/i.test(s)) return 'Full';
                 return null;
             }
 
@@ -72,25 +88,34 @@ export class ExcelMenuService {
 
                 const results = [];
                 const seenSizes = new Set();
-                const regex = /(?:^|[\s,;|\/\n])(small|medium|large|extra\s*large|xlarge|xl|x-large|family|jumbo|party|regular|reg|half|full|single|double|s|m|l)\s*[:=\-\(]?\s*(?:rs\.?|pkr|₹)?\s*([0-9]+(?:\.[0-9]+)?)\s*\)?/gi;
+                const regex = /(?:^|[\s,;|\/\n])(small|medium|large|extra\s*large|xlarge|xl|x-large|family|jumbo|party|personal|regular|reg|half|full|single|double|s|m|l)\s*[:=\-\(]?\s*(?:rs\.?|pkr|₹)?\s*([0-9]+(?:\.[0-9]+)?)\s*\)?/gi;
                 let match;
                 while ((match = regex.exec(text)) !== null) {
                     const rawSize = match[1].toLowerCase().replace(/[\s\-_]+/g, ' ').trim();
                     const price = parseFloat(match[2]);
                     if (price > 0) {
-                        let normSize = 'S';
-                        if (rawSize.includes('extra') || rawSize.includes('xl') || rawSize.includes('family') || rawSize.includes('jumbo') || rawSize.includes('party')) normSize = 'XL';
-                        else if (rawSize.includes('large') || rawSize === 'l') normSize = 'L';
-                        else if (rawSize.includes('medium') || rawSize.includes('med') || rawSize === 'm') normSize = 'M';
-                        else if (rawSize.includes('small') || rawSize.includes('sm') || rawSize === 's') normSize = 'S';
-                        else if (rawSize.includes('regular') || rawSize === 'reg') normSize = 'REGULAR';
-                        else if (rawSize.includes('half') || rawSize === 'single') normSize = 'HALF';
-                        else if (rawSize.includes('full') || rawSize === 'double') normSize = 'FULL';
-                        else normSize = rawSize.toUpperCase();
+                        let normSize = 'Small';
+                        if (rawSize.includes('family')) normSize = 'Family';
+                        else if (rawSize.includes('jumbo') || rawSize.includes('party')) normSize = 'Jumbo';
+                        else if (rawSize.includes('personal')) normSize = 'Personal';
+                        else if (rawSize.includes('extra') || rawSize.includes('xl')) normSize = 'XL';
+                        else if (rawSize.includes('large') || rawSize === 'l' || rawSize === 'lg') normSize = 'Large';
+                        else if (rawSize.includes('medium') || rawSize.includes('med') || rawSize === 'm') normSize = 'Medium';
+                        else if (rawSize.includes('small') || rawSize.includes('sm') || rawSize === 's') normSize = 'Small';
+                        else if (rawSize.includes('regular') || rawSize === 'reg') normSize = 'Regular';
+                        else if (rawSize.includes('half') || rawSize === 'single') normSize = 'Half';
+                        else if (rawSize.includes('full') || rawSize === 'double') normSize = 'Full';
+                        else normSize = rawSize.charAt(0).toUpperCase() + rawSize.slice(1);
 
                         if (!seenSizes.has(normSize)) {
                             seenSizes.add(normSize);
-                            results.push({ size: normSize, price });
+                            results.push({
+                                name: normSize,
+                                size: normSize,
+                                price,
+                                sort_order: sizeOrderMap[normSize] || 99,
+                                is_active: true
+                            });
                         }
                     }
                 }
@@ -99,8 +124,11 @@ export class ExcelMenuService {
 
             function sortSizes(sizesList) {
                 if (!sizesList || sizesList.length === 0) return null;
-                const sizeOrder = { 'S': 1, 'M': 2, 'L': 3, 'XL': 4, 'REGULAR': 1.5, 'HALF': 1, 'FULL': 2 };
-                return [...sizesList].sort((a, b) => (sizeOrder[a.size] || 99) - (sizeOrder[b.size] || 99));
+                return [...sizesList].sort((a, b) => {
+                    const orderA = a.sort_order ?? (sizeOrderMap[a.size || a.name] || 99);
+                    const orderB = b.sort_order ?? (sizeOrderMap[b.size || b.name] || 99);
+                    return orderA - orderB;
+                });
             }
 
             // Find header row or use default column indices

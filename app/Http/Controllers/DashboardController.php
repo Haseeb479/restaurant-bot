@@ -589,12 +589,18 @@ class DashboardController extends Controller
         $sizes = null;
         if ($hasSizes) {
             $sizes = collect($request->input('sizes'))
-                ->filter(fn($s) => !empty($s['size']) && !empty($s['price']))
+                ->filter(fn($s) => !empty($s['size'] ?? $s['name']) && !empty($s['price']))
                 ->values()
-                ->map(fn($s) => [
-                    'size'  => strtoupper(trim($s['size'])),
-                    'price' => (float) $s['price'],
-                ])
+                ->map(function ($s) {
+                    $norm = MenuItem::normalizeSizeName($s['size'] ?? $s['name']);
+                    return [
+                        'name'       => $norm,
+                        'size'       => $norm,
+                        'price'      => (float) $s['price'],
+                        'is_active'  => isset($s['is_active']) ? filter_var($s['is_active'], FILTER_VALIDATE_BOOLEAN) : true,
+                        'sort_order' => MenuItem::getSizeSortOrder($norm),
+                    ];
+                })
                 ->toArray();
 
             if (empty($sizes)) $sizes = null;
@@ -603,13 +609,17 @@ class DashboardController extends Controller
         // Base price: first size price if sizes exist, else single price field
         $basePrice = ($sizes && !empty($sizes[0]['price'])) ? $sizes[0]['price'] : ($request->input('price') ?? 0);
 
-        $r->menuItems()->create([
+        $newItem = $r->menuItems()->create([
             'category_id' => $request->input('category_id'),
             'name'        => trim($request->input('name')),
             'description' => $request->input('description') ? trim($request->input('description')) : null,
             'price'       => $basePrice,
             'sizes'       => $sizes, // null if no size variants
         ]);
+
+        if ($sizes !== null) {
+            $newItem->syncVariants($sizes);
+        }
 
         $this->invalidateBotCache($r);
 
@@ -647,12 +657,18 @@ class DashboardController extends Controller
         $sizes = null;
         if ($hasSizes) {
             $sizes = collect($request->input('sizes'))
-                ->filter(fn($s) => !empty($s['size']) && !empty($s['price']))
+                ->filter(fn($s) => !empty($s['size'] ?? $s['name']) && !empty($s['price']))
                 ->values()
-                ->map(fn($s) => [
-                    'size'  => strtoupper(trim($s['size'])),
-                    'price' => (float) $s['price'],
-                ])
+                ->map(function ($s) {
+                    $norm = MenuItem::normalizeSizeName($s['size'] ?? $s['name']);
+                    return [
+                        'name'       => $norm,
+                        'size'       => $norm,
+                        'price'      => (float) $s['price'],
+                        'is_active'  => isset($s['is_active']) ? filter_var($s['is_active'], FILTER_VALIDATE_BOOLEAN) : true,
+                        'sort_order' => MenuItem::getSizeSortOrder($norm),
+                    ];
+                })
                 ->toArray();
 
             if (empty($sizes)) $sizes = null;
@@ -667,6 +683,8 @@ class DashboardController extends Controller
             'price'        => $basePrice,
             'sizes'        => $sizes,
         ]);
+
+        $item->syncVariants($sizes);
 
         $this->invalidateBotCache($r);
 
@@ -1329,13 +1347,16 @@ class DashboardController extends Controller
                 if (str_contains($s, 'category') || str_contains($s, 'desc') || str_contains($s, 'detail') || str_contains($s, 'item') || str_contains($s, 'dish') || str_contains($s, 'product') || str_contains($s, 'total') || str_contains($s, 'count') || str_contains($s, 'avg')) {
                     return null;
                 }
-                if (preg_match('/\b(extra\s*large|xlarge|xl|x-large|family|party|jumbo|monster)\b/i', $s) || preg_match('/16["”\s]/i', $s)) return 'XL';
-                if (preg_match('/\b(large|lg)\b/i', $s) || preg_match('/13["”\s]/i', $s) || $s === 'l' || preg_match('/^l\s*[\(\[]/i', $s) || preg_match('/[\(\[]\s*l\s*[\)\]]/i', $s) || preg_match('/^price[\s_\-]+l$/i', $s) || preg_match('/^l[\s_\-]+price$/i', $s)) return 'L';
-                if (preg_match('/\b(medium|med)\b/i', $s) || preg_match('/10["”\s]/i', $s) || $s === 'm' || preg_match('/^m\s*[\(\[]/i', $s) || preg_match('/[\(\[]\s*m\s*[\)\]]/i', $s) || preg_match('/^price[\s_\-]+m$/i', $s) || preg_match('/^m[\s_\-]+price$/i', $s)) return 'M';
-                if (preg_match('/\b(small|sm)\b/i', $s) || preg_match('/7["”\s]/i', $s) || $s === 's' || preg_match('/^s\s*[\(\[]/i', $s) || preg_match('/[\(\[]\s*s\s*[\)\]]/i', $s) || preg_match('/^price[\s_\-]+s$/i', $s) || preg_match('/^s[\s_\-]+price$/i', $s)) return 'S';
-                if (preg_match('/\b(regular|reg)\b/i', $s)) return 'REGULAR';
-                if (preg_match('/\b(half|single)\b/i', $s)) return 'HALF';
-                if (preg_match('/\b(full|double)\b/i', $s)) return 'FULL';
+                if (str_contains($s, 'family')) return 'Family';
+                if (str_contains($s, 'jumbo') || str_contains($s, 'monster') || str_contains($s, 'party')) return 'Jumbo';
+                if (str_contains($s, 'personal')) return 'Personal';
+                if (preg_match('/\b(extra\s*large|xlarge|xl|x-large)\b/i', $s) || preg_match('/16["”\s]/i', $s)) return 'XL';
+                if (preg_match('/\b(large|lg)\b/i', $s) || preg_match('/13["”\s]/i', $s) || $s === 'l' || preg_match('/^l\s*[\(\[]/i', $s) || preg_match('/[\(\[]\s*l\s*[\)\]]/i', $s) || preg_match('/^price[\s_\-]+l$/i', $s) || preg_match('/^l[\s_\-]+price$/i', $s)) return 'Large';
+                if (preg_match('/\b(medium|med)\b/i', $s) || preg_match('/10["”\s]/i', $s) || $s === 'm' || preg_match('/^m\s*[\(\[]/i', $s) || preg_match('/[\(\[]\s*m\s*[\)\]]/i', $s) || preg_match('/^price[\s_\-]+m$/i', $s) || preg_match('/^m[\s_\-]+price$/i', $s)) return 'Medium';
+                if (preg_match('/\b(small|sm)\b/i', $s) || preg_match('/7["”\s]/i', $s) || $s === 's' || preg_match('/^s\s*[\(\[]/i', $s) || preg_match('/[\(\[]\s*s\s*[\)\]]/i', $s) || preg_match('/^price[\s_\-]+s$/i', $s) || preg_match('/^s[\s_\-]+price$/i', $s)) return 'Small';
+                if (preg_match('/\b(regular|reg)\b/i', $s)) return 'Regular';
+                if (preg_match('/\b(half|single)\b/i', $s)) return 'Half';
+                if (preg_match('/\b(full|double)\b/i', $s)) return 'Full';
                 return null;
             };
 
@@ -1344,24 +1365,21 @@ class DashboardController extends Controller
                 if ($text === '') return [];
                 $results = [];
                 $seenSizes = [];
-                if (preg_match_all('/(?:^|[\s,;|\/\n])(small|medium|large|extra\s*large|xlarge|xl|x-large|family|jumbo|party|regular|reg|half|full|single|double|s|m|l)\s*[:=\-\(]?\s*(?:rs\.?|pkr|₹)?\s*([0-9]+(?:\.[0-9]+)?)\s*\)?/i', $text, $matches, PREG_SET_ORDER)) {
+                if (preg_match_all('/(?:^|[\s,;|\/\n])(small|medium|large|extra\s*large|xlarge|xl|x-large|family|jumbo|party|personal|regular|reg|half|full|single|double|s|m|l)\s*[:=\-\(]?\s*(?:rs\.?|pkr|₹)?\s*([0-9]+(?:\.[0-9]+)?)\s*\)?/i', $text, $matches, PREG_SET_ORDER)) {
                     foreach ($matches as $match) {
                         $rawSize = strtolower(trim(preg_replace('/[\s\-_]+/', ' ', $match[1])));
                         $price = (float) $match[2];
                         if ($price > 0) {
-                            $normSize = 'S';
-                            if (str_contains($rawSize, 'extra') || str_contains($rawSize, 'xl') || str_contains($rawSize, 'family') || str_contains($rawSize, 'jumbo')) $normSize = 'XL';
-                            elseif (str_contains($rawSize, 'large') || $rawSize === 'l') $normSize = 'L';
-                            elseif (str_contains($rawSize, 'medium') || str_contains($rawSize, 'med') || $rawSize === 'm') $normSize = 'M';
-                            elseif (str_contains($rawSize, 'small') || str_contains($rawSize, 'sm') || $rawSize === 's') $normSize = 'S';
-                            elseif (str_contains($rawSize, 'regular')) $normSize = 'REGULAR';
-                            elseif (str_contains($rawSize, 'half')) $normSize = 'HALF';
-                            elseif (str_contains($rawSize, 'full')) $normSize = 'FULL';
-                            else $normSize = strtoupper($rawSize);
-
+                            $normSize = MenuItem::normalizeSizeName($rawSize);
                             if (!isset($seenSizes[$normSize])) {
                                 $seenSizes[$normSize] = true;
-                                $results[] = ['size' => $normSize, 'price' => $price];
+                                $results[] = [
+                                    'name'       => $normSize,
+                                    'size'       => $normSize,
+                                    'price'      => $price,
+                                    'sort_order' => MenuItem::getSizeSortOrder($normSize),
+                                    'is_active'  => true,
+                                ];
                             }
                         }
                     }
@@ -1371,8 +1389,7 @@ class DashboardController extends Controller
 
             $sortSizes = function (array $sizesList): ?array {
                 if (empty($sizesList)) return null;
-                $sizeOrder = ['S' => 1, 'M' => 2, 'L' => 3, 'XL' => 4, 'REGULAR' => 1.5, 'HALF' => 1, 'FULL' => 2];
-                usort($sizesList, fn($a, $b) => ($sizeOrder[$a['size']] ?? 99) <=> ($sizeOrder[$b['size']] ?? 99));
+                usort($sizesList, fn($a, $b) => ($a['sort_order'] ?? MenuItem::getSizeSortOrder($a['size'] ?? $a['name'])) <=> ($b['sort_order'] ?? MenuItem::getSizeSortOrder($b['size'] ?? $b['name'])));
                 return $sizesList;
             };
 
@@ -1502,7 +1519,13 @@ class DashboardController extends Controller
                         if (isset($row[$sc['idx']])) {
                             $cPrice = (float) preg_replace('/[^0-9.]/', '', (string) $row[$sc['idx']]);
                             if ($cPrice > 0) {
-                                $parsedSizes[] = ['size' => $sc['size'], 'price' => $cPrice];
+                                $parsedSizes[] = [
+                                    'name'       => $sc['size'],
+                                    'size'       => $sc['size'],
+                                    'price'      => $cPrice,
+                                    'sort_order' => MenuItem::getSizeSortOrder($sc['size']),
+                                    'is_active'  => true,
+                                ];
                             }
                         }
                     }
@@ -1548,18 +1571,18 @@ class DashboardController extends Controller
             $itemMap = [];
 
             foreach ($rawItems as $item) {
-                if (empty($item['sizes']) && preg_match('/^(.+?)[\s\-_(\[]+(small|medium|large|extra\s*large|xlarge|xl|x-large|family|jumbo|regular|half|full|s|m|l)[)\s\]]*$/i', $item['name'], $suffixMatch)) {
+                if (empty($item['sizes']) && preg_match('/^(.+?)[\s\-_(\[]+(small|medium|large|extra\s*large|xlarge|xl|x-large|family|jumbo|personal|regular|half|full|s|m|l)[)\s\]]*$/i', $item['name'], $suffixMatch)) {
                     $baseName = trim($suffixMatch[1]);
                     $rawSize = strtolower(trim(preg_replace('/[\s\-_]+/', ' ', $suffixMatch[2])));
-                    $normSize = 'S';
-                    if (str_contains($rawSize, 'extra') || str_contains($rawSize, 'xl') || str_contains($rawSize, 'family') || str_contains($rawSize, 'jumbo')) $normSize = 'XL';
-                    elseif (str_contains($rawSize, 'large') || $rawSize === 'l') $normSize = 'L';
-                    elseif (str_contains($rawSize, 'medium') || str_contains($rawSize, 'med') || $rawSize === 'm') $normSize = 'M';
-                    elseif (str_contains($rawSize, 'small') || str_contains($rawSize, 'sm') || $rawSize === 's') $normSize = 'S';
-                    elseif (str_contains($rawSize, 'regular')) $normSize = 'REGULAR';
-                    elseif (str_contains($rawSize, 'half')) $normSize = 'HALF';
-                    elseif (str_contains($rawSize, 'full')) $normSize = 'FULL';
-                    else $normSize = strtoupper($rawSize);
+                    $normSize = MenuItem::normalizeSizeName($rawSize);
+
+                    $variantObj = [
+                        'name'       => $normSize,
+                        'size'       => $normSize,
+                        'price'      => $item['price'],
+                        'sort_order' => MenuItem::getSizeSortOrder($normSize),
+                        'is_active'  => true,
+                    ];
 
                     $key = strtolower($item['category']) . ':::' . strtolower($baseName);
                     if (isset($itemMap[$key])) {
@@ -1569,10 +1592,10 @@ class DashboardController extends Controller
                         }
                         $hasSize = false;
                         foreach ($items[$idx]['sizes'] as $s) {
-                            if ($s['size'] === $normSize) { $hasSize = true; break; }
+                            if (($s['size'] ?? $s['name']) === $normSize) { $hasSize = true; break; }
                         }
                         if (!$hasSize) {
-                            $items[$idx]['sizes'][] = ['size' => $normSize, 'price' => $item['price']];
+                            $items[$idx]['sizes'][] = $variantObj;
                             $items[$idx]['sizes'] = $sortSizes($items[$idx]['sizes']);
                         }
                         if (!empty($item['description']) && empty($items[$idx]['description'])) {
@@ -1581,7 +1604,7 @@ class DashboardController extends Controller
                         continue;
                     } else {
                         $item['name'] = $baseName;
-                        $item['sizes'] = [['size' => $normSize, 'price' => $item['price']]];
+                        $item['sizes'] = [$variantObj];
                         $itemMap[$key] = count($items);
                         $items[] = $item;
                         continue;
@@ -1644,7 +1667,7 @@ class DashboardController extends Controller
             $categoryId = $categoryCache[$catKey];
 
             // Create or update item
-            $restaurant->menuItems()->updateOrCreate(
+            $menuItem = $restaurant->menuItems()->updateOrCreate(
                 [
                     'category_id' => $categoryId,
                     'name'        => $itemName,
@@ -1656,6 +1679,12 @@ class DashboardController extends Controller
                     'is_available' => true,
                 ]
             );
+
+            if (!empty($sizes) && is_array($sizes)) {
+                $menuItem->syncVariants($sizes);
+            } else {
+                $menuItem->variants()->delete();
+            }
 
             $imported++;
         }

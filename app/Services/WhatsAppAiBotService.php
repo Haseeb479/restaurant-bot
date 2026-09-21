@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\Feedback;
+use App\Models\MenuItem;
+use App\Models\MenuItemVariant;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Restaurant;
@@ -214,6 +216,37 @@ class WhatsAppAiBotService
             $history[] = ['role' => 'assistant', 'content' => $locAck];
             Cache::put($sessionKey, $history, now()->addMinutes(self::SESSION_TTL));
             BotEvolutionClient::sendMessage($restaurant, $recipientJid, $locAck);
+            return;
+        }
+
+        // ── Deterministic Size Variant Selection Interceptor ────────────────
+        $pendingSizeKey = "pending_size_selection_{$sessionKey}";
+        $pendingSizeData = Cache::get($pendingSizeKey);
+        if ($pendingSizeData && !empty($pendingSizeData['variants'])) {
+            $matchedVariant = $this->matchPendingVariantSelection($text, $pendingSizeData['variants']);
+            if ($matchedVariant) {
+                Cache::forget($pendingSizeKey);
+                $qty = (int) ($pendingSizeData['quantity'] ?? 1);
+                $itemName = $pendingSizeData['item_name'];
+                $varName = $matchedVariant['name'];
+                $unitPrice = (float) $matchedVariant['price'];
+                $lineTotal = $unitPrice * $qty;
+                $formattedTotal = number_format($lineTotal, 0);
+
+                $cartMsg = "{$qty} × {$itemName} ({$varName}) — Rs. {$formattedTotal}\nAdded to your cart.";
+                $reply = "{$cartMsg} 😊\n\nApna delivery address aur contact number batayein ya kuch aur mangwana hai?";
+
+                $history[] = ['role' => 'user', 'content' => $text];
+                $history[] = ['role' => 'assistant', 'content' => $cartMsg];
+                Cache::put($sessionKey, $history, now()->addMinutes(self::SESSION_TTL));
+
+                BotEvolutionClient::sendMessage($restaurant, $recipientJid, $reply);
+                return;
+            }
+        }
+
+        // Check if customer is ordering an item with multiple sizes without specifying size
+        if ($this->checkAndHandlePendingSizePrompt($restaurant, $text, $sessionKey, $recipientJid, $history)) {
             return;
         }
 
@@ -646,8 +679,9 @@ PROMPT;
             $menuLines .= "\n[Category: {$cat->name}]\n";
             foreach ($catItems as $item) {
                 $line = "{$item->name}";
-                if (!empty($item->sizes) && is_array($item->sizes)) {
-                    $parts = array_map(fn ($s) => "{$s['size']}: Rs." . number_format($s['price'] ?? 0, 0), $item->sizes);
+                $activeSizes = $item->getActiveSizesList();
+                if (!empty($activeSizes)) {
+                    $parts = array_map(fn ($s) => ($s['name'] ?? $s['size']) . ": Rs." . number_format($s['price'] ?? 0, 0), $activeSizes);
                     $line .= " — " . implode(' / ', $parts);
                 } else {
                     $line .= " — Rs." . number_format((float) $item->price, 0);
@@ -666,8 +700,9 @@ PROMPT;
                 $menuLines = "\nMENU:\n";
                 foreach ($items as $item) {
                     $line = "{$item->name}";
-                    if (!empty($item->sizes) && is_array($item->sizes)) {
-                        $parts = array_map(fn ($s) => "{$s['size']}: Rs." . number_format($s['price'] ?? 0, 0), $item->sizes);
+                    $activeSizes = $item->getActiveSizesList();
+                    if (!empty($activeSizes)) {
+                        $parts = array_map(fn ($s) => ($s['name'] ?? $s['size']) . ": Rs." . number_format($s['price'] ?? 0, 0), $activeSizes);
                         $line .= " — " . implode(' / ', $parts);
                     } else {
                         $line .= " — Rs." . number_format((float) $item->price, 0);
@@ -942,14 +977,18 @@ PROMPT;
                 if (preg_match('/\(([^)]+)\)/', $rest, $sizeMatch)) {
                     $potentialSize = trim($sizeMatch[1]);
                     if (!preg_match('/(?:rs\.?|pkr\.?|₹|\d{2,})/i', $potentialSize)) {
-                        $itemSize = $potentialSize;
+                        $itemSize = MenuItem::normalizeSizeName($potentialSize);
                     }
+                } elseif (preg_match('/\b(small|medium|large|extra\s*large|xl|regular|family|personal|jumbo|half|full)\b/i', $rest, $sizeMatch)) {
+                    $itemSize = MenuItem::normalizeSizeName($sizeMatch[1]);
                 }
 
                 // Extract clean item name (strip price suffixes and size tags for matching)
                 $itemName = preg_replace('/(?:—|-|–|:|@|\(|→|Rs\.|PKR|₹).*$/iu', '', $rest);
+                if ($itemSize !== null) {
+                    $itemName = preg_replace('/\b' . preg_quote($itemSize, '/') . '\b/i', '', $itemName);
+                }
                 $itemName = trim($itemName, " *–—-\t\n\r\0\x0B");
-                $normItemName = strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $itemName));
                 $normItemName = strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $itemName));
                 $normItemName = trim(preg_replace('/\s+/', ' ', $normItemName));
 
@@ -1094,41 +1133,24 @@ PROMPT;
                     $matchedSize = null;
 
                     // Handle size variations if defined on MenuItem
-                    if (!$matchedCandidateIsComposite && $matchedDbItem->hasSizes() && is_array($matchedDbItem->sizes) && count($matchedDbItem->sizes) > 0) {
+                    $activeSizes = $matchedDbItem->getActiveSizesList();
+                    if (!$matchedCandidateIsComposite && !empty($activeSizes)) {
                         if ($itemSize) {
-                            $normSize = strtolower(trim(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $itemSize)));
-                            $normSize = preg_replace('/\s+/', ' ', $normSize);
-                            $sizeAliases = [
-                                's'   => 'small',
-                                'm'   => 'medium',
-                                'l'   => 'large',
-                                'xl'  => 'extra large',
-                                'xxl' => 'double extra large',
-                            ];
-                            $aliasNormSize = $sizeAliases[$normSize] ?? $normSize;
-
-                            foreach ($matchedDbItem->sizes as $s) {
-                                $sRaw = strtolower(trim(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $s['size'] ?? '')));
-                                $sName = preg_replace('/\s+/', ' ', $sRaw);
-                                $aliasSName = $sizeAliases[$sName] ?? $sName;
-
-                                if ($sName === $normSize ||
-                                    $aliasSName === $aliasNormSize ||
-                                    str_starts_with($sName, $normSize) ||
-                                    str_starts_with($normSize, $sName) ||
-                                    str_starts_with($aliasSName, $aliasNormSize) ||
-                                    str_starts_with($aliasNormSize, $aliasSName)) {
+                            $normSize = MenuItem::normalizeSizeName($itemSize);
+                            foreach ($activeSizes as $s) {
+                                $sName = MenuItem::normalizeSizeName($s['name'] ?? $s['size'] ?? '');
+                                if (strcasecmp($sName, $normSize) === 0) {
                                     $unitPrice   = (float) ($s['price'] ?? 0);
-                                    $matchedSize = $s['size'] ?? $itemSize;
+                                    $matchedSize = $sName;
                                     break;
                                 }
                             }
                         }
 
-                        // Default to first size if not matched or no size specified but base price is 0
-                        if ($unitPrice === 0.0 && ((float) $matchedDbItem->price) <= 0 && isset($matchedDbItem->sizes[0]['price'])) {
-                            $unitPrice   = (float) $matchedDbItem->sizes[0]['price'];
-                            $matchedSize = $matchedDbItem->sizes[0]['size'] ?? $itemSize;
+                        // Default to first active size if not matched or no size specified
+                        if ($unitPrice === 0.0 && isset($activeSizes[0]['price'])) {
+                            $unitPrice   = (float) $activeSizes[0]['price'];
+                            $matchedSize = MenuItem::normalizeSizeName($activeSizes[0]['name'] ?? $activeSizes[0]['size'] ?? '');
                         }
                     }
 
@@ -1860,8 +1882,9 @@ PROMPT;
             $out .= "\n🍽️ *{$catName}*\n";
             foreach ($items as $item) {
                 $priceStr = "Rs. " . number_format((float) $item->price, 0);
-                if (!empty($item->sizes) && is_array($item->sizes)) {
-                    $parts = array_map(fn($s) => "{$s['size']}: Rs." . number_format($s['price'] ?? 0, 0), $item->sizes);
+                $activeSizes = $item->getActiveSizesList();
+                if (!empty($activeSizes)) {
+                    $parts = array_map(fn($s) => ($s['name'] ?? $s['size']) . ": Rs." . number_format($s['price'] ?? 0, 0), $activeSizes);
                     $priceStr = implode(' / ', $parts);
                 }
                 $desc = $item->description ? " _({$item->description})_" : "";
@@ -1873,8 +1896,9 @@ PROMPT;
             $items = $restaurant->menuItems()->where('is_available', true)->get();
             foreach ($items as $item) {
                 $priceStr = "Rs. " . number_format((float) $item->price, 0);
-                if (!empty($item->sizes) && is_array($item->sizes)) {
-                    $parts = array_map(fn($s) => "{$s['size']}: Rs." . number_format($s['price'] ?? 0, 0), $item->sizes);
+                $activeSizes = $item->getActiveSizesList();
+                if (!empty($activeSizes)) {
+                    $parts = array_map(fn($s) => ($s['name'] ?? $s['size']) . ": Rs." . number_format($s['price'] ?? 0, 0), $activeSizes);
                     $priceStr = implode(' / ', $parts);
                 }
                 $desc = $item->description ? " _({$item->description})_" : "";
@@ -1952,5 +1976,172 @@ PROMPT;
         }
 
         return $reply;
+    }
+
+    /**
+     * Matches a customer reply (e.g. "1", "2", "3", "Large", "L", "Medium", "S", etc.)
+     * against pending size variants.
+     */
+    private function matchPendingVariantSelection(string $text, array $variants): ?array
+    {
+        $clean = trim($text);
+        if ($clean === '') return null;
+
+        // A. Match numeric selection: 1, 2, 3, etc.
+        if (preg_match('/^(?:#|\boption\s*|\bopt\s*)?(\d+)\b/i', $clean, $m)) {
+            $idx = (int) $m[1];
+            foreach ($variants as $v) {
+                if (($v['index'] ?? 0) === $idx) {
+                    return $v;
+                }
+            }
+        }
+
+        // B. Match canonical size name or alias
+        $norm = MenuItem::normalizeSizeName($clean);
+        foreach ($variants as $v) {
+            if (strcasecmp($v['name'], $norm) === 0) {
+                return $v;
+            }
+        }
+
+        // C. Match substring / keyword in text
+        $lower = strtolower($clean);
+        foreach ($variants as $v) {
+            $vLower = strtolower($v['name']);
+            if (str_contains($lower, $vLower)) {
+                return $v;
+            }
+            if ($vLower === 'small' && preg_match('/\b(s|sm|7["”])\b/i', $lower)) return $v;
+            if ($vLower === 'medium' && preg_match('/\b(m|med|10["”])\b/i', $lower)) return $v;
+            if ($vLower === 'large' && preg_match('/\b(l|lg|13["”])\b/i', $lower)) return $v;
+            if ($vLower === 'xl' && preg_match('/\b(xl|extra\s*large|16["”])\b/i', $lower)) return $v;
+            if ($vLower === 'half' && preg_match('/\b(half|single)\b/i', $lower)) return $v;
+            if ($vLower === 'full' && preg_match('/\b(full|double)\b/i', $lower)) return $v;
+            if ($vLower === 'family' && preg_match('/\b(family)\b/i', $lower)) return $v;
+            if ($vLower === 'personal' && preg_match('/\b(personal)\b/i', $lower)) return $v;
+            if ($vLower === 'jumbo' && preg_match('/\b(jumbo)\b/i', $lower)) return $v;
+        }
+
+        return null;
+    }
+
+    /**
+     * Checks if customer's message orders an item that has multiple active sizes WITHOUT specifying a size.
+     * If so, stores pending size selection and prompts the customer with numbered size choices.
+     */
+    private function checkAndHandlePendingSizePrompt(Restaurant $restaurant, string $text, string $sessionKey, string $recipientJid, array &$history): bool
+    {
+        $cleanText = trim($text);
+        if ($cleanText === '') return false;
+
+        // Skip if customer is confirming, canceling, asking for menu flyer, or sending location
+        if (preg_match('/^(?:haan|yes|confirm|theek hai|kr do|kar do|ok|done|cancel|track|menu)\b/i', $cleanText)) {
+            return false;
+        }
+
+        // Load available items that have multiple active sizes
+        $itemsWithSizes = $restaurant->menuItems()
+            ->where('is_available', true)
+            ->get()
+            ->filter(fn ($it) => count($it->getActiveSizesList()) > 1);
+
+        if ($itemsWithSizes->isEmpty()) {
+            return false;
+        }
+
+        $textLower = strtolower($cleanText);
+
+        foreach ($itemsWithSizes as $item) {
+            $itemNameLower = strtolower(trim($item->name));
+
+            // Check if item name is mentioned in customer text
+            $isMentioned = str_contains($textLower, $itemNameLower);
+            if (!$isMentioned && strlen($itemNameLower) >= 4) {
+                // Check without special chars
+                $cleanItemName = trim(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $itemNameLower));
+                $cleanMsg = trim(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $textLower));
+                if (str_contains($cleanMsg, $cleanItemName)) {
+                    $isMentioned = true;
+                }
+            }
+
+            if ($isMentioned) {
+                $activeSizes = $item->getActiveSizesList();
+                $alreadySpecified = false;
+
+                // Check if customer ALREADY specified any size variant
+                foreach ($activeSizes as $sz) {
+                    $sName = strtolower(MenuItem::normalizeSizeName($sz['name'] ?? $sz['size'] ?? ''));
+                    if (str_contains($textLower, $sName)) {
+                        $alreadySpecified = true;
+                        break;
+                    }
+                    if ($sName === 'small' && preg_match('/\b(small|s|sm|7["”])\b/i', $textLower)) { $alreadySpecified = true; break; }
+                    if ($sName === 'medium' && preg_match('/\b(medium|m|med|10["”])\b/i', $textLower)) { $alreadySpecified = true; break; }
+                    if ($sName === 'large' && preg_match('/\b(large|l|lg|13["”])\b/i', $textLower)) { $alreadySpecified = true; break; }
+                    if ($sName === 'xl' && preg_match('/\b(xl|extra\s*large|16["”])\b/i', $textLower)) { $alreadySpecified = true; break; }
+                    if ($sName === 'regular' && preg_match('/\b(regular|reg)\b/i', $textLower)) { $alreadySpecified = true; break; }
+                    if ($sName === 'half' && preg_match('/\b(half)\b/i', $textLower)) { $alreadySpecified = true; break; }
+                    if ($sName === 'full' && preg_match('/\b(full)\b/i', $textLower)) { $alreadySpecified = true; break; }
+                }
+
+                if ($alreadySpecified) {
+                    // Customer specified size (e.g. "2 Large Shahi Pizza") -> Proceed directly without prompting
+                    return false;
+                }
+
+                // Customer ordered without size! Extract quantity:
+                $qty = 1;
+                if (preg_match('/(\d+)\s*(?:x\s*)?' . preg_quote($itemNameLower, '/') . '/i', $textLower, $qm)) {
+                    $qty = (int) $qm[1];
+                } elseif (preg_match('/(?:^|\s)(\d+)\s*(?:x\s*)?/i', $textLower, $qm)) {
+                    $qty = (int) $qm[1];
+                } elseif (preg_match('/\b(ek|one)\b/i', $textLower)) {
+                    $qty = 1;
+                } elseif (preg_match('/\b(do|two)\b/i', $textLower)) {
+                    $qty = 2;
+                } elseif (preg_match('/\b(teen|three)\b/i', $textLower)) {
+                    $qty = 3;
+                }
+                $qty = max(1, $qty);
+
+                // Build variants list and prompt message
+                $variantsList = [];
+                $sizeLines = [];
+                $idx = 1;
+                foreach ($activeSizes as $sz) {
+                    $cName = MenuItem::normalizeSizeName($sz['name'] ?? $sz['size'] ?? '');
+                    $cPrice = (float) ($sz['price'] ?? 0);
+                    $variantsList[] = [
+                        'index' => $idx,
+                        'name'  => $cName,
+                        'price' => $cPrice,
+                    ];
+                    $sizeLines[] = "{$idx}. {$cName} — Rs. " . number_format($cPrice, 0);
+                    $idx++;
+                }
+
+                $pendingSizeKey = "pending_size_selection_{$sessionKey}";
+                Cache::put($pendingSizeKey, [
+                    'item_id'   => $item->id,
+                    'item_name' => $item->name,
+                    'quantity'  => $qty,
+                    'variants'  => $variantsList,
+                ], now()->addMinutes(self::SESSION_TTL));
+
+                $icon = str_contains(strtolower($item->name), 'pizza') ? '🍕' : (str_contains(strtolower($item->name), 'burger') ? '🍔' : '🍽️');
+                $promptText = "{$icon} *{$item->name}*\nPlease select a size:\n\n" . implode("\n", $sizeLines);
+
+                $history[] = ['role' => 'user', 'content' => $text];
+                $history[] = ['role' => 'assistant', 'content' => $promptText];
+                Cache::put($sessionKey, $history, now()->addMinutes(self::SESSION_TTL));
+
+                BotEvolutionClient::sendMessage($restaurant, $recipientJid, $promptText);
+                return true;
+            }
+        }
+
+        return false;
     }
 }

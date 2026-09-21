@@ -124,8 +124,9 @@
                                         <div class="size-grid">
                                             @foreach($item->sizes as $size)
                                                 @php
-                                                    $sName = strtoupper(trim($size['size'] ?? ''));
-                                                    $badgeClass = match($sName) {
+                                                    $sName = $size['name'] ?? $size['size'] ?? '';
+                                                    $isActive = !isset($size['is_active']) || (bool)$size['is_active'];
+                                                    $badgeClass = match(strtoupper(trim($sName))) {
                                                         'S', 'SMALL', '7"' => 'badge-size-s',
                                                         'M', 'MEDIUM', '10"' => 'badge-size-m',
                                                         'L', 'LARGE', '13"' => 'badge-size-l',
@@ -133,9 +134,12 @@
                                                         default => 'badge-size-default',
                                                     };
                                                 @endphp
-                                                <div class="size-pill-item">
-                                                    <span class="badge-size {{ $badgeClass }}">{{ $size['size'] }}</span>
-                                                    <span class="size-price-val">Rs. {{ number_format($size['price'], 0) }}</span>
+                                                <div class="size-pill-item" style="{{ !$isActive ? 'opacity: 0.6;' : '' }}">
+                                                    <span class="badge-size {{ $badgeClass }}">{{ $sName }}</span>
+                                                    <span class="size-price-val" style="{{ !$isActive ? 'text-decoration: line-through; opacity: 0.8;' : '' }}">Rs. {{ number_format($size['price'], 0) }}</span>
+                                                    @if(!$isActive)
+                                                        <span style="font-size: 10px; font-weight: 700; color: #ef4444; background: #fef2f2; padding: 1px 4px; border-radius: 4px; border: 1px solid #fecaca; margin-left: 2px;">Disabled</span>
+                                                    @endif
                                                 </div>
                                             @endforeach
                                         </div>
@@ -229,26 +233,32 @@
                 <div id="modal-sizes-builder" style="display: none; margin-top: 12px;">
                     <!-- Quick Presets -->
                     <div style="display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap;">
-                        <button type="button" onclick="applyPresetToContainer('sizes-rows-container', ['S', 'M', 'L', 'XL'], false)" style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; cursor: pointer;">
-                            🍕 Pizza (S, M, L, XL)
+                        <button type="button" onclick="applyPresetToContainer('sizes-rows-container', ['Small', 'Medium', 'Large', 'XL'], false)" style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; cursor: pointer;">
+                            🍕 Pizza (Small, Medium, Large, XL)
                         </button>
-                        <button type="button" onclick="applyPresetToContainer('sizes-rows-container', ['S', 'M', 'L'], false)" style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #047857; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; cursor: pointer;">
-                            🍔 3 Sizes (S, M, L)
+                        <button type="button" onclick="applyPresetToContainer('sizes-rows-container', ['Small', 'Medium', 'Large'], false)" style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #047857; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; cursor: pointer;">
+                            🍔 3 Sizes (Small, Medium, Large)
                         </button>
-                        <button type="button" onclick="applyPresetToContainer('sizes-rows-container', ['HALF', 'FULL'], false)" style="background: #f5f3ff; border: 1px solid #ddd6fe; color: #6d28d9; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; cursor: pointer;">
+                        <button type="button" onclick="applyPresetToContainer('sizes-rows-container', ['Half', 'Full'], false)" style="background: #f5f3ff; border: 1px solid #ddd6fe; color: #6d28d9; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; cursor: pointer;">
                             🍛 2 Portions (Half, Full)
                         </button>
                     </div>
 
                     <div id="sizes-rows-container" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;">
-                        <div class="size-input-row">
-                            <input type="text" name="sizes[0][size]" value="S" placeholder="Size (e.g. S)" class="form-input" style="width: 90px; text-transform: uppercase;">
+                        <div class="size-input-row" style="display: flex; align-items: center; gap: 8px;">
+                            <input type="text" name="sizes[0][size]" value="Small" placeholder="Size (e.g. Small)" class="form-input" style="width: 100px;">
                             <input type="number" name="sizes[0][price]" placeholder="Price (Rs.)" class="form-input" style="flex: 1;">
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: #64748b; white-space: nowrap; cursor: pointer;">
+                                <input type="checkbox" name="sizes[0][is_active]" value="1" checked> Active
+                            </label>
                             <button type="button" onclick="removeSizeRow(this)" style="background: none; border: none; color: #ef4444; font-size: 18px; cursor: pointer;">&times;</button>
                         </div>
-                        <div class="size-input-row">
-                            <input type="text" name="sizes[1][size]" value="M" placeholder="Size (e.g. M)" class="form-input" style="width: 90px; text-transform: uppercase;">
+                        <div class="size-input-row" style="display: flex; align-items: center; gap: 8px;">
+                            <input type="text" name="sizes[1][size]" value="Medium" placeholder="Size (e.g. Medium)" class="form-input" style="width: 100px;">
                             <input type="number" name="sizes[1][price]" placeholder="Price (Rs.)" class="form-input" style="flex: 1;">
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: #64748b; white-space: nowrap; cursor: pointer;">
+                                <input type="checkbox" name="sizes[1][is_active]" value="1" checked> Active
+                            </label>
                             <button type="button" onclick="removeSizeRow(this)" style="background: none; border: none; color: #ef4444; font-size: 18px; cursor: pointer;">&times;</button>
                         </div>
                     </div>
@@ -444,13 +454,13 @@
                 <div id="edit-sizes-builder" style="display: none; margin-top: 12px;">
                     <!-- Quick Presets -->
                     <div style="display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap;">
-                        <button type="button" onclick="applyPresetToContainer('edit-sizes-rows-container', ['S', 'M', 'L', 'XL'], true)" style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; cursor: pointer;">
-                            🍕 Pizza (S, M, L, XL)
+                        <button type="button" onclick="applyPresetToContainer('edit-sizes-rows-container', ['Small', 'Medium', 'Large', 'XL'], true)" style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; cursor: pointer;">
+                            🍕 Pizza (Small, Medium, Large, XL)
                         </button>
-                        <button type="button" onclick="applyPresetToContainer('edit-sizes-rows-container', ['S', 'M', 'L'], true)" style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #047857; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; cursor: pointer;">
-                            🍔 3 Sizes (S, M, L)
+                        <button type="button" onclick="applyPresetToContainer('edit-sizes-rows-container', ['Small', 'Medium', 'Large'], true)" style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #047857; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; cursor: pointer;">
+                            🍔 3 Sizes (Small, Medium, Large)
                         </button>
-                        <button type="button" onclick="applyPresetToContainer('edit-sizes-rows-container', ['HALF', 'FULL'], true)" style="background: #f5f3ff; border: 1px solid #ddd6fe; color: #6d28d9; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; cursor: pointer;">
+                        <button type="button" onclick="applyPresetToContainer('edit-sizes-rows-container', ['Half', 'Full'], true)" style="background: #f5f3ff; border: 1px solid #ddd6fe; color: #6d28d9; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; cursor: pointer;">
                             🍛 2 Portions (Half, Full)
                         </button>
                     </div>
@@ -810,9 +820,13 @@
         const container = document.getElementById('sizes-rows-container');
         const row = document.createElement('div');
         row.className = 'size-input-row';
+        row.style = 'display: flex; align-items: center; gap: 8px;';
         row.innerHTML = `
-            <input type="text" name="sizes[${sizeRowIndex}][size]" placeholder="Size (e.g. XL)" class="form-input" style="width: 90px; text-transform: uppercase;">
+            <input type="text" name="sizes[${sizeRowIndex}][size]" placeholder="Size (e.g. XL)" class="form-input" style="width: 100px;">
             <input type="number" name="sizes[${sizeRowIndex}][price]" placeholder="Price (Rs.)" class="form-input" style="flex: 1;">
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: #64748b; white-space: nowrap; cursor: pointer;">
+                <input type="checkbox" name="sizes[${sizeRowIndex}][is_active]" value="1" checked> Active
+            </label>
             <button type="button" onclick="removeSizeRow(this)" style="background: none; border: none; color: #ef4444; font-size: 18px; cursor: pointer;">&times;</button>
         `;
         container.appendChild(row);
@@ -846,9 +860,15 @@
             item.sizes.forEach((s, idx) => {
                 const row = document.createElement('div');
                 row.className = 'size-input-row';
+                row.style = 'display: flex; align-items: center; gap: 8px;';
+                const sName = s.name || s.size || '';
+                const isActive = s.is_active !== undefined ? Boolean(s.is_active) : true;
                 row.innerHTML = `
-                    <input type="text" name="sizes[${idx}][size]" value="${s.size || ''}" placeholder="Size" class="form-input" style="width: 90px; text-transform: uppercase;">
+                    <input type="text" name="sizes[${idx}][size]" value="${sName}" placeholder="Size" class="form-input" style="width: 100px;">
                     <input type="number" name="sizes[${idx}][price]" value="${s.price || 0}" placeholder="Price" class="form-input" style="flex: 1;">
+                    <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: #64748b; white-space: nowrap; cursor: pointer;">
+                        <input type="checkbox" name="sizes[${idx}][is_active]" value="1" ${isActive ? 'checked' : ''}> Active
+                    </label>
                     <button type="button" onclick="removeSizeRow(this)" style="background: none; border: none; color: #ef4444; font-size: 18px; cursor: pointer;">&times;</button>
                 `;
                 container.appendChild(row);
@@ -882,9 +902,13 @@
         const container = document.getElementById('edit-sizes-rows-container');
         const row = document.createElement('div');
         row.className = 'size-input-row';
+        row.style = 'display: flex; align-items: center; gap: 8px;';
         row.innerHTML = `
-            <input type="text" name="sizes[${editSizeRowIndex}][size]" placeholder="Size (e.g. M)" class="form-input" style="width: 90px; text-transform: uppercase;">
+            <input type="text" name="sizes[${editSizeRowIndex}][size]" placeholder="Size (e.g. Medium)" class="form-input" style="width: 100px;">
             <input type="number" name="sizes[${editSizeRowIndex}][price]" placeholder="Price (Rs.)" class="form-input" style="flex: 1;">
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: #64748b; white-space: nowrap; cursor: pointer;">
+                <input type="checkbox" name="sizes[${editSizeRowIndex}][is_active]" value="1" checked> Active
+            </label>
             <button type="button" onclick="removeSizeRow(this)" style="background: none; border: none; color: #ef4444; font-size: 18px; cursor: pointer;">&times;</button>
         `;
         container.appendChild(row);
@@ -913,10 +937,14 @@
         presetSizes.forEach((sz, idx) => {
             const row = document.createElement('div');
             row.className = 'size-input-row';
-            const priceVal = existingPrices[sz] || (sz === 'L' || sz === 'FULL' ? fallbackPrice : '');
+            row.style = 'display: flex; align-items: center; gap: 8px;';
+            const priceVal = existingPrices[sz.toUpperCase()] || (sz === 'Large' || sz === 'Full' ? fallbackPrice : '');
             row.innerHTML = `
-                <input type="text" name="sizes[${idx}][size]" value="${sz}" placeholder="Size" class="form-input" style="width: 90px; text-transform: uppercase;">
+                <input type="text" name="sizes[${idx}][size]" value="${sz}" placeholder="Size" class="form-input" style="width: 100px;">
                 <input type="number" name="sizes[${idx}][price]" value="${priceVal}" placeholder="Price (Rs.)" class="form-input" style="flex: 1;">
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: #64748b; white-space: nowrap; cursor: pointer;">
+                    <input type="checkbox" name="sizes[${idx}][is_active]" value="1" checked> Active
+                </label>
                 <button type="button" onclick="removeSizeRow(this)" style="background: none; border: none; color: #ef4444; font-size: 18px; cursor: pointer;">&times;</button>
             `;
             container.appendChild(row);

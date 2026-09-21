@@ -1386,7 +1386,10 @@
                         <div class="order-item-row">
                             <div class="order-item-qty-name">
                                 <span class="order-item-qty-badge">{{ $item->quantity }}x</span>
-                                <span>{{ $item->name ?: $item->item_name }}</span>
+                                <span>{{ $item->name ?: $item->item_name }}@if($item->size) <strong style="color: #4f46e5;">({{ $item->size }})</strong>@endif</span>
+                                @if($item->unit_price > 0)
+                                    <span style="font-size: 11px; color: #64748b; margin-left: 4px;">@ Rs. {{ number_format($item->unit_price) }}</span>
+                                @endif
                             </div>
                             <span class="order-item-price">PKR {{ number_format($item->subtotal) }}</span>
                         </div>
