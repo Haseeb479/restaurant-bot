@@ -24,6 +24,9 @@ class OrderingStateEngine
     public const STATE_WAITING_FOR_CONFIRMATION = 'WAITING_FOR_CONFIRMATION';
     public const STATE_ORDER_CREATED = 'ORDER_CREATED';
     public const STATE_COMPLETED = 'COMPLETED';
+    public const STATE_MODIFY_EXISTING_ORDER = 'MODIFY_EXISTING_ORDER';
+    public const STATE_WAITING_FOR_MODIFICATION_CONFIRMATION = 'WAITING_FOR_MODIFICATION_CONFIRMATION';
+    public const STATE_CLARIFY_NEW_OR_MODIFY = 'CLARIFY_NEW_OR_MODIFY';
 
     protected Restaurant $restaurant;
     protected string $phone;
@@ -66,7 +69,9 @@ class OrderingStateEngine
                 'delivery_lng' => $meta['delivery_lng'] ?? null,
                 'poi_name' => $meta['poi_name'] ?? null,
                 'pending_variant_item' => $meta['pending_variant_item'] ?? null,
-                'last_order_id' => null,
+                'last_order_id' => $meta['last_order_id'] ?? null,
+                'modifying_order_id' => $meta['modifying_order_id'] ?? null,
+                'pending_mod_items' => $meta['pending_mod_items'] ?? [],
             ];
         }
 
@@ -80,6 +85,8 @@ class OrderingStateEngine
             'poi_name' => null,
             'pending_variant_item' => null,
             'last_order_id' => null,
+            'modifying_order_id' => null,
+            'pending_mod_items' => [],
         ];
     }
 
@@ -91,10 +98,13 @@ class OrderingStateEngine
         Cache::put($this->sessionKey, $this->session, now()->addHours(2));
 
         $meta = [
-            'delivery_lat' => $this->session['delivery_lat'],
-            'delivery_lng' => $this->session['delivery_lng'],
-            'poi_name' => $this->session['poi_name'],
-            'pending_variant_item' => $this->session['pending_variant_item'],
+            'delivery_lat' => $this->session['delivery_lat'] ?? null,
+            'delivery_lng' => $this->session['delivery_lng'] ?? null,
+            'poi_name' => $this->session['poi_name'] ?? null,
+            'pending_variant_item' => $this->session['pending_variant_item'] ?? null,
+            'last_order_id' => $this->session['last_order_id'] ?? null,
+            'modifying_order_id' => $this->session['modifying_order_id'] ?? null,
+            'pending_mod_items' => $this->session['pending_mod_items'] ?? [],
         ];
 
         Conversation::updateOrCreate(
@@ -130,18 +140,26 @@ class OrderingStateEngine
         $this->saveSession();
     }
 
-    public function resetSession(): void
+    public function resetSession(bool $keepCustomerProfile = true): void
     {
+        $preservedName = $keepCustomerProfile ? ($this->session['customer_name'] ?? null) : null;
+        $preservedAddr = $keepCustomerProfile ? ($this->session['customer_address'] ?? null) : null;
+        $preservedLat  = $keepCustomerProfile ? ($this->session['delivery_lat'] ?? null) : null;
+        $preservedLng  = $keepCustomerProfile ? ($this->session['delivery_lng'] ?? null) : null;
+        $preservedPoi  = $keepCustomerProfile ? ($this->session['poi_name'] ?? null) : null;
+
         $this->session = [
             'state' => self::STATE_WELCOME,
             'cart' => [],
-            'customer_name' => null,
-            'customer_address' => null,
-            'delivery_lat' => null,
-            'delivery_lng' => null,
-            'poi_name' => null,
+            'customer_name' => $preservedName,
+            'customer_address' => $preservedAddr,
+            'delivery_lat' => $preservedLat,
+            'delivery_lng' => $preservedLng,
+            'poi_name' => $preservedPoi,
             'pending_variant_item' => null,
             'last_order_id' => null,
+            'modifying_order_id' => null,
+            'pending_mod_items' => [],
         ];
         $this->saveSession();
     }
@@ -158,13 +176,28 @@ class OrderingStateEngine
 
         // Global intent: Reset / Cancel
         if ($intent === 'CANCEL_ORDER' || $intent === 'RESET') {
-            $this->resetSession();
+            if ($currentState === self::STATE_WAITING_FOR_MODIFICATION_CONFIRMATION) {
+                return $this->handleWaitingForModificationConfirmationState($intent, $nlu);
+            }
+            $this->resetSession(true);
             return "Aapka order cancel kar diya gaya hai aur cart clear ho gaya hai. Dobara order karne ke liye koi bhi message karein.";
+        }
+
+        // Global intent: Explicit New Order
+        if ($intent === 'START_NEW_ORDER') {
+            $this->resetSession(true);
+            $this->transitionTo(self::STATE_MENU_SELECTION);
+            return "Theek hai! Naya order shuru karte hain. Menu dekhne ke liye *Menu* likhein ya direct apna order batayein.";
         }
 
         // Global intent: Order Status
         if ($intent === 'ASK_ORDER_STATUS') {
             return $this->handleOrderStatus($nlu);
+        }
+
+        // Global trigger: Explicit Modification of Existing Order
+        if ($intent === 'MODIFY_EXISTING_ORDER') {
+            return $this->handleModifyExistingOrder($nlu);
         }
 
         // State Machine Dispatch
@@ -186,6 +219,15 @@ class OrderingStateEngine
 
             case self::STATE_WAITING_FOR_CONFIRMATION:
                 return $this->handleWaitingForConfirmationState($intent, $nlu);
+
+            case self::STATE_MODIFY_EXISTING_ORDER:
+                return $this->handleModifyExistingOrder($nlu);
+
+            case self::STATE_WAITING_FOR_MODIFICATION_CONFIRMATION:
+                return $this->handleWaitingForModificationConfirmationState($intent, $nlu);
+
+            case self::STATE_CLARIFY_NEW_OR_MODIFY:
+                return $this->handleClarifyNewOrModifyState($intent, $nlu);
 
             case self::STATE_ORDER_CREATED:
             case self::STATE_COMPLETED:
@@ -296,6 +338,15 @@ class OrderingStateEngine
                 $this->session['pending_variant_item'] = null;
                 $this->saveSession();
 
+                // Check if we are in modification context
+                if (!empty($this->session['modifying_order_id'])) {
+                    $order = Order::find($this->session['modifying_order_id']);
+                    if ($order) {
+                        $this->transitionTo(self::STATE_WAITING_FOR_MODIFICATION_CONFIRMATION);
+                        return "✅ *{$matchedVariant->name} {$menuItem->name}* (x{$qty}) shaamil kar diya gaya!\n\n" . $this->renderModificationReview($order);
+                    }
+                }
+
                 $reply = "✅ *{$matchedVariant->name} {$menuItem->name}* (x{$qty}) cart mein add ho gaya!\n";
                 $reply .= "Price: Rs. " . number_format($matchedVariant->price * $qty) . "\n\n";
 
@@ -325,20 +376,22 @@ class OrderingStateEngine
 
         $raw = trim($nlu['raw_text'] ?? '');
 
-        // If customer name is empty, try using raw_text if it looks like a name
+        // If customer name is empty, sanitize raw_text
         if (empty($this->session['customer_name'])) {
-            if ($raw !== '' && strlen($raw) <= 35 && !preg_match('/\b(menu|cancel|pizza|burger|yes|no|skip)\b/i', $raw)) {
-                $this->session['customer_name'] = $raw;
+            $sanitized = $this->sanitizeCustomerField($raw, $this->session['customer_name'] ?? null);
+            if ($sanitized) {
+                $this->session['customer_name'] = $sanitized;
                 $this->saveSession();
             } else {
                 return "Aapka shukriya! Barahe karam apna *Naam* (Full Name) batayein:";
             }
         }
 
-        // If customer address is empty, check if provided or if raw_text is the address
+        // If customer address is empty, sanitize raw_text
         if (empty($this->session['customer_address'])) {
-            if ($raw !== '' && $raw !== $this->session['customer_name'] && strlen($raw) <= 80 && !preg_match('/\b(menu|cancel|pizza|burger|yes|no|skip)\b/i', $raw)) {
-                $this->session['customer_address'] = $raw;
+            $sanitizedAddr = $this->sanitizeCustomerField($raw, $this->session['customer_address'] ?? null);
+            if ($sanitizedAddr && $sanitizedAddr !== $this->session['customer_name']) {
+                $this->session['customer_address'] = $sanitizedAddr;
                 $this->saveSession();
             } else {
                 return "Shukriya {$this->session['customer_name']}! Barahe karam apna *Delivery Address* batayein (House/Street/Area):";
@@ -352,8 +405,11 @@ class OrderingStateEngine
     protected function handleWaitingForLocationState(string $intent, array $nlu): string
     {
         if (!empty($nlu['address'])) {
-            $this->session['customer_address'] = $nlu['address'];
-            $this->saveSession();
+            $cleanAddr = $this->sanitizeCustomerField($nlu['address'], $this->session['customer_address'] ?? null);
+            if ($cleanAddr) {
+                $this->session['customer_address'] = $cleanAddr;
+                $this->saveSession();
+            }
         }
 
         $raw = strtolower($nlu['raw_text'] ?? '');
@@ -372,7 +428,7 @@ class OrderingStateEngine
         }
 
         if ($intent === 'CANCEL_ORDER' || $this->isNegative($nlu['raw_text'] ?? '')) {
-            $this->resetSession();
+            $this->resetSession(true);
             return "Aapka order cancel kar diya gaya hai. Dobara order karne ke liye koi bhi message karein.";
         }
 
@@ -391,16 +447,418 @@ class OrderingStateEngine
 
     protected function handleCompletedState(string $intent, array $nlu): string
     {
-        if ($intent === 'SHOW_MENU' || $intent === 'ADD_ITEM') {
-            $this->resetSession();
-            return $this->handleWelcomeState($intent, $nlu);
+        $raw = trim($nlu['raw_text'] ?? '');
+
+        // If customer explicitly asks for new order
+        if ($intent === 'START_NEW_ORDER' || preg_match('/\b(new|another|naya|alag)\s*order\b/i', $raw)) {
+            $this->resetSession(true);
+            $this->transitionTo(self::STATE_MENU_SELECTION);
+            return "Theek hai! Naya order shuru karte hain. Menu dekhne ke liye *Menu* likhein ya direct item batayein.";
+        }
+
+        if ($intent === 'SHOW_MENU') {
+            return $this->renderMenuText();
         }
 
         if ($intent === 'ASK_ORDER_STATUS') {
             return $this->handleOrderStatus($nlu);
         }
 
-        return "Aapka order process ho raha hai! Agar naya order karna chahte hain to *Menu* likhein.";
+        // Check if customer refers to existing order modification
+        if ($intent === 'MODIFY_EXISTING_ORDER' || $this->isModifyExistingOrderPhrase($raw)) {
+            return $this->handleModifyExistingOrder($nlu);
+        }
+
+        // If customer sends food items without explicitly saying "new order" or "same order"
+        if (!empty($nlu['items']) || $intent === 'ADD_ITEM') {
+            $activeOrder = $this->getActiveOrder();
+            if ($activeOrder && $this->isOrderModifiable($activeOrder)) {
+                // Ambiguous: ask whether to modify active order or start new order
+                $this->session['pending_mod_items'] = $nlu['items'] ?? [];
+                $this->transitionTo(self::STATE_CLARIFY_NEW_OR_MODIFY);
+
+                $itemsNames = implode(', ', array_map(fn($i) => ($i['quantity'] ?? 1) . 'x ' . ($i['name'] ?? ''), $this->session['pending_mod_items']));
+                return "Aapka *Order #{$activeOrder->id}* abhi pending hai.\n\nKya aap *{$itemsNames}* usi order mein add karna chahte hain ya naya alag order banana chahte hain?\n\n1️⃣ Reply *Same Order* (Order #{$activeOrder->id} mein add hoga)\n2️⃣ Reply *New Order* (Alag naya order banega)";
+            }
+
+            // If no active order, proceed as new order
+            $this->resetSession(true);
+            $this->transitionTo(self::STATE_MENU_SELECTION);
+            return $this->handleAddItems($nlu);
+        }
+
+        return "Aapka order process ho raha hai! Naya order karne ke liye *New Order* ya *Menu* likhein.";
+    }
+
+    // =========================================================================
+    // MODIFICATION WORKFLOW & CLARIFICATION
+    // =========================================================================
+
+    public function handleModifyExistingOrder(array $nlu): string
+    {
+        $activeOrder = $this->getActiveOrder();
+        if (!$activeOrder) {
+            $this->transitionTo(self::STATE_MENU_SELECTION);
+            return "Aapka koi active order nahi mila jise modify kiya ja sake. Naya order karne ke liye *Menu* likhein.";
+        }
+
+        // Status Guard: rule 5
+        if (!$this->isOrderModifiable($activeOrder)) {
+            return $this->getOrderStatusGuardMessage($activeOrder);
+        }
+
+        $this->session['modifying_order_id'] = $activeOrder->id;
+
+        // Rule 3: Automatically reuse existing customer profile data from Order
+        $this->session['customer_name'] = $activeOrder->customer_name;
+        $this->session['customer_address'] = $activeOrder->delivery_address;
+        $this->session['delivery_lat'] = $activeOrder->delivery_lat;
+        $this->session['delivery_lng'] = $activeOrder->delivery_lng;
+        $this->session['poi_name'] = $activeOrder->delivery_place_name;
+
+        // Load existing order items into cart if cart doesn't have them
+        if (empty($this->session['cart'])) {
+            $this->session['cart'] = $this->extractCartFromOrder($activeOrder);
+        }
+
+        // Parse items to add
+        $items = $nlu['items'] ?? [];
+        if (empty($items) && !empty($this->session['pending_mod_items'])) {
+            $items = $this->session['pending_mod_items'];
+            $this->session['pending_mod_items'] = [];
+        }
+
+        if (empty($items)) {
+            $this->transitionTo(self::STATE_WAITING_FOR_MODIFICATION_CONFIRMATION);
+            return "Aap Order #{$activeOrder->id} mein kya add karna chahte hain? Barahe karam item ka naam aur quantity batayein.\n\nExample: _'2 Chicken Wrap'_";
+        }
+
+        // Resolve each item authoritatively from DB (Rule 4)
+        foreach ($items as $itemData) {
+            $itemName = trim($itemData['name'] ?? '');
+            $qty = max(1, (int)($itemData['quantity'] ?? 1));
+            $requestedVariant = $itemData['size'] ?? $itemData['variant'] ?? null;
+
+            if (empty($itemName)) {
+                continue;
+            }
+
+            $menuItem = $this->resolveMenuItemFromDb($itemName);
+            if (!$menuItem) {
+                return "Maazrat! *{$itemName}* hamare menu mein dastiyab nahi hai. Type *Menu* to see available items.";
+            }
+
+            $menuItem->loadMissing('variants');
+            if ($menuItem->variants->isNotEmpty()) {
+                $matchedVariant = $requestedVariant ? $this->matchVariant($menuItem, $requestedVariant) : null;
+                if (!$matchedVariant) {
+                    $this->session['pending_variant_item'] = [
+                        'id' => $menuItem->id,
+                        'name' => $menuItem->name,
+                        'quantity' => $qty,
+                    ];
+                    $this->transitionTo(self::STATE_WAITING_FOR_VARIANT);
+                    $variantList = $menuItem->variants->map(fn($v) => "• *{$v->name}*: Rs. " . number_format($v->price))->join("\n");
+                    return "Aap ne *{$menuItem->name}* chuna hai. Barahe karam size select karein:\n\n{$variantList}\n\nExample: _'Large'_";
+                }
+
+                $this->addItemToCart($menuItem, $matchedVariant, $qty);
+            } else {
+                $this->addItemToCart($menuItem, null, $qty);
+            }
+        }
+
+        $this->saveSession();
+        $this->transitionTo(self::STATE_WAITING_FOR_MODIFICATION_CONFIRMATION);
+
+        return $this->renderModificationReview($activeOrder);
+    }
+
+    public function handleWaitingForModificationConfirmationState(string $intent, array $nlu): string
+    {
+        $raw = trim($nlu['raw_text'] ?? '');
+
+        // Customer Confirms Modification
+        if ($intent === 'CONFIRM_ORDER' || $this->isAffirmative($raw)) {
+            return $this->executeOrderModification();
+        }
+
+        // Customer Cancels Modification (Discard staged changes, keep DB order intact)
+        if ($intent === 'CANCEL_ORDER' || $this->isNegative($raw)) {
+            $orderId = $this->session['modifying_order_id'] ?? $this->session['last_order_id'];
+            $this->session['cart'] = [];
+            $this->session['modifying_order_id'] = null;
+            $this->session['pending_mod_items'] = [];
+            $this->transitionTo(self::STATE_ORDER_CREATED);
+            return "Theek hai! Order #{$orderId} mein koi tabdeeli nahi ki gayi. Aapka original order as it is rahega.";
+        }
+
+        // Customer wants to add additional items in same modification
+        if ($intent === 'ADD_ITEM' || !empty($nlu['items'])) {
+            return $this->handleModifyExistingOrder($nlu);
+        }
+
+        // Unrecognized reply -> re-prompt with review
+        $order = Order::find($this->session['modifying_order_id'] ?? 0) ?? $this->getActiveOrder();
+        if ($order) {
+            return "Barahe karam Order #{$order->id} ki tabdeeli confirm karne ke liye *Confirm* likhein, ya cancel karne ke liye *Cancel* likhein.\n\n" . $this->renderModificationReview($order);
+        }
+
+        $this->transitionTo(self::STATE_MENU_SELECTION);
+        return "Pehle menu se item select karein.";
+    }
+
+    public function handleClarifyNewOrModifyState(string $intent, array $nlu): string
+    {
+        $raw = strtolower(trim($nlu['raw_text'] ?? ''));
+        $activeOrder = $this->getActiveOrder();
+
+        if (preg_match('/\b(same|isi|is me|1|first|modify|ha|yes|theek)\b/i', $raw)) {
+            // Customer chose to add to existing order
+            return $this->handleModifyExistingOrder(['intent' => 'MODIFY_EXISTING_ORDER', 'items' => $this->session['pending_mod_items'] ?? []]);
+        }
+
+        if (preg_match('/\b(new|2|second|naya|alag|another)\b/i', $raw)) {
+            // Customer chose to create a new order
+            $pendingItems = $this->session['pending_mod_items'] ?? [];
+            $this->resetSession(true);
+            $this->transitionTo(self::STATE_MENU_SELECTION);
+            return $this->handleAddItems(['intent' => 'ADD_ITEM', 'items' => $pendingItems]);
+        }
+
+        $orderId = $activeOrder ? $activeOrder->id : '';
+        return "Barahe karam clear batayein:\n\n1️⃣ Reply *Same Order* (Order #{$orderId} mein add hoga)\n2️⃣ Reply *New Order* (Alag naya order banega)";
+    }
+
+    public function executeOrderModification(): string
+    {
+        $orderId = $this->session['modifying_order_id'] ?? $this->session['last_order_id'];
+        $order = Order::find($orderId);
+
+        if (!$order || !$this->isOrderModifiable($order)) {
+            $this->session['cart'] = [];
+            $this->session['modifying_order_id'] = null;
+            $this->transitionTo(self::STATE_MENU_SELECTION);
+            return "Maazrat! Yeh order ab modify nahi ho sakta.";
+        }
+
+        $cart = $this->session['cart'] ?? [];
+        if (empty($cart)) {
+            return "Cart khali hai.";
+        }
+
+        // Authoritative DB pricing recalculation
+        $subtotal = 0;
+        $orderItemsData = [];
+
+        foreach ($cart as $cItem) {
+            $menuItem = MenuItem::find($cItem['item_id']);
+            if (!$menuItem) {
+                continue;
+            }
+
+            $unitPrice = (float)$menuItem->price;
+            $variantName = null;
+
+            if (!empty($cItem['variant_id'])) {
+                $variant = MenuItemVariant::find($cItem['variant_id']);
+                if ($variant) {
+                    $unitPrice = (float)$variant->price;
+                    $variantName = $variant->name;
+                }
+            }
+
+            $lineTotal = $unitPrice * $cItem['quantity'];
+            $subtotal += $lineTotal;
+
+            $orderItemsData[] = [
+                'item_id' => $menuItem->id,
+                'name' => $menuItem->name,
+                'size' => $variantName,
+                'unit_price' => $unitPrice,
+                'quantity' => $cItem['quantity'],
+                'subtotal' => $lineTotal,
+            ];
+        }
+
+        $deliveryCharge = (float)$order->delivery_charge;
+        $total = $subtotal + $deliveryCharge;
+
+        // Atomic DB Update
+        DB::transaction(function () use ($order, $subtotal, $total, $orderItemsData) {
+            $order->subtotal = $subtotal;
+            $order->total = $total;
+            $order->save();
+
+            // Replace order items with updated synchronized cart
+            OrderItem::where('order_id', $order->id)->delete();
+            foreach ($orderItemsData as $item) {
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'menu_item_id' => $item['item_id'],
+                    'name' => $item['name'],
+                    'size' => $item['size'],
+                    'unit_price' => $item['unit_price'],
+                    'quantity' => $item['quantity'],
+                    'subtotal' => $item['subtotal'],
+                ]);
+            }
+        });
+
+        // Notify Restaurant Owner of modification
+        $this->notifyOwnerOfUpdate($order);
+
+        // Finalize state and clear cart (Rule 6: Cart/Order Separation)
+        $this->session['cart'] = [];
+        $this->session['modifying_order_id'] = null;
+        $this->session['pending_mod_items'] = [];
+        $this->transitionTo(self::STATE_ORDER_CREATED);
+
+        $appUrl = config('app.url', 'http://localhost');
+        $trackingUrl = "{$appUrl}/track/{$order->tracking_code}";
+
+        $receipt = "🎉 *ORDER #{$order->id} UPDATE HO GAYA HAI!*\n\n";
+        $receipt .= "Aapke order mein tabdeeli darj kar li gayi hai:\n\n";
+        foreach ($orderItemsData as $i) {
+            $lbl = $i['name'] . ($i['size'] ? " ({$i['size']})" : '');
+            $receipt .= "• {$i['quantity']}x {$lbl} — Rs. " . number_format($i['subtotal']) . "\n";
+        }
+        $receipt .= "━━━━━━━━━━━━━\n";
+        $receipt .= "Subtotal: Rs. " . number_format($subtotal) . "\n";
+        $receipt .= "Delivery Fee: Rs. " . number_format($deliveryCharge) . "\n";
+        $receipt .= "💰 *NEW TOTAL:* Rs. " . number_format($total) . " (COD)\n\n";
+        $receipt .= "🔴 *Live Tracking:* {$trackingUrl}\n\n";
+        $receipt .= "Kitchen ko update bhej di gayi hai. Shukriya! ❤️";
+
+        return $receipt;
+    }
+
+    protected function renderModificationReview(Order $order): string
+    {
+        $cart = $this->session['cart'] ?? [];
+        $subtotal = 0;
+        $itemsText = "";
+
+        foreach ($cart as $item) {
+            $name = $item['name'] . ($item['variant_name'] ? " ({$item['variant_name']})" : '');
+            $itemsText .= "• {$item['quantity']}x {$name} — Rs. " . number_format($item['subtotal']) . "\n";
+            $subtotal += $item['subtotal'];
+        }
+
+        $deliveryCharge = (float)$order->delivery_charge;
+        $total = $subtotal + $deliveryCharge;
+
+        $name = $order->customer_name;
+        $address = $order->delivery_address;
+        $poi = $order->delivery_place_name ? "\n📍 *Landmark:* {$order->delivery_place_name}" : "";
+
+        $out = "📝 *ORDER #{$order->id} UPDATE REVIEW:*\n\n";
+        $out .= "{$itemsText}\n";
+        $out .= "Subtotal: Rs. " . number_format($subtotal) . "\n";
+        $out .= "Delivery Fee: Rs. " . number_format($deliveryCharge) . "\n";
+        $out .= "━━━━━━━━━━━━━\n";
+        $out .= "💰 *NEW TOTAL:* Rs. " . number_format($total) . " (COD)\n\n";
+        $out .= "👤 *Customer:* {$name}\n";
+        $out .= "🏠 *Address:* {$address}{$poi}\n\n";
+        $out .= "Kya aap Order #{$order->id} mein yeh changes confirm karte hain? Reply *Confirm* ya *Cancel*.";
+
+        return $out;
+    }
+
+    protected function extractCartFromOrder(Order $order): array
+    {
+        $cart = [];
+        $order->loadMissing('items');
+        foreach ($order->items as $item) {
+            $key = $item->menu_item_id . '_' . ($item->size ?: '0');
+            $variantId = null;
+            if (!empty($item->size)) {
+                $variantId = MenuItemVariant::where('menu_item_id', $item->menu_item_id)
+                    ->where('name', $item->size)
+                    ->value('id');
+            }
+
+            $cart[$key] = [
+                'item_id' => $item->menu_item_id,
+                'variant_id' => $variantId,
+                'name' => $item->name,
+                'variant_name' => $item->size,
+                'unit_price' => (float)$item->unit_price,
+                'quantity' => (int)$item->quantity,
+                'subtotal' => (float)$item->subtotal,
+            ];
+        }
+        return $cart;
+    }
+
+    public function getActiveOrder(): ?Order
+    {
+        if (!empty($this->session['modifying_order_id'])) {
+            $ord = Order::with('items')->where('restaurant_id', $this->restaurant->id)
+                ->where('id', $this->session['modifying_order_id'])
+                ->first();
+            if ($ord) return $ord;
+        }
+
+        if (!empty($this->session['last_order_id'])) {
+            $ord = Order::with('items')->where('restaurant_id', $this->restaurant->id)
+                ->where('id', $this->session['last_order_id'])
+                ->first();
+            if ($ord) return $ord;
+        }
+
+        return Order::with('items')->where('restaurant_id', $this->restaurant->id)
+            ->where('customer_phone', $this->cleanPhone)
+            ->latest()
+            ->first();
+    }
+
+    public function isOrderModifiable(?Order $order): bool
+    {
+        if (!$order) {
+            return false;
+        }
+
+        // Rule 5: Modifiable only in pending status
+        return $order->status === 'pending';
+    }
+
+    protected function getOrderStatusGuardMessage(Order $order): string
+    {
+        return match ($order->status) {
+            'preparing' => "Maazrat! Order #{$order->id} kitchen mein tayyar ho raha hai (Preparing), is liye is mein tabdeeli mumkin nahi hai. Agar aap mazeed kuch mangwana chahte hain to naya order place kar sakte hain (Reply *New Order* ya *Menu*).",
+            'out_for_delivery' => "Maazrat! Order #{$order->id} deliver karne ke liye nikal chuka hai (Out for Delivery), is liye is mein tabdeeli mumkin nahi hai. Naya order karne ke liye *Menu* likhein.",
+            'delivered' => "Aapka Order #{$order->id} deliver ho chuka hai. Naya order place karne ke liye *Menu* likhein.",
+            'cancelled' => "Order #{$order->id} cancel ho chuka hai. Naya order karne ke liye *Menu* likhein.",
+            default => "Order #{$order->id} ab modify nahi ho sakta. Naya order place karne ke liye *Menu* likhein.",
+        };
+    }
+
+    protected function notifyOwnerOfUpdate(Order $order): void
+    {
+        try {
+            $ownerPhone = $this->restaurant->owner_phone ?: $this->restaurant->manager_phone;
+            if (!$ownerPhone) {
+                return;
+            }
+
+            $itemsStr = OrderItem::where('order_id', $order->id)
+                ->get()
+                ->map(fn($i) => "{$i->quantity}x {$i->name}" . ($i->size ? " ({$i->size})" : ""))
+                ->implode(', ');
+
+            $msg = "🚨 *ORDER #{$order->id} UPDATED BY CUSTOMER!*\n\n";
+            $msg .= "📦 *#{$order->tracking_code}*\n";
+            $msg .= "📱 *Customer:* {$order->customer_name} ({$order->customer_phone})\n";
+            $msg .= "🍽️ *Updated Items:* {$itemsStr}\n";
+            $msg .= "💰 *New Total:* Rs. " . number_format($order->total) . " (COD)\n";
+            $msg .= "📍 *Address:* {$order->delivery_address}\n";
+            $msg .= "\n✅ Check dashboard for live updates.";
+
+            BotEvolutionClient::sendMessage($this->restaurant, $ownerPhone, $msg);
+        } catch (\Throwable $e) {
+            Log::warning("Owner notification of update failed: " . $e->getMessage());
+        }
     }
 
     // =========================================================================
@@ -615,7 +1073,7 @@ class OrderingStateEngine
     }
 
     // =========================================================================
-    // FLOW LOGIC & HELPERS
+    // FLOW LOGIC & DATA SANITIZATION
     // =========================================================================
 
     public function proceedToNextStepAfterCart(): string
@@ -639,14 +1097,51 @@ class OrderingStateEngine
         return $this->renderFinalOrderReview();
     }
 
+    public function sanitizeCustomerField(?string $value, ?string $fallback = null): ?string
+    {
+        if ($value === null) {
+            return $fallback;
+        }
+
+        $val = trim($value);
+        if ($val === '') {
+            return $fallback;
+        }
+
+        // Rule 3: Never store conversational instructions as field values
+        // If customer said "same", "wohi", "same address", "pichla address", "sab kuch wohi use kro", reuse fallback!
+        if (preg_match('/^(?:same|wohi|wahi|same\s*name|same\s*address|same\s*location|same\s*pata|pehle\s*wala|pehle\s*wali|previous|sab\s*kuch\s*wohi|usi\s*order|same\s*usi)$/iu', $val) ||
+            preg_match('/\b(?:same|wohi|wahi|pichla|pehle|use\s*kr|use\s*kar|sub\s*kuch|sab\s*kuch)\b/iu', $val)) {
+            return $fallback;
+        }
+
+        // Check if value contains conversational instruction verbs or order item names
+        if (preg_match('/\b(?:add\s*kar|kr\s*do|kardo|kar\s*do|daal\s*do|bhej\s*do|mangwana|order\s*me|same\s*order|is\s*me|wrap|pizza|burger|coke|deal|rupaye|rs\.?)\b/iu', $val)) {
+            return $fallback;
+        }
+
+        // Length checks (avoid entire sentences being saved as a name)
+        if (strlen($val) > 100) {
+            return $fallback;
+        }
+
+        return $val;
+    }
+
     protected function captureCustomerInfo(array $nlu): void
     {
         if (!empty($nlu['name']) && empty($this->session['customer_name'])) {
-            $this->session['customer_name'] = trim($nlu['name']);
+            $cleanName = $this->sanitizeCustomerField($nlu['name'], $this->session['customer_name'] ?? null);
+            if ($cleanName) {
+                $this->session['customer_name'] = $cleanName;
+            }
         }
 
         if (!empty($nlu['address'])) {
-            $this->session['customer_address'] = trim($nlu['address']);
+            $cleanAddr = $this->sanitizeCustomerField($nlu['address'], $this->session['customer_address'] ?? null);
+            if ($cleanAddr) {
+                $this->session['customer_address'] = $cleanAddr;
+            }
         }
 
         $this->saveSession();
@@ -662,6 +1157,11 @@ class OrderingStateEngine
         return !empty($this->session['cart']) &&
                !empty($this->session['customer_name']) &&
                !empty($this->session['customer_address']);
+    }
+
+    protected function isModifyExistingOrderPhrase(string $text): bool
+    {
+        return (bool)preg_match('/\b(?:is\s*me|isme|is\s*order\s*me|same\s*order\s*me|order\s*me\s*(?:aur\s*)?add|add\s*(?:this\s*)?(?:to\s*)?(?:my\s*)?order|pichle\s*order|usi\s*order)\b|(?:\b(?:is\s*me|isme)\b.*?\b(?:kr\s*do|kardo|kar\s*do|add|bhej\s*do|daal\s*do)\b)|(?:^add\s+\d+\s+)/iu', $text);
     }
 
     // =========================================================================
@@ -751,8 +1251,11 @@ class OrderingStateEngine
 
         $this->notifyOwner($order);
 
+        // Rule 6: Cart/Order Separation - finalize cart immediately
         $this->session['last_order_id'] = $order->id;
         $this->session['cart'] = [];
+        $this->session['modifying_order_id'] = null;
+        $this->session['pending_mod_items'] = [];
         $this->transitionTo(self::STATE_ORDER_CREATED);
 
         $appUrl = config('app.url', 'http://localhost');
@@ -917,7 +1420,7 @@ class OrderingStateEngine
 
     protected function isAffirmative(string $text): bool
     {
-        return (bool)preg_match('/\b(yes|ha|haan|confirm|theek|ok|g|jee|sahi|order kar do|done)\b/i', $text);
+        return (bool)preg_match('/\b(yes|ha|haan|confirm|theek|ok|g|jee|sahi|order kar do|done|update kar do)\b/i', $text);
     }
 
     protected function isNegative(string $text): bool

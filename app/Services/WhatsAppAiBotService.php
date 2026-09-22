@@ -214,6 +214,10 @@ class WhatsAppAiBotService
             return ['intent' => 'SHOW_MENU', 'items' => [], 'raw_text' => $clean];
         }
 
+        if (preg_match('/^(?:new\s*order|another\s*order|make\s*(?:a\s*|another\s*)?order|naya\s*order|alag\s*order)$/i', $clean)) {
+            return ['intent' => 'START_NEW_ORDER', 'items' => [], 'raw_text' => $clean];
+        }
+
         if (preg_match('/^(?:small|medium|large|xl|s|m|l)$/i', $clean)) {
             return ['intent' => 'SELECT_VARIANT', 'variant' => ucfirst(strtolower($clean)), 'raw_text' => $clean];
         }
@@ -224,7 +228,7 @@ class WhatsAppAiBotService
 You are an expert NLU intent and entity extractor for a Pakistani restaurant WhatsApp ordering system.
 Analyze the customer's message and output ONLY a valid JSON object matching this schema:
 {
-  "intent": "SHOW_MENU" | "ADD_ITEM" | "REMOVE_ITEM" | "CHANGE_QUANTITY" | "SELECT_VARIANT" | "VIEW_CART" | "CHECKOUT" | "CONFIRM_ORDER" | "CANCEL_ORDER" | "ASK_ORDER_STATUS" | "UNKNOWN",
+  "intent": "SHOW_MENU" | "ADD_ITEM" | "MODIFY_EXISTING_ORDER" | "START_NEW_ORDER" | "REMOVE_ITEM" | "CHANGE_QUANTITY" | "SELECT_VARIANT" | "VIEW_CART" | "CHECKOUT" | "CONFIRM_ORDER" | "CANCEL_ORDER" | "ASK_ORDER_STATUS" | "UNKNOWN",
   "items": [
     {
       "name": "Item name without size or price",
@@ -244,10 +248,12 @@ Rules:
 - If customer says "confirm", "yes", "haan", "theek hai", "order kar do", intent is CONFIRM_ORDER.
 - If customer says "cancel", "radd", intent is CANCEL_ORDER.
 - If customer asks for menu or rates, intent is SHOW_MENU.
+- If customer wants to add items to or modify their existing/previous order (e.g. "is me add kar do", "is order me add karo", "isme 2 wrap kr do", "same order me", "add 2 wraps", "order me aur add karo", "add this to my order"), intent is MODIFY_EXISTING_ORDER.
+- If customer says "new order", "naya order", "another order", "make another order", intent is START_NEW_ORDER.
 - Output valid, raw JSON only. No markdown formatting, no backticks, no extra text.
 SYS;
 
-            $groqResult = $this->callGroq([
+            $groqResult = $this->callGroqNlu([
                 ['role' => 'system', 'content' => $systemPrompt],
                 ['role' => 'user', 'content' => $clean],
             ]);
@@ -279,8 +285,12 @@ SYS;
             return ['intent' => 'CANCEL_ORDER', 'items' => [], 'raw_text' => $clean];
         }
 
-        if (preg_match('/\b(yes|confirm|theek|haan|jee|ok|order kar do|done)\b/i', $clean) && ! preg_match('/\b(pizza|burger|roll|biryani|bottle|coke|deal)\b/i', $clean)) {
+        if (preg_match('/\b(yes|confirm|theek|haan|jee|ok|order kar do|done)\b/i', $clean) && ! preg_match('/\b(pizza|burger|roll|biryani|bottle|coke|deal|wrap)\b/i', $clean)) {
             return ['intent' => 'CONFIRM_ORDER', 'items' => [], 'raw_text' => $clean];
+        }
+
+        if (preg_match('/\b(new\s*order|another\s*order|make\s*(?:a\s*|another\s*)?order|naya\s*order|alag\s*order)\b/i', $clean)) {
+            return ['intent' => 'START_NEW_ORDER', 'items' => [], 'raw_text' => $clean];
         }
 
         if (preg_match('/\b(status|track|kahan hai|order status)\b/i', $clean)) {
@@ -295,6 +305,8 @@ SYS;
         if (preg_match('/^(small|medium|large|xl|s|m|l)$/i', $clean)) {
             return ['intent' => 'SELECT_VARIANT', 'variant' => ucfirst(strtolower($clean)), 'raw_text' => $clean];
         }
+
+        $isModifyPhrase = (bool) preg_match('/\b(?:is\s*me|isme|is\s*order\s*me|same\s*order\s*me|order\s*me\s*(?:aur\s*)?add|add\s*(?:this\s*)?(?:to\s*)?(?:my\s*)?order|pichle\s*order|usi\s*order)\b|(?:\b(?:is\s*me|isme)\b.*?\b(?:kr\s*do|kardo|kar\s*do|add|bhej\s*do|daal\s*do)\b)|(?:^add\s+\d+\s+)/iu', $clean);
 
         $name = null;
         if (preg_match('/(?:naam|name|im|i am)\s*(?:hai|is|:)?\s*([A-Za-z\s]{2,30}?)(?:aur|address|,|$)/i', $clean, $nm)) {
@@ -318,20 +330,24 @@ SYS;
             $itemSearchStr = str_ireplace($address, '', $itemSearchStr);
         }
 
-        if (preg_match_all('/(?:(\d+)\s*(?:x\s*)?)?(?:\b(small|medium|large|xl|chota|bara)\b)?\s*([a-zA-Z\s]+?)(?:aur|and|,|$)/i', $itemSearchStr, $matches, PREG_SET_ORDER)) {
+        if (preg_match_all('/(?:(?:add\s+)?(\d+)\s*(?:x\s*)?)?(?:\b(small|medium|large|xl|chota|bara)\b)?\s*([a-zA-Z\s]+?)(?:aur|and|,|$)/i', $itemSearchStr, $matches, PREG_SET_ORDER)) {
             foreach ($matches as $match) {
                 $qty = ! empty($match[1]) ? (int) $match[1] : 1;
                 $size = ! empty($match[2]) ? ucfirst(strtolower($match[2])) : null;
                 $rawItem = trim($match[3] ?? '');
-                $rawItem = preg_replace('/\b(chahiye|mangwana|bhej do|pack kar do|mera|naam|address|hai|deliver|for)\b/i', '', $rawItem);
+                $rawItem = preg_replace('/\b(?:chahiye|mangwana|bhej\s*do|pack\s*kar\s*do|mera|naam|address|hai|deliver|for|acha|is\s*me|isme|add|kr\s*do|kardo|kar\s*do|daal\s*do|karo|aur|bhi|kr)\b/iu', '', $rawItem);
                 $rawItem = trim($rawItem);
-                if (strlen($rawItem) >= 3 && ! in_array(strtolower($rawItem), ['pizza', 'burger', 'deal', 'large', 'small', 'medium', 'menu', 'yes', 'no'])) {
+                if (strlen($rawItem) >= 3 && ! in_array(strtolower($rawItem), ['pizza', 'burger', 'deal', 'large', 'small', 'medium', 'menu', 'yes', 'no', 'karo', 'wrap_stop'])) {
                     $items[] = ['name' => $rawItem, 'quantity' => $qty, 'size' => $size];
                 }
             }
         }
 
-        $intent = ! empty($items) ? 'ADD_ITEM' : ($name || $address ? 'COLLECT_CUSTOMER_INFO' : 'UNKNOWN');
+        if ($isModifyPhrase) {
+            $intent = 'MODIFY_EXISTING_ORDER';
+        } else {
+            $intent = ! empty($items) ? 'ADD_ITEM' : ($name || $address ? 'COLLECT_CUSTOMER_INFO' : 'UNKNOWN');
+        }
 
         return [
             'intent' => $intent,
@@ -393,6 +409,47 @@ SYS;
             } catch (\Throwable $e) {
                 Log::warning("WhatsApp AI: Groq [{$model}] exception: " . $e->getMessage());
             }
+        }
+
+        return null;
+    }
+
+    /**
+     * Fast single-model Groq call for NLU extraction (3s timeout).
+     */
+    private function callGroqNlu(array $messages): ?string
+    {
+        $apiKey = config('services.groq.key') ?: env('GROQ_API_KEY');
+        if (empty($apiKey)) {
+            return null;
+        }
+
+        $caPath = class_exists(\Composer\CaBundle\CaBundle::class)
+            ? \Composer\CaBundle\CaBundle::getSystemCaRootBundlePath()
+            : null;
+
+        try {
+            $req = Http::withToken($apiKey)->timeout(3);
+            if ($caPath && file_exists($caPath)) {
+                $req = $req->withOptions(['verify' => $caPath]);
+            }
+
+            $response = $req->post(self::GROQ_API_URL, [
+                'model'       => 'llama-3.1-8b-instant',
+                'messages'    => $messages,
+                'temperature' => 0.0,
+                'max_tokens'  => 300,
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $reply = trim((string) ($data['choices'][0]['message']['content'] ?? ''));
+                if ($reply !== '') {
+                    return $reply;
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::debug("WhatsApp AI: Fast Groq NLU fallback triggered: " . $e->getMessage());
         }
 
         return null;
