@@ -198,8 +198,23 @@ class OrderingStateEngine
             if ($currentState === self::STATE_WAITING_FOR_MODIFICATION_CONFIRMATION) {
                 return $this->handleWaitingForModificationConfirmationState($intent, $nlu);
             }
+
+            $activeOrder = $this->getActiveOrder();
+            if ($activeOrder && $activeOrder->status === 'pending') {
+                $activeOrder->update(['status' => 'cancelled']);
+            }
+
             $this->resetSession(true);
             return "Aapka order cancel kar diya gaya hai aur cart clear ho gaya hai. Dobara order karne ke liye koi bhi message karein.";
+        }
+
+        // Global trigger: Checkout / Proceed
+        if ($intent === 'CHECKOUT' || preg_match('/^(?:checkout|check\s*out|proceed|aage\s*barho|bill)$/i', trim($nlu['raw_text'] ?? ''))) {
+            if (!empty($this->session['cart'])) {
+                $this->captureCustomerInfo($nlu);
+                return $this->proceedToNextStepAfterCart();
+            }
+            return "Aapka cart khali hai. Pehle menu se item select karein (Reply *Menu*).";
         }
 
         // Global intent: Explicit New Order
@@ -285,8 +300,35 @@ class OrderingStateEngine
 
     protected function handleMenuSelectionState(string $intent, array $nlu): string
     {
+        $raw = trim($nlu['raw_text'] ?? '');
+
+        // 1. Checkout / Proceed with cart
+        if ($intent === 'CHECKOUT' || preg_match('/^(?:checkout|check\s*out|proceed|aage\s*barho|bill)$/i', $raw)) {
+            if (!empty($this->session['cart'])) {
+                $this->captureCustomerInfo($nlu);
+                return $this->proceedToNextStepAfterCart();
+            }
+            return "Aapka cart khali hai. Pehle menu se item select karein (Reply *Menu*).";
+        }
+
         if ($intent === 'SHOW_MENU') {
             return $this->renderMenuText();
+        }
+
+        if ($intent === 'VIEW_CART') {
+            return $this->renderCartReview();
+        }
+
+        // If cart has items and customer provides info or confirms
+        if (!empty($this->session['cart']) && (
+            $intent === 'CONFIRM_ORDER' || 
+            $intent === 'COLLECT_CUSTOMER_INFO' ||
+            $intent === 'PROVIDE_NAME' ||
+            $intent === 'PROVIDE_ADDRESS' ||
+            $this->hasCustomerInfoProvided($nlu)
+        )) {
+            $this->captureCustomerInfo($nlu);
+            return $this->proceedToNextStepAfterCart();
         }
 
         if ($intent === 'ADD_ITEM') {
@@ -303,23 +345,6 @@ class OrderingStateEngine
 
         if ($intent === 'SELECT_VARIANT') {
             return $this->handleSelectVariantDirect($nlu);
-        }
-
-        if ($intent === 'VIEW_CART') {
-            return $this->renderCartReview();
-        }
-
-        // If cart has items and customer provides info or requests checkout
-        if (!empty($this->session['cart']) && (
-            $intent === 'CHECKOUT' || 
-            $intent === 'CONFIRM_ORDER' ||
-            $intent === 'COLLECT_CUSTOMER_INFO' ||
-            $intent === 'PROVIDE_NAME' ||
-            $intent === 'PROVIDE_ADDRESS' ||
-            $this->hasCustomerInfoProvided($nlu)
-        )) {
-            $this->captureCustomerInfo($nlu);
-            return $this->proceedToNextStepAfterCart();
         }
 
         if (!empty($nlu['items'])) {
@@ -521,6 +546,15 @@ class OrderingStateEngine
     {
         $raw = trim($nlu['raw_text'] ?? '');
 
+        $activeOrder = $this->getActiveOrder();
+
+        // If previous order was cancelled, delivered, or none exists, treat as fresh session
+        if (!$activeOrder || in_array($activeOrder->status, ['cancelled', 'delivered'], true)) {
+            $this->resetSession(true);
+            $this->transitionTo(self::STATE_WELCOME);
+            return $this->handleWelcomeState($intent, $nlu);
+        }
+
         // If customer explicitly asks for new order
         if ($intent === 'START_NEW_ORDER' || preg_match('/\b(new|another|naya|alag)\s*order\b/i', $raw)) {
             $this->resetSession(true);
@@ -543,8 +577,7 @@ class OrderingStateEngine
 
         // If customer sends food items without explicitly saying "new order" or "same order"
         if (!empty($nlu['items']) || $intent === 'ADD_ITEM') {
-            $activeOrder = $this->getActiveOrder();
-            if ($activeOrder && $this->isOrderModifiable($activeOrder)) {
+            if ($this->isOrderModifiable($activeOrder)) {
                 // Ambiguous: ask whether to modify active order or start new order
                 $this->session['pending_mod_items'] = $nlu['items'] ?? [];
                 $this->transitionTo(self::STATE_CLARIFY_NEW_OR_MODIFY);
@@ -553,10 +586,21 @@ class OrderingStateEngine
                 return "Aapka *Order #{$activeOrder->id}* abhi pending hai.\n\nKya aap *{$itemsNames}* usi order mein add karna chahte hain ya naya alag order banana chahte hain?\n\n1️⃣ Reply *Same Order* (Order #{$activeOrder->id} mein add hoga)\n2️⃣ Reply *New Order* (Alag naya order banega)";
             }
 
-            // If no active order, proceed as new order
+            // If not modifiable, start new order
             $this->resetSession(true);
             $this->transitionTo(self::STATE_MENU_SELECTION);
             return $this->handleAddItems($nlu);
+        }
+
+        // If customer sends greeting like "hi" or "salam"
+        if (preg_match('/^(?:hi|hello|hey|salam|aoa|assalam(?:o|u)?\s*alaikum)\b/i', $raw)) {
+            $statusEmoji = match ($activeOrder->status) {
+                'pending' => '⏳ Pending (Kitchen confirming)',
+                'preparing' => '👨‍🍳 Preparing in kitchen',
+                'out_for_delivery' => '🛵 Out for delivery',
+                default => $activeOrder->status,
+            };
+            return "Assalam-o-Alaikum! Aapka *Order #{$activeOrder->id}* abhi *{$statusEmoji}* hai.\n\n• Naya order karne ke liye *New Order* ya *Menu* likhein\n• Order modify karne ke liye *Modify Order* likhein";
         }
 
         return "Aapka order process ho raha hai! Naya order karne ke liye *New Order* ya *Menu* likhein.";
@@ -1001,6 +1045,29 @@ class OrderingStateEngine
         if (empty($items)) {
             return "Aap kya order karna chahte hain? Barahe karam item ka naam batayein.";
         }
+
+        // Action-word guard: if non-food command was mistakenly parsed as an item name
+        $filteredItems = [];
+        $hasCheckout = false;
+        foreach ($items as $itemData) {
+            $lower = strtolower(trim($itemData['name'] ?? ''));
+            if (in_array($lower, ['checkout', 'check out', 'proceed', 'bill', 'order', 'menu'], true) ||
+                preg_match('/^(?:checkout|check\s*out|proceed|bill)$/i', $lower)) {
+                $hasCheckout = true;
+                continue;
+            }
+            $filteredItems[] = $itemData;
+        }
+
+        if (empty($filteredItems)) {
+            if ($hasCheckout && !empty($this->session['cart'])) {
+                $this->captureCustomerInfo($nlu);
+                return $this->proceedToNextStepAfterCart();
+            }
+            return "Aap kya order karna chahte hain? Barahe karam item ka naam batayein.";
+        }
+
+        $items = $filteredItems;
 
         $this->captureCustomerInfo($nlu);
 

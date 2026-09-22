@@ -226,6 +226,10 @@ class WhatsAppAiBotService
             return ['intent' => 'START_NEW_ORDER', 'items' => [], 'raw_text' => $clean];
         }
 
+        if (preg_match('/^(?:checkout|check\s*out|proceed|aage\s*barho|aage\s*chalo|bill|order\s*complete)$/i', $clean)) {
+            return ['intent' => 'CHECKOUT', 'items' => [], 'raw_text' => $clean];
+        }
+
         if (preg_match('/^(?:small|medium|large|xl|s|m|l)$/i', $clean)) {
             return ['intent' => 'SELECT_VARIANT', 'variant' => ucfirst(strtolower($clean)), 'raw_text' => $clean];
         }
@@ -314,6 +318,11 @@ SYS;
             return ['intent' => 'SELECT_VARIANT', 'variant' => ucfirst(strtolower($clean)), 'raw_text' => $clean];
         }
 
+        if (preg_match('/^(?:checkout|check\s*out|proceed|aage\s*barho|aage\s*chalo|bill|order\s*complete)$/i', $clean) ||
+            preg_match('/\b(?:checkout|check\s*out|proceed)\b/i', $clean)) {
+            return ['intent' => 'CHECKOUT', 'items' => [], 'raw_text' => $clean];
+        }
+
         $isModifyPhrase = (bool) preg_match('/\b(?:is\s*me|isme|is\s*order\s*me|same\s*order\s*me|order\s*me\s*(?:aur\s*)?add|add\s*(?:this\s*)?(?:to\s*)?(?:my\s*)?order|pichle\s*order|usi\s*order)\b|(?:\b(?:is\s*me|isme)\b.*?\b(?:kr\s*do|kardo|kar\s*do|add|bhej\s*do|daal\s*do)\b)|(?:^add\s+\d+\s+)/iu', $clean);
 
         $name = null;
@@ -345,7 +354,7 @@ SYS;
                 $rawItem = trim($match[3] ?? '');
                 $rawItem = preg_replace('/\b(?:chahiye|mangwana|bhej\s*do|pack\s*kar\s*do|mera|naam|address|hai|deliver|for|acha|is\s*me|isme|add|kr\s*do|kardo|kar\s*do|daal\s*do|karo|aur|bhi|kr)\b/iu', '', $rawItem);
                 $rawItem = trim($rawItem);
-                if (strlen($rawItem) >= 3 && ! in_array(strtolower($rawItem), ['pizza', 'burger', 'deal', 'large', 'small', 'medium', 'menu', 'yes', 'no', 'karo', 'wrap_stop'])) {
+                if (strlen($rawItem) >= 3 && ! in_array(strtolower($rawItem), ['pizza', 'burger', 'deal', 'large', 'small', 'medium', 'menu', 'yes', 'no', 'karo', 'wrap_stop', 'checkout', 'proceed', 'bill'])) {
                     $items[] = ['name' => $rawItem, 'quantity' => $qty, 'size' => $size];
                 }
             }
@@ -1549,6 +1558,15 @@ PROMPT;
         // Check cancellation eligibility based on current status
         if ($order->status === 'pending') {
             $order->update(['status' => 'cancelled']);
+
+            // Fully clear state engine session and cart so no stale items linger
+            try {
+                $engine = new OrderingStateEngine($restaurant, $customerPhone);
+                $engine->resetSession(true);
+                $engine->transitionTo(OrderingStateEngine::STATE_WELCOME);
+            } catch (\Throwable $e) {
+                Log::warning("Failed resetting state engine after order cancellation: " . $e->getMessage());
+            }
 
             // Alert restaurant owner / kitchen manager immediately via WhatsApp
             $notifyPhone = $restaurant->manager_phone ?: $restaurant->owner_phone;
