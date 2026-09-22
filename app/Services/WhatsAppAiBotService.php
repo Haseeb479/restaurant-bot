@@ -145,6 +145,14 @@ class WhatsAppAiBotService
         if (preg_match('/^(?:cancel|order\s+cancel|cancel\s+order|radd|order\s+radd|khatam|cancel\s+karna)\b/i', $text) ||
             preg_match('/(?:cancel|radd)\s+([A-Za-z]{2,4}\d{3,6})/i', $text, $cancelMatch)) {
             $explicitCancelCode = isset($cancelMatch[1]) ? strtoupper(trim($cancelMatch[1])) : null;
+
+            $engine = new OrderingStateEngine($restaurant, $customerPhone);
+            if (! $explicitCancelCode && $engine->hasActiveDraft()) {
+                $cancelReply = $engine->process(['intent' => 'CANCEL_ORDER', 'raw_text' => $text]);
+                BotEvolutionClient::sendMessage($restaurant, $recipientJid, $cancelReply);
+                return;
+            }
+
             $cancelReply = $this->handleOrderCancellation($restaurant, $customerPhone, $explicitCancelCode);
             BotEvolutionClient::sendMessage($restaurant, $recipientJid, $cancelReply);
             return;
@@ -202,7 +210,7 @@ class WhatsAppAiBotService
         $clean = trim($text);
 
         // Fast path: obvious global intents can bypass Groq API latency
-        if (preg_match('/^(?:cancel|radd|order\s+cancel|cancel\s+order|stop|nahi\s+chahiye)$/i', $clean)) {
+        if (preg_match('/^(?:cancel|radd|order\s+cancel|cancel\s+order|stop|nahi\s+chahiye|rehne\s+do|khatam)$/i', $clean)) {
             return ['intent' => 'CANCEL_ORDER', 'items' => [], 'raw_text' => $clean];
         }
 
@@ -210,7 +218,7 @@ class WhatsAppAiBotService
             return ['intent' => 'CONFIRM_ORDER', 'items' => [], 'raw_text' => $clean];
         }
 
-        if (preg_match('/^(?:menu|rate\s*list|kya\s*items\s*hain)$/i', $clean)) {
+        if (preg_match('/^(?:menu|rate\s*list|kya\s*items\s*hain|card)$/i', $clean)) {
             return ['intent' => 'SHOW_MENU', 'items' => [], 'raw_text' => $clean];
         }
 

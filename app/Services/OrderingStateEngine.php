@@ -63,8 +63,8 @@ class OrderingStateEngine
             return [
                 'state' => $conversation->state ?: self::STATE_WELCOME,
                 'cart' => $cart,
-                'customer_name' => $conversation->customer_name ?? null,
-                'customer_address' => $conversation->customer_address ?? null,
+                'customer_name' => $this->sanitizeCustomerName($conversation->customer_name ?? null),
+                'customer_address' => $this->sanitizeCustomerAddress($conversation->customer_address ?? null),
                 'delivery_lat' => $meta['delivery_lat'] ?? null,
                 'delivery_lng' => $meta['delivery_lng'] ?? null,
                 'poi_name' => $meta['poi_name'] ?? null,
@@ -88,6 +88,25 @@ class OrderingStateEngine
             'modifying_order_id' => null,
             'pending_mod_items' => [],
         ];
+    }
+
+    /**
+     * Check if customer has an active unconfirmed draft or order in progress
+     */
+    public function hasActiveDraft(): bool
+    {
+        $state = $this->getState();
+        if (in_array($state, [
+            self::STATE_COLLECT_CUSTOMER_INFO,
+            self::STATE_WAITING_FOR_LOCATION,
+            self::STATE_WAITING_FOR_CONFIRMATION,
+            self::STATE_WAITING_FOR_MODIFICATION_CONFIRMATION,
+            self::STATE_CLARIFY_NEW_OR_MODIFY,
+        ], true)) {
+            return true;
+        }
+
+        return !empty($this->session['cart']) || !empty($this->session['pending_mod_items']);
     }
 
     /**
@@ -142,8 +161,8 @@ class OrderingStateEngine
 
     public function resetSession(bool $keepCustomerProfile = true): void
     {
-        $preservedName = $keepCustomerProfile ? ($this->session['customer_name'] ?? null) : null;
-        $preservedAddr = $keepCustomerProfile ? ($this->session['customer_address'] ?? null) : null;
+        $preservedName = $keepCustomerProfile ? $this->sanitizeCustomerName($this->session['customer_name'] ?? null) : null;
+        $preservedAddr = $keepCustomerProfile ? $this->sanitizeCustomerAddress($this->session['customer_address'] ?? null) : null;
         $preservedLat  = $keepCustomerProfile ? ($this->session['delivery_lat'] ?? null) : null;
         $preservedLng  = $keepCustomerProfile ? ($this->session['delivery_lng'] ?? null) : null;
         $preservedPoi  = $keepCustomerProfile ? ($this->session['poi_name'] ?? null) : null;
@@ -175,7 +194,7 @@ class OrderingStateEngine
         Log::info("State Engine [{$this->cleanPhone}]: Current State={$currentState}, Intent={$intent}, Payload=" . json_encode($nlu));
 
         // Global intent: Reset / Cancel
-        if ($intent === 'CANCEL_ORDER' || $intent === 'RESET') {
+        if ($intent === 'CANCEL_ORDER' || $intent === 'RESET' || preg_match('/^(?:cancel|order\s+cancel|cancel\s+order|radd|khatam|stop|rehne\s+do)$/i', trim($nlu['raw_text'] ?? ''))) {
             if ($currentState === self::STATE_WAITING_FOR_MODIFICATION_CONFIRMATION) {
                 return $this->handleWaitingForModificationConfirmationState($intent, $nlu);
             }
@@ -196,7 +215,7 @@ class OrderingStateEngine
         }
 
         // Global trigger: Explicit Modification of Existing Order
-        if ($intent === 'MODIFY_EXISTING_ORDER') {
+        if ($intent === 'MODIFY_EXISTING_ORDER' || $this->isModifyExistingOrderPhrase($nlu['raw_text'] ?? '')) {
             return $this->handleModifyExistingOrder($nlu);
         }
 
@@ -372,13 +391,29 @@ class OrderingStateEngine
 
     protected function handleCollectCustomerInfoState(string $intent, array $nlu): string
     {
-        $this->captureCustomerInfo($nlu);
-
         $raw = trim($nlu['raw_text'] ?? '');
+
+        if ($intent === 'SHOW_MENU' || preg_match('/\b(?:menu|rate\s*list|card)\b/i', $raw)) {
+            $this->transitionTo(self::STATE_MENU_SELECTION);
+            return $this->renderMenuText();
+        }
+
+        if ($intent === 'CANCEL_ORDER' || $this->isNegative($raw)) {
+            $this->resetSession(true);
+            return "Aapka order cancel kar diya gaya hai aur cart clear ho gaya hai. Dobara order karne ke liye koi bhi message karein.";
+        }
+
+        if ($intent === 'START_NEW_ORDER' || preg_match('/\b(?:new|another|naya)\s*order\b/i', $raw)) {
+            $this->resetSession(true);
+            $this->transitionTo(self::STATE_MENU_SELECTION);
+            return "Theek hai! Naya order shuru karte hain. Menu dekhne ke liye *Menu* likhein ya direct item batayein.";
+        }
+
+        $this->captureCustomerInfo($nlu);
 
         // If customer name is empty, sanitize raw_text
         if (empty($this->session['customer_name'])) {
-            $sanitized = $this->sanitizeCustomerField($raw, $this->session['customer_name'] ?? null);
+            $sanitized = $this->sanitizeCustomerName($raw, $this->session['customer_name'] ?? null);
             if ($sanitized) {
                 $this->session['customer_name'] = $sanitized;
                 $this->saveSession();
@@ -389,7 +424,7 @@ class OrderingStateEngine
 
         // If customer address is empty, sanitize raw_text
         if (empty($this->session['customer_address'])) {
-            $sanitizedAddr = $this->sanitizeCustomerField($raw, $this->session['customer_address'] ?? null);
+            $sanitizedAddr = $this->sanitizeCustomerAddress($raw, $this->session['customer_address'] ?? null);
             if ($sanitizedAddr && $sanitizedAddr !== $this->session['customer_name']) {
                 $this->session['customer_address'] = $sanitizedAddr;
                 $this->saveSession();
@@ -404,16 +439,34 @@ class OrderingStateEngine
 
     protected function handleWaitingForLocationState(string $intent, array $nlu): string
     {
+        $raw = trim($nlu['raw_text'] ?? '');
+
+        if ($intent === 'SHOW_MENU' || preg_match('/\b(?:menu|rate\s*list|card)\b/i', $raw)) {
+            $this->transitionTo(self::STATE_MENU_SELECTION);
+            return $this->renderMenuText();
+        }
+
+        if ($intent === 'CANCEL_ORDER' || $this->isNegative($raw)) {
+            $this->resetSession(true);
+            return "Aapka order cancel kar diya gaya hai aur cart clear ho gaya hai. Dobara order karne ke liye koi bhi message karein.";
+        }
+
+        if ($intent === 'START_NEW_ORDER' || preg_match('/\b(?:new|another|naya)\s*order\b/i', $raw)) {
+            $this->resetSession(true);
+            $this->transitionTo(self::STATE_MENU_SELECTION);
+            return "Theek hai! Naya order shuru karte hain. Menu dekhne ke liye *Menu* likhein ya direct item batayein.";
+        }
+
         if (!empty($nlu['address'])) {
-            $cleanAddr = $this->sanitizeCustomerField($nlu['address'], $this->session['customer_address'] ?? null);
+            $cleanAddr = $this->sanitizeCustomerAddress($nlu['address'], $this->session['customer_address'] ?? null);
             if ($cleanAddr) {
                 $this->session['customer_address'] = $cleanAddr;
                 $this->saveSession();
             }
         }
 
-        $raw = strtolower($nlu['raw_text'] ?? '');
-        if (str_contains($raw, 'skip') || str_contains($raw, 'nahi') || str_contains($raw, 'rehne do') || str_contains($raw, 'no')) {
+        $rawLower = strtolower($raw);
+        if (str_contains($rawLower, 'skip') || str_contains($rawLower, 'nahi') || str_contains($rawLower, 'rehne do') || str_contains($rawLower, 'no')) {
             $this->transitionTo(self::STATE_WAITING_FOR_CONFIRMATION);
             return $this->renderFinalOrderReview();
         }
@@ -423,16 +476,29 @@ class OrderingStateEngine
 
     protected function handleWaitingForConfirmationState(string $intent, array $nlu): string
     {
-        if ($intent === 'CONFIRM_ORDER' || $this->isAffirmative($nlu['raw_text'] ?? '')) {
+        $raw = trim($nlu['raw_text'] ?? '');
+
+        if ($intent === 'CONFIRM_ORDER' || $this->isAffirmative($raw)) {
             return $this->executeOrderCreation();
         }
 
-        if ($intent === 'CANCEL_ORDER' || $this->isNegative($nlu['raw_text'] ?? '')) {
+        if ($intent === 'CANCEL_ORDER' || $this->isNegative($raw)) {
             $this->resetSession(true);
-            return "Aapka order cancel kar diya gaya hai. Dobara order karne ke liye koi bhi message karein.";
+            return "Aapka order cancel kar diya gaya hai aur cart clear ho gaya hai. Dobara order karne ke liye koi bhi message karein.";
         }
 
-        if ($intent === 'ADD_ITEM') {
+        if ($intent === 'SHOW_MENU' || preg_match('/\b(?:menu|rate\s*list|card)\b/i', $raw)) {
+            $this->transitionTo(self::STATE_MENU_SELECTION);
+            return $this->renderMenuText();
+        }
+
+        if ($intent === 'START_NEW_ORDER' || preg_match('/\b(?:new|another|naya)\s*order\b/i', $raw)) {
+            $this->resetSession(true);
+            $this->transitionTo(self::STATE_MENU_SELECTION);
+            return "Theek hai! Naya order shuru karte hain. Menu dekhne ke liye *Menu* likhein ya direct item batayein.";
+        }
+
+        if ($intent === 'ADD_ITEM' || !empty($nlu['items'])) {
             $this->transitionTo(self::STATE_MENU_SELECTION);
             return $this->handleAddItems($nlu);
         }
@@ -440,6 +506,12 @@ class OrderingStateEngine
         if ($intent === 'REMOVE_ITEM') {
             $this->transitionTo(self::STATE_MENU_SELECTION);
             return $this->handleRemoveItem($nlu);
+        }
+
+        // Helpful response for greetings/conversational questions to avoid infinite summary walls
+        if (preg_match('/^(?:hi|hello|hey|salam|aoa|assalam(?:o|u)?\s*alaikum|kya\s*haal|sunen|suno|bhai)\b/i', $raw)) {
+            $cartSummary = $this->renderCartSummary();
+            return "Assalam-o-Alaikum! Aapka order checkout confirmation par hai:\n\n{$cartSummary}\n\n• Order confirm karne ke liye *Confirm* likhein\n• Cancel karne ke liye *Cancel* likhein\n• Menu dekhne ke liye *Menu* likhein";
         }
 
         return "Barahe karam order confirm karne ke liye *Yes / Confirm* likhein, ya cancel karne ke liye *Cancel* likhein.\n\n" . $this->renderFinalOrderReview();
@@ -1097,48 +1169,83 @@ class OrderingStateEngine
         return $this->renderFinalOrderReview();
     }
 
-    public function sanitizeCustomerField(?string $value, ?string $fallback = null): ?string
+    public function sanitizeCustomerName(?string $value, ?string $fallback = null): ?string
     {
         if ($value === null) {
-            return $fallback;
+            return $fallback ? $this->sanitizeCustomerName($fallback) : null;
         }
 
         $val = trim($value);
         if ($val === '') {
-            return $fallback;
+            return $fallback ? $this->sanitizeCustomerName($fallback) : null;
         }
 
-        // Rule 3: Never store conversational instructions as field values
-        // If customer said "same", "wohi", "same address", "pichla address", "sab kuch wohi use kro", reuse fallback!
-        if (preg_match('/^(?:same|wohi|wahi|same\s*name|same\s*address|same\s*location|same\s*pata|pehle\s*wala|pehle\s*wali|previous|sab\s*kuch\s*wohi|usi\s*order|same\s*usi)$/iu', $val) ||
+        // Reject if contains digits, URLs, or punctuation indicating sentence/instructions
+        if (preg_match('/[0-9?:;!+=_<>@#$%^&*()]/', $val)) {
+            return $fallback ? $this->sanitizeCustomerName($fallback) : null;
+        }
+
+        // Length checks: names are 2-35 chars and max 4 words
+        $words = array_filter(explode(' ', $val));
+        if (count($words) < 1 || count($words) > 4 || strlen($val) < 2 || strlen($val) > 35) {
+            return $fallback ? $this->sanitizeCustomerName($fallback) : null;
+        }
+
+        // Reject conversational phrases, verbs, food items, or ordering instructions
+        $stopWordsRegex = '/\b(?:add|kr|kro|kardo|kardi|kr\s*do|kr\s*di|kar\s*do|karo|karna|kar|de\s*do|bata\s*do|bhej\s*do|daal\s*do|mangwa|mangwana|chahiye|order|summary|summery|menu|address|pata|location|ghar|street|house|road|block|sector|same|wohi|wahi|pichla|pichle|pehle|use|kuch|sab|sub|usi|bhai|janab|suno|yes|no|ok|theek|confirm|cancel|radd|deal|wrap|pizza|burger|coke|bottle|drink|fries|shawarma|roll|biryani|price|rate|rupaye|rs|hi|hello|hey|salam)\b/iu';
+
+        if (preg_match($stopWordsRegex, $val)) {
+            return $fallback ? $this->sanitizeCustomerName($fallback) : null;
+        }
+
+        return ucwords(strtolower($val));
+    }
+
+    public function sanitizeCustomerAddress(?string $value, ?string $fallback = null): ?string
+    {
+        if ($value === null) {
+            return $fallback ? $this->sanitizeCustomerAddress($fallback) : null;
+        }
+
+        $val = trim($value);
+        if ($val === '') {
+            return $fallback ? $this->sanitizeCustomerAddress($fallback) : null;
+        }
+
+        // Check if customer explicitly requested previous address
+        if (preg_match('/^(?:same|wohi|wahi|same\s*address|same\s*location|same\s*pata|pehle\s*wala|pehle\s*wali|previous|sab\s*kuch\s*wohi|usi\s*order|same\s*usi)$/iu', $val) ||
             preg_match('/\b(?:same|wohi|wahi|pichla|pehle|use\s*kr|use\s*kar|sub\s*kuch|sab\s*kuch)\b/iu', $val)) {
-            return $fallback;
+            return $fallback ? $this->sanitizeCustomerAddress($fallback) : null;
         }
 
-        // Check if value contains conversational instruction verbs or order item names
-        if (preg_match('/\b(?:add\s*kar|kr\s*do|kardo|kar\s*do|daal\s*do|bhej\s*do|mangwana|order\s*me|same\s*order|is\s*me|wrap|pizza|burger|coke|deal|rupaye|rs\.?)\b/iu', $val)) {
-            return $fallback;
+        // Check for conversational instruction verbs, queries, or order item names
+        if (preg_match('/\b(?:add\s*kar|kr\s*do|kardo|kar\s*do|daal\s*do|bhej\s*do|bhejo|bhejna|bhej|mangwana|mangwao|order\s*me|same\s*order|is\s*me|wrap|pizza|burger|coke|deal|rupaye|rs\.?|summery|summary|bata\s*do|de\s*do|use\s*kro|use\s*karo|cancel|confirm|menu|kahan|status|track|chahiye|suno|bhai)\b/iu', $val)) {
+            return $fallback ? $this->sanitizeCustomerAddress($fallback) : null;
         }
 
-        // Length checks (avoid entire sentences being saved as a name)
-        if (strlen($val) > 100) {
-            return $fallback;
+        if (strlen($val) > 120 || strlen($val) < 3) {
+            return $fallback ? $this->sanitizeCustomerAddress($fallback) : null;
         }
 
         return $val;
     }
 
+    public function sanitizeCustomerField(?string $value, ?string $fallback = null): ?string
+    {
+        return $this->sanitizeCustomerAddress($value, $fallback);
+    }
+
     protected function captureCustomerInfo(array $nlu): void
     {
         if (!empty($nlu['name']) && empty($this->session['customer_name'])) {
-            $cleanName = $this->sanitizeCustomerField($nlu['name'], $this->session['customer_name'] ?? null);
+            $cleanName = $this->sanitizeCustomerName($nlu['name'], $this->session['customer_name'] ?? null);
             if ($cleanName) {
                 $this->session['customer_name'] = $cleanName;
             }
         }
 
         if (!empty($nlu['address'])) {
-            $cleanAddr = $this->sanitizeCustomerField($nlu['address'], $this->session['customer_address'] ?? null);
+            $cleanAddr = $this->sanitizeCustomerAddress($nlu['address'], $this->session['customer_address'] ?? null);
             if ($cleanAddr) {
                 $this->session['customer_address'] = $cleanAddr;
             }
