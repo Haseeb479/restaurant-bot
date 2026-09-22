@@ -436,12 +436,14 @@ class OrderingStateEngine
 
         $this->captureCustomerInfo($nlu);
 
+        $justSetCustomerName = false;
         // If customer name is empty, sanitize raw_text
         if (empty($this->session['customer_name'])) {
             $sanitized = $this->sanitizeCustomerName($raw, $this->session['customer_name'] ?? null);
             if ($sanitized) {
                 $this->session['customer_name'] = $sanitized;
                 $this->saveSession();
+                $justSetCustomerName = true;
             } else {
                 return "Aapka shukriya! Barahe karam apna *Naam* (Full Name) batayein:";
             }
@@ -449,12 +451,16 @@ class OrderingStateEngine
 
         // If customer address is empty, sanitize raw_text
         if (empty($this->session['customer_address'])) {
+            if ($justSetCustomerName) {
+                return "Shukriya *{$this->session['customer_name']}*! Barahe karam apna *Delivery Address* batayein (House/Street/Area ya Landmark):";
+            }
+
             $sanitizedAddr = $this->sanitizeCustomerAddress($raw, $this->session['customer_address'] ?? null);
-            if ($sanitizedAddr && $sanitizedAddr !== $this->session['customer_name']) {
+            if ($sanitizedAddr && strtolower($sanitizedAddr) !== strtolower($this->session['customer_name'] ?? '')) {
                 $this->session['customer_address'] = $sanitizedAddr;
                 $this->saveSession();
             } else {
-                return "Shukriya {$this->session['customer_name']}! Barahe karam apna *Delivery Address* batayein (House/Street/Area):";
+                return "Shukriya *{$this->session['customer_name']}*! Barahe karam apna *Delivery Address* batayein (House/Street/Area ya Landmark):";
             }
         }
 
@@ -482,21 +488,25 @@ class OrderingStateEngine
             return "Theek hai! Naya order shuru karte hain. Menu dekhne ke liye *Menu* likhein ya direct item batayein.";
         }
 
-        if (!empty($nlu['address'])) {
-            $cleanAddr = $this->sanitizeCustomerAddress($nlu['address'], $this->session['customer_address'] ?? null);
-            if ($cleanAddr) {
-                $this->session['customer_address'] = $cleanAddr;
-                $this->saveSession();
-            }
-        }
-
         $rawLower = strtolower($raw);
-        if (str_contains($rawLower, 'skip') || str_contains($rawLower, 'nahi') || str_contains($rawLower, 'rehne do') || str_contains($rawLower, 'no')) {
+        if (preg_match('/^(?:skip|nahi|rehne\s*do|no|skip\s*karo)$/i', $rawLower) || str_contains($rawLower, 'skip') || str_contains($rawLower, 'rehne do')) {
             $this->transitionTo(self::STATE_WAITING_FOR_CONFIRMATION);
             return $this->renderFinalOrderReview();
         }
 
-        return "📍 Barahe karam WhatsApp se apni *Current Location pin share karein* (Attachment 📎 -> Location).\n\nAgar aap pin share nahi kar sakte to *Skip* likhein.";
+        // Check if customer typed a manual address or landmark (e.g. "jamshaid Medical store")
+        $manualAddress = $this->sanitizeCustomerAddress(!empty($nlu['address']) ? $nlu['address'] : $raw);
+        if ($manualAddress && strtolower($manualAddress) !== strtolower($this->session['customer_name'] ?? '')) {
+            $this->session['customer_address'] = $manualAddress;
+            if (empty($this->session['poi_name'])) {
+                $this->session['poi_name'] = $manualAddress;
+            }
+            $this->saveSession();
+            $this->transitionTo(self::STATE_WAITING_FOR_CONFIRMATION);
+            return "📍 Delivery Address note kar liya gaya hai: *{$manualAddress}*.\n\n" . $this->renderFinalOrderReview();
+        }
+
+        return "📍 Barahe karam WhatsApp se apni *Current Location pin share karein* (Attachment 📎 -> Location).\n\nAgar aap pin share nahi kar sakte to *Skip* likhein ya apna *Address/Landmark* likhein.";
     }
 
     protected function handleWaitingForConfirmationState(string $intent, array $nlu): string
@@ -667,6 +677,14 @@ class OrderingStateEngine
             $menuItem->loadMissing('variants');
             if ($menuItem->variants->isNotEmpty()) {
                 $matchedVariant = $requestedVariant ? $this->matchVariant($menuItem, $requestedVariant) : null;
+                if (!$matchedVariant) {
+                    $detectedSize = $this->extractVariantFromText($itemName, $menuItem->variants)
+                        ?? $this->extractVariantFromText($nlu['raw_text'] ?? '', $menuItem->variants);
+                    if ($detectedSize) {
+                        $matchedVariant = $this->matchVariant($menuItem, $detectedSize);
+                    }
+                }
+
                 if (!$matchedVariant) {
                     $this->session['pending_variant_item'] = [
                         'id' => $menuItem->id,
@@ -1005,11 +1023,22 @@ class OrderingStateEngine
             $locService = app(\App\Services\LocationResolutionService::class);
             $resolution = $locService->resolve($lat, $lng);
             $placeName = $resolution['delivery_place_name'] ?? null;
+            $resolvedAddress = $resolution['delivery_address'] ?? $placeName;
+
             if ($placeName) {
                 $this->session['poi_name'] = $placeName;
-                if (empty($this->session['customer_address'])) {
-                    $this->session['customer_address'] = $resolution['delivery_address'] ?? $placeName;
+            }
+
+            $currentAddr = trim((string)($this->session['customer_address'] ?? ''));
+            $currentName = trim((string)($this->session['customer_name'] ?? ''));
+            $isSameAsName = ($currentAddr !== '' && strtolower($currentAddr) === strtolower($currentName));
+
+            if (!empty($resolvedAddress)) {
+                if (empty($currentAddr) || $isSameAsName) {
+                    $this->session['customer_address'] = $resolvedAddress;
                 }
+            } elseif ($placeName && (empty($currentAddr) || $isSameAsName)) {
+                $this->session['customer_address'] = $placeName;
             }
         } catch (\Throwable $e) {
             Log::warning("LocationResolutionService error in State Engine: " . $e->getMessage());
@@ -1023,7 +1052,10 @@ class OrderingStateEngine
             return "📍 Location receive ho gayi hai{$locTxt}!\n\nAb bataiye aap kya order karna chahenge? (Type *Menu* to see all items)";
         }
 
-        if (empty($this->session['customer_name']) || empty($this->session['customer_address'])) {
+        $addrValid = !empty($this->session['customer_address']) &&
+            strtolower(trim($this->session['customer_address'])) !== strtolower(trim((string)($this->session['customer_name'] ?? '')));
+
+        if (empty($this->session['customer_name']) || !$addrValid) {
             $this->transitionTo(self::STATE_COLLECT_CUSTOMER_INFO);
             if (empty($this->session['customer_name'])) {
                 return "📍 Location confirm ho gayi!\n\nBarahe karam apna *Naam* (Full Name) batayein:";
@@ -1090,6 +1122,14 @@ class OrderingStateEngine
             $menuItem->loadMissing('variants');
             if ($menuItem->variants->isNotEmpty()) {
                 $matchedVariant = $requestedVariant ? $this->matchVariant($menuItem, $requestedVariant) : null;
+
+                if (!$matchedVariant) {
+                    $detectedSize = $this->extractVariantFromText($itemName, $menuItem->variants)
+                        ?? $this->extractVariantFromText($nlu['raw_text'] ?? '', $menuItem->variants);
+                    if ($detectedSize) {
+                        $matchedVariant = $this->matchVariant($menuItem, $detectedSize);
+                    }
+                }
 
                 if (!$matchedVariant) {
                     $this->session['pending_variant_item'] = [
@@ -1286,7 +1326,7 @@ class OrderingStateEngine
         }
 
         // Check for conversational instruction verbs, queries, or order item names
-        if (preg_match('/\b(?:add\s*kar|kr\s*do|kardo|kar\s*do|daal\s*do|bhej\s*do|bhejo|bhejna|bhej|mangwana|mangwao|order\s*me|same\s*order|is\s*me|wrap|pizza|burger|coke|deal|rupaye|rs\.?|summery|summary|bata\s*do|de\s*do|use\s*kro|use\s*karo|cancel|confirm|menu|kahan|status|track|chahiye|suno|bhai)\b/iu', $val)) {
+        if (preg_match('/\b(?:add\s*kar|kr\s*do|kardo|kar\s*do|daal\s*do|bhej\s*do|bhejo|bhejna|bhej|mangwana|mangwao|order\s*me|same\s*order|is\s*me|wrap|pizza|burger|coke|deal|rupaye|rs\.?|summery|summary|bata\s*do|de\s*do|use\s*kro|use\s*karo|cancel|confirm|menu|kahan|status|track|chahiye|suno|bhai|skip|rehne\s*do|nahi|no)\b/iu', $val)) {
             return $fallback ? $this->sanitizeCustomerAddress($fallback) : null;
         }
 
@@ -1566,6 +1606,11 @@ class OrderingStateEngine
     protected function matchVariant(MenuItem $item, string $variantName): ?MenuItemVariant
     {
         $vName = strtolower(trim($variantName));
+        if ($vName === 'chota' || $vName === 'choti' || $vName === 's') $vName = 'small';
+        if ($vName === 'darmiyana' || $vName === 'darmiyani' || $vName === 'med' || $vName === 'm') $vName = 'medium';
+        if ($vName === 'bara' || $vName === 'bari' || $vName === 'bada' || $vName === 'l') $vName = 'large';
+        if ($vName === 'extra large') $vName = 'xl';
+
         foreach ($item->variants as $variant) {
             $curr = strtolower($variant->name);
             if ($curr === $vName || str_contains($curr, $vName) || str_contains($vName, $curr)) {
@@ -1584,9 +1629,9 @@ class OrderingStateEngine
             }
         }
 
-        if (preg_match('/\b(s|small)\b/i', $text)) return 'Small';
-        if (preg_match('/\b(m|medium|med)\b/i', $text)) return 'Medium';
-        if (preg_match('/\b(l|large)\b/i', $text)) return 'Large';
+        if (preg_match('/\b(s|small|chota|choti)\b/i', $text)) return 'Small';
+        if (preg_match('/\b(m|medium|med|darmiyana|darmiyani)\b/i', $text)) return 'Medium';
+        if (preg_match('/\b(l|large|bara|bari|bada)\b/i', $text)) return 'Large';
         if (preg_match('/\b(xl|extra large)\b/i', $text)) return 'XL';
 
         return null;
@@ -1668,7 +1713,12 @@ class OrderingStateEngine
 
         $name = $this->session['customer_name'] ?? 'N/A';
         $address = $this->session['customer_address'] ?? 'N/A';
-        $poi = $this->session['poi_name'] ? "\n📍 *Landmark:* {$this->session['poi_name']}" : "";
+        if (strtolower(trim((string)$address)) === strtolower(trim((string)$name)) || empty($address)) {
+            $address = $this->session['poi_name'] ?? 'N/A';
+        }
+        $poi = ($this->session['poi_name'] && strtolower(trim((string)$this->session['poi_name'])) !== strtolower(trim((string)$address)))
+            ? "\n📍 *Landmark:* {$this->session['poi_name']}"
+            : "";
         $coords = ($this->session['delivery_lat'] && $this->session['delivery_lng']) ? "\n📌 *GPS:* {$this->session['delivery_lat']}, {$this->session['delivery_lng']}" : "";
 
         $out = "📋 *ORDER SUMMARY REVIEW:*\n\n";

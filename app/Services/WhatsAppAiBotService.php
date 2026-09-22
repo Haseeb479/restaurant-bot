@@ -347,13 +347,42 @@ SYS;
             $itemSearchStr = str_ireplace($address, '', $itemSearchStr);
         }
 
-        if (preg_match_all('/(?:(?:add\s+)?(\d+)\s*(?:x\s*)?)?(?:\b(small|medium|large|xl|chota|bara)\b)?\s*([a-zA-Z\s]+?)(?:aur|and|,|$)/i', $itemSearchStr, $matches, PREG_SET_ORDER)) {
+        if (preg_match_all('/(?:(?:add\s+)?(\d+)\s*(?:x\s*)?)?(?:\b(small|medium|large|xl|chota|bara|darmiyana)\b)?\s*([a-zA-Z\s]+?)(?:aur|and|,|$)/i', $itemSearchStr, $matches, PREG_SET_ORDER)) {
+            $sizeMap = [
+                'chota' => 'Small',
+                'choti' => 'Small',
+                's' => 'Small',
+                'small' => 'Small',
+                'darmiyana' => 'Medium',
+                'darmiyani' => 'Medium',
+                'm' => 'Medium',
+                'medium' => 'Medium',
+                'med' => 'Medium',
+                'bara' => 'Large',
+                'bari' => 'Large',
+                'bada' => 'Large',
+                'l' => 'Large',
+                'large' => 'Large',
+                'xl' => 'XL',
+                'extra large' => 'XL',
+                'regular' => 'Regular',
+            ];
+
             foreach ($matches as $match) {
                 $qty = ! empty($match[1]) ? (int) $match[1] : 1;
-                $size = ! empty($match[2]) ? ucfirst(strtolower($match[2])) : null;
+                $sizeWord = ! empty($match[2]) ? strtolower($match[2]) : null;
+                $size = $sizeWord ? ($sizeMap[$sizeWord] ?? ucfirst($sizeWord)) : null;
                 $rawItem = trim($match[3] ?? '');
                 $rawItem = preg_replace('/\b(?:chahiye|mangwana|bhej\s*do|pack\s*kar\s*do|mera|naam|address|hai|deliver|for|acha|is\s*me|isme|add|kr\s*do|kardo|kar\s*do|daal\s*do|karo|aur|bhi|kr)\b/iu', '', $rawItem);
                 $rawItem = trim($rawItem);
+
+                // Detect size suffix or size inside rawItem if not matched by prefix
+                if (! $size && preg_match('/\b(small|medium|large|xl|extra\s*large|chota|choti|bara|bari|bada|darmiyana|darmiyani|regular|s|m|l)\b/i', $rawItem, $szMatch)) {
+                    $szKey = strtolower($szMatch[1]);
+                    $size = $sizeMap[$szKey] ?? ucfirst($szKey);
+                    $rawItem = trim(preg_replace('/\b' . preg_quote($szMatch[1], '/') . '\b/i', '', $rawItem));
+                }
+
                 if (strlen($rawItem) >= 3 && ! in_array(strtolower($rawItem), ['pizza', 'burger', 'deal', 'large', 'small', 'medium', 'menu', 'yes', 'no', 'karo', 'wrap_stop', 'checkout', 'proceed', 'bill'])) {
                     $items[] = ['name' => $rawItem, 'quantity' => $qty, 'size' => $size];
                 }
