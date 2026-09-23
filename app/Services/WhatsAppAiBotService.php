@@ -230,10 +230,21 @@ class WhatsAppAiBotService
             }
         }
 
-        $engine = new OrderingStateEngine($restaurant, $customerPhone);
-        $reply = $engine->process($nlu);
+        try {
+            $engine = new OrderingStateEngine($restaurant, $customerPhone);
+            $reply = $engine->process($nlu);
 
-        BotEvolutionClient::sendMessage($restaurant, $recipientJid, $reply);
+            BotEvolutionClient::sendMessage($restaurant, $recipientJid, $reply);
+        } catch (\Throwable $e) {
+            Log::error("WhatsApp AI: Error processing message with state engine: " . $e->getMessage(), [
+                'exception' => $e,
+                'phone' => $customerPhone,
+                'text' => $text,
+            ]);
+
+            $fallbackMsg = "Maazrat! System mein thori rukawat aayi hai. Aapka order mehfooz hai. Barahe karam *Confirm* likh kar reply karein ya thori dair baad message karein.";
+            BotEvolutionClient::sendMessage($restaurant, $recipientJid, $fallbackMsg);
+        }
     }
 
     /**
@@ -248,9 +259,14 @@ class WhatsAppAiBotService
             return ['intent' => 'CANCEL_ORDER', 'items' => [], 'raw_text' => $clean];
         }
 
-        if (preg_match('/^(?:confirm|yes|haan|theek|ok|jee|g|order\s+kar\s+do|done)$/i', $clean)) {
+        $lowerClean = strtolower($clean);
+        if (
+            preg_match('/^(?:conf[io]rm|confim|cnfrm|cnfm|conferm|confrm|comfirm|confrim|yes|yep|yup|haan|ha|han|jee|ji|theek|thek|ok|okay|done|bhej\s*do|bhejo|kr\s*do|kardo|kar\s*do|order\s*kar\s*do|order\s*confirm|confirm\s*order|confirm\s*hai|yes\s*confirm|theek\s*hai|thek\s*hai|haan\s*ji|ji\s*haan|ha\s*ji|bilkul|confirm\s*(?:kardo|kr\s*do|kar\s*dain|karo|please)|done\s*(?:hai|karo|kar\s*do))$/i', $clean) ||
+            (strlen($lowerClean) <= 15 && (levenshtein($lowerClean, 'confirm') <= 2 || levenshtein($lowerClean, 'confirmed') <= 2))
+        ) {
             return ['intent' => 'CONFIRM_ORDER', 'items' => [], 'raw_text' => $clean];
         }
+
 
         if (preg_match('/^(?:menu|rate\s*list|kya\s*items\s*hain|card)$/i', $clean)) {
             return ['intent' => 'SHOW_MENU', 'items' => [], 'raw_text' => $clean];
@@ -331,7 +347,9 @@ SYS;
             return ['intent' => 'CANCEL_ORDER', 'items' => [], 'raw_text' => $clean];
         }
 
-        if (preg_match('/\b(yes|confirm|theek|haan|jee|ok|order kar do|done)\b/i', $clean) && ! preg_match('/\b(pizza|burger|roll|biryani|bottle|coke|deal|wrap)\b/i', $clean)) {
+        if ((preg_match('/\b(yes|confirm|confim|cnfrm|cnfm|conferm|confrm|comfirm|theek|thek|haan|han|jee|ji|ok|okay|order\s+kar\s+do|done|bhej\s*do|kardo|kr\s*do)\b/i', $clean) ||
+            (strlen($clean) <= 15 && (levenshtein(strtolower($clean), 'confirm') <= 2 || levenshtein(strtolower($clean), 'confirmed') <= 2)))
+            && ! preg_match('/\b(pizza|burger|roll|biryani|bottle|coke|deal|wrap)\b/i', $clean)) {
             return ['intent' => 'CONFIRM_ORDER', 'items' => [], 'raw_text' => $clean];
         }
 
@@ -417,7 +435,10 @@ SYS;
                     $rawItem = trim(preg_replace('/\b' . preg_quote($szMatch[1], '/') . '\b/i', '', $rawItem));
                 }
 
-                if (strlen($rawItem) >= 3 && ! in_array(strtolower($rawItem), ['pizza', 'burger', 'deal', 'large', 'small', 'medium', 'menu', 'yes', 'no', 'karo', 'wrap_stop', 'checkout', 'proceed', 'bill'])) {
+                if (strlen($rawItem) >= 3 && ! in_array(strtolower($rawItem), [
+                    'pizza', 'burger', 'deal', 'large', 'small', 'medium', 'menu', 'yes', 'no', 'karo', 'wrap_stop', 'checkout', 'proceed', 'bill',
+                    'confirm', 'confim', 'cnfrm', 'cnfm', 'conferm', 'confrm', 'comfirm', 'confrim', 'cancel', 'radd', 'skip', 'location', 'pin', 'address', 'name', 'naam', 'pata', 'status', 'track', 'order', 'theek', 'haan', 'done', 'kardo', 'bhejo', 'bhej'
+                ], true)) {
                     $items[] = ['name' => $rawItem, 'quantity' => $qty, 'size' => $size];
                 }
             }

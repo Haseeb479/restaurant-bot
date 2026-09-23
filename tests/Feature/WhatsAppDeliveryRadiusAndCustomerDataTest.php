@@ -299,4 +299,114 @@ class WhatsAppDeliveryRadiusAndCustomerDataTest extends TestCase
         $this->assertStringNotContainsString('Delivery Address batayein', $reply);
         $this->assertEquals(OrderingStateEngine::STATE_COLLECT_CUSTOMER_INFO, $engine->getState());
     }
+
+    /**
+     * Test 6: Typo in confirmation (e.g. "confim", "cnfrm") confirms the order and does NOT report as missing menu item.
+     */
+    public function test_confirmation_typo_confim_confirms_order_without_menu_error(): void
+    {
+        $phone = '923001234572';
+        $engine = new OrderingStateEngine($this->restaurant, $phone);
+
+        $engine->process([
+            'intent' => 'ADD_ITEM',
+            'items' => [
+                ['name' => 'Chicken Tikka Pizza', 'quantity' => 1],
+            ],
+            'raw_text' => '1 Chicken Tikka Pizza',
+        ]);
+
+        $engine->process([
+            'intent' => 'UNKNOWN',
+            'raw_text' => 'Zefeey',
+        ]);
+
+        $engine->process([
+            'intent' => 'UNKNOWN',
+            'raw_text' => 'Jamsahid medical store , Adda permit',
+        ]);
+
+        $engine->process([
+            'intent' => 'UNKNOWN',
+            'raw_text' => 'skip',
+        ]);
+
+        $this->assertEquals(OrderingStateEngine::STATE_WAITING_FOR_CONFIRMATION, $engine->getState());
+
+        // Customer replies with typo: "confim"
+        $reply = $engine->process([
+            'intent' => 'CONFIRM_ORDER',
+            'raw_text' => 'confim',
+        ]);
+
+        $this->assertStringContainsString('AAPKA ORDER CONFIRM HO GAYA HAI', $reply);
+        $this->assertStringNotContainsString('hamare menu mein dastiyab nahi hai', $reply);
+        $this->assertEquals(OrderingStateEngine::STATE_ORDER_CREATED, $engine->getState());
+    }
+
+    /**
+     * Test 7: Even if NLU mistakenly parses "confim" as ADD_ITEM, the engine does not abort confirmation state.
+     */
+    public function test_mistaken_add_item_with_confim_at_confirmation_state_still_confirms(): void
+    {
+        $phone = '923001234573';
+        $engine = new OrderingStateEngine($this->restaurant, $phone);
+
+        $engine->process([
+            'intent' => 'ADD_ITEM',
+            'items' => [
+                ['name' => 'Chicken Tikka Pizza', 'quantity' => 1],
+            ],
+            'raw_text' => '1 Chicken Tikka Pizza',
+        ]);
+
+        $engine->process([
+            'intent' => 'UNKNOWN',
+            'raw_text' => 'Zefeey',
+        ]);
+
+        $engine->process([
+            'intent' => 'UNKNOWN',
+            'raw_text' => 'Jamsahid medical store , Adda permit',
+        ]);
+
+        $engine->process([
+            'intent' => 'UNKNOWN',
+            'raw_text' => 'skip',
+        ]);
+
+        $this->assertEquals(OrderingStateEngine::STATE_WAITING_FOR_CONFIRMATION, $engine->getState());
+
+        // Mistaken NLU payload with intent=ADD_ITEM and name="confim"
+        $reply = $engine->process([
+            'intent' => 'ADD_ITEM',
+            'items' => [
+                ['name' => 'confim', 'quantity' => 1],
+            ],
+            'raw_text' => 'confim',
+        ]);
+
+        // It must NOT say "confim hamare menu mein dastiyab nahi hai"!
+        $this->assertStringNotContainsString('hamare menu mein dastiyab nahi hai', $reply);
+        // It should confirm because "confim" is affirmative / typo of confirm!
+        $this->assertStringContainsString('AAPKA ORDER CONFIRM HO GAYA HAI', $reply);
+    }
+
+    /**
+     * Test 8: WhatsAppAiBotService::extractNlu correctly maps "confim", "cnfrm", "kardo", etc. to CONFIRM_ORDER.
+     */
+    public function test_extract_nlu_recognizes_confirmation_variations(): void
+    {
+        $botService = app(\App\Services\WhatsAppAiBotService::class);
+
+        $confimNlu = $botService->extractNlu($this->restaurant, 'confim');
+        $this->assertEquals('CONFIRM_ORDER', $confimNlu['intent']);
+
+        $cnfrmNlu = $botService->extractNlu($this->restaurant, 'cnfrm');
+        $this->assertEquals('CONFIRM_ORDER', $cnfrmNlu['intent']);
+
+        $kardoNlu = $botService->extractNlu($this->restaurant, 'kardo');
+        $this->assertEquals('CONFIRM_ORDER', $kardoNlu['intent']);
+    }
 }
+

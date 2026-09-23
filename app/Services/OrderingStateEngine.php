@@ -187,6 +187,7 @@ class OrderingStateEngine
             'last_order_id' => null,
             'modifying_order_id' => null,
             'pending_mod_items' => [],
+            'location_skipped' => false,
         ];
         $this->saveSession();
     }
@@ -329,8 +330,15 @@ class OrderingStateEngine
 
         // If cart has items and customer provides info or confirms
         if (!empty($this->session['cart'])) {
+            if ($intent === 'CONFIRM_ORDER' || $this->isAffirmative($raw)) {
+                $this->captureCustomerInfo($nlu);
+                if ($this->hasCompleteInfo() && (!empty($this->session['delivery_lat']) || !empty($this->session['location_skipped']))) {
+                    return $this->executeOrderCreation();
+                }
+                return $this->proceedToNextStepAfterCart();
+            }
+
             if (
-                $intent === 'CONFIRM_ORDER' || 
                 $intent === 'COLLECT_CUSTOMER_INFO' ||
                 $intent === 'PROVIDE_NAME' ||
                 $intent === 'PROVIDE_ADDRESS' ||
@@ -518,6 +526,8 @@ class OrderingStateEngine
 
         $rawLower = strtolower($raw);
         if (preg_match('/^(?:skip|nahi|rehne\s*do|no|skip\s*karo)$/i', $rawLower) || str_contains($rawLower, 'skip') || str_contains($rawLower, 'rehne do')) {
+            $this->session['location_skipped'] = true;
+            $this->saveSession();
             $this->transitionTo(self::STATE_WAITING_FOR_CONFIRMATION);
             return $this->renderFinalOrderReview();
         }
@@ -567,8 +577,29 @@ class OrderingStateEngine
         }
 
         if ($intent === 'ADD_ITEM' || !empty($nlu['items'])) {
-            $this->transitionTo(self::STATE_MENU_SELECTION);
-            return $this->handleAddItems($nlu);
+            // Guard: Only transition to MENU_SELECTION if at least one item actually exists in the menu!
+            $items = $nlu['items'] ?? [];
+            $hasRealMenuItem = false;
+            foreach ($items as $itemData) {
+                $itemName = trim($itemData['name'] ?? '');
+                if (!empty($itemName) && $this->resolveMenuItemFromDb($itemName) !== null) {
+                    $hasRealMenuItem = true;
+                    break;
+                }
+            }
+
+            if ($hasRealMenuItem) {
+                $this->transitionTo(self::STATE_MENU_SELECTION);
+                return $this->handleAddItems($nlu);
+            }
+
+            // Not a real menu item — check if customer meant to confirm
+            if ($this->isAffirmative($raw)) {
+                return $this->executeOrderCreation();
+            }
+
+            // Keep user in WAITING_FOR_CONFIRMATION and prompt clearly
+            return "Barahe karam order confirm karne ke liye *Confirm* likhein, ya cancel karne ke liye *Cancel* likhein.\n\n" . $this->renderFinalOrderReview();
         }
 
         if ($intent === 'REMOVE_ITEM') {
@@ -1306,7 +1337,7 @@ class OrderingStateEngine
             return $valCheck['error_message'];
         }
 
-        if (empty($this->session['delivery_lat'])) {
+        if (empty($this->session['delivery_lat']) && empty($this->session['location_skipped'])) {
             $this->transitionTo(self::STATE_WAITING_FOR_LOCATION);
             return "📍 Delivery tez aur exact karne ke liye WhatsApp se apni *Location pin share karein*. (Ya *Skip* likhein)";
         }
@@ -1528,6 +1559,7 @@ class OrderingStateEngine
         $this->session['poi_name'] = null;
         $this->session['modifying_order_id'] = null;
         $this->session['pending_mod_items'] = [];
+        $this->session['location_skipped'] = false;
         $this->transitionTo(self::STATE_ORDER_CREATED);
 
         $appUrl = config('app.url', 'http://localhost');
@@ -1697,7 +1729,19 @@ class OrderingStateEngine
 
     protected function isAffirmative(string $text): bool
     {
-        return (bool)preg_match('/\b(yes|ha|haan|confirm|theek|ok|g|jee|sahi|order kar do|done|update kar do)\b/i', $text);
+        $clean = strtolower(trim($text));
+        if (preg_match('/\b(yes|ha|haan|han|confirm|confim|cnfrm|cnfm|conferm|confrm|comfirm|confrim|theek|thek|ok|okay|g|jee|ji|sahi|order\s+kar\s+do|done|update\s+kar\s+do|bhej\s*do|bhejo|kardo|kr\s*do|yup|yep|bilkul|kar\s*dain|kar\s*den)\b/i', $clean)) {
+            return true;
+        }
+
+        $words = preg_split('/\s+/', $clean);
+        foreach ($words as $w) {
+            if (strlen($w) >= 4 && (levenshtein($w, 'confirm') <= 2 || levenshtein($w, 'confirmed') <= 2)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     protected function isNegative(string $text): bool
