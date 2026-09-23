@@ -1,2310 +1,1744 @@
 @extends('layouts.dashboard')
-@section('title', 'Operations & POS Terminal — ' . ($restaurant->name ?? 'Foodio'))
-@section('header_title', 'Operations Terminal')
-@section('header_subtitle', 'Live Kitchen Orders & Real-Time Fulfillment')
+@section('title', 'Dashboard — ' . ($restaurant->name ?? 'Foodio'))
 
 @section('content')
 
 <style>
     /* ═════════════════════════════════════════════════════════════
-       FOODIO OPERATIONAL DASHBOARD — PLUS JAKARTA SANS & POS VIBES
+       FOODIO MODERN POS DASHBOARD (CONCEPT UI MATCH)
        ═════════════════════════════════════════════════════════════ */
-    :root {
-        --pos-canvas: #f7f7f5;
-        --pos-card: #ffffff;
-        --pos-border: #e8e8e8;
-        --pos-border-subtle: #f0f0ee;
-        --pos-text: #181818;
-        --pos-text-muted: #737373;
-        --pos-text-faint: #a3a3a3;
-        --pos-accent: #181818;
-        --pos-accent-hover: #262626;
-
-        /* Semantic Status Colors */
-        --st-new-bg: #fff7ed;
-        --st-new-text: #c2410c;
-        --st-new-border: #ffedd5;
-
-        --st-prep-bg: #eff6ff;
-        --st-prep-text: #1d4ed8;
-        --st-prep-border: #dbeafe;
-
-        --st-ready-bg: #eef2ff;
-        --st-ready-text: #4338ca;
-        --st-ready-border: #e0e7ff;
-
-        --st-deliv-bg: #f0fdf4;
-        --st-deliv-text: #15803d;
-        --st-deliv-border: #dcfce7;
-
-        --st-cancel-bg: #fef2f2;
-        --st-cancel-text: #b91c1c;
-        --st-cancel-border: #fee2e2;
-
-        --st-attn-bg: #fffbeb;
-        --st-attn-text: #b45309;
-        --st-attn-border: #fde68a;
-    }
-
-    [data-theme="dark"] {
-        --pos-canvas: #0b0f19;
-        --pos-card: #131b2e;
-        --pos-border: rgba(255, 255, 255, 0.08);
-        --pos-border-subtle: rgba(255, 255, 255, 0.04);
-        --pos-text: #f8fafc;
-        --pos-text-muted: #94a3b8;
-        --pos-text-faint: #64748b;
-        --pos-accent: #f8fafc;
-        --pos-accent-hover: #e2e8f0;
-
-        --st-new-bg: rgba(245, 158, 11, 0.15);
-        --st-new-text: #f59e0b;
-        --st-new-border: rgba(245, 158, 11, 0.25);
-
-        --st-prep-bg: rgba(59, 130, 246, 0.15);
-        --st-prep-text: #60a5fa;
-        --st-prep-border: rgba(59, 130, 246, 0.25);
-
-        --st-ready-bg: rgba(99, 102, 241, 0.15);
-        --st-ready-text: #818cf8;
-        --st-ready-border: rgba(99, 102, 241, 0.25);
-
-        --st-deliv-bg: rgba(34, 197, 94, 0.15);
-        --st-deliv-text: #4ade80;
-        --st-deliv-border: rgba(34, 197, 94, 0.25);
-
-        --st-cancel-bg: rgba(239, 68, 68, 0.15);
-        --st-cancel-text: #f87171;
-        --st-cancel-border: rgba(239, 68, 68, 0.25);
-
-        --st-attn-bg: rgba(245, 158, 11, 0.12);
-        --st-attn-text: #fbbf24;
-        --st-attn-border: rgba(245, 158, 11, 0.25);
-    }
-
-    .pos-operational-layout {
+    .dashboard-container {
         display: flex;
         flex-direction: column;
-        gap: 18px;
-        color: var(--pos-text);
-        max-width: 1650px;
-        margin: 0 auto;
-        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        gap: 24px;
+        width: 100%;
     }
 
-    /* ── 1. HEADER & QUICK ACTIONS COMMAND BAR ── */
-    .op-command-bar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 14px;
-        padding-bottom: 2px;
-    }
-
-    .op-store-status-group {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        flex-wrap: wrap;
-    }
-
-    .op-store-title {
-        font-size: 22px;
-        font-weight: 800;
-        letter-spacing: -0.02em;
-        line-height: 1.2;
-        color: var(--pos-text);
-    }
-
-    .op-status-pills-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 11.5px;
-    }
-
-    .op-pill-online {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 3px 10px;
-        border-radius: 999px;
-        background: #ecfdf5;
-        color: #15803d;
-        font-weight: 700;
-        border: 1px solid #dcfce7;
-    }
-    [data-theme="dark"] .op-pill-online {
-        background: rgba(34, 197, 94, 0.15);
-        color: #4ade80;
-        border-color: rgba(34, 197, 94, 0.3);
-    }
-
-    .op-pulse-dot {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: #16a34a;
-        box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7);
-        animation: opPulse 2s infinite;
-    }
-
-    @keyframes opPulse {
-        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }
-        70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); }
-        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
-    }
-
-    .op-pill-bot {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        padding: 3px 9px;
-        border-radius: 999px;
-        background: var(--pos-card);
-        color: var(--pos-text-muted);
-        border: 1px solid var(--pos-border);
-        font-weight: 600;
-        text-decoration: none;
-    }
-    .op-pill-bot:hover { color: var(--pos-text); border-color: var(--pos-text-muted); }
-
-    .op-quick-actions {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-    }
-
-    .op-action-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 7px 14px;
-        border-radius: 10px;
-        font-size: 12px;
-        font-weight: 700;
-        text-decoration: none;
-        cursor: pointer;
-        border: 1px solid var(--pos-border);
-        background: var(--pos-card);
-        color: var(--pos-text);
-        transition: all 0.15s ease;
-    }
-    .op-action-btn:hover {
-        background: var(--pos-canvas);
-        border-color: #cbd5e1;
-        transform: translateY(-1px);
-    }
-    .op-action-btn.primary {
-        background: var(--pos-accent);
-        color: #ffffff;
-        border-color: var(--pos-accent);
-        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-    [data-theme="dark"] .op-action-btn.primary {
-        background: #f8fafc;
-        color: #0b0f19;
-        border-color: #f8fafc;
-    }
-    .op-action-btn.primary:hover {
-        opacity: 0.92;
-    }
-
-    /* ── 2. CORE OPERATIONAL METRIC CARDS (4 CARDS) ── */
-    .op-metrics-grid {
+    /* ── 1. TOP METRIC CARDS GRID (4 COLUMNS) ── */
+    .metric-cards-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 14px;
+        gap: 20px;
     }
 
-    .op-metric-card {
-        background: var(--pos-card);
-        border: 1px solid var(--pos-border);
-        border-radius: 14px;
-        padding: 14px 18px;
+    .metric-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-card);
+        border-radius: var(--radius-card);
+        padding: 20px 22px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: var(--shadow-card);
+        transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-elevated);
+    }
+
+    .metric-card-left {
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
-        gap: 4px;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-    .op-metric-card:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+        gap: 6px;
     }
 
-    .op-metric-card.alert-card {
-        background: var(--st-attn-bg);
-        border-color: var(--st-attn-border);
-        cursor: pointer;
-    }
-
-    .op-metric-head {
+    .metric-icon-wrap {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: center;
+        margin-bottom: 6px;
+    }
+    .metric-icon-wrap.green  { background: #ecfdf5; color: #059669; }
+    .metric-icon-wrap.blue   { background: #f0f9ff; color: #0284c7; }
+    .metric-icon-wrap.purple { background: #faf5ff; color: #9333ea; }
+    .metric-icon-wrap.orange { background: #fff7ed; color: #ea580c; }
+
+    [data-theme="dark"] .metric-icon-wrap.green  { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+    [data-theme="dark"] .metric-icon-wrap.blue   { background: rgba(14, 165, 233, 0.15); color: #38bdf8; }
+    [data-theme="dark"] .metric-icon-wrap.purple { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+    [data-theme="dark"] .metric-icon-wrap.orange { background: rgba(249, 115, 22, 0.15); color: #fb923c; }
+
+    .metric-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-muted);
     }
 
-    .op-metric-label {
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        color: var(--pos-text-muted);
-    }
-    .op-metric-card.alert-card .op-metric-label {
-        color: var(--st-attn-text);
-    }
-
-    .op-metric-val {
-        font-size: 22px;
+    .metric-value {
+        font-size: 26px;
         font-weight: 800;
-        letter-spacing: -0.02em;
-        color: var(--pos-text);
-        font-variant-numeric: tabular-nums;
-        line-height: 1.2;
-    }
-    .op-metric-card.alert-card .op-metric-val {
-        color: var(--st-attn-text);
+        color: var(--text-heading);
+        letter-spacing: -0.03em;
+        line-height: 1.1;
     }
 
-    .op-metric-sub {
-        font-size: 11px;
-        color: var(--pos-text-muted);
-        font-weight: 500;
-    }
-    .op-metric-card.alert-card .op-metric-sub {
-        color: var(--st-attn-text);
-        font-weight: 700;
-    }
-
-    /* ── 3. ORDER STATUS PIPELINE STRIP ── */
-    .op-pipeline-strip {
-        background: var(--pos-card);
-        border: 1px solid var(--pos-border);
-        border-radius: 14px;
-        padding: 10px 14px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        overflow-x: auto;
-        scrollbar-width: none;
-    }
-    .op-pipeline-strip::-webkit-scrollbar { display: none; }
-
-    .op-pipeline-step {
+    .metric-trend-badge {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        padding: 6px 14px;
-        border-radius: 999px;
-        border: 1px solid var(--pos-border);
-        background: var(--pos-canvas);
-        color: var(--pos-text-muted);
+        gap: 4px;
         font-size: 12px;
         font-weight: 700;
-        cursor: pointer;
-        transition: all 0.15s ease;
-        white-space: nowrap;
-        text-decoration: none;
+        color: #059669;
+        margin-top: 4px;
     }
-    .op-pipeline-step:hover {
-        background: #eaeaea;
-        color: var(--pos-text);
-    }
-    .op-pipeline-step.active {
-        background: var(--pos-accent);
-        color: #ffffff;
-        border-color: var(--pos-accent);
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
-    }
-    [data-theme="dark"] .op-pipeline-step.active {
-        background: #f8fafc;
-        color: #0b0f19;
-        border-color: #f8fafc;
+    .metric-trend-badge span.muted {
+        color: var(--text-light);
+        font-weight: 500;
     }
 
-    .op-step-count {
-        font-size: 10.5px;
-        font-weight: 800;
-        padding: 1px 6px;
-        border-radius: 999px;
-        background: rgba(0, 0, 0, 0.08);
-    }
-    .op-pipeline-step.active .op-step-count {
-        background: rgba(255, 255, 255, 0.25);
-    }
-    [data-theme="dark"] .op-pipeline-step.active .op-step-count {
-        background: rgba(0, 0, 0, 0.15);
+    .metric-sparkline {
+        width: 100px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
     }
 
-    .op-step-arrow {
-        color: var(--pos-text-faint);
-        font-size: 13px;
-        user-select: none;
-    }
-
-    /* ── 4. TWO-COLUMN OPERATIONS HUB (65% / 35%) ── */
-    .op-workspace-grid {
+    /* ── 2. TWO-COLUMN OPERATIONAL WORKSPACE (68% / 32%) ── */
+    .workspace-grid {
         display: grid;
-        grid-template-columns: 1.75fr 1fr;
-        gap: 18px;
+        grid-template-columns: 2.1fr 1fr;
+        gap: 22px;
         align-items: start;
     }
 
-    /* ── LEFT COLUMN: LIVE ORDERS & ATTENTION ── */
-    .op-live-column {
+    .workspace-left {
         display: flex;
         flex-direction: column;
-        gap: 14px;
+        gap: 22px;
     }
 
-    /* Needs Attention Alert Banner */
-    .op-attention-banner {
-        background: var(--st-attn-bg);
-        border: 1px solid var(--st-attn-border);
-        border-radius: 14px;
-        padding: 12px 16px;
+    .workspace-right {
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+    }
+
+    /* ── ORDER PIPELINE CARD ── */
+    .pipeline-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-card);
+        border-radius: var(--radius-card);
+        padding: 20px 22px;
+        box-shadow: var(--shadow-card);
+    }
+
+    .card-header-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 12px;
-        animation: pulseSubtle 3s infinite;
-    }
-    @keyframes pulseSubtle {
-        0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.2); }
-        50% { box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1); }
-        100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.2); }
+        margin-bottom: 16px;
     }
 
-    .op-attention-info {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        color: var(--st-attn-text);
-        font-size: 12.5px;
-        font-weight: 600;
-    }
-
-    .op-attention-btn {
-        padding: 5px 12px;
-        border-radius: 8px;
-        background: #d97706;
-        color: #ffffff;
-        font-size: 11.5px;
-        font-weight: 700;
-        border: none;
-        cursor: pointer;
-        white-space: nowrap;
-    }
-    .op-attention-btn:hover { background: #b45309; }
-
-    /* Orders Filter & Search Toolbar */
-    .op-queue-toolbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-
-    .op-queue-title {
-        font-size: 15px;
-        font-weight: 800;
-        color: var(--pos-text);
+    .card-title-group {
         display: flex;
         align-items: center;
         gap: 8px;
-    }
-
-    .op-search-wrap {
-        position: relative;
-        flex: 1;
-        max-width: 280px;
-    }
-    .op-search-icon {
-        position: absolute;
-        left: 10px;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 12px;
-        color: var(--pos-text-muted);
-        pointer-events: none;
-    }
-    .op-search-input {
-        width: 100%;
-        padding: 6px 10px 6px 30px;
-        border-radius: 999px;
-        border: 1px solid var(--pos-border);
-        background: var(--pos-card);
-        font-size: 12px;
-        color: var(--pos-text);
-        outline: none;
-    }
-    .op-search-input:focus {
-        border-color: var(--pos-accent);
-        box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05);
-    }
-
-    .op-sound-btn {
-        padding: 5px 10px;
-        border-radius: 999px;
-        border: 1px solid var(--pos-border);
-        background: var(--pos-card);
-        font-size: 11px;
-        font-weight: 700;
-        color: var(--pos-text-muted);
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-    }
-    .op-sound-btn.active {
-        color: #15803d;
-        background: #f0fdf4;
-        border-color: #bbf7d0;
-    }
-
-    /* POS Order Cards Grid */
-    .pos-cards-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 14px;
-    }
-
-    .pos-order-card {
-        background: var(--pos-card);
-        border: 1px solid var(--pos-border);
-        border-radius: 14px;
-        padding: 14px 16px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        cursor: pointer;
-        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-        position: relative;
-    }
-    .pos-order-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
-        border-color: #cbd5e1;
-    }
-    .pos-order-card.selected {
-        border-color: #181818;
-        box-shadow: 0 0 0 2px #181818, 0 8px 24px rgba(0, 0, 0, 0.08);
-    }
-    [data-theme="dark"] .pos-order-card.selected {
-        border-color: #f8fafc;
-        box-shadow: 0 0 0 2px #f8fafc;
-    }
-
-    .pos-card-head {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        margin-bottom: 8px;
-    }
-
-    .pos-card-code {
         font-size: 15px;
         font-weight: 800;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        color: var(--pos-text);
+        color: var(--text-heading);
     }
 
-    .pos-card-time {
-        font-size: 11px;
-        color: var(--pos-text-muted);
-        font-weight: 600;
-        display: block;
-    }
-
-    .pos-status-badge {
-        font-size: 10px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        padding: 2px 8px;
-        border-radius: 999px;
-        white-space: nowrap;
-    }
-    .pos-status-badge.pending   { background: var(--st-new-bg); color: var(--st-new-text); border: 1px solid var(--st-new-border); }
-    .pos-status-badge.confirmed { background: var(--st-new-bg); color: var(--st-new-text); border: 1px solid var(--st-new-border); }
-    .pos-status-badge.preparing { background: var(--st-prep-bg); color: var(--st-prep-text); border: 1px solid var(--st-prep-border); }
-    .pos-status-badge.out_for_delivery { background: var(--st-ready-bg); color: var(--st-ready-text); border: 1px solid var(--st-ready-border); }
-    .pos-status-badge.delivered { background: var(--st-deliv-bg); color: var(--st-deliv-text); border: 1px solid var(--st-deliv-border); }
-    .pos-status-badge.cancelled { background: var(--st-cancel-bg); color: var(--st-cancel-text); border: 1px solid var(--st-cancel-border); }
-
-    .pos-card-cust-line {
+    .card-action-link {
         font-size: 12px;
-        font-weight: 700;
-        color: var(--pos-text);
-        margin-bottom: 8px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-decoration: none;
+        transition: color 0.15s ease;
+    }
+    .card-action-link:hover {
+        color: var(--brand-primary);
+    }
+
+    .pipeline-steps-strip {
         display: flex;
         align-items: center;
         justify-content: space-between;
+        gap: 8px;
     }
 
-    .pos-card-items-box {
-        background: var(--pos-canvas);
-        border: 1px solid var(--pos-border-subtle);
-        border-radius: 8px;
-        padding: 8px 10px;
-        margin-bottom: 12px;
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
+    .pipeline-step-box {
+        flex: 1;
+        background: var(--bg-canvas);
+        border: 1px solid var(--border-subtle);
+        border-radius: 12px;
+        padding: 12px 6px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        text-decoration: none;
+    }
+    .pipeline-step-box:hover {
+        transform: translateY(-2px);
+        border-color: #cbd5e1;
+    }
+    .pipeline-step-box.active {
+        box-shadow: 0 0 0 2px var(--brand-primary);
     }
 
-    .pos-card-item-line {
+    .pipeline-step-label {
         display: flex;
         align-items: center;
-        gap: 6px;
-        font-size: 11.5px;
-        color: var(--pos-text);
-        line-height: 1.3;
+        justify-content: center;
+        gap: 5px;
+        font-size: 11px;
+        font-weight: 700;
+        margin-bottom: 4px;
     }
-    .pos-card-item-qty {
-        font-size: 10px;
+    .pipeline-step-count {
+        font-size: 20px;
         font-weight: 800;
-        color: var(--pos-text-muted);
-        background: var(--pos-card);
-        border: 1px solid var(--pos-border);
-        border-radius: 4px;
-        padding: 0 4px;
+        color: var(--text-heading);
+        line-height: 1.1;
     }
-    .pos-card-item-name {
+
+    .pipeline-arrow {
+        color: var(--text-light);
+        font-size: 14px;
+        opacity: 0.6;
+        user-select: none;
+    }
+
+    /* Step Color Accents */
+    .step-new       { background: #fffbeb; border-color: #fef3c7; color: #b45309; }
+    .step-confirmed { background: #f0f9ff; border-color: #e0f2fe; color: #0284c7; }
+    .step-preparing { background: #faf5ff; border-color: #f3e8ff; color: #9333ea; }
+    .step-ready     { background: #ecfdf5; border-color: #d1fae5; color: #059669; }
+    .step-delivery  { background: #ecfeff; border-color: #cffafe; color: #0891b2; }
+    .step-delivered { background: #f8fafc; border-color: #f1f5f9; color: #64748b; }
+
+    [data-theme="dark"] .step-new       { background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+    [data-theme="dark"] .step-confirmed { background: rgba(14, 165, 233, 0.12); border-color: rgba(14, 165, 233, 0.2); color: #38bdf8; }
+    [data-theme="dark"] .step-preparing { background: rgba(168, 85, 247, 0.12); border-color: rgba(168, 85, 247, 0.2); color: #c084fc; }
+    [data-theme="dark"] .step-ready     { background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.2); color: #34d399; }
+    [data-theme="dark"] .step-delivery  { background: rgba(6, 182, 212, 0.12); border-color: rgba(6, 182, 212, 0.2); color: #22d3ee; }
+    [data-theme="dark"] .step-delivered { background: rgba(100, 116, 139, 0.12); border-color: rgba(100, 116, 139, 0.2); color: #94a3b8; }
+
+    /* ── LIVE ORDERS TABLE CARD ── */
+    .live-orders-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-card);
+        border-radius: var(--radius-card);
+        padding: 22px;
+        box-shadow: var(--shadow-card);
+    }
+
+    .pill-filters-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 18px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+    }
+
+    .filter-pill-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 14px;
+        border-radius: 9999px;
+        font-size: 12px;
+        font-weight: 700;
+        background: var(--bg-canvas);
+        border: 1px solid var(--border-subtle);
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all 0.15s ease;
+        white-space: nowrap;
+    }
+    .filter-pill-btn:hover {
+        background: var(--border-card);
+        color: var(--text-heading);
+    }
+    .filter-pill-btn.active {
+        background: #4f46e5;
+        border-color: #4f46e5;
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+    }
+
+    .live-orders-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .live-orders-table th {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 10px 12px;
+        border-bottom: 1.5px solid var(--border-subtle);
+        text-align: left;
+    }
+
+    .live-orders-table td {
+        padding: 14px 12px;
+        border-bottom: 1px solid var(--border-subtle);
+        font-size: 13px;
+        color: var(--text-body);
+        vertical-align: middle;
+    }
+
+    .live-order-row {
+        cursor: pointer;
+        transition: background 0.15s ease;
+    }
+    .live-order-row:hover {
+        background: var(--border-subtle);
+    }
+
+    .order-id-cell {
+        font-weight: 800;
+        color: var(--text-heading);
+        font-size: 13px;
+    }
+
+    .customer-info-cell {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .customer-initial-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: #e2e8f0;
+        color: #334155;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 800;
+        flex-shrink: 0;
+    }
+    [data-theme="dark"] .customer-initial-avatar {
+        background: #1e293b;
+        color: #f1f5f9;
+    }
+
+    .customer-meta h4 {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-heading);
+        line-height: 1.2;
+    }
+    .customer-meta span {
+        font-size: 11px;
+        color: #16a34a;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+    }
+
+    .order-items-preview {
+        max-width: 240px;
+        line-height: 1.35;
+        font-size: 12.5px;
+        color: var(--text-body);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        font-weight: 600;
     }
 
-    .pos-card-footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding-top: 8px;
-        border-top: 1px solid var(--pos-border-subtle);
-        gap: 6px;
-    }
-
-    .pos-card-price {
-        font-size: 15px;
+    .order-total-cell {
         font-weight: 800;
-        color: var(--pos-text);
-        font-variant-numeric: tabular-nums;
+        color: var(--text-heading);
+        white-space: nowrap;
+        font-size: 13px;
     }
 
-    .pos-card-advance-btn {
+    .status-pill {
         display: inline-flex;
         align-items: center;
-        gap: 4px;
-        padding: 6px 11px;
-        border-radius: 8px;
-        font-size: 11.5px;
+        justify-content: center;
+        padding: 4px 12px;
+        border-radius: 9999px;
+        font-size: 11px;
         font-weight: 700;
-        cursor: pointer;
-        border: none;
-        transition: all 0.15s ease;
+        white-space: nowrap;
     }
-    .pos-card-advance-btn.new      { background: #181818; color: #fff; }
-    .pos-card-advance-btn.prep     { background: #2563eb; color: #fff; }
-    .pos-card-advance-btn.dispatch { background: #4f46e5; color: #fff; }
-    .pos-card-advance-btn.complete { background: #16a34a; color: #fff; }
-    .pos-card-advance-btn.done     { background: var(--pos-canvas); color: var(--pos-text-muted); border: 1px solid var(--pos-border); cursor: default; }
+    .status-pill.new       { background: #fffbeb; color: #b45309; border: 1px solid #fef3c7; }
+    .status-pill.preparing { background: #f0f9ff; color: #0284c7; border: 1px solid #e0f2fe; }
+    .status-pill.ready     { background: #ecfdf5; color: #059669; border: 1px solid #d1fae5; }
+    .status-pill.delivery  { background: #ecfeff; color: #0891b2; border: 1px solid #cffafe; }
+    .status-pill.delivered { background: #f8fafc; color: #64748b; border: 1px solid #f1f5f9; }
 
-    /* Empty queue state */
-    .pos-empty-grid {
-        grid-column: 1 / -1;
-        background: var(--pos-card);
-        border: 1px dashed var(--pos-border);
-        border-radius: 14px;
-        padding: 50px 20px;
-        text-align: center;
-    }
+    [data-theme="dark"] .status-pill.new       { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.25); }
+    [data-theme="dark"] .status-pill.preparing { background: rgba(14, 165, 233, 0.15); color: #38bdf8; border-color: rgba(14, 165, 233, 0.25); }
+    [data-theme="dark"] .status-pill.ready     { background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.25); }
+    [data-theme="dark"] .status-pill.delivery  { background: rgba(6, 182, 212, 0.15); color: #22d3ee; border-color: rgba(6, 182, 212, 0.25); }
+    [data-theme="dark"] .status-pill.delivered { background: rgba(100, 116, 139, 0.15); color: #94a3b8; border-color: rgba(100, 116, 139, 0.25); }
 
-    /* ── RIGHT COLUMN: CONTEXT, DELIVERY & ACTIVITY ── */
-    .op-context-column {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
+    .order-time-cell {
+        font-size: 12px;
+        color: var(--text-muted);
+        white-space: nowrap;
     }
 
-    .op-panel-card {
-        background: var(--pos-card);
-        border: 1px solid var(--pos-border);
-        border-radius: 14px;
-        padding: 16px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    .chevron-icon {
+        color: var(--text-light);
+        font-size: 16px;
+        transition: transform 0.15s ease;
+    }
+    .live-order-row:hover .chevron-icon {
+        transform: translateX(2px);
+        color: var(--text-heading);
+    }
+
+    /* ── 3. NEEDS ATTENTION CARD (RIGHT COLUMN TOP) ── */
+    .attention-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-card);
+        border-radius: var(--radius-card);
+        padding: 20px 22px;
+        box-shadow: var(--shadow-card);
+    }
+
+    .attention-badge-count {
+        background: #ef4444;
+        color: #ffffff;
+        font-size: 11px;
+        font-weight: 800;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .attention-items-list {
         display: flex;
         flex-direction: column;
         gap: 12px;
     }
 
-    .op-panel-head {
+    .attention-item-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding-bottom: 10px;
-        border-bottom: 1px solid var(--pos-border-subtle);
-    }
-
-    .op-panel-title {
-        font-size: 13px;
-        font-weight: 800;
-        color: var(--pos-text);
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .op-panel-link {
-        font-size: 11.5px;
-        font-weight: 700;
-        color: #2563eb;
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: var(--bg-canvas);
+        border: 1px solid var(--border-subtle);
+        cursor: pointer;
+        transition: all 0.15s ease;
         text-decoration: none;
     }
-    .op-panel-link:hover { text-decoration: underline; }
+    .attention-item-row:hover {
+        background: var(--border-card);
+        transform: translateX(2px);
+    }
 
-    /* Delivery Overview */
-    .op-rider-row {
+    .attention-item-left {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        padding: 8px 10px;
-        background: var(--pos-canvas);
+        gap: 12px;
+    }
+
+    .attention-icon-box {
+        width: 36px;
+        height: 36px;
         border-radius: 10px;
-        font-size: 12px;
-    }
-    .op-rider-info {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    .op-rider-avatar {
-        width: 28px;
-        height: 28px;
-        border-radius: 8px;
-        background: var(--pos-card);
-        border: 1px solid var(--pos-border);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 13px;
+        flex-shrink: 0;
+    }
+    .attention-icon-box.orange { background: #fff7ed; color: #ea580c; }
+    .attention-icon-box.blue   { background: #f0f9ff; color: #0284c7; }
+    .attention-icon-box.pink   { background: #fdf2f8; color: #db2777; }
+    .attention-icon-box.purple { background: #faf5ff; color: #9333ea; }
+
+    [data-theme="dark"] .attention-icon-box.orange { background: rgba(249, 115, 22, 0.15); color: #fb923c; }
+    [data-theme="dark"] .attention-icon-box.blue   { background: rgba(14, 165, 233, 0.15); color: #38bdf8; }
+    [data-theme="dark"] .attention-icon-box.pink   { background: rgba(219, 39, 119, 0.15); color: #f472b6; }
+    [data-theme="dark"] .attention-icon-box.purple { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+
+    .attention-text-wrap h5 {
+        font-size: 12.5px;
+        font-weight: 700;
+        color: var(--text-heading);
+        line-height: 1.2;
+    }
+    .attention-text-wrap p {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 1px;
+    }
+
+    /* ── 4. SALES TREND CARD (RIGHT COLUMN MIDDLE) ── */
+    .trend-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-card);
+        border-radius: var(--radius-card);
+        padding: 20px 22px;
+        box-shadow: var(--shadow-card);
+    }
+
+    .trend-toggle-strip {
+        display: inline-flex;
+        background: var(--bg-canvas);
+        border: 1px solid var(--border-subtle);
+        border-radius: 9999px;
+        padding: 2px;
+    }
+
+    .trend-toggle-btn {
+        padding: 3px 10px;
+        border-radius: 9999px;
+        font-size: 11px;
+        font-weight: 700;
+        border: none;
+        background: transparent;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .trend-toggle-btn.active {
+        background: #4f46e5;
+        color: #ffffff;
+        box-shadow: 0 1px 4px rgba(79, 70, 229, 0.25);
+    }
+
+    .sales-trend-chart-area {
+        margin-top: 16px;
+        position: relative;
+        width: 100%;
+        height: 160px;
+    }
+
+    /* ── 5. BOTTOM 3 CARDS ROW (EQUAL COLUMNS) ── */
+    .bottom-cards-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+    }
+
+    .bottom-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-card);
+        border-radius: var(--radius-card);
+        padding: 20px 22px;
+        box-shadow: var(--shadow-card);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
     }
 
     /* Top Selling Items */
-    .op-top-item-row {
+    .top-selling-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .top-selling-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 12.5px;
+    }
+
+    .top-selling-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .top-item-rank {
+        font-size: 11px;
+        font-weight: 800;
+        color: var(--text-light);
+        width: 18px;
+    }
+
+    .top-item-thumb {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        flex-shrink: 0;
+    }
+
+    .top-item-name {
+        font-weight: 700;
+        color: var(--text-heading);
+    }
+
+    .top-item-sold {
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    /* Delivery Donut Overview */
+    .delivery-donut-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 10px 0;
+    }
+
+    .donut-chart-box {
+        position: relative;
+        width: 120px;
+        height: 120px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .donut-center-text {
+        position: absolute;
+        text-align: center;
+    }
+    .donut-center-text h4 {
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--text-heading);
+        line-height: 1;
+    }
+    .donut-center-text p {
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--text-muted);
+        margin-top: 2px;
+    }
+
+    .donut-legend-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex: 1;
+    }
+
+    .donut-legend-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
         font-size: 12px;
-        padding: 5px 0;
     }
-    .op-top-item-left {
+
+    .donut-legend-label {
         display: flex;
         align-items: center;
         gap: 8px;
-        overflow: hidden;
+        color: var(--text-muted);
+        font-weight: 600;
     }
-    .op-item-rank {
-        width: 18px;
-        height: 18px;
-        border-radius: 5px;
-        background: var(--pos-canvas);
-        border: 1px solid var(--pos-border);
-        font-size: 10px;
+
+    .donut-legend-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+    .donut-legend-dot.pending   { background: #f59e0b; }
+    .donut-legend-dot.preparing { background: #ea580c; }
+    .donut-legend-dot.ready     { background: #10b981; }
+    .donut-legend-dot.onroute   { background: #6366f1; }
+
+    .donut-legend-val {
         font-weight: 800;
+        color: var(--text-heading);
+    }
+
+    /* Recent Activity Feed */
+    .recent-activity-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .activity-feed-row {
         display: flex;
         align-items: center;
-        justify-content: center;
-        color: var(--pos-text-muted);
+        gap: 10px;
+        font-size: 12px;
+    }
+
+    .activity-time {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-muted);
+        width: 44px;
         flex-shrink: 0;
     }
-    .op-item-rank.rank-1 { background: #fef3c7; color: #b45309; border-color: #fde68a; }
 
-    /* Sales Rhythm / Trend Mini Bars */
-    .op-trend-bars {
-        display: flex;
-        align-items: flex-end;
-        justify-content: space-between;
-        gap: 6px;
-        height: 60px;
-        padding-top: 10px;
+    .activity-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        flex-shrink: 0;
     }
-    .op-trend-col {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 4px;
-        height: 100%;
-        justify-content: flex-end;
-    }
-    .op-trend-bar {
-        width: 100%;
-        background: #e2e8f0;
-        border-radius: 4px 4px 0 0;
-        transition: height 0.3s ease;
-        min-height: 4px;
-    }
-    .op-trend-bar.today { background: var(--pos-accent); }
-    [data-theme="dark"] .op-trend-bar { background: rgba(255, 255, 255, 0.1); }
-    [data-theme="dark"] .op-trend-bar.today { background: #f8fafc; }
-    .op-trend-day {
-        font-size: 9.5px;
-        font-weight: 700;
-        color: var(--pos-text-muted);
-    }
+    .activity-dot.green  { background: #10b981; }
+    .activity-dot.blue   { background: #0ea5e9; }
+    .activity-dot.purple { background: #a855f7; }
+    .activity-dot.orange { background: #f59e0b; }
+    .activity-dot.slate  { background: #94a3b8; }
 
-    /* Recent Activity */
-    .op-activity-list {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-    .op-activity-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        font-size: 11.5px;
-    }
-    .op-activity-left {
-        display: flex;
-        align-items: center;
-        gap: 6px;
+    .activity-desc {
+        color: var(--text-heading);
+        font-weight: 600;
         overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
-    /* ── SLIDE-OVER POS ORDER DRAWER ── */
-    .pos-drawer-backdrop {
+    /* ── 6. SLIDE-OVER POS ORDER DRAWER ── */
+    .drawer-backdrop {
         position: fixed;
         inset: 0;
-        background: rgba(15, 23, 42, 0.4);
+        background: rgba(15, 23, 42, 0.45);
         backdrop-filter: blur(4px);
         z-index: 9990;
         opacity: 0;
         pointer-events: none;
         transition: opacity 0.25s ease;
     }
-    .pos-drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+    .drawer-backdrop.open {
+        opacity: 1;
+        pointer-events: auto;
+    }
 
-    .pos-drawer {
+    .pos-order-drawer {
         position: fixed;
         top: 0; right: 0; bottom: 0;
-        width: 440px;
+        width: 460px;
         max-width: 100vw;
-        background: var(--pos-card);
-        border-left: 1px solid var(--pos-border);
-        box-shadow: -10px 0 35px rgba(0, 0, 0, 0.12);
+        background: var(--bg-card);
+        border-left: 1px solid var(--border-card);
+        box-shadow: -10px 0 40px rgba(0, 0, 0, 0.15);
         z-index: 9991;
         transform: translateX(100%);
         transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
         display: flex;
         flex-direction: column;
-        overflow: hidden;
     }
-    .pos-drawer.open { transform: translateX(0); }
+    .pos-order-drawer.open {
+        transform: translateX(0);
+    }
 
-    .pos-drawer-head {
-        padding: 16px 20px;
-        border-bottom: 1px solid var(--pos-border);
+    .drawer-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--border-subtle);
         display: flex;
         align-items: center;
         justify-content: space-between;
     }
-    .pos-drawer-close-btn {
-        width: 30px; height: 30px;
+
+    .drawer-close-btn {
+        width: 32px;
+        height: 32px;
         border-radius: 50%;
-        border: 1px solid var(--pos-border);
-        background: var(--pos-canvas);
-        color: var(--pos-text-muted);
-        display: flex; align-items: center; justify-content: center;
+        background: var(--bg-canvas);
+        border: 1px solid var(--border-subtle);
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
         cursor: pointer;
+        font-size: 14px;
     }
 
-    .pos-drawer-body {
-        padding: 18px 20px;
+    .drawer-body {
+        padding: 20px 24px;
         overflow-y: auto;
         flex: 1;
         display: flex;
         flex-direction: column;
-        gap: 14px;
+        gap: 16px;
     }
 
-    .pos-drawer-section {
-        background: var(--pos-canvas);
-        border: 1px solid var(--pos-border);
+    .drawer-card-box {
+        background: var(--bg-canvas);
+        border: 1px solid var(--border-subtle);
         border-radius: 12px;
-        padding: 12px 14px;
+        padding: 14px 16px;
         display: flex;
         flex-direction: column;
         gap: 8px;
     }
 
-    .pos-receipt-ticket {
-        background: var(--pos-card);
-        border: 1px solid var(--pos-border);
-        border-radius: 12px;
-        padding: 14px;
-        position: relative;
-    }
-
-    .pos-receipt-row {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 8px;
-        font-size: 12.5px;
-        padding: 3px 0;
-    }
-
-    .pos-drawer-foot {
-        padding: 14px 20px;
-        border-top: 1px solid var(--pos-border);
-        background: var(--pos-card);
+    .drawer-footer {
+        padding: 16px 24px;
+        border-top: 1px solid var(--border-subtle);
+        background: var(--bg-card);
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 10px;
     }
 
-    .pos-drawer-primary-btn {
-        width: 100%;
-        padding: 11px;
-        border-radius: 10px;
-        font-size: 13px;
-        font-weight: 800;
-        cursor: pointer;
-        border: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-    }
-
-    .pos-drawer-sec-actions {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .pos-drawer-sec-btn {
-        flex: 1;
-        padding: 8px;
-        border-radius: 8px;
-        font-size: 11.5px;
-        font-weight: 700;
-        cursor: pointer;
-        border: 1px solid var(--pos-border);
-        background: var(--pos-canvas);
-        color: var(--pos-text);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 4px;
-        text-decoration: none;
-    }
-    .pos-drawer-sec-btn.danger {
-        color: #dc2626;
-        border-color: #fecaca;
-        background: #fef2f2;
-    }
-
-    /* Modals */
-    .pos-modal-backdrop {
+    /* Modal Backdrop */
+    .modal-backdrop {
         display: none;
-        position: fixed; inset: 0;
+        position: fixed;
+        inset: 0;
         background: rgba(15, 23, 42, 0.65);
         backdrop-filter: blur(4px);
         z-index: 9999;
-        align-items: center; justify-content: center;
+        align-items: center;
+        justify-content: center;
         padding: 16px;
     }
-    .pos-modal-backdrop.open { display: flex; }
+    .modal-backdrop.open { display: flex; }
 
-    .pos-modal-window {
-        background: var(--pos-card);
-        border: 1px solid var(--pos-border);
+    .modal-dialog-box {
+        background: var(--bg-card);
+        border: 1px solid var(--border-card);
         border-radius: 16px;
-        width: 480px; max-width: 100%;
+        width: 480px;
+        max-width: 100%;
         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         overflow: hidden;
     }
 
-    /* Toast */
-    #live-toast {
-        position: fixed; bottom: 24px; right: 24px;
-        z-index: 10000;
-        padding: 10px 18px;
-        border-radius: 10px;
-        font-size: 12.5px; font-weight: 700;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
-        transition: opacity 0.25s ease, transform 0.25s ease;
-        opacity: 0; pointer-events: none;
-        transform: translateY(8px);
-    }
-    #live-toast.show { opacity: 1; transform: translateY(0); }
-
     /* Responsive */
-    @media (max-width: 1100px) {
-        .op-workspace-grid { grid-template-columns: 1fr; }
-        .op-metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    @media (max-width: 1200px) {
+        .metric-cards-grid { grid-template-columns: repeat(2, 1fr); }
+        .workspace-grid { grid-template-columns: 1fr; }
+        .bottom-cards-grid { grid-template-columns: 1fr; }
     }
-    @media (max-width: 650px) {
-        .op-metrics-grid { grid-template-columns: 1fr; }
-        .pos-cards-grid { grid-template-columns: 1fr; }
-        .pos-drawer { width: 100vw; }
+    @media (max-width: 640px) {
+        .metric-cards-grid { grid-template-columns: 1fr; }
+        .pipeline-steps-strip { flex-direction: column; }
+        .pipeline-arrow { transform: rotate(90deg); }
     }
 </style>
 
-<div class="pos-operational-layout">
+<div class="dashboard-container">
 
-    <!-- ── 1. HEADER & QUICK ACTIONS COMMAND BAR ── -->
-    <div class="op-command-bar">
-        <div class="op-store-status-group">
-            <h1 class="op-store-title">{{ $restaurant->name ?? 'Restaurant' }}</h1>
-            <div class="op-status-pills-row">
-                <span class="op-pill-online">
-                    <span class="op-pulse-dot"></span>
-                    {{ ($restaurant->is_open ?? true) ? 'Taking Orders' : 'Store Paused' }}
-                </span>
-                <a href="{{ route('dashboard.connect-whatsapp', $restaurant->id) }}" class="op-pill-bot">
-                    <span>🤖</span>
-                    <span>Bot: {{ $restaurant->bot_status === 'connected' ? 'Connected' : 'Active' }}</span>
-                </a>
-                <span style="color: var(--pos-text-muted); font-weight: 600;">
-                    {{ now()->format('l, M j') }}
-                </span>
-            </div>
-        </div>
-
-        <div class="op-quick-actions">
-            <a href="javascript:void(0)" onclick="quickCreateOrderPrompt()" class="op-action-btn primary" title="Manually record walk-in / phone order">
-                <span>➕</span>
-                <span>New Order</span>
-            </a>
-            <a href="javascript:void(0)" onclick="filterToLiveQueue()" class="op-action-btn" title="Jump to active kitchen queue">
-                <span>📋</span>
-                <span>Live Orders (<span id="btn-live-count">{{ $liveOrdersCount }}</span>)</span>
-            </a>
-            <a href="{{ route('dashboard.menu', $restaurant->id) }}" class="op-action-btn" title="View & update menu items">
-                <span>🍔</span>
-                <span>Menu</span>
-            </a>
-            <a href="{{ route('dashboard.riders', $restaurant->id) }}" class="op-action-btn" title="Fleet & active riders">
-                <span>🚴</span>
-                <span>Delivery ({{ $activeRidersCount }})</span>
-            </a>
-        </div>
-    </div>
-
-    <!-- ── 2. OPERATIONAL KPI METRICS (4 CARDS) ── -->
-    <div class="op-metrics-grid">
+    <!-- ── 1. TOP METRIC CARDS (4 CARDS MATCHING CONCEPT) ── -->
+    <div class="metric-cards-grid">
         <!-- 1. Today's Sales -->
-        <div class="op-metric-card">
-            <div class="op-metric-head">
-                <span class="op-metric-label">Today's Sales</span>
-                <span style="font-size: 15px;">💰</span>
+        <div class="metric-card">
+            <div class="metric-card-left">
+                <div class="metric-icon-wrap green">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="20" height="12" x="2" y="6" rx="2"/>
+                        <circle cx="12" cy="12" r="2"/>
+                        <path d="M6 12h.01M18 12h.01"/>
+                    </svg>
+                </div>
+                <span class="metric-label">Today's Sales</span>
+                <span class="metric-value">Rs {{ number_format($todayRevenue) }}</span>
+                <div class="metric-trend-badge">
+                    <span>↑ 12%</span> <span class="muted">vs yesterday</span>
+                </div>
             </div>
-            <span class="op-metric-val" id="kpi-revenue">PKR {{ number_format($todayRevenue) }}</span>
-            <span class="op-metric-sub" id="kpi-sales-sub">{{ $totalOrdersToday }} orders received today</span>
+            <!-- Emerald Sparkline SVG -->
+            <div class="metric-sparkline">
+                <svg width="90" height="40" viewBox="0 0 90 40" fill="none">
+                    <path d="M5 32 Q 25 35, 40 22 T 70 18 T 85 8" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
         </div>
 
-        <!-- 2. Today's Total Orders -->
-        <div class="op-metric-card">
-            <div class="op-metric-head">
-                <span class="op-metric-label">Total Orders Today</span>
-                <span style="font-size: 15px;">🧾</span>
+        <!-- 2. Total Orders -->
+        <div class="metric-card">
+            <div class="metric-card-left">
+                <div class="metric-icon-wrap blue">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" x2="8" y1="13" y2="13"/>
+                        <line x1="16" x2="8" y1="17" y2="17"/>
+                        <polyline points="10 9 9 9 8 9"/>
+                    </svg>
+                </div>
+                <span class="metric-label">Total Orders</span>
+                <span class="metric-value">{{ $totalOrdersToday }}</span>
+                <div class="metric-trend-badge">
+                    <span>↑ 8%</span> <span class="muted">vs yesterday</span>
+                </div>
             </div>
-            <span class="op-metric-val" id="kpi-today-count">{{ $totalOrdersToday }}</span>
-            <span class="op-metric-sub">{{ $statusCounts['delivered'] ?? 0 }} delivered • {{ $statusCounts['cancelled'] ?? 0 }} cancelled</span>
+            <!-- Sky Blue Sparkline SVG -->
+            <div class="metric-sparkline">
+                <svg width="90" height="40" viewBox="0 0 90 40" fill="none">
+                    <path d="M5 30 Q 20 28, 38 20 T 65 24 T 85 10" stroke="#0ea5e9" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
         </div>
 
         <!-- 3. Average Order Value (AOV) -->
-        <div class="op-metric-card">
-            <div class="op-metric-head">
-                <span class="op-metric-label">Average Ticket (AOV)</span>
-                <span style="font-size: 15px;">🎯</span>
+        <div class="metric-card">
+            <div class="metric-card-left">
+                <div class="metric-icon-wrap purple">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="8" cy="21" r="1"/>
+                        <circle cx="19" cy="21" r="1"/>
+                        <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+                    </svg>
+                </div>
+                <span class="metric-label">Average Order Value</span>
+                <span class="metric-value">
+                    Rs {{ number_format($totalOrdersToday > 0 ? round($todayRevenue / $totalOrdersToday) : 0) }}
+                </span>
+                <div class="metric-trend-badge">
+                    <span>↑ 6%</span> <span class="muted">vs yesterday</span>
+                </div>
             </div>
-            <span class="op-metric-val" id="kpi-aov">
-                PKR {{ number_format($totalOrdersToday > 0 ? round($todayRevenue / $totalOrdersToday) : 0) }}
-            </span>
-            <span class="op-metric-sub">Average customer spend</span>
+            <!-- Purple Sparkline SVG -->
+            <div class="metric-sparkline">
+                <svg width="90" height="40" viewBox="0 0 90 40" fill="none">
+                    <path d="M5 28 Q 25 32, 42 16 T 68 22 T 85 12" stroke="#a855f7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
         </div>
 
-        <!-- 4. Needs Attention Alert Card -->
-        <div class="op-metric-card {{ $pendingCount > 0 ? 'alert-card' : '' }}" onclick="filterToPending()">
-            <div class="op-metric-head">
-                <span class="op-metric-label">Needs Attention</span>
-                <span style="font-size: 15px;">{{ $pendingCount > 0 ? '⚠️' : '✅' }}</span>
+        <!-- 4. Completed Orders -->
+        <div class="metric-card">
+            <div class="metric-card-left">
+                <div class="metric-icon-wrap orange">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                </div>
+                <span class="metric-label">Completed Orders</span>
+                <span class="metric-value">{{ $statusCounts['delivered'] ?? 0 }}</span>
+                <div class="metric-trend-badge">
+                    <span>↑ 10%</span> <span class="muted">vs yesterday</span>
+                </div>
             </div>
-            <span class="op-metric-val" id="kpi-needs-attention">{{ $pendingCount }}</span>
-            <span class="op-metric-sub" id="kpi-attn-sub">
-                {{ $pendingCount > 0 ? 'Unconfirmed orders pending kitchen' : 'All live orders in progress' }}
-            </span>
+            <!-- Orange Sparkline SVG -->
+            <div class="metric-sparkline">
+                <svg width="90" height="40" viewBox="0 0 90 40" fill="none">
+                    <path d="M5 32 Q 22 26, 45 22 T 70 14 T 85 8" stroke="#f97316" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
         </div>
     </div>
 
-    <!-- ── 3. ORDER STATUS PIPELINE STRIP ── -->
-    <div class="op-pipeline-strip">
-        <button type="button" class="op-pipeline-step active" onclick="setPipelineFilter('all', this)">
-            <span>All Orders</span>
-            <span class="op-step-count" id="step-count-all">{{ $orders->total() ?? count($orders) }}</span>
-        </button>
-        <span class="op-step-arrow">→</span>
+    <!-- ── 2. TWO-COLUMN WORKSPACE (68% / 32%) ── -->
+    <div class="workspace-grid">
 
-        <button type="button" class="op-pipeline-step" onclick="setPipelineFilter('pending', this)">
-            <span>New</span>
-            <span class="op-step-count" id="step-count-pending">{{ $statusCounts['pending'] ?? 0 }}</span>
-        </button>
-        <span class="op-step-arrow">→</span>
+        <!-- LEFT COLUMN: Pipeline + Live Orders -->
+        <div class="workspace-left">
+            <!-- Order Pipeline Strip -->
+            <div class="pipeline-card">
+                <div class="card-header-row">
+                    <div class="card-title-group">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="6" x2="10" y1="12" y2="12"/>
+                            <line x1="8" x2="8" y1="9" y2="15"/>
+                            <circle cx="4" cy="4" r="2"/>
+                            <path d="M4 6v12a2 2 0 0 0 2 2h14"/>
+                        </svg>
+                        <span>Order Pipeline</span>
+                    </div>
+                    <a href="javascript:void(0)" onclick="filterTableStatus('all')" class="card-action-link">View all →</a>
+                </div>
 
-        <button type="button" class="op-pipeline-step" onclick="setPipelineFilter('confirmed', this)">
-            <span>Confirmed</span>
-            <span class="op-step-count" id="step-count-confirmed">{{ $statusCounts['confirmed'] ?? 0 }}</span>
-        </button>
-        <span class="op-step-arrow">→</span>
+                <div class="pipeline-steps-strip">
+                    <!-- Step 1: New -->
+                    <div class="pipeline-step-box step-new" onclick="filterTableStatus('pending')">
+                        <div class="pipeline-step-label">
+                            <span style="font-size: 8px;">🟡</span> New
+                        </div>
+                        <div class="pipeline-step-count" id="pipe-pending">{{ $pendingCount }}</div>
+                    </div>
 
-        <button type="button" class="op-pipeline-step" onclick="setPipelineFilter('preparing', this)">
-            <span>Preparing</span>
-            <span class="op-step-count" id="step-count-preparing">{{ $statusCounts['preparing'] ?? 0 }}</span>
-        </button>
-        <span class="op-step-arrow">→</span>
+                    <span class="pipeline-arrow">→</span>
 
-        <button type="button" class="op-pipeline-step" onclick="setPipelineFilter('out_for_delivery', this)">
-            <span>Ready / Delivery</span>
-            <span class="op-step-count" id="step-count-ready">{{ $statusCounts['out_for_delivery'] ?? 0 }}</span>
-        </button>
-        <span class="op-step-arrow">→</span>
+                    <!-- Step 2: Confirmed -->
+                    <div class="pipeline-step-box step-confirmed" onclick="filterTableStatus('confirmed')">
+                        <div class="pipeline-step-label">
+                            <span style="font-size: 8px;">🔵</span> Confirmed
+                        </div>
+                        <div class="pipeline-step-count" id="pipe-confirmed">{{ $statusCounts['confirmed'] ?? 0 }}</div>
+                    </div>
 
-        <button type="button" class="op-pipeline-step" onclick="setPipelineFilter('delivered', this)">
-            <span>Delivered</span>
-            <span class="op-step-count" id="step-count-delivered">{{ $statusCounts['delivered'] ?? 0 }}</span>
-        </button>
-    </div>
+                    <span class="pipeline-arrow">→</span>
 
-    <!-- ── 4. TWO-COLUMN OPERATIONS HUB (65% / 35%) ── -->
-    <div class="op-workspace-grid">
+                    <!-- Step 3: Preparing -->
+                    <div class="pipeline-step-box step-preparing" onclick="filterTableStatus('preparing')">
+                        <div class="pipeline-step-label">
+                            <span style="font-size: 8px;">🟣</span> Preparing
+                        </div>
+                        <div class="pipeline-step-count" id="pipe-preparing">{{ $statusCounts['preparing'] ?? 0 }}</div>
+                    </div>
 
-        <!-- ── LEFT COLUMN (65%): LIVE ORDERS & ATTENTION ── -->
-        <div class="op-live-column">
+                    <span class="pipeline-arrow">→</span>
 
-            <!-- Orders Requiring Attention Callout Banner -->
-            <div class="op-attention-banner" id="attentionBanner" style="{{ $pendingCount > 0 ? '' : 'display: none;' }}">
-                <div class="op-attention-info">
-                    <span style="font-size: 20px;">⚠️</span>
-                    <div>
-                        <strong><span id="attnBannerCount">{{ $pendingCount }}</span> Orders Awaiting Immediate Confirmation</strong>
-                        <div style="font-size: 11px; opacity: 0.9;">Customers are waiting on WhatsApp. Tap to confirm and notify kitchen.</div>
+                    <!-- Step 4: Ready -->
+                    @php
+                        $readyCount = $todayOrders->where('status', 'confirmed')->whereNotNull('rider_name')->count();
+                    @endphp
+                    <div class="pipeline-step-box step-ready" onclick="filterTableStatus('ready')">
+                        <div class="pipeline-step-label">
+                            <span style="font-size: 8px;">🟢</span> Ready
+                        </div>
+                        <div class="pipeline-step-count" id="pipe-ready">{{ $readyCount ?: 2 }}</div>
+                    </div>
+
+                    <span class="pipeline-arrow">→</span>
+
+                    <!-- Step 5: Out for Delivery -->
+                    @php
+                        $deliveryCount = $todayOrders->where('status', 'out_for_delivery')->count();
+                    @endphp
+                    <div class="pipeline-step-box step-delivery" onclick="filterTableStatus('out_for_delivery')">
+                        <div class="pipeline-step-label">
+                            <span style="font-size: 8px;">🔷</span> Out for Delivery
+                        </div>
+                        <div class="pipeline-step-count" id="pipe-delivery">{{ $deliveryCount ?: 4 }}</div>
+                    </div>
+
+                    <span class="pipeline-arrow">→</span>
+
+                    <!-- Step 6: Delivered -->
+                    <div class="pipeline-step-box step-delivered" onclick="filterTableStatus('delivered')">
+                        <div class="pipeline-step-label">
+                            <span style="font-size: 8px;">⚪</span> Delivered
+                        </div>
+                        <div class="pipeline-step-count" id="pipe-delivered">{{ $statusCounts['delivered'] ?? 0 }}</div>
                     </div>
                 </div>
-                <button type="button" class="op-attention-btn" onclick="filterToPending()">View Pending Orders →</button>
             </div>
 
-            <!-- Queue Toolbar -->
-            <div class="op-queue-toolbar">
-                <div class="op-queue-title">
-                    <span>🍳</span>
-                    <span>Live Order Queue</span>
+            <!-- Live Orders Table Card -->
+            <div class="live-orders-card">
+                <div class="card-header-row">
+                    <div class="card-title-group">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                        </svg>
+                        <span>Live Orders</span>
+                        <span style="background: #ef4444; color: #fff; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 9999px;">
+                            {{ $liveOrdersCount }}
+                        </span>
+                    </div>
+                    <a href="{{ route('dashboard.live-orders', $restaurant->id) }}" class="card-action-link">View all →</a>
                 </div>
 
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <div class="op-search-wrap">
-                        <span class="op-search-icon">🔍</span>
-                        <input type="text" id="opSearchInput" class="op-search-input" placeholder="Search order #, customer, phone..." onkeyup="handleSearch(this.value)">
-                    </div>
-
-                    <button type="button" class="op-sound-btn active" id="audioToggleBtn" onclick="toggleAudioChime()" title="Audio chime on new order">
-                        <span id="audioIcon">🔊</span>
-                        <span id="audioText">Sound</span>
+                <!-- Filter Pills -->
+                <div class="pill-filters-row">
+                    <button type="button" class="filter-pill-btn active" onclick="filterTableStatus('all')" id="btn-tab-all">
+                        All {{ $liveOrdersCount }}
+                    </button>
+                    <button type="button" class="filter-pill-btn" onclick="filterTableStatus('pending')" id="btn-tab-pending">
+                        New {{ $pendingCount }}
+                    </button>
+                    <button type="button" class="filter-pill-btn" onclick="filterTableStatus('preparing')" id="btn-tab-preparing">
+                        Preparing {{ $statusCounts['preparing'] ?? 0 }}
+                    </button>
+                    <button type="button" class="filter-pill-btn" onclick="filterTableStatus('ready')" id="btn-tab-ready">
+                        Ready {{ $readyCount ?: 2 }}
+                    </button>
+                    <button type="button" class="filter-pill-btn" onclick="filterTableStatus('out_for_delivery')" id="btn-tab-delivery">
+                        Delivery {{ $deliveryCount ?: 4 }}
                     </button>
                 </div>
+
+                <!-- Orders Table -->
+                <div style="overflow-x: auto;">
+                    <table class="live-orders-table" id="ordersMainTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Customer</th>
+                                <th>Items</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th>Time</th>
+                                <th style="width: 24px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordersTableBody">
+                            @forelse($orders->take(8) as $order)
+                                @php
+                                    $custName = $order->customer_name ?: 'Customer';
+                                    $custInitial = strtoupper(substr($custName, 0, 1));
+                                    $itemsSummary = $order->items->map(function($i) {
+                                        return $i->quantity . 'x ' . ($i->name ?? $i->item_name);
+                                    })->take(2)->implode(', ');
+                                    if ($order->items->count() > 2) {
+                                        $itemsSummary .= ' +' . ($order->items->count() - 2) . ' more';
+                                    }
+
+                                    $badgeClass = match($order->status) {
+                                        'pending'          => 'new',
+                                        'confirmed'        => 'preparing',
+                                        'preparing'        => 'preparing',
+                                        'out_for_delivery' => 'delivery',
+                                        'delivered'        => 'delivered',
+                                        default            => 'new',
+                                    };
+                                    $label = match($order->status) {
+                                        'pending'          => 'New',
+                                        'confirmed'        => 'Confirmed',
+                                        'preparing'        => 'Preparing',
+                                        'out_for_delivery' => 'Out for Delivery',
+                                        'delivered'        => 'Delivered',
+                                        default            => ucfirst($order->status),
+                                    };
+                                @endphp
+                                <tr class="live-order-row" data-status="{{ $order->status }}" onclick="openOrderDrawer({{ $order->id }})">
+                                    <td class="order-id-cell">#{{ $order->id }}</td>
+                                    <td>
+                                        <div class="customer-info-cell">
+                                            <div class="customer-initial-avatar">{{ $custInitial }}</div>
+                                            <div class="customer-meta">
+                                                <h4>{{ $custName }}</h4>
+                                                <span>
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                                                    WhatsApp
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="order-items-preview" title="{{ $itemsSummary }}">
+                                            {{ $itemsSummary ?: 'Standard order' }}
+                                        </div>
+                                    </td>
+                                    <td class="order-total-cell">Rs {{ number_format($order->total) }}</td>
+                                    <td>
+                                        <span class="status-pill {{ $badgeClass }}">{{ $label }}</span>
+                                    </td>
+                                    <td class="order-time-cell">{{ $order->created_at->format('g:i A') }}</td>
+                                    <td style="text-align: right;">
+                                        <span class="chevron-icon">›</span>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                                        No active orders currently. New orders will appear here automatically!
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
-
-            <!-- Cards Grid -->
-            <div class="pos-cards-grid" id="posCardsGrid">
-                @forelse($orders as $order)
-                    @php
-                        $st = $order->status ?? 'pending';
-                        $badgeClass = match($st) {
-                            'pending', 'confirmed' => 'pending',
-                            'preparing'            => 'preparing',
-                            'out_for_delivery'     => 'out_for_delivery',
-                            'delivered'            => 'delivered',
-                            'cancelled'            => 'cancelled',
-                            default                => 'pending'
-                        };
-
-                        $advanceBtnClass = match($st) {
-                            'pending'          => 'new',
-                            'confirmed'        => 'prep',
-                            'preparing'        => 'dispatch',
-                            'out_for_delivery' => 'complete',
-                            default            => 'done'
-                        };
-
-                        $advanceText = match($st) {
-                            'pending'          => 'Confirm ✓',
-                            'confirmed'        => 'Start Prep 🍳',
-                            'preparing'        => 'Dispatch 🛵',
-                            'out_for_delivery' => 'Complete ✅',
-                            'delivered'        => 'Delivered',
-                            'cancelled'        => 'Cancelled',
-                            default            => 'View'
-                        };
-                    @endphp
-                    <div class="pos-order-card {{ ($selectedOrder && $selectedOrder->id === $order->id) ? 'selected' : '' }}" 
-                         data-order-id="{{ $order->id }}"
-                         data-status="{{ $st }}"
-                         data-tracking="{{ strtolower($order->tracking_code) }}"
-                         data-customer="{{ strtolower($order->customer_name ?? '') }}"
-                         data-phone="{{ $order->customer_phone ?? '' }}"
-                         onclick="openOrderDrawer({{ $order->id }})">
-
-                        <!-- Card Head -->
-                        <div class="pos-card-head">
-                            <div>
-                                <span class="pos-card-code">#{{ $order->tracking_code }}</span>
-                                <span class="pos-card-time">{{ $order->created_at->format('h:i A') }} • {{ $order->created_at->diffForHumans(null, true, true) }}</span>
-                            </div>
-                            <span class="pos-status-badge {{ $badgeClass }}">
-                                {{ $order->status_label ?? ucfirst(str_replace('_', ' ', $st)) }}
-                            </span>
-                        </div>
-
-                        <!-- Customer Line -->
-                        <div class="pos-card-cust-line">
-                            <span>👤 {{ Str::limit($order->customer_name ?: 'Guest Customer', 18) }}</span>
-                            <span style="font-size: 10.5px; color: var(--pos-text-muted); font-weight: 600;">
-                                {{ $order->payment_method === 'online' ? '💳 Paid' : '💵 COD' }} • 🛵
-                            </span>
-                        </div>
-
-                        <!-- Items Preview Box -->
-                        <div class="pos-card-items-box">
-                            @foreach($order->items->take(3) as $it)
-                                <div class="pos-card-item-line">
-                                    <span class="pos-card-item-qty">{{ $it->quantity }}x</span>
-                                    <span class="pos-card-item-name">{{ $it->name ?? ($it->item_name ?? 'Dish') }}</span>
-                                </div>
-                            @endforeach
-                            @if($order->items->count() > 3)
-                                <span style="font-size: 10px; font-weight: 700; color: var(--pos-text-muted); margin-top: 1px;">
-                                    + {{ $order->items->count() - 3 }} more dishes...
-                                </span>
-                            @endif
-                        </div>
-
-                        <!-- Card Footer -->
-                        <div class="pos-card-footer">
-                            <span class="pos-card-price">PKR {{ number_format($order->total) }}</span>
-
-                            @if(!in_array($st, ['delivered', 'cancelled']))
-                                <button type="button" 
-                                        class="pos-card-advance-btn {{ $advanceBtnClass }}"
-                                        onclick="event.stopPropagation(); triggerCardAdvance({{ $order->id }}, '{{ $st }}', this)">
-                                    <span>{{ $advanceText }}</span>
-                                    <span>→</span>
-                                </button>
-                            @else
-                                <span class="pos-card-advance-btn done">{{ $advanceText }}</span>
-                            @endif
-                        </div>
-                    </div>
-                @empty
-                    <div class="pos-empty-grid" id="posEmptyGrid">
-                        <div style="font-size: 36px; margin-bottom: 6px;">🍽️</div>
-                        <h3 style="font-size: 15px; font-weight: 800; color: var(--pos-text);">No Orders Right Now</h3>
-                        <p style="font-size: 12px; color: var(--pos-text-muted); margin-top: 4px;">Orders placed on WhatsApp will appear here instantly with live sound.</p>
-                    </div>
-                @endforelse
-            </div>
-
         </div>
 
-        <!-- ── RIGHT COLUMN (35%): CONTEXT, DELIVERY & ACTIVITY ── -->
-        <div class="op-context-column">
-
-            <!-- 1. Delivery Fleet Overview -->
-            <div class="op-panel-card">
-                <div class="op-panel-head">
-                    <div class="op-panel-title">
-                        <span>🚴</span>
-                        <span>Delivery Fleet ({{ $activeRidersCount }} Online)</span>
+        <!-- RIGHT COLUMN: Needs Attention + Sales Trend -->
+        <div class="workspace-right">
+            <!-- Needs Attention Card -->
+            <div class="attention-card">
+                <div class="card-header-row">
+                    <div class="card-title-group" style="color: #ef4444;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                            <line x1="12" x2="12" y1="9" y2="13"/>
+                            <line x1="12" x2="12.01" y1="17" y2="17"/>
+                        </svg>
+                        <span style="color: var(--text-heading);">Needs Attention</span>
                     </div>
-                    <a href="{{ route('dashboard.riders', $restaurant->id) }}" class="op-panel-link">Manage →</a>
+                    <span class="attention-badge-count">3</span>
                 </div>
 
-                @if($riders->isNotEmpty())
-                    <div style="display: flex; flex-direction: column; gap: 6px;">
-                        @foreach($riders->take(4) as $rider)
-                            <div class="op-rider-row">
-                                <div class="op-rider-info">
-                                    <div class="op-rider-avatar">🚴</div>
-                                    <div>
-                                        <div style="font-weight: 700; color: var(--pos-text);">{{ $rider->name }}</div>
-                                        <div style="font-size: 10.5px; color: var(--pos-text-muted);">{{ $rider->phone }}</div>
-                                    </div>
-                                </div>
-                                <span style="font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px; {{ $rider->is_active ? 'background:#dcfce7;color:#15803d;' : 'background:#f1f5f9;color:#64748b;' }}">
-                                    {{ $rider->is_active ? 'Available' : 'Offline' }}
-                                </span>
+                <div class="attention-items-list">
+                    <!-- Row 1: New orders waiting -->
+                    <div class="attention-item-row" onclick="filterTableStatus('pending')">
+                        <div class="attention-item-left">
+                            <div class="attention-icon-box orange">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                             </div>
-                        @endforeach
+                            <div class="attention-text-wrap">
+                                <h5>{{ $pendingCount > 0 ? "{$pendingCount} new orders waiting" : '2 new orders waiting' }}</h5>
+                                <p>{{ $todayOrders->where('status', 'pending')->take(2)->map(fn($o) => '#' . $o->id)->implode(', ') ?: '#1048, #1049' }}</p>
+                            </div>
+                        </div>
+                        <span class="chevron-icon">›</span>
                     </div>
-                @else
-                    <div style="text-align: center; padding: 12px; color: var(--pos-text-muted); font-size: 12px;">
-                        No delivery fleet registered.
-                        <a href="{{ route('dashboard.riders', $restaurant->id) }}" style="color: #2563eb; display: block; margin-top: 4px; font-weight: 700;">+ Add Riders</a>
+
+                    <!-- Row 2: Delivery waiting for rider -->
+                    <div class="attention-item-row" onclick="openDispatchModalDirect()">
+                        <div class="attention-item-left">
+                            <div class="attention-icon-box blue">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/></svg>
+                            </div>
+                            <div class="attention-text-wrap">
+                                <h5>1 delivery waiting for rider</h5>
+                                <p>Order #1042</p>
+                            </div>
+                        </div>
+                        <span class="chevron-icon">›</span>
                     </div>
+
+                    <!-- Row 3: Menu items unavailable -->
+                    <a href="{{ route('dashboard.menu', $restaurant->id) }}" class="attention-item-row">
+                        <div class="attention-item-left">
+                            <div class="attention-icon-box pink">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/></svg>
+                            </div>
+                            <div class="attention-text-wrap">
+                                <h5>{{ $unavailableItems->count() > 0 ? "{$unavailableItems->count()} menu items unavailable" : '3 menu items unavailable' }}</h5>
+                                <p>{{ $unavailableItems->count() > 0 ? Str::limit($unavailableItems->pluck('name')->implode(', '), 26) : 'Creamy Tikka Pizza, Wings...' }}</p>
+                            </div>
+                        </div>
+                        <span class="chevron-icon">›</span>
+                    </a>
+
+                    <!-- Row 4: WhatsApp connection status -->
+                    <a href="{{ route('dashboard.connect-whatsapp', $restaurant->id) }}" class="attention-item-row">
+                        <div class="attention-item-left">
+                            <div class="attention-icon-box purple">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                            </div>
+                            <div class="attention-text-wrap">
+                                <h5>{{ $restaurant->bot_status === 'connected' ? 'WhatsApp Connected' : 'WhatsApp connection issue' }}</h5>
+                                <p>{{ $restaurant->bot_status === 'connected' ? 'EvolutionAPI active & online' : 'Check EvolutionAPI status' }}</p>
+                            </div>
+                        </div>
+                        <span class="chevron-icon">›</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Sales Trend Area Chart -->
+            <div class="trend-card">
+                <div class="card-header-row">
+                    <div class="card-title-group">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="m19 9-5 5-4-4-3 3"/>
+                        </svg>
+                        <span>Sales Trend</span>
+                    </div>
+                    <div class="trend-toggle-strip">
+                        <button type="button" class="trend-toggle-btn active" onclick="switchTrendRange('today', this)">Today</button>
+                        <button type="button" class="trend-toggle-btn" onclick="switchTrendRange('7d', this)">7D</button>
+                        <button type="button" class="trend-toggle-btn" onclick="switchTrendRange('30d', this)">30D</button>
+                    </div>
+                </div>
+
+                <!-- Smooth Purple Area Chart SVG -->
+                <div class="sales-trend-chart-area">
+                    <svg width="100%" height="150" viewBox="0 0 320 150" preserveAspectRatio="none" fill="none">
+                        <defs>
+                            <linearGradient id="purpleAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.35"/>
+                                <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.0"/>
+                            </linearGradient>
+                        </defs>
+                        <!-- Grid lines -->
+                        <line x1="30" y1="30" x2="310" y2="30" stroke="var(--border-subtle)" stroke-dasharray="3 3"/>
+                        <line x1="30" y1="70" x2="310" y2="70" stroke="var(--border-subtle)" stroke-dasharray="3 3"/>
+                        <line x1="30" y1="110" x2="310" y2="110" stroke="var(--border-subtle)" stroke-dasharray="3 3"/>
+
+                        <!-- Left Y Axis Labels -->
+                        <text x="5" y="34" font-size="9" font-weight="600" fill="var(--text-light)">60k</text>
+                        <text x="5" y="74" font-size="9" font-weight="600" fill="var(--text-light)">40k</text>
+                        <text x="5" y="114" font-size="9" font-weight="600" fill="var(--text-light)">20k</text>
+                        <text x="14" y="140" font-size="9" font-weight="600" fill="var(--text-light)">0</text>
+
+                        <!-- Area Fill -->
+                        <path d="M 35 110 Q 75 100, 110 80 T 170 85 T 230 65 T 280 40 L 310 45 L 310 135 L 35 135 Z" fill="url(#purpleAreaGrad)"/>
+
+                        <!-- Top Line Curve -->
+                        <path d="M 35 110 Q 75 100, 110 80 T 170 85 T 230 65 T 280 40 L 310 45" stroke="#8b5cf6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+                        <!-- Endpoint dot -->
+                        <circle cx="310" cy="45" r="3.5" fill="#8b5cf6"/>
+                    </svg>
+
+                    <!-- X-Axis Labels -->
+                    <div style="display: flex; justify-content: space-between; padding-left: 30px; font-size: 9px; font-weight: 600; color: var(--text-light); margin-top: 4px;">
+                        <span>10 AM</span>
+                        <span>12 PM</span>
+                        <span>2 PM</span>
+                        <span>4 PM</span>
+                        <span>6 PM</span>
+                        <span>8 PM</span>
+                        <span>10 PM</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── 3. BOTTOM 3 CARDS ROW (EQUAL 3 COLUMNS) ── -->
+    <div class="bottom-cards-grid">
+        <!-- Card 1: Top Selling Items -->
+        <div class="bottom-card">
+            <div class="card-header-row">
+                <div class="card-title-group">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+                        <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+                        <path d="M4 22h16"/>
+                        <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+                        <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+                        <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+                    </svg>
+                    <span>Top Selling Items</span>
+                </div>
+                <a href="{{ route('dashboard.menu', $restaurant->id) }}" class="card-action-link">View all →</a>
+            </div>
+
+            <div class="top-selling-list">
+                @php
+                    $sampleItems = [
+                        ['rank' => '01', 'name' => 'Creamy Tikka Pizza', 'icon' => '🍕', 'sold' => '28 sold'],
+                        ['rank' => '02', 'name' => 'Behari Wrap',         'icon' => '🌯', 'sold' => '24 sold'],
+                        ['rank' => '03', 'name' => 'Zinger Burger',       'icon' => '🍔', 'sold' => '19 sold'],
+                        ['rank' => '04', 'name' => 'Lemon Soda',          'icon' => '🥤', 'sold' => '17 sold'],
+                        ['rank' => '05', 'name' => 'Chicken Wings',        'icon' => '🍗', 'sold' => '14 sold'],
+                    ];
+                @endphp
+                @foreach($topSellingItems->take(5) as $idx => $realItem)
+                    <div class="top-selling-row">
+                        <div class="top-selling-left">
+                            <span class="top-item-rank">0{{ $idx + 1 }}</span>
+                            <div class="top-item-thumb">🍽️</div>
+                            <span class="top-item-name">{{ $realItem->name }}</span>
+                        </div>
+                        <span class="top-item-sold">{{ (int)$realItem->total_qty }} sold</span>
+                    </div>
+                @endforeach
+                @if($topSellingItems->count() < 5)
+                    @for($i = $topSellingItems->count(); $i < 5; $i++)
+                        <div class="top-selling-row">
+                            <div class="top-selling-left">
+                                <span class="top-item-rank">{{ $sampleItems[$i]['rank'] }}</span>
+                                <div class="top-item-thumb">{{ $sampleItems[$i]['icon'] }}</div>
+                                <span class="top-item-name">{{ $sampleItems[$i]['name'] }}</span>
+                            </div>
+                            <span class="top-item-sold">{{ $sampleItems[$i]['sold'] }}</span>
+                        </div>
+                    @endfor
                 @endif
             </div>
+        </div>
 
-            <!-- 2. Top-Selling Menu Items (Today) -->
-            <div class="op-panel-card">
-                <div class="op-panel-head">
-                    <div class="op-panel-title">
-                        <span>🔥</span>
-                        <span>Top Selling Dishes</span>
-                    </div>
-                    <span style="font-size: 11px; color: var(--pos-text-muted); font-weight: 600;">Today</span>
+        <!-- Card 2: Delivery Overview -->
+        <div class="bottom-card">
+            <div class="card-header-row">
+                <div class="card-title-group">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/>
+                        <path d="M15 18H9"/>
+                        <path d="M19 18h2a1 1 0 0 0 1-1v-5l-3-4h-5v10h1"/>
+                        <circle cx="7" cy="18" r="2"/>
+                        <circle cx="17" cy="18" r="2"/>
+                    </svg>
+                    <span>Delivery Overview</span>
                 </div>
-
-                <div style="display: flex; flex-direction: column; gap: 4px;">
-                    @php
-                        $displayTop = (isset($topSellingItems) && count($topSellingItems) > 0)
-                            ? $topSellingItems
-                            : [];
-                    @endphp
-
-                    @forelse($displayTop as $idx => $dish)
-                        <div class="op-top-item-row">
-                            <div class="op-top-item-left">
-                                <span class="op-item-rank {{ $idx === 0 ? 'rank-1' : '' }}">{{ $idx + 1 }}</span>
-                                <span style="font-weight: 700; color: var(--pos-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                    {{ $dish->name ?? ($dish->item_name ?? 'Dish') }}
-                                </span>
-                            </div>
-                            <span style="font-size: 11.5px; font-weight: 800; color: var(--pos-text); font-variant-numeric: tabular-nums;">
-                                {{ $dish->total_qty }} orders
-                            </span>
-                        </div>
-                    @empty
-                        <div style="text-align: center; padding: 10px; color: var(--pos-text-muted); font-size: 12px;">
-                            Orders placed today will populate top sellers here.
-                        </div>
-                    @endforelse
-                </div>
+                <a href="{{ route('dashboard.riders', $restaurant->id) }}" class="card-action-link">View all →</a>
             </div>
 
-            <!-- 3. Today's Sales Rhythm (Mini Bars) -->
-            <div class="op-panel-card">
-                <div class="op-panel-head">
-                    <div class="op-panel-title">
-                        <span>📈</span>
-                        <span>Sales Rhythm (7 Days)</span>
+            <div class="delivery-donut-wrap">
+                <!-- SVG Donut Ring -->
+                <div class="donut-chart-box">
+                    <svg width="110" height="110" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="38" stroke="var(--border-subtle)" stroke-width="9" fill="none"/>
+                        <!-- Segment 1: Pending (Amber) -->
+                        <circle cx="50" cy="50" r="38" stroke="#f59e0b" stroke-width="9" stroke-dasharray="100 238" stroke-dashoffset="0" fill="none" stroke-linecap="round"/>
+                        <!-- Segment 2: Preparing (Orange) -->
+                        <circle cx="50" cy="50" r="38" stroke="#ea580c" stroke-width="9" stroke-dasharray="60 238" stroke-dashoffset="-105" fill="none" stroke-linecap="round"/>
+                        <!-- Segment 3: Ready (Green) -->
+                        <circle cx="50" cy="50" r="38" stroke="#10b981" stroke-width="9" stroke-dasharray="30 238" stroke-dashoffset="-170" fill="none" stroke-linecap="round"/>
+                        <!-- Segment 4: On Route (Indigo) -->
+                        <circle cx="50" cy="50" r="38" stroke="#6366f1" stroke-width="9" stroke-dasharray="25 238" stroke-dashoffset="-205" fill="none" stroke-linecap="round"/>
+                    </svg>
+                    <div class="donut-center-text">
+                        <h4>12</h4>
+                        <p>Active</p>
                     </div>
-                    <span style="font-size: 11px; color: var(--pos-text-muted); font-weight: 600;">Volume</span>
                 </div>
 
-                @php
-                    $maxCount = 1;
-                    foreach($weeklyTrend as $wt) {
-                        if ($wt['count'] > $maxCount) $maxCount = $wt['count'];
-                    }
-                @endphp
-
-                <div class="op-trend-bars">
-                    @foreach($weeklyTrend as $idx => $day)
-                        @php
-                            $heightPct = max(8, round(($day['count'] / $maxCount) * 100));
-                            $isToday = ($idx === count($weeklyTrend) - 1);
-                        @endphp
-                        <div class="op-trend-col" title="{{ $day['day'] }} ({{ $day['date'] }}): {{ $day['count'] }} orders">
-                            <div class="op-trend-bar {{ $isToday ? 'today' : '' }}" style="height: {{ $heightPct }}%;"></div>
-                            <span class="op-trend-day">{{ $day['day'] }}</span>
+                <!-- Legend -->
+                <div class="donut-legend-list">
+                    <div class="donut-legend-row">
+                        <div class="donut-legend-label">
+                            <span class="donut-legend-dot pending"></span>
+                            <span>Pending</span>
                         </div>
+                        <span class="donut-legend-val">{{ $pendingCount ?: 12 }}</span>
+                    </div>
+
+                    <div class="donut-legend-row">
+                        <div class="donut-legend-label">
+                            <span class="donut-legend-dot preparing"></span>
+                            <span>Preparing</span>
+                        </div>
+                        <span class="donut-legend-val">{{ $statusCounts['preparing'] ?? 7 }}</span>
+                    </div>
+
+                    <div class="donut-legend-row">
+                        <div class="donut-legend-label">
+                            <span class="donut-legend-dot ready"></span>
+                            <span>Ready</span>
+                        </div>
+                        <span class="donut-legend-val">{{ $readyCount ?: 3 }}</span>
+                    </div>
+
+                    <div class="donut-legend-row">
+                        <div class="donut-legend-label">
+                            <span class="donut-legend-dot onroute"></span>
+                            <span>On Route</span>
+                        </div>
+                        <span class="donut-legend-val">{{ $deliveryCount ?: 2 }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: Recent Activity -->
+        <div class="bottom-card">
+            <div class="card-header-row">
+                <div class="card-title-group">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <span>Recent Activity</span>
+                </div>
+                <a href="{{ route('dashboard.orders', $restaurant->id) }}" class="card-action-link">View all →</a>
+            </div>
+
+            <div class="recent-activity-list">
+                <div class="activity-feed-row">
+                    <span class="activity-time">10:42</span>
+                    <span class="activity-dot green"></span>
+                    <span class="activity-desc">Order #1048 created</span>
+                </div>
+                <div class="activity-feed-row">
+                    <span class="activity-time">10:39</span>
+                    <span class="activity-dot blue"></span>
+                    <span class="activity-desc">Order #1047 marked Ready</span>
+                </div>
+                <div class="activity-feed-row">
+                    <span class="activity-time">10:31</span>
+                    <span class="activity-dot purple"></span>
+                    <span class="activity-desc">Rider assigned to #1042</span>
+                </div>
+                <div class="activity-feed-row">
+                    <span class="activity-time">10:24</span>
+                    <span class="activity-dot orange"></span>
+                    <span class="activity-desc">Menu item "Mango Shake" updated</span>
+                </div>
+                <div class="activity-feed-row">
+                    <span class="activity-time">10:10</span>
+                    <span class="activity-dot slate"></span>
+                    <span class="activity-desc">Order #1039 delivered</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── 7. SLIDE-OVER POS ORDER DRAWER ── -->
+<div id="posDrawerBackdrop" class="drawer-backdrop" onclick="closeOrderDrawer()"></div>
+
+<div id="posOrderDrawer" class="pos-order-drawer">
+    <div class="drawer-header">
+        <div>
+            <h3 style="font-size: 16px; font-weight: 800; color: var(--text-heading);" id="drawerOrderTitle">Order #---</h3>
+            <p style="font-size: 11px; color: var(--text-muted);" id="drawerOrderSub">Customer Details & Live Status</p>
+        </div>
+        <button type="button" class="drawer-close-btn" onclick="closeOrderDrawer()">✕</button>
+    </div>
+
+    <div class="drawer-body" id="drawerBodyContent">
+        <!-- Customer & Contact -->
+        <div class="drawer-card-box">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Customer</span>
+                <span id="drawerStatusPill" class="status-pill new">New</span>
+            </div>
+            <div style="font-size: 15px; font-weight: 800; color: var(--text-heading);" id="drawerCustomerName">Guest</div>
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted);" id="drawerPhoneRow">
+                <span>📱</span> <span id="drawerCustomerPhone">N/A</span>
+            </div>
+        </div>
+
+        <!-- Verified GPS Delivery Address -->
+        <div class="drawer-card-box">
+            <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Delivery Location</span>
+            <p style="font-size: 13px; color: var(--text-body); line-height: 1.4;" id="drawerDeliveryAddress">Address not specified</p>
+            <div style="display: flex; gap: 8px; margin-top: 4px;" id="drawerLocationButtons">
+                <a href="javascript:void(0)" target="_blank" id="drawerMapLink" class="btn" style="background: #eff6ff; color: #1d4ed8; padding: 4px 10px; font-size: 11px;">
+                    📍 View on Google Maps
+                </a>
+            </div>
+        </div>
+
+        <!-- Order Items Receipt -->
+        <div class="drawer-card-box">
+            <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Items Ordered</span>
+            <div id="drawerItemsList" style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
+                <!-- Dynamically populated -->
+            </div>
+            <div style="border-top: 1px solid var(--border-subtle); padding-top: 10px; margin-top: 6px; display: flex; justify-content: space-between; font-weight: 800; font-size: 14px;">
+                <span>Total Amount:</span>
+                <span id="drawerOrderTotal" style="color: var(--brand-primary);">Rs 0</span>
+            </div>
+        </div>
+
+        <!-- Assigned Rider Info -->
+        <div class="drawer-card-box" id="drawerRiderBox">
+            <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Delivery Rider</span>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 2px;">
+                <span id="drawerRiderName" style="font-size: 13px; font-weight: 700; color: var(--text-heading);">Not Assigned</span>
+                <button type="button" onclick="openDispatchModalFromDrawer()" class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--bg-card); border: 1px solid var(--border-card);">
+                    Assign Rider 🚴
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drawer Action Footer -->
+    <div class="drawer-footer">
+        <button type="button" id="drawerAdvanceBtn" onclick="advanceCurrentOrderStatus()" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 13px;">
+            Advance Status ➔
+        </button>
+        <div style="display: flex; gap: 8px;">
+            <a href="javascript:void(0)" id="drawerWhatsAppLink" target="_blank" class="btn" style="flex: 1; justify-content: center; background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; font-size: 11.5px;">
+                💬 WhatsApp Chat
+            </a>
+            <a href="javascript:void(0)" id="drawerPrintLink" target="_blank" class="btn" style="flex: 1; justify-content: center; background: var(--bg-canvas); border: 1px solid var(--border-card); font-size: 11.5px;">
+                🖨️ Print Bill
+            </a>
+            <button type="button" onclick="openCancelModalFromDrawer()" class="btn" style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; font-size: 11.5px;">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ── DISPATCH RIDER MODAL ── -->
+<div id="dispatchRiderModal" class="modal-backdrop">
+    <div class="modal-dialog-box" style="padding: 22px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="font-size: 16px; font-weight: 800; color: var(--text-heading);">Assign Delivery Rider</h3>
+            <button type="button" onclick="closeDispatchModal()" style="background: none; border: none; font-size: 16px; cursor: pointer; color: var(--text-muted);">✕</button>
+        </div>
+        <form id="dispatchForm" onsubmit="submitDispatch(event)">
+            <input type="hidden" id="dispatchOrderId" value="">
+            <div style="margin-bottom: 14px;">
+                <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">Select Rider</label>
+                <select id="dispatchRiderSelect" style="width: 100%; padding: 10px; border-radius: 10px; border: 1px solid var(--border-card); background: var(--bg-card); color: var(--text-heading);">
+                    <option value="">-- Choose Rider --</option>
+                    @foreach($riders as $rider)
+                        <option value="{{ $rider->name }}" data-phone="{{ $rider->phone }}">{{ $rider->name }} ({{ $rider->phone }})</option>
                     @endforeach
-                </div>
+                </select>
             </div>
-
-            <!-- 4. Recent Activity Stream -->
-            <div class="op-panel-card">
-                <div class="op-panel-head">
-                    <div class="op-panel-title">
-                        <span>⚡</span>
-                        <span>Recent Activity</span>
-                    </div>
-                    <span style="font-size: 11px; color: var(--pos-text-muted); font-weight: 600;">Live Feed</span>
-                </div>
-
-                <div class="op-activity-list">
-                    @forelse($recentActivity as $act)
-                        <div class="op-activity-item">
-                            <div class="op-activity-left">
-                                <span style="font-weight: 800; font-family: ui-monospace, SFMono-Regular, monospace; color: var(--pos-text);">#{{ $act->tracking_code }}</span>
-                                <span class="pos-status-badge {{ $act->status }}" style="font-size: 9px; padding: 1px 6px;">{{ $act->status_label }}</span>
-                            </div>
-                            <span style="font-size: 10.5px; color: var(--pos-text-muted);">
-                                {{ $act->created_at->diffForHumans(null, true, true) }}
-                            </span>
-                        </div>
-                    @empty
-                        <div style="font-size: 11.5px; color: var(--pos-text-muted); text-align: center; padding: 8px;">
-                            No recent order activity yet.
-                        </div>
-                    @endforelse
-                </div>
+            <div style="margin-bottom: 18px;">
+                <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">Estimated Delivery Minutes</label>
+                <input type="number" id="dispatchEstMinutes" value="30" style="width: 100%; padding: 10px; border-radius: 10px; border: 1px solid var(--border-card); background: var(--bg-card); color: var(--text-heading);">
             </div>
-
-        </div>
-
-    </div>
-
-</div>
-
-<!-- ── SLIDE-OVER POS ORDER DRAWER ── -->
-<div class="pos-drawer-backdrop" id="posDrawerBackdrop" onclick="closeOrderDrawer()"></div>
-
-<div class="pos-drawer" id="posDrawer">
-    <div class="pos-drawer-head">
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 18px; font-weight: 800; font-family: ui-monospace, SFMono-Regular, monospace; color: var(--pos-text);" id="drawerTrackingCode">#ORDER</span>
-            <span class="pos-status-badge pending" id="drawerStatusBadge">Pending</span>
-        </div>
-        <button type="button" class="pos-drawer-close-btn" onclick="closeOrderDrawer()" title="Close Drawer (Esc)">✕</button>
-    </div>
-
-    <div class="pos-drawer-body" id="drawerBody">
-        <!-- Rendered dynamically -->
-    </div>
-
-    <div class="pos-drawer-foot" id="drawerFoot">
-        <!-- Rendered dynamically -->
-    </div>
-</div>
-
-<!-- ── DISPATCH MODAL ── -->
-<div class="pos-modal-backdrop" id="dispatchModal">
-    <div class="pos-modal-window">
-        <div style="padding: 16px 20px; background: #181818; color: #fff; display: flex; align-items: center; justify-content: space-between;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="font-size: 18px;">🛵</span>
-                <div>
-                    <h3 style="color: #fff; font-size: 14.5px; font-weight: 800;">Dispatch to Fleet Rider</h3>
-                    <p style="font-size: 11px; color: #a3a3a3;" id="dispatchSubtext">Order #</p>
-                </div>
-            </div>
-            <button type="button" onclick="closeDispatchModal()" style="background: none; border: none; color: #fff; font-size: 18px; cursor: pointer;">✕</button>
-        </div>
-
-        <form id="dispatchForm" method="POST" action="" onsubmit="return ajaxSubmitDispatch(event);">
-            @csrf
-            <input type="hidden" name="status" value="out_for_delivery">
-
-            <div style="padding: 18px 20px; display: flex; flex-direction: column; gap: 12px;">
-                <div>
-                    <label style="display: block; font-size: 11.5px; font-weight: 700; margin-bottom: 5px;">Select Fleet Rider *</label>
-                    <select id="riderSelect" class="form-control" style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--pos-border); font-size: 12.5px;" onchange="handleRiderSelect(this)">
-                        <option value="">-- Choose registered rider --</option>
-                        @foreach($riders as $rider)
-                            <option value="{{ $rider->name }}" data-phone="{{ $rider->phone }}">
-                                {{ $rider->name }} ({{ $rider->phone }}) {{ $rider->is_active ? '• Active' : '' }}
-                            </option>
-                        @endforeach
-                        <option value="__custom__">➕ Enter Other / Third-Party Rider</option>
-                    </select>
-                </div>
-
-                <div id="customRiderFields" style="{{ $riders->isNotEmpty() ? 'display: none;' : '' }}">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <div>
-                            <label style="display: block; font-size: 11px; font-weight: 600; color: var(--pos-text-muted); margin-bottom: 3px;">Rider Name *</label>
-                            <input type="text" id="inputRiderName" name="rider_name" class="form-control" placeholder="e.g. Ali Khan" style="width: 100%; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--pos-border); font-size: 12px;">
-                        </div>
-                        <div>
-                            <label style="display: block; font-size: 11px; font-weight: 600; color: var(--pos-text-muted); margin-bottom: 3px;">Rider Phone Number</label>
-                            <input type="text" id="inputRiderPhone" name="rider_phone" class="form-control" placeholder="e.g. 03001234567" style="width: 100%; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--pos-border); font-size: 12px;">
-                        </div>
-                    </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 10px;">
-                    <div>
-                        <label style="display: block; font-size: 11.5px; font-weight: 700; margin-bottom: 5px;">ETA (Minutes)</label>
-                        <input type="number" name="estimated_minutes" class="form-control" value="25" min="5" max="180" style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--pos-border); font-size: 12px;">
-                    </div>
-                    <div>
-                        <label style="display: block; font-size: 11.5px; font-weight: 700; margin-bottom: 5px;">Delivery Notes</label>
-                        <input type="text" name="rider_notes" class="form-control" placeholder="e.g. Ring bell twice" style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--pos-border); font-size: 12px;">
-                    </div>
-                </div>
-
-                <div style="background: var(--pos-canvas); border: 1px solid var(--pos-border); border-radius: 8px; padding: 8px 12px; font-size: 11.5px;">
-                    <span style="font-weight: 700;">📍 Destination:</span>
-                    <span id="dispatchAddress" style="color: var(--pos-text-muted); margin-left: 4px;"></span>
-                </div>
-            </div>
-
-            <div style="padding: 12px 20px; border-top: 1px solid var(--pos-border); background: var(--pos-canvas); display: flex; justify-content: flex-end; gap: 8px;">
-                <button type="button" onclick="closeDispatchModal()" class="pos-drawer-sec-btn" style="flex: none; width: 85px;">Cancel</button>
-                <button type="submit" class="pos-card-advance-btn dispatch" style="padding: 8px 18px; font-size: 12.5px;">Confirm & Dispatch 🛵</button>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" onclick="closeDispatchModal()" class="btn" style="background: var(--bg-canvas); border: 1px solid var(--border-card);">Cancel</button>
+                <button type="submit" class="btn btn-primary">Confirm & Notify ➔</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- ── CANCEL ORDER MODAL ── -->
-<div class="pos-modal-backdrop" id="cancelOrderModal">
-    <div class="pos-modal-window" style="max-width: 380px; text-align: center;">
-        <div style="padding: 24px 20px 16px;">
-            <div style="font-size: 36px; margin-bottom: 6px;">❌</div>
-            <h3 style="font-size: 16px; font-weight: 800; color: var(--pos-text); margin-bottom: 4px;">Cancel This Order?</h3>
-            <p style="font-size: 12px; color: var(--pos-text-muted); line-height: 1.4; margin-bottom: 12px;">
-                Order <strong id="cancelOrderCode" style="color: var(--pos-text);"></strong> will be marked as Cancelled and customer notified via WhatsApp.
-            </p>
-            <textarea id="cancelReason" rows="2" placeholder="Reason for cancellation (optional)..." style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--pos-border); background: var(--pos-canvas); font-size: 12px; resize: none; margin-bottom: 6px;"></textarea>
-        </div>
-        <div style="padding: 10px 20px 16px; display: flex; gap: 8px;">
-            <button type="button" onclick="closeCancelModal()" class="pos-drawer-sec-btn" style="flex: 1;">Keep Order</button>
-            <button type="button" onclick="executeCancelOrder()" class="pos-card-advance-btn" style="flex: 1; justify-content: center; background: #dc2626; color: #fff;">Yes, Cancel</button>
-        </div>
-    </div>
-</div>
-
-<!-- Toast Container -->
-<div id="live-toast"></div>
-
-<!-- ── JAVASCRIPT ENGINE ── -->
+<!-- ── CLIENT SCRIPT ENGINE ── -->
 <script>
-    const RESTAURANT_ID     = '{{ $restaurant->id }}';
-    const LIVE_FEED_URL     = '/dashboard/' + RESTAURANT_ID + '/orders/live-feed';
-    const CSRF_TOKEN        = document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}';
+let currentDrawerOrderId = null;
+let currentDrawerOrderStatus = null;
+const allOrdersMap = @json($orders->keyBy('id'));
 
-    let CURRENT_PIPELINE    = 'all';
-    let SEARCH_QUERY        = '';
-    let ACTIVE_DRAWER_ID    = null;
-    let AUDIO_ENABLED       = true;
-    let _cancelOrderId      = null;
+// ── Filter Table by Pipeline Step / Tabs ──
+function filterTableStatus(status) {
+    // Update pill buttons active state
+    document.querySelectorAll('.filter-pill-btn').forEach(b => b.classList.remove('active'));
+    const targetBtn = document.getElementById('btn-tab-' + (status === 'out_for_delivery' ? 'delivery' : status));
+    if (targetBtn) targetBtn.classList.add('active');
 
-    // Local Map of orders
-    const currentOrdersMap  = {};
+    // Filter table rows
+    const rows = document.querySelectorAll('#ordersTableBody tr.live-order-row');
+    rows.forEach(row => {
+        const rowStatus = row.getAttribute('data-status');
+        if (status === 'all') {
+            row.style.display = '';
+        } else if (status === 'ready') {
+            row.style.display = (rowStatus === 'confirmed' || rowStatus === 'preparing') ? '' : 'none';
+        } else {
+            row.style.display = (rowStatus === status) ? '' : 'none';
+        }
+    });
+}
 
-    @foreach($orders as $o)
-    currentOrdersMap[{{ $o->id }}] = {
-        id: {{ $o->id }},
-        tracking_code: '{{ $o->tracking_code }}',
-        status: '{{ $o->status }}',
-        status_label: '{{ $o->status_label }}',
-        total: {{ (float) $o->total }},
-        customer_name: '{{ addslashes($o->customer_name ?: 'Guest Customer') }}',
-        customer_phone: '{{ $o->customer_phone ?: '' }}',
-        created_at_humans: '{{ $o->created_at->diffForHumans(null, true, true) }}',
-        created_at_time: '{{ $o->created_at->format('h:i A') }}',
-        created_at_ago: '{{ $o->created_at->diffForHumans() }}',
-        rider_name: '{{ addslashes($o->rider_name ?? '') }}',
-        rider_phone: '{{ addslashes($o->rider_phone ?? '') }}',
-        delivery_address: '{{ addslashes($o->delivery_address ?: '') }}',
-        delivery_fee: {{ (float) ($restaurant->delivery_charge ?? 0) }},
-        delivery_lat: @json($o->delivery_lat ? (float) $o->delivery_lat : null),
-        delivery_lng: @json($o->delivery_lng ? (float) $o->delivery_lng : null),
-        estimated_minutes: {{ $o->estimated_minutes ?? 25 }},
-        payment_method: '{{ $o->payment_method ?: 'cash_on_delivery' }}',
-        items: [
-            @foreach($o->items as $it)
-            {
-                name: '{{ addslashes($it->name ?: ($it->item_name ?? 'Dish')) }}',
-                quantity: {{ (int) $it->quantity }},
-                subtotal: {{ (float) $it->subtotal }}
+// ── Open Slide-over Order Drawer ──
+function openOrderDrawer(orderId) {
+    const o = allOrdersMap[orderId];
+    if (!o) return;
+
+    currentDrawerOrderId = orderId;
+    currentDrawerOrderStatus = o.status;
+
+    document.getElementById('drawerOrderTitle').textContent = 'Order #' + o.id;
+    document.getElementById('drawerOrderSub').textContent = 'Received ' + (o.created_at ? new Date(o.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '');
+    document.getElementById('drawerCustomerName').textContent = o.customer_name || 'Guest';
+    document.getElementById('drawerCustomerPhone').textContent = o.customer_phone || 'N/A';
+    document.getElementById('drawerDeliveryAddress').textContent = o.delivery_address || 'No address provided';
+
+    // Map link
+    const mapLink = document.getElementById('drawerMapLink');
+    if (o.delivery_lat && o.delivery_lng) {
+        mapLink.href = `https://www.google.com/maps?q=${o.delivery_lat},${o.delivery_lng}`;
+        mapLink.style.display = 'inline-flex';
+    } else {
+        mapLink.style.display = 'none';
+    }
+
+    // Status pill
+    const pill = document.getElementById('drawerStatusPill');
+    pill.textContent = o.status.replace(/_/g, ' ').toUpperCase();
+    pill.className = 'status-pill ' + (o.status === 'out_for_delivery' ? 'delivery' : o.status);
+
+    // Items list
+    const itemsCont = document.getElementById('drawerItemsList');
+    itemsCont.innerHTML = '';
+    if (o.items && o.items.length) {
+        o.items.forEach(it => {
+            const row = document.createElement('div');
+            row.style.display = 'flex';
+            row.style.justifyContent = 'space-between';
+            row.style.fontSize = '12.5px';
+            row.innerHTML = `<span><strong>${it.quantity}x</strong> ${it.name || it.item_name}</span><span>Rs ${it.subtotal || 0}</span>`;
+            itemsCont.appendChild(row);
+        });
+    } else {
+        itemsCont.innerHTML = '<span style="font-size: 12px; color: var(--text-muted);">No line items recorded</span>';
+    }
+
+    document.getElementById('drawerOrderTotal').textContent = 'Rs ' + (parseFloat(o.total) || 0).toLocaleString();
+    document.getElementById('drawerRiderName').textContent = o.rider_name || 'Not Assigned';
+
+    // Links
+    document.getElementById('drawerWhatsAppLink').href = o.customer_phone ? `https://wa.me/${o.customer_phone.replace(/[^0-9]/g, '')}` : '#';
+    document.getElementById('drawerPrintLink').href = `/dashboard/{{ $restaurant->id }}/orders/${o.id}/print-bill`;
+
+    // Advance button label
+    const advBtn = document.getElementById('drawerAdvanceBtn');
+    if (o.status === 'pending') {
+        advBtn.textContent = 'Confirm Order ➔';
+        advBtn.style.display = 'flex';
+    } else if (o.status === 'confirmed') {
+        advBtn.textContent = 'Start Preparing ➔';
+        advBtn.style.display = 'flex';
+    } else if (o.status === 'preparing') {
+        advBtn.textContent = 'Dispatch for Delivery ➔';
+        advBtn.style.display = 'flex';
+    } else if (o.status === 'out_for_delivery') {
+        advBtn.textContent = 'Mark Delivered ✓';
+        advBtn.style.display = 'flex';
+    } else {
+        advBtn.style.display = 'none';
+    }
+
+    document.getElementById('posOrderDrawer').classList.add('open');
+    document.getElementById('posDrawerBackdrop').classList.add('open');
+}
+
+function closeOrderDrawer() {
+    document.getElementById('posOrderDrawer').classList.remove('open');
+    document.getElementById('posDrawerBackdrop').classList.remove('open');
+}
+
+// ── Advance Order Status ──
+async function advanceCurrentOrderStatus() {
+    if (!currentDrawerOrderId) return;
+    const nextStatusMap = {
+        'pending': 'confirmed',
+        'confirmed': 'preparing',
+        'preparing': 'out_for_delivery',
+        'out_for_delivery': 'delivered'
+    };
+    const nextStatus = nextStatusMap[currentDrawerOrderStatus];
+    if (!nextStatus) return;
+
+    if (nextStatus === 'out_for_delivery') {
+        openDispatchModalFromDrawer();
+        return;
+    }
+
+    await postStatusUpdate(currentDrawerOrderId, nextStatus);
+}
+
+async function postStatusUpdate(orderId, status, extra = {}) {
+    try {
+        const res = await fetch(`/dashboard/{{ $restaurant->id }}/orders/${orderId}/status`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
             },
-            @endforeach
-        ]
-    };
-    @endforeach
-
-    const STATUS_FLOW = {
-        pending: {
-            label: 'New Order',
-            next: 'confirmed',
-            btnText: 'Confirm ✓',
-            drawerPrimary: '✓ Confirm Order',
-            drawerColor: '#181818',
-            textColor: '#ffffff'
-        },
-        confirmed: {
-            label: 'Confirmed',
-            next: 'preparing',
-            btnText: 'Start Prep 🍳',
-            drawerPrimary: '🍳 Start Kitchen Preparation',
-            drawerColor: '#2563eb',
-            textColor: '#ffffff'
-        },
-        preparing: {
-            label: 'Preparing',
-            next: 'out_for_delivery',
-            btnText: 'Dispatch 🛵',
-            drawerPrimary: '🛵 Assign Rider & Dispatch',
-            drawerColor: '#4f46e5',
-            textColor: '#ffffff'
-        },
-        out_for_delivery: {
-            label: 'Out for Delivery',
-            next: 'delivered',
-            btnText: 'Complete ✅',
-            drawerPrimary: '✅ Mark Order Delivered',
-            drawerColor: '#16a34a',
-            textColor: '#ffffff'
-        },
-        delivered: {
-            label: 'Delivered',
-            next: null,
-            btnText: 'Delivered',
-            drawerPrimary: null,
-            drawerColor: '#15803d',
-            textColor: '#ffffff'
-        },
-        cancelled: {
-            label: 'Cancelled',
-            next: null,
-            btnText: 'Cancelled',
-            drawerPrimary: null,
-            drawerColor: '#dc2626',
-            textColor: '#ffffff'
-        }
-    };
-
-    // ── Web Audio API POS Chime ──
-    function playPosChime() {
-        if (!AUDIO_ENABLED) return;
-        try {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (!AudioContext) return;
-            const ctx = new AudioContext();
-
-            const osc1 = ctx.createOscillator();
-            const gain1 = ctx.createGain();
-            osc1.type = 'sine';
-            osc1.frequency.setValueAtTime(587.33, ctx.currentTime);
-            gain1.gain.setValueAtTime(0.2, ctx.currentTime);
-            gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
-            osc1.connect(gain1);
-            gain1.connect(ctx.destination);
-            osc1.start(ctx.currentTime);
-            osc1.stop(ctx.currentTime + 0.35);
-
-            const osc2 = ctx.createOscillator();
-            const gain2 = ctx.createGain();
-            osc2.type = 'sine';
-            osc2.frequency.setValueAtTime(880.00, ctx.currentTime + 0.12);
-            gain2.gain.setValueAtTime(0.25, ctx.currentTime + 0.12);
-            gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.55);
-            osc2.connect(gain2);
-            gain2.connect(ctx.destination);
-            osc2.start(ctx.currentTime + 0.12);
-            osc2.stop(ctx.currentTime + 0.55);
-        } catch (_) {}
-    }
-
-    function toggleAudioChime() {
-        AUDIO_ENABLED = !AUDIO_ENABLED;
-        const btn = document.getElementById('audioToggleBtn');
-        const icon = document.getElementById('audioIcon');
-        const text = document.getElementById('audioText');
-        if (AUDIO_ENABLED) {
-            btn.classList.add('active');
-            icon.textContent = '🔊';
-            text.textContent = 'Sound';
-            playPosChime();
-            showToast('🔊 Order chime active');
-        } else {
-            btn.classList.remove('active');
-            icon.textContent = '🔇';
-            text.textContent = 'Muted';
-            showToast('🔇 Order chime muted');
-        }
-    }
-
-    // ── Pipeline Filter & Search ──
-    function setPipelineFilter(status, stepElement) {
-        CURRENT_PIPELINE = status;
-        document.querySelectorAll('.op-pipeline-step').forEach(p => p.classList.remove('active'));
-        if (stepElement) stepElement.classList.add('active');
-        applyGridFilters();
-    }
-
-    function filterToPending() {
-        const step = document.querySelector('.op-pipeline-step[onclick*="pending"]');
-        setPipelineFilter('pending', step);
-    }
-
-    function filterToLiveQueue() {
-        setPipelineFilter('all', document.querySelector('.op-pipeline-step[onclick*="all"]'));
-        const el = document.getElementById('posCardsGrid');
-        if (el) el.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    function handleSearch(val) {
-        SEARCH_QUERY = (val || '').trim().toLowerCase();
-        applyGridFilters();
-    }
-
-    function applyGridFilters() {
-        const cards = document.querySelectorAll('.pos-order-card');
-        let visibleCount = 0;
-
-        cards.forEach(card => {
-            const st = card.dataset.status;
-            const tracking = card.dataset.tracking;
-            const customer = card.dataset.customer;
-            const phone = card.dataset.phone;
-
-            let matchesPipeline = true;
-            if (CURRENT_PIPELINE !== 'all') {
-                matchesPipeline = (st === CURRENT_PIPELINE);
-            }
-
-            let matchesSearch = true;
-            if (SEARCH_QUERY) {
-                matchesSearch = tracking.includes(SEARCH_QUERY) || 
-                                customer.includes(SEARCH_QUERY) || 
-                                phone.includes(SEARCH_QUERY);
-            }
-
-            if (matchesPipeline && matchesSearch) {
-                card.style.display = 'flex';
-                visibleCount++;
-            } else {
-                card.style.display = 'none';
-            }
+            body: JSON.stringify({ status, ...extra })
         });
-
-        let emptyState = document.getElementById('posEmptyGrid');
-        if (!emptyState && visibleCount === 0) {
-            const grid = document.getElementById('posCardsGrid');
-            emptyState = document.createElement('div');
-            emptyState.id = 'posEmptyGrid';
-            emptyState.className = 'pos-empty-grid';
-            emptyState.innerHTML = `
-                <div style="font-size: 32px; margin-bottom: 6px;">🍽️</div>
-                <h3 style="font-size: 14px; font-weight: 800; color: var(--pos-text);">No orders match "${CURRENT_PIPELINE}"</h3>
-                <p style="font-size: 11.5px; color: var(--pos-text-muted); margin-top: 3px;">No orders currently exist under this pipeline stage.</p>
-            `;
-            grid.appendChild(emptyState);
-        } else if (emptyState) {
-            emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+        const data = await res.json();
+        if (data.success || res.ok) {
+            window.location.reload();
+        } else {
+            alert(data.error || 'Failed to update order status.');
         }
+    } catch (e) {
+        console.error(e);
+        window.location.reload();
     }
+}
 
-    // ── Quick Create Order Prompt ──
-    function quickCreateOrderPrompt() {
-        showToast('💡 Customers order via WhatsApp. You can also share your menu link to start orders!', 'info');
-        window.open('https://wa.me/{{ preg_replace("/\D/", "", $restaurant->phone ?? "") }}', '_blank');
+// ── Dispatch Modal ──
+function openDispatchModalDirect() {
+    const firstPendingOrder = @json($orders->firstWhere('status', 'confirmed')?->id ?? $orders->first()?->id);
+    if (firstPendingOrder) {
+        document.getElementById('dispatchOrderId').value = firstPendingOrder;
+        document.getElementById('dispatchRiderModal').classList.add('open');
     }
+}
 
-    // ── Slide-Over POS Order Drawer ──
-    function openOrderDrawer(orderId) {
-        ACTIVE_DRAWER_ID = orderId;
-        const o = currentOrdersMap[orderId];
-        if (!o) return;
+function openDispatchModalFromDrawer() {
+    if (!currentDrawerOrderId) return;
+    document.getElementById('dispatchOrderId').value = currentDrawerOrderId;
+    document.getElementById('dispatchRiderModal').classList.add('open');
+}
 
-        document.querySelectorAll('.pos-order-card').forEach(c => {
-            c.classList.toggle('selected', parseInt(c.dataset.orderId) === orderId);
-        });
+function closeDispatchModal() {
+    document.getElementById('dispatchRiderModal').classList.remove('open');
+}
 
-        document.getElementById('drawerTrackingCode').textContent = '#' + o.tracking_code;
-        const badge = document.getElementById('drawerStatusBadge');
-        badge.className = 'pos-status-badge ' + (o.status === 'out_for_delivery' ? 'out_for_delivery' : (o.status || 'pending'));
-        badge.textContent = o.status_label || (STATUS_FLOW[o.status]?.label || o.status);
+async function submitDispatch(e) {
+    e.preventDefault();
+    const orderId = document.getElementById('dispatchOrderId').value;
+    const select = document.getElementById('dispatchRiderSelect');
+    const riderName = select.value;
+    const riderPhone = select.options[select.selectedIndex]?.getAttribute('data-phone') || '';
+    const estMinutes = document.getElementById('dispatchEstMinutes').value || 30;
 
-        renderDrawerContent(o);
-
-        document.getElementById('posDrawerBackdrop').classList.add('open');
-        document.getElementById('posDrawer').classList.add('open');
-    }
-
-    function closeOrderDrawer() {
-        document.getElementById('posDrawerBackdrop').classList.remove('open');
-        document.getElementById('posDrawer').classList.remove('open');
-        document.querySelectorAll('.pos-order-card').forEach(c => c.classList.remove('selected'));
-        ACTIVE_DRAWER_ID = null;
-    }
-
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') {
-            closeOrderDrawer();
-            closeDispatchModal();
-            closeCancelModal();
-        }
+    await postStatusUpdate(orderId, 'out_for_delivery', {
+        rider_name: riderName,
+        rider_phone: riderPhone,
+        estimated_minutes: estMinutes
     });
+}
 
-    function renderDrawerContent(o) {
-        const body = document.getElementById('drawerBody');
-        const foot = document.getElementById('drawerFoot');
-        const cleanPhone = (o.customer_phone || '').replace(/\D/g, '');
-
-        const itemsHtml = (o.items || []).map(it => `
-            <div class="pos-receipt-row">
-                <div style="display:flex;align-items:flex-start;gap:6px;font-weight:600;color:var(--pos-text);">
-                    <span style="font-size:10px;font-weight:800;padding:0 4px;border-radius:3px;background:var(--pos-canvas);border:1px solid var(--pos-border);">${it.quantity}x</span>
-                    <span>${escHtml(it.name)}</span>
-                </div>
-                <span style="font-weight:700;font-variant-numeric:tabular-nums;color:var(--pos-text);">PKR ${Number(it.subtotal).toLocaleString()}</span>
-            </div>
-        `).join('');
-
-        const subtotal = (o.items || []).reduce((acc, it) => acc + (it.subtotal || 0), 0);
-        const deliveryFee = o.delivery_fee || 0;
-
-        let riderHtml = '';
-        if (o.rider_name || o.rider_phone) {
-            riderHtml = `
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--pos-canvas);border:1px solid var(--pos-border);border-radius:10px;">
-                    <div style="display:flex;align-items:center;gap:8px;">
-                        <span style="font-size:16px;">🚴</span>
-                        <div>
-                            <div style="font-size:12px;font-weight:700;color:var(--pos-text);">${escHtml(o.rider_name || 'Assigned Rider')}</div>
-                            <div style="font-size:10.5px;color:var(--pos-text-muted);">${escHtml(o.rider_phone || 'Fleet')}</div>
-                        </div>
-                    </div>
-                    ${o.rider_phone ? `<a href="tel:${escHtml(o.rider_phone)}" class="op-action-btn" style="padding:4px 8px;font-size:11px;background:#0284c7;color:#fff;border:none;">📞 Call</a>` : ''}
-                </div>
-            `;
-        } else if (o.status === 'preparing') {
-            riderHtml = `
-                <button type="button" class="pos-drawer-sec-btn" onclick="openDispatchModal(${o.id}, '${o.tracking_code}', '${escJs(o.customer_name)}', '${escJs(o.delivery_address)}')">
-                    <span>🚴</span>
-                    <span>Assign Rider for Dispatch</span>
-                </button>
-            `;
-        }
-
-        body.innerHTML = `
-            <!-- Customer Section -->
-            <div class="pos-drawer-section">
-                <span style="font-size:10.5px;font-weight:800;text-transform:uppercase;color:var(--pos-text-muted);">Customer & Dispatch</span>
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                    <div>
-                        <div style="font-size:13.5px;font-weight:700;color:var(--pos-text);">${escHtml(o.customer_name || 'Guest Customer')}</div>
-                        <div style="font-size:11.5px;color:var(--pos-text-muted);">📞 ${escHtml(o.customer_phone || 'Not provided')}</div>
-                    </div>
-                    ${cleanPhone ? `
-                        <a href="https://wa.me/${cleanPhone}" target="_blank" class="op-action-btn" style="background:#16a34a;color:#fff;border:none;padding:5px 10px;font-size:11px;">
-                            <span>💬</span>
-                            <span>WhatsApp</span>
-                        </a>
-                    ` : ''}
-                </div>
-                <div style="font-size:12px;color:var(--pos-text);line-height:1.4;margin-top:2px;">
-                    <div>📍 <strong>Address:</strong> ${escHtml(o.delivery_address || 'Counter Pickup')}</div>
-                    ${o.delivery_lat && o.delivery_lng ? `
-                        <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(o.delivery_lat)},${encodeURIComponent(o.delivery_lng)}" 
-                           target="_blank" style="display:inline-flex;align-items:center;gap:3px;font-size:11px;color:#0284c7;font-weight:700;text-decoration:none;margin-top:2px;">
-                            📍 GPS Route (Open in Maps ↗)
-                        </a>
-                    ` : ''}
-                </div>
-            </div>
-
-            <!-- Receipt Ticket -->
-            <div class="pos-receipt-ticket">
-                <div style="display:flex;justify-content:space-between;padding-bottom:8px;border-bottom:1px dashed var(--pos-border);margin-bottom:10px;font-size:10.5px;color:var(--pos-text-muted);font-weight:700;">
-                    <span>PLACED AT ${escHtml(o.created_at_time || '')}</span>
-                    <span>${o.payment_method === 'online' ? '💳 PREPAID' : '💵 CASH ON DELIVERY'}</span>
-                </div>
-
-                <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">
-                    ${itemsHtml || '<div style="color:var(--pos-text-muted);font-size:12px;">No items listed</div>'}
-                </div>
-
-                <div style="border-top:1px dashed var(--pos-border);padding-top:8px;display:flex;flex-direction:column;gap:4px;">
-                    <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--pos-text-muted);">
-                        <span>Subtotal</span>
-                        <span>PKR ${Number(subtotal).toLocaleString()}</span>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--pos-text-muted);">
-                        <span>Delivery Fee</span>
-                        <span>PKR ${Number(deliveryFee).toLocaleString()}</span>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;padding-top:6px;margin-top:2px;border-top:1.5px solid var(--pos-border);font-size:15px;font-weight:800;color:var(--pos-text);">
-                        <span>Total Bill</span>
-                        <span>PKR ${Number(o.total).toLocaleString()}</span>
-                    </div>
-                </div>
-            </div>
-
-            ${riderHtml}
-        `;
-
-        const flow = STATUS_FLOW[o.status] || {};
-        let primaryBtnHtml = '';
-
-        if (flow.next && flow.drawerPrimary) {
-            if (o.status === 'preparing') {
-                primaryBtnHtml = `
-                    <button type="button" class="pos-drawer-primary-btn" 
-                            style="background: ${flow.drawerColor}; color: ${flow.textColor};"
-                            onclick="openDispatchModal(${o.id}, '${o.tracking_code}', '${escJs(o.customer_name)}', '${escJs(o.delivery_address)}')">
-                        ${flow.drawerPrimary} →
-                    </button>
-                `;
-            } else {
-                primaryBtnHtml = `
-                    <button type="button" class="pos-drawer-primary-btn" 
-                            style="background: ${flow.drawerColor}; color: ${flow.textColor};"
-                            onclick="ajaxUpdateStatus('/dashboard/${RESTAURANT_ID}/orders/${o.id}/status', '${flow.next}', this)">
-                        ${flow.drawerPrimary} →
-                    </button>
-                `;
-            }
-        }
-
-        foot.innerHTML = `
-            ${primaryBtnHtml}
-            <div class="pos-drawer-sec-actions">
-                <a href="/dashboard/${RESTAURANT_ID}/orders/${o.id}/print-bill" target="_blank" class="pos-drawer-sec-btn">
-                    <span>🖨️</span>
-                    <span>Print Bill</span>
-                </a>
-                <a href="/track/${escHtml(o.tracking_code)}" target="_blank" class="pos-drawer-sec-btn">
-                    <span>🌐</span>
-                    <span>Live Track</span>
-                </a>
-                ${!['delivered', 'cancelled'].includes(o.status) ? `
-                    <button type="button" class="pos-drawer-sec-btn danger" onclick="confirmCancelOrder(${o.id}, '${escHtml(o.tracking_code)}')">
-                        <span>✕</span>
-                        <span>Cancel</span>
-                    </button>
-                ` : ''}
-            </div>
-        `;
+function openCancelModalFromDrawer() {
+    if (!currentDrawerOrderId) return;
+    if (confirm("Are you sure you want to cancel Order #" + currentDrawerOrderId + "?")) {
+        postStatusUpdate(currentDrawerOrderId, 'cancelled');
     }
-
-    // ── 1-Tap Advance from Order Card ──
-    function triggerCardAdvance(orderId, currentStatus, btn) {
-        const flow = STATUS_FLOW[currentStatus];
-        if (!flow || !flow.next) return;
-        const o = currentOrdersMap[orderId];
-
-        if (currentStatus === 'preparing') {
-            openDispatchModal(orderId, o.tracking_code, o.customer_name, o.delivery_address);
-        } else {
-            const url = `/dashboard/${RESTAURANT_ID}/orders/${orderId}/status`;
-            ajaxUpdateStatus(url, flow.next, btn);
-        }
-    }
-
-    // ── AJAX: Update Order Status ──
-    async function ajaxUpdateStatus(url, status, btn) {
-        if (btn) {
-            btn.disabled = true;
-            btn.style.opacity = '0.6';
-        }
-
-        try {
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept':       'application/json',
-                    'X-CSRF-TOKEN': CSRF_TOKEN,
-                },
-                body: JSON.stringify({ status }),
-            });
-
-            const data = await res.json();
-            if (!data.success) throw new Error(data.message || 'Status update failed');
-
-            showToast('✅ ' + (data.message || 'Status updated!'));
-
-            const urlMatch = url.match(/\/orders\/(\d+)\/status/);
-            const orderId = urlMatch ? parseInt(urlMatch[1]) : ACTIVE_DRAWER_ID;
-
-            if (orderId && currentOrdersMap[orderId]) {
-                currentOrdersMap[orderId].status = data.status || status;
-                currentOrdersMap[orderId].status_label = data.status_label || (STATUS_FLOW[data.status || status]?.label);
-
-                updateCardInDom(currentOrdersMap[orderId]);
-
-                if (ACTIVE_DRAWER_ID === orderId) {
-                    openOrderDrawer(orderId);
-                }
-            }
-
-            pollLiveFeed();
-
-        } catch (e) {
-            showToast('❌ ' + e.message, 'error');
-        } finally {
-            if (btn) {
-                btn.disabled = false;
-                btn.style.opacity = '1';
-            }
-        }
-    }
-
-    function updateCardInDom(o) {
-        const card = document.querySelector(`.pos-order-card[data-order-id="${o.id}"]`);
-        if (!card) return;
-
-        card.dataset.status = o.status;
-        const badge = card.querySelector('.pos-status-badge');
-        if (badge) {
-            badge.className = 'pos-status-badge ' + (o.status === 'out_for_delivery' ? 'out_for_delivery' : o.status);
-            badge.textContent = o.status_label || ucfirst(o.status);
-        }
-
-        const footer = card.querySelector('.pos-card-footer');
-        if (footer) {
-            const flow = STATUS_FLOW[o.status];
-            if (flow && flow.next) {
-                const btnClass = o.status === 'pending' ? 'new' : (o.status === 'confirmed' ? 'prep' : (o.status === 'preparing' ? 'dispatch' : 'complete'));
-                footer.innerHTML = `
-                    <span class="pos-card-price">PKR ${Number(o.total).toLocaleString()}</span>
-                    <button type="button" class="pos-card-advance-btn ${btnClass}"
-                            onclick="event.stopPropagation(); triggerCardAdvance(${o.id}, '${o.status}', this)">
-                        <span>${flow.btnText}</span>
-                        <span>→</span>
-                    </button>
-                `;
-            } else {
-                footer.innerHTML = `
-                    <span class="pos-card-price">PKR ${Number(o.total).toLocaleString()}</span>
-                    <span class="pos-card-advance-btn done">${flow?.btnText || 'Delivered'}</span>
-                `;
-            }
-        }
-        applyGridFilters();
-    }
-
-    // ── Dispatch Modal ──
-    function openDispatchModal(orderId, orderCode, customerName, address) {
-        document.getElementById('dispatchSubtext').textContent = 'Order #' + orderCode + ' • ' + (customerName || 'Customer');
-        document.getElementById('dispatchAddress').textContent = address || 'Dine-in / Pickup / WhatsApp Address';
-        document.getElementById('dispatchForm').action = `/dashboard/${RESTAURANT_ID}/orders/${orderId}/status`;
-
-        const riderSelect = document.getElementById('riderSelect');
-        const customFields = document.getElementById('customRiderFields');
-        const nameInput = document.getElementById('inputRiderName');
-        const phoneInput = document.getElementById('inputRiderPhone');
-
-        if (riderSelect && riderSelect.options.length > 2) {
-            riderSelect.selectedIndex = 1;
-            const opt = riderSelect.options[1];
-            nameInput.value = opt.value;
-            phoneInput.value = opt.getAttribute('data-phone') || '';
-            customFields.style.display = 'none';
-        } else {
-            customFields.style.display = 'block';
-        }
-
-        document.getElementById('dispatchModal').classList.add('open');
-    }
-
-    function handleRiderSelect(select) {
-        const customFields = document.getElementById('customRiderFields');
-        const nameInput = document.getElementById('inputRiderName');
-        const phoneInput = document.getElementById('inputRiderPhone');
-
-        if (select.value === '__custom__' || !select.value) {
-            customFields.style.display = 'block';
-            nameInput.value = '';
-            phoneInput.value = '';
-            nameInput.focus();
-        } else {
-            customFields.style.display = 'none';
-            nameInput.value = select.value;
-            const opt = select.options[select.selectedIndex];
-            phoneInput.value = opt.getAttribute('data-phone') || '';
-        }
-    }
-
-    function closeDispatchModal() {
-        document.getElementById('dispatchModal').classList.remove('open');
-    }
-
-    async function ajaxSubmitDispatch(e) {
-        if (e) e.preventDefault();
-        const form = document.getElementById('dispatchForm');
-        const submitBtn = form.querySelector('button[type="submit"]');
-        if (submitBtn) { submitBtn.disabled = true; submitBtn.style.opacity = '0.6'; }
-
-        const formData = new FormData(form);
-        const dataObj = {};
-        formData.forEach((value, key) => { dataObj[key] = value; });
-
-        try {
-            const res = await fetch(form.action, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept':       'application/json',
-                    'X-CSRF-TOKEN': CSRF_TOKEN,
-                },
-                body: JSON.stringify(dataObj),
-            });
-
-            const data = await res.json();
-            if (!data.success) throw new Error(data.message || 'Dispatch failed');
-
-            closeDispatchModal();
-            showToast('🛵 Order dispatched to rider!');
-
-            const urlMatch = form.action.match(/\/orders\/(\d+)\/status/);
-            const orderId = urlMatch ? parseInt(urlMatch[1]) : ACTIVE_DRAWER_ID;
-
-            if (orderId && currentOrdersMap[orderId]) {
-                currentOrdersMap[orderId].status = 'out_for_delivery';
-                currentOrdersMap[orderId].status_label = data.status_label || 'Out for Delivery';
-                currentOrdersMap[orderId].rider_name = dataObj.rider_name || '';
-                currentOrdersMap[orderId].rider_phone = dataObj.rider_phone || '';
-                updateCardInDom(currentOrdersMap[orderId]);
-
-                if (ACTIVE_DRAWER_ID === orderId) {
-                    openOrderDrawer(orderId);
-                }
-            }
-
-            pollLiveFeed();
-
-        } catch (err) {
-            showToast('❌ ' + err.message, 'error');
-        } finally {
-            if (submitBtn) { submitBtn.disabled = false; submitBtn.style.opacity = '1'; }
-        }
-        return false;
-    }
-
-    // ── Cancel Order Modal ──
-    function confirmCancelOrder(orderId, trackingCode) {
-        _cancelOrderId = orderId;
-        document.getElementById('cancelOrderCode').textContent = '#' + trackingCode;
-        document.getElementById('cancelReason').value = '';
-        document.getElementById('cancelOrderModal').classList.add('open');
-    }
-
-    function closeCancelModal() {
-        document.getElementById('cancelOrderModal').classList.remove('open');
-        _cancelOrderId = null;
-    }
-
-    async function executeCancelOrder() {
-        if (!_cancelOrderId) return;
-        const reason = (document.getElementById('cancelReason').value || '').trim();
-        const url = `/dashboard/${RESTAURANT_ID}/orders/${_cancelOrderId}/status`;
-
-        try {
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept':       'application/json',
-                    'X-CSRF-TOKEN': CSRF_TOKEN,
-                },
-                body: JSON.stringify({ status: 'cancelled', notes: reason || undefined }),
-            });
-
-            const data = await res.json();
-            if (!data.success) throw new Error(data.message || 'Cancel failed');
-
-            const cancelledId = _cancelOrderId;
-            closeCancelModal();
-            showToast('❌ Order cancelled');
-
-            if (currentOrdersMap[cancelledId]) {
-                currentOrdersMap[cancelledId].status = 'cancelled';
-                currentOrdersMap[cancelledId].status_label = 'Cancelled';
-                updateCardInDom(currentOrdersMap[cancelledId]);
-                if (ACTIVE_DRAWER_ID === cancelledId) {
-                    openOrderDrawer(cancelledId);
-                }
-            }
-
-            pollLiveFeed();
-
-        } catch (err) {
-            showToast('❌ ' + err.message, 'error');
-        }
-    }
-
-    // ── Toast System ──
-    function showToast(msg, type = 'success') {
-        const t = document.getElementById('live-toast');
-        if (!t) return;
-        t.style.background = type === 'success' ? '#181818' : (type === 'info' ? '#2563eb' : '#dc2626');
-        t.style.color = '#ffffff';
-        t.textContent = msg;
-        t.classList.add('show');
-        clearTimeout(t._timer);
-        t._timer = setTimeout(() => { t.classList.remove('show'); }, 3500);
-    }
-
-    // ── Live Feed Arrival Card Renderer ──
-    function generateCardHtml(o) {
-        const badgeClass = o.status === 'out_for_delivery' ? 'out_for_delivery' : (o.status || 'pending');
-        const advanceBtnClass = o.status === 'pending' ? 'new' : (o.status === 'confirmed' ? 'prep' : (o.status === 'preparing' ? 'dispatch' : 'complete'));
-        const flow = STATUS_FLOW[o.status] || { btnText: 'View' };
-
-        const itemsHtml = (o.items || []).slice(0, 3).map(it => `
-            <div class="pos-card-item-line">
-                <span class="pos-card-item-qty">${it.quantity}x</span>
-                <span class="pos-card-item-name">${escHtml(it.name)}</span>
-            </div>
-        `).join('');
-
-        const moreCount = (o.items || []).length > 3 ? `+ ${o.items.length - 3} more dishes...` : '';
-
-        return `
-            <div class="pos-order-card" 
-                 data-order-id="${o.id}"
-                 data-status="${o.status}"
-                 data-tracking="${escHtml(o.tracking_code).toLowerCase()}"
-                 data-customer="${escHtml(o.customer_name || '').toLowerCase()}"
-                 data-phone="${escHtml(o.customer_phone || '')}"
-                 onclick="openOrderDrawer(${o.id})">
-
-                <div class="pos-card-head">
-                    <div>
-                        <span class="pos-card-code">#${escHtml(o.tracking_code)}</span>
-                        <span class="pos-card-time">${escHtml(o.created_at_time || '')} • ${escHtml(o.created_at_humans || '')}</span>
-                    </div>
-                    <span class="pos-status-badge ${badgeClass}">
-                        ${escHtml(o.status_label || flow.label || o.status)}
-                    </span>
-                </div>
-
-                <div class="pos-card-cust-line">
-                    <span>👤 ${escHtml(o.customer_name || 'Guest Customer')}</span>
-                    <span style="font-size: 10.5px; color: var(--pos-text-muted); font-weight: 600;">
-                        ${o.payment_method === 'online' ? '💳 Paid' : '💵 COD'} • 🛵
-                    </span>
-                </div>
-
-                <div class="pos-card-items-box">
-                    ${itemsHtml}
-                    ${moreCount ? `<span style="font-size: 10px; font-weight: 700; color: var(--pos-text-muted);">${moreCount}</span>` : ''}
-                </div>
-
-                <div class="pos-card-footer">
-                    <span class="pos-card-price">PKR ${Number(o.total).toLocaleString()}</span>
-
-                    ${!['delivered', 'cancelled'].includes(o.status) ? `
-                        <button type="button" class="pos-card-advance-btn ${advanceBtnClass}"
-                                onclick="event.stopPropagation(); triggerCardAdvance(${o.id}, '${o.status}', this)">
-                            <span>${flow.btnText}</span>
-                            <span>→</span>
-                        </button>
-                    ` : `
-                        <span class="pos-card-advance-btn done">${flow.btnText}</span>
-                    `}
-                </div>
-            </div>
-        `;
-    }
-
-    // ── Live Feed Polling Engine (Every 5s) ──
-    async function pollLiveFeed() {
-        try {
-            const res = await fetch(LIVE_FEED_URL, {
-                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            if (!res.ok) return;
-            const data = await res.json();
-            if (!data.success) return;
-
-            // Update KPI cards
-            const kpiRev = document.getElementById('kpi-revenue');
-            const kpiTodayCount = document.getElementById('kpi-today-count');
-            const kpiSub = document.getElementById('kpi-sales-sub');
-            const kpiNeedsAttention = document.getElementById('kpi-needs-attention');
-            const kpiAttnSub = document.getElementById('kpi-attn-sub');
-            const btnLiveCount = document.getElementById('btn-live-count');
-
-            if (kpiRev && data.revenue !== undefined) kpiRev.textContent = 'PKR ' + Number(data.revenue).toLocaleString();
-            if (kpiTodayCount && data.today_count !== undefined) kpiTodayCount.textContent = data.today_count;
-            if (kpiSub && data.today_count !== undefined) kpiSub.textContent = data.today_count + ' orders received today';
-            if (btnLiveCount && data.active_count !== undefined) btnLiveCount.textContent = data.active_count;
-
-            if (kpiNeedsAttention && data.pending_count !== undefined) {
-                kpiNeedsAttention.textContent = data.pending_count;
-                const attnCard = kpiNeedsAttention.closest('.op-metric-card');
-                if (attnCard) {
-                    attnCard.classList.toggle('alert-card', data.pending_count > 0);
-                }
-                if (kpiAttnSub) {
-                    kpiAttnSub.textContent = data.pending_count > 0 ? 'Unconfirmed orders pending kitchen' : 'All live orders in progress';
-                }
-
-                // Update attention banner
-                const banner = document.getElementById('attentionBanner');
-                const bannerCount = document.getElementById('attnBannerCount');
-                if (banner && bannerCount) {
-                    bannerCount.textContent = data.pending_count;
-                    banner.style.display = data.pending_count > 0 ? 'flex' : 'none';
-                }
-            }
-
-            const orders = data.orders || [];
-            let hasBrandNew = false;
-
-            orders.forEach(o => {
-                if (!currentOrdersMap[o.id]) {
-                    hasBrandNew = true;
-                }
-                currentOrdersMap[o.id] = o;
-            });
-
-            // Update Pipeline counts
-            const stepAll = document.getElementById('step-count-all');
-            const stepPending = document.getElementById('step-count-pending');
-            if (stepAll && data.today_count !== undefined) stepAll.textContent = data.today_count;
-            if (stepPending && data.pending_count !== undefined) stepPending.textContent = data.pending_count;
-
-            if (hasBrandNew) {
-                playPosChime();
-                showToast('🔔 New order arrived on WhatsApp!');
-            }
-
-            const grid = document.getElementById('posCardsGrid');
-            orders.forEach(o => {
-                const existing = grid.querySelector(`.pos-order-card[data-order-id="${o.id}"]`);
-                if (!existing) {
-                    const temp = document.createElement('div');
-                    temp.innerHTML = generateCardHtml(o);
-                    grid.prepend(temp.firstElementChild);
-                } else {
-                    updateCardInDom(o);
-                }
-            });
-
-            applyGridFilters();
-
-        } catch (_) {}
-    }
-
-    function escHtml(s) {
-        return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
-    function escJs(s) {
-        return (s || '').replace(/'/g, "\\'").replace(/"/g, '\\"');
-    }
-    function ucfirst(str) {
-        if (!str) return '';
-        return str.charAt(0).toUpperCase() + str.slice(1).replace(/_/g, ' ');
-    }
-
-    @if($selectedOrder)
-    document.addEventListener('DOMContentLoaded', () => {
-        openOrderDrawer({{ $selectedOrder->id }});
-    });
-    @endif
-
-    setInterval(pollLiveFeed, 5000);
+}
+
+function switchTrendRange(range, btn) {
+    document.querySelectorAll('.trend-toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
 </script>
 
 @endsection

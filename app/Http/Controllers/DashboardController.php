@@ -213,6 +213,24 @@ class DashboardController extends Controller
         // Recent activity feed
         $recentActivity = $orders->take(6);
 
+        // Needs attention items
+        $unavailableItems = $r->menuItems()->where('is_available', false)->take(5)->get();
+        $waitingRidersOrders = $todayOrders->whereIn('status', ['confirmed', 'preparing'])->whereNull('rider_name');
+
+        // Today hourly sales distribution (for Sales Trend Area Chart)
+        $hourlySales = [];
+        $checkHours = [10, 12, 14, 16, 18, 20, 22];
+        foreach ($checkHours as $h) {
+            $sum = (float) $todayOrders->filter(function($o) use ($h) {
+                $orderHour = (int) $o->created_at->format('H');
+                return $orderHour >= $h && $orderHour < ($h + 2);
+            })->sum('total');
+            $hourlySales[] = [
+                'label' => date('g A', strtotime("{$h}:00")),
+                'amount' => $sum,
+            ];
+        }
+
         // ── H3: Customer Feedback & Rating Summary ────────────────────────────
         $feedbacksQuery  = $r->feedbacks();
         $averageRating   = round((float) ($feedbacksQuery->avg('rating') ?: 5.0), 1);
@@ -220,28 +238,50 @@ class DashboardController extends Controller
         $recentFeedbacks = $feedbacksQuery->take(5)->get();
 
         return view('dashboard.orders', [
-            'restaurant'        => $r,
-            'orders'            => $orders,
-            'today'             => $todayOrders,
-            'liveOrders'        => $liveOrders,
-            'liveOrdersCount'   => $liveOrdersCount,
-            'todayRevenue'      => $todayRevenue,
-            'activeRidersCount' => $activeRidersCount,
-            'totalOrdersToday'  => $totalOrdersToday,
-            'menuItemsCount'    => $menuItemsCount,
-            'riders'            => $riders,
-            'menuItems'         => $menuItems,
-            'selectedOrder'     => $selectedOrder,
-            'statusCounts'      => $statusCounts,
-            'statusPercentages' => $statusPercentages,
-            'weeklyTrend'       => $weeklyTrend,
-            'topSellingItems'   => $topSellingItems,
-            'recentActivity'    => $recentActivity,
-            'pendingCount'      => $todayOrders->where('status', 'pending')->count(),
-            'averageRating'     => $averageRating,
-            'totalFeedbacks'    => $totalFeedbacks,
-            'recentFeedbacks'   => $recentFeedbacks,
+            'restaurant'          => $r,
+            'orders'              => $orders,
+            'today'               => $todayOrders,
+            'liveOrders'          => $liveOrders,
+            'liveOrdersCount'     => $liveOrdersCount,
+            'todayRevenue'        => $todayRevenue,
+            'activeRidersCount'   => $activeRidersCount,
+            'totalOrdersToday'    => $totalOrdersToday,
+            'menuItemsCount'      => $menuItemsCount,
+            'riders'              => $riders,
+            'menuItems'           => $menuItems,
+            'selectedOrder'       => $selectedOrder,
+            'statusCounts'        => $statusCounts,
+            'statusPercentages'   => $statusPercentages,
+            'weeklyTrend'         => $weeklyTrend,
+            'topSellingItems'     => $topSellingItems,
+            'recentActivity'      => $recentActivity,
+            'pendingCount'        => $todayOrders->where('status', 'pending')->count(),
+            'averageRating'       => $averageRating,
+            'totalFeedbacks'      => $totalFeedbacks,
+            'recentFeedbacks'     => $recentFeedbacks,
+            'unavailableItems'    => $unavailableItems,
+            'waitingRidersOrders' => $waitingRidersOrders,
+            'hourlySales'         => $hourlySales,
         ]);
+    }
+
+    // ── Toggle Restaurant Open / Taking Orders Status ───────
+    public function toggleOpen(string $id)
+    {
+        $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
+        $r->is_open = !$r->is_open;
+        $r->save();
+
+        if (request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'is_open' => (bool) $r->is_open,
+                'label'   => $r->is_open ? 'Restaurant Online' : 'Store Paused',
+            ]);
+        }
+
+        return back()->with('success', $r->is_open ? 'Restaurant is now ONLINE and taking orders.' : 'Restaurant is now PAUSED.');
     }
 
     // ── Dedicated Live Kitchen & Orders Control Center ─────
