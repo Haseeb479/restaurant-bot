@@ -37,16 +37,16 @@
 
     <style>
         :root {
-            --sidebar-bg: #0f172a;
-            --sidebar-hover: rgba(255, 255, 255, 0.06);
-            --sidebar-active: #4f46e5;
-            --sidebar-text: #94a3b8;
+            --sidebar-bg: #ffffff;
+            --sidebar-hover: #f5f5f4;
+            --sidebar-active: #181818;
+            --sidebar-text: #525252;
             --sidebar-text-active: #ffffff;
-            --main-bg: #f8fafc;
+            --main-bg: #f7f7f5;
             --card-bg: #ffffff;
-            --border-color: #e2e8f0;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
+            --border-color: #e8e8e8;
+            --text-main: #181818;
+            --text-muted: #737373;
             --input-bg: #ffffff;
             --header-bg: #ffffff;
         }
@@ -587,7 +587,7 @@
 
         /* SIDEBAR */
         aside {
-            width: 250px;
+            width: 230px;
             background: var(--sidebar-bg);
             min-height: 100vh;
             display: flex;
@@ -602,11 +602,11 @@
         }
 
         .brand-header {
-            padding: 22px 20px 18px;
+            padding: 20px 18px 16px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border-bottom: 1px solid #1e293b;
+            border-bottom: 1px solid var(--border-color);
         }
 
         .brand-box {
@@ -616,9 +616,9 @@
         }
 
         .brand-avatar {
-            width: 38px;
-            height: 38px;
-            background: #4f46e5;
+            width: 36px;
+            height: 36px;
+            background: #181818;
             border-radius: 10px;
             display: flex;
             align-items: center;
@@ -626,65 +626,68 @@
             color: #fff;
             font-size: 14px;
             font-weight: 800;
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
         }
 
         .brand-info h2 {
-            font-size: 15px;
+            font-size: 16px;
             font-weight: 800;
-            color: #fff;
+            color: var(--text-main);
             line-height: 1.2;
-            letter-spacing: -0.01em;
+            letter-spacing: -0.02em;
         }
 
         .brand-info span {
             font-size: 11px;
-            color: #94a3b8;
+            color: var(--text-muted);
             font-weight: 600;
         }
 
         .nav-section {
-            padding: 16px 12px;
+            padding: 16px 10px;
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 3px;
         }
 
         .nav-item {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 10px 14px;
+            gap: 11px;
+            padding: 9px 12px;
             color: var(--sidebar-text);
             text-decoration: none;
             font-size: 13px;
             font-weight: 600;
-            border-radius: 10px;
+            border-radius: 9px;
             transition: all 0.15s ease;
         }
 
         .nav-item:hover {
-            color: #fff;
+            color: var(--text-main);
             background: var(--sidebar-hover);
         }
 
         .nav-item.active {
-            background: var(--sidebar-active);
-            color: var(--sidebar-text-active);
-            box-shadow: 0 4px 14px rgba(124, 92, 252, 0.35);
+            background: #181818;
+            color: #ffffff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         }
 
         .nav-item .icon {
-            font-size: 16px;
-            width: 20px;
+            font-size: 15px;
+            width: 18px;
             text-align: center;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .nav-item .badge-pill {
             margin-left: auto;
             font-size: 11px;
-            background: #ef4444;
+            background: #f97316;
             padding: 2px 7px;
             border-radius: 99px;
             color: #fff;
@@ -693,11 +696,12 @@
 
         /* MAIN WRAPPER */
         .main-wrapper {
-            margin-left: 250px;
+            margin-left: 230px;
             flex: 1;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            background: var(--main-bg);
             transition: margin-left 0.25s ease;
         }
 
@@ -1226,57 +1230,59 @@
 
 <!-- SIDEBAR -->
 <aside id="ownerSidebar">
-    <div style="padding: 20px 18px 14px; border-bottom: 1px solid rgba(255,255,255,0.06);">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <div style="width: 38px; height: 38px; border-radius: 12px; background: rgba(124, 92, 252, 0.18); border: 1px solid rgba(124, 92, 252, 0.35); display: flex; align-items: center; justify-content: center; font-size: 20px;">
-                    🤖
+    <div style="padding: 18px 16px 14px; border-bottom: 1px solid var(--border-color);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 34px; height: 34px; border-radius: 9px; background: #181818; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #fff;">
+                    ⚡
                 </div>
                 <div>
-                    <h2 style="font-size: 16px; font-weight: 800; color: #fff; letter-spacing: -0.3px;">Foodio</h2>
-                    <p style="font-size: 11px; color: #64748B;">WhatsApp Ordering System</p>
+                    <h2 style="font-size: 16px; font-weight: 800; color: var(--text-main); letter-spacing: -0.02em; line-height: 1.1;">Foodio</h2>
+                    <p style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Restaurant POS</p>
                 </div>
             </div>
             <button type="button" class="sidebar-close-btn" onclick="toggleOwnerSidebar()" title="Close menu">✕</button>
         </div>
 
-        <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(8, 11, 20, 0.7); border: 1px solid rgba(255,255,255,0.08); padding: 8px 12px; border-radius: 12px;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <div style="width: 28px; height: 28px; border-radius: 8px; background: #7C5CFC; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800;">
-                    {{ strtoupper(substr($currentRest->name ?? 'RB', 0, 2)) }}
+        <div style="display: flex; align-items: center; justify-content: space-between; background: var(--sidebar-hover); border: 1px solid var(--border-color); padding: 8px 10px; border-radius: 10px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 26px; height: 26px; border-radius: 7px; background: #181818; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800;">
+                    {{ strtoupper(substr($currentRest->name ?? 'FD', 0, 2)) }}
                 </div>
-                <div>
-                    <h4 style="font-size: 12px; font-weight: 700; color: #F8FAFC; line-height: 1.1;">{{ Str::limit($currentRest->name ?? 'My Restaurant', 13) }}</h4>
-                    <span style="font-size: 10px; color: #64748B;">Restaurant Owner</span>
+                <div style="overflow: hidden;">
+                    <h4 style="font-size: 12px; font-weight: 700; color: var(--text-main); line-height: 1.2; text-overflow: ellipsis; white-space: nowrap;">{{ Str::limit($currentRest->name ?? 'My Restaurant', 14) }}</h4>
+                    <span style="font-size: 10px; color: #16a34a; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                        <span style="width: 5px; height: 5px; border-radius: 50%; background: #16a34a;"></span>
+                        {{ ($currentRest->is_open ?? true) ? 'Taking Orders' : 'Closed' }}
+                    </span>
                 </div>
             </div>
-            <span style="color: #64748B; font-size: 10px;">▾</span>
         </div>
     </div>
 
     <div class="nav-section">
         <a href="{{ route('dashboard.orders', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.orders') ? 'active' : '' }}">
-            <span class="icon">📊</span>
+            <span class="icon">⚡</span>
             <span>Dashboard</span>
         </a>
 
         <a href="{{ route('dashboard.live-orders', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.live-orders*') ? 'active' : '' }}">
             <span class="icon">🛍️</span>
             <span>Live Orders</span>
-            <span style="width: 7px; height: 7px; border-radius: 50%; background: #10b981; display: inline-block; box-shadow: 0 0 8px #10b981; margin-left: 2px;"></span>
+            <span style="width: 6px; height: 6px; border-radius: 50%; background: #10b981; display: inline-block; margin-left: 2px;"></span>
             @if(isset($liveOrdersCount) && $liveOrdersCount > 0)
-                <span class="badge-pill" style="background: #4f46e5; margin-left: auto;">{{ $liveOrdersCount }}</span>
+                <span class="badge-pill" style="margin-left: auto;">{{ $liveOrdersCount }}</span>
             @endif
         </a>
 
         <a href="{{ route('dashboard.history', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.history*') ? 'active' : '' }}">
             <span class="icon">📋</span>
-            <span>Orders History</span>
+            <span>Order History</span>
         </a>
 
         <a href="{{ route('dashboard.menu', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.menu*') ? 'active' : '' }}">
-            <span class="icon">🍽️</span>
-            <span>Menu Management</span>
+            <span class="icon">🍔</span>
+            <span>Menu & Items</span>
         </a>
 
         <a href="{{ route('dashboard.riders', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.riders*') ? 'active' : '' }}">
@@ -1290,13 +1296,8 @@
         </a>
 
         <a href="{{ route('dashboard.reports', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.reports*') ? 'active' : '' }}">
-            <span class="icon">📈</span>
+            <span class="icon">📊</span>
             <span>Reports</span>
-        </a>
-
-        <a href="{{ route('dashboard.history', $restId) }}" class="nav-item">
-            <span class="icon">💬</span>
-            <span>WhatsApp Logs</span>
         </a>
 
         <a href="{{ route('dashboard.settings', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.settings*') ? 'active' : '' }}">
@@ -1306,27 +1307,26 @@
 
         <a href="{{ route('dashboard.connect-whatsapp', $restId) }}" class="nav-item {{ request()->routeIs('dashboard.connect-whatsapp*') ? 'active' : '' }}">
             <span class="icon">🤖</span>
-            <span>Bot Settings</span>
+            <span>WhatsApp Bot</span>
         </a>
 
         <!-- Bot Status Box -->
-        <div style="background: rgba(8, 11, 20, 0.9); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 14px; margin: 16px 4px 10px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-                <span style="font-size: 11px; font-weight: 700; color: #CBD5E1;">Bot Status</span>
-                <span style="display: flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; color: #22C55E; background: rgba(34,197,94,0.12); padding: 2px 8px; border-radius: 99px;">
-                    <span style="width: 5px; height: 5px; border-radius: 50%; background: #22C55E; display: inline-block;"></span>
+        <div style="background: var(--sidebar-hover); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 12px; margin: 12px 2px 6px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                <span style="font-size: 11px; font-weight: 700; color: var(--text-main);">WhatsApp Bot</span>
+                <span style="display: flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; color: #16a34a; background: #ecfdf5; padding: 1px 6px; border-radius: 99px;">
+                    <span style="width: 4px; height: 4px; border-radius: 50%; background: #16a34a; display: inline-block;"></span>
                     Online
                 </span>
             </div>
-            <p style="font-size: 10px; color: #64748B; margin-bottom: 10px;">Everything is working fine</p>
-            <a href="{{ route('dashboard.connect-whatsapp', $restId) }}" style="display: block; width: 100%; text-align: center; padding: 6px 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; font-size: 10px; font-weight: 700; color: #94A3B8; text-decoration: none;">
-                View Bot Activity ↗
+            <a href="{{ route('dashboard.connect-whatsapp', $restId) }}" style="display: block; width: 100%; text-align: center; padding: 4px 8px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 6px; font-size: 10px; font-weight: 600; color: var(--text-muted); text-decoration: none; margin-top: 6px;">
+                Manage Bot ↗
             </a>
         </div>
 
         <form method="POST" action="{{ route('dashboard.logout', $restId) }}" onsubmit="sessionStorage.removeItem('owner_authenticated_session')" style="margin-top: 4px;">
             @csrf
-            <button type="submit" class="nav-item" style="width: 100%; background: none; border: none; cursor: pointer; text-align: left; color: #ef4444;">
+            <button type="submit" class="nav-item" style="width: 100%; background: none; border: none; cursor: pointer; text-align: left; color: #dc2626;">
                 <span class="icon">🚪</span>
                 <span>Logout</span>
             </button>
