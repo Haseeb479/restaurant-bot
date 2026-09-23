@@ -315,11 +315,18 @@ class LocationResolutionService
         return $earthRadiusKm * $c;
     }
 
+    public function calculateDistanceKm(float $lat1, float $lon1, float $lat2, float $lon2): float
+    {
+        return $this->calculateHaversineDistance($lat1, $lon1, $lat2, $lon2);
+    }
+
+
     /**
      * Forward geocode a text address into [lat, lng].
-     * Tries Nominatim first, then Photon fallback, with city context and caching.
+     * Tries Nominatim with strict city / restaurant bounding box, then Photon fallback.
+     * Rejects any points that fall outside the local area (e.g. > 35 km away).
      */
-    public function geocodeAddress(string $address, string $city = ''): ?array
+    public function geocodeAddress(string $address, string $city = '', ?float $centerLat = null, ?float $centerLng = null, float $searchRadiusKm = 30.0): ?array
     {
         $clean = trim($address);
         if ($clean === '' || strlen($clean) < 3) {
@@ -329,8 +336,8 @@ class LocationResolutionService
         $clean = preg_replace('/[#*`~_]/', ' ', $clean);
         $clean = trim(preg_replace('/\s+/', ' ', $clean));
 
-        $cacheKey = 'fwd_geocode_' . md5(strtolower($clean . '_' . $city));
-        return Cache::remember($cacheKey, now()->addDays(7), function () use ($clean, $city) {
+        $cacheKey = 'fwd_geocode_' . md5(strtolower($clean . '_' . $city . '_' . (string)$centerLat . '_' . (string)$centerLng));
+        return Cache::remember($cacheKey, now()->addDays(7), function () use ($clean, $city, $centerLat, $centerLng, $searchRadiusKm) {
             $queriesToTry = [];
 
             if ($city && stripos($clean, $city) === false) {
@@ -338,33 +345,65 @@ class LocationResolutionService
             }
             $queriesToTry[] = "{$clean}, Pakistan";
 
-            if (str_contains($clean, ',')) {
-                $parts = array_map('trim', explode(',', $clean));
-                if (!empty($parts[0]) && strlen($parts[0]) > 3) {
-                    if ($city && stripos($parts[0], $city) === false) {
-                        $queriesToTry[] = "{$parts[0]}, {$city}, Pakistan";
-                    }
-                    $queriesToTry[] = "{$parts[0]}, Pakistan";
-                }
+            // Compute bounding box if centerLat and centerLng are provided
+            $viewboxParam = '';
+            if ($centerLat !== null && $centerLng !== null) {
+                $latDelta = $searchRadiusKm / 111.0;
+                $cosLat = cos(deg2rad($centerLat));
+                $lngDelta = $searchRadiusKm / (111.0 * ($cosLat > 0.01 ? $cosLat : 1.0));
+                $minLat = $centerLat - $latDelta;
+                $maxLat = $centerLat + $latDelta;
+                $minLng = $centerLng - $lngDelta;
+                $maxLng = $centerLng + $lngDelta;
+                $viewboxParam = "&viewbox={$minLng},{$maxLat},{$maxLng},{$minLat}&bounded=1";
             }
 
-            // 1. Try Nominatim
+            // 1. Try Nominatim (with bounded viewbox)
             foreach ($queriesToTry as $q) {
                 try {
-                    $url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" . urlencode($q);
-                    $res = Http::timeout(5)
+                    $url = "https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=3&q=" . urlencode($q) . $viewboxParam;
+                    $res = Http::timeout(4)
                         ->withoutVerifying()
                         ->withHeaders(['User-Agent' => 'Foodio-RestaurantBot/1.0'])
                         ->get($url);
 
                     if ($res->successful()) {
                         $data = $res->json();
-                        if (!empty($data[0]['lat']) && !empty($data[0]['lon'])) {
-                            return [
-                                'lat'          => (float) $data[0]['lat'],
-                                'lng'          => (float) $data[0]['lon'],
-                                'display_name' => $data[0]['display_name'] ?? null,
-                            ];
+                        if (is_array($data)) {
+                            foreach ($data as $item) {
+                                if (empty($item['lat']) || empty($item['lon'])) {
+                                    continue;
+                                }
+                                $lat = (float) $item['lat'];
+                                $lng = (float) $item['lon'];
+
+                                // Validate against center if provided
+                                if ($centerLat !== null && $centerLng !== null) {
+                                    $dist = $this->calculateDistanceKm($centerLat, $centerLng, $lat, $lng);
+                                    if ($dist > ($searchRadiusKm + 10.0)) {
+                                        // Out of local region (e.g. Karachi 680km away) -> Discard!
+                                        continue;
+                                    }
+                                }
+
+                                // Ignore broad administrative boundaries (district, province, country)
+                                $type = $item['type'] ?? '';
+                                $class = $item['class'] ?? '';
+                                if ($class === 'boundary' || in_array($type, ['administrative', 'state', 'country', 'district', 'division'], true)) {
+                                    continue;
+                                }
+
+                                $name = $item['display_name'] ?? '';
+                                if (!$this->hasDistinctiveTokenMatch($clean, $name)) {
+                                    continue;
+                                }
+
+                                return [
+                                    'lat'          => $lat,
+                                    'lng'          => $lng,
+                                    'display_name' => $name,
+                                ];
+                            }
                         }
                     }
                 } catch (\Throwable $e) {
@@ -372,23 +411,48 @@ class LocationResolutionService
                 }
             }
 
-            // 2. Try Photon fallback
+            // 2. Try Photon fallback (with proximity bias & strict distance validation)
+            $photonParams = '';
+            if ($centerLat !== null && $centerLng !== null) {
+                $photonParams = "&lat={$centerLat}&lon={$centerLng}";
+            }
+
             foreach ($queriesToTry as $q) {
                 try {
-                    $url = "https://photon.komoot.io/api/?limit=1&q=" . urlencode($q);
-                    $res = Http::timeout(5)
+                    $url = "https://photon.komoot.io/api/?limit=3&q=" . urlencode($q) . $photonParams;
+                    $res = Http::timeout(4)
                         ->withoutVerifying()
                         ->get($url);
 
                     if ($res->successful()) {
                         $data = $res->json();
                         $features = $data['features'] ?? [];
-                        if (!empty($features[0]['geometry']['coordinates'])) {
-                            $coords = $features[0]['geometry']['coordinates'];
+                        foreach ($features as $f) {
+                            $coords = $f['geometry']['coordinates'] ?? null;
+                            if (empty($coords[0]) || empty($coords[1])) {
+                                continue;
+                            }
+                            $lat = (float) $coords[1];
+                            $lng = (float) $coords[0];
+                            $matchedName = $f['properties']['name'] ?? '';
+
+                            // Validate distance from restaurant center
+                            if ($centerLat !== null && $centerLng !== null) {
+                                $dist = $this->calculateDistanceKm($centerLat, $centerLng, $lat, $lng);
+                                if ($dist > ($searchRadiusKm + 10.0)) {
+                                    // Returned a point in another city/province -> Discard!
+                                    continue;
+                                }
+                            }
+
+                            if (!$this->hasDistinctiveTokenMatch($clean, $matchedName)) {
+                                continue;
+                            }
+
                             return [
-                                'lat'          => (float) $coords[1],
-                                'lng'          => (float) $coords[0],
-                                'display_name' => $features[0]['properties']['name'] ?? null,
+                                'lat'          => $lat,
+                                'lng'          => $lng,
+                                'display_name' => $matchedName,
                             ];
                         }
                     }
@@ -399,5 +463,21 @@ class LocationResolutionService
 
             return null;
         });
+    }
+
+    protected function hasDistinctiveTokenMatch(string $query, string $matchedText): bool
+    {
+        $commonWords = ['near', 'chowk', 'road', 'gali', 'house', 'flat', 'street', 'main', 'basti', 'chak', 'city', 'town', 'pakistan', 'punjab', 'district', 'tehsil'];
+        $queryTokens = array_filter(preg_split('/[\s,\.\-_]+/', strtolower($query)), fn($w) => strlen($w) >= 3 && !in_array($w, $commonWords, true));
+        if (empty($queryTokens)) {
+            return true;
+        }
+        $lowerMatched = strtolower($matchedText);
+        foreach ($queryTokens as $tok) {
+            if (str_contains($lowerMatched, $tok)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

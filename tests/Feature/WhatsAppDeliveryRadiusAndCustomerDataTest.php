@@ -139,8 +139,54 @@ class WhatsAppDeliveryRadiusAndCustomerDataTest extends TestCase
         ]);
 
         $this->assertEquals('House 12, Street 3, Model Town B', $engine->getSession()['customer_address']);
-        $this->assertStringContainsString('ORDER SUMMARY REVIEW', $reply);
+        $this->assertNull($engine->getSession()['delivery_lat']); // GPS coords are NOT fabricated for manual text addresses
+        $this->assertStringContainsString('Location pin share karein', $reply);
+        $this->assertEquals(OrderingStateEngine::STATE_WAITING_FOR_LOCATION, $engine->getState());
+
+        // Customer skips pin sharing
+        $skipReply = $engine->process([
+            'intent' => 'UNKNOWN',
+            'raw_text' => 'Skip',
+        ]);
+
+        $this->assertStringContainsString('ORDER SUMMARY REVIEW', $skipReply);
         $this->assertEquals(OrderingStateEngine::STATE_WAITING_FOR_CONFIRMATION, $engine->getState());
+    }
+
+    /**
+     * Test 2b: Local landmarks like "model bazzar", "adda permit", "AL fareed medical store" are accepted without false coordinates.
+     */
+    public function test_local_landmarks_are_accepted_and_do_not_hallucinate_false_places(): void
+    {
+        $phone = '923001234599';
+        $engine = new OrderingStateEngine($this->restaurant, $phone);
+
+        $engine->process([
+            'intent' => 'ADD_ITEM',
+            'items' => [
+                ['name' => 'Chicken Tikka Pizza', 'quantity' => 1],
+            ],
+            'raw_text' => '1 Chicken Tikka Pizza',
+        ]);
+
+        $engine->process([
+            'intent' => 'UNKNOWN',
+            'raw_text' => 'Zumaar',
+        ]);
+
+        // Customer enters local address "model bazzar"
+        $reply = $engine->process([
+            'intent' => 'UNKNOWN',
+            'raw_text' => 'model bazzar',
+        ]);
+
+        // Address must be accepted and NOT rejected, and coordinates must NOT be set to Model City!
+        $this->assertEquals('model bazzar', $engine->getSession()['customer_address']);
+        $this->assertNull($engine->getSession()['delivery_lat']);
+        $this->assertNull($engine->getSession()['delivery_lng']);
+        $this->assertStringNotContainsString('Model City', $reply);
+        $this->assertStringNotContainsString('bahar hai', $reply);
+        $this->assertStringContainsString('Location pin share karein', $reply);
     }
 
     /**

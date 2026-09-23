@@ -484,10 +484,8 @@ class OrderingStateEngine
 
                 $this->session['customer_address'] = $sanitizedAddr;
                 $this->session['poi_name'] = null;
-                if (!empty($valCheck['lat']) && !empty($valCheck['lng'])) {
-                    $this->session['delivery_lat'] = $valCheck['lat'];
-                    $this->session['delivery_lng'] = $valCheck['lng'];
-                }
+                $this->session['delivery_lat'] = null;
+                $this->session['delivery_lng'] = null;
                 $this->saveSession();
             } else {
                 return "Shukriya *{$this->session['customer_name']}*! Barahe karam apna *Delivery Address* batayein (House/Street/Area ya Landmark):";
@@ -534,10 +532,8 @@ class OrderingStateEngine
 
             $this->session['customer_address'] = $manualAddress;
             $this->session['poi_name'] = null;
-            if (!empty($valCheck['lat']) && !empty($valCheck['lng'])) {
-                $this->session['delivery_lat'] = $valCheck['lat'];
-                $this->session['delivery_lng'] = $valCheck['lng'];
-            }
+            $this->session['delivery_lat'] = null;
+            $this->session['delivery_lng'] = null;
             $this->saveSession();
             $this->transitionTo(self::STATE_WAITING_FOR_CONFIRMATION);
             return "📍 Delivery Address note kar liya gaya hai: *{$manualAddress}*.\n\n" . $this->renderFinalOrderReview();
@@ -1409,10 +1405,8 @@ class OrderingStateEngine
                 if ($valCheck['valid']) {
                     $this->session['customer_address'] = $cleanAddr;
                     $this->session['poi_name'] = null;
-                    if (!empty($valCheck['lat']) && !empty($valCheck['lng'])) {
-                        $this->session['delivery_lat'] = $valCheck['lat'];
-                        $this->session['delivery_lng'] = $valCheck['lng'];
-                    }
+                    $this->session['delivery_lat'] = null;
+                    $this->session['delivery_lng'] = null;
                 }
             }
         }
@@ -1822,27 +1816,54 @@ class OrderingStateEngine
         $restLat = $this->restaurant->restaurant_lat;
         $restLng = $this->restaurant->restaurant_lng;
         $maxRadius = $this->restaurant->maxDeliveryRadiusKm();
-        $city = $this->restaurant->city ?? 'Bahawalpur';
+        $restCity = strtolower(trim($this->restaurant->city ?? ''));
 
-        // Fast keyword check for areas notoriously outside Bahawalpur urban delivery
-        if (stripos($city, 'bahawalpur') !== false || empty($city)) {
-            // DHA Bahawalpur is ~22-25 km away, Ahmedpur East is 45km, Yazman is 35km, Lodhran is 20km, Uch Sharif is 70km, Lal Suhanra is 35km
-            if (preg_match('/\b(?:dha|d\.h\.a|defence)\b/i', $cleanAddr) && $maxRadius < 20.0) {
+        // 1. Explicit Major Cities rejection (when restaurant is in another city)
+        $majorCities = ['karachi', 'lahore', 'islamabad', 'rawalpindi', 'peshawar', 'quetta', 'faisalabad', 'sialkot', 'gujranwala'];
+        foreach ($majorCities as $mc) {
+            if (preg_match('/\b' . preg_quote($mc, '/') . '\b/i', $cleanAddr) && !str_contains($restCity, $mc)) {
                 return [
                     'valid' => false,
-                    'lat' => 29.3449,
-                    'lng' => 71.6796,
+                    'lat' => null,
+                    'lng' => null,
+                    'resolved_address' => $cleanAddr,
+                    'error_message' => "Maazrat! Hum sirf local delivery karte hain ({$this->restaurant->city}). {$cleanAddr} hamare delivery radius ({$maxRadius} km) se bahar hai.",
+                ];
+            }
+        }
+
+        // 2. City-specific distant landmarks check
+        // If restaurant is in/near Bahawalpur:
+        if (str_contains($restCity, 'bahawalpur') || ($restLat && $restLat < 29.50 && $restLat > 29.30)) {
+            if ($maxRadius < 20.0 && preg_match('/\b(?:dha|d\.h\.a|defence)\b/i', $cleanAddr)) {
+                return [
+                    'valid' => false,
+                    'lat' => null,
+                    'lng' => null,
                     'resolved_address' => 'DHA Bahawalpur',
                     'error_message' => "Maazrat! DHA Bahawalpur hamare delivery radius ({$maxRadius} km) se bahar hai (~22 km door hai). Hum sirf Bahawalpur city ke andar delivery karte hain. Barahe karam delivery area ke andar ka address share karein.",
                 ];
             }
-            if (preg_match('/\b(?:ahmedpur|yazman|uch\s*sharif|lal\s*suhanra|sama\s*satta|sammasatta)\b/i', $cleanAddr)) {
+            if (preg_match('/\b(?:ahmedpur|yazman|uch\s*sharif|lal\s*suhanra)\b/i', $cleanAddr)) {
                 return [
                     'valid' => false,
                     'lat' => null,
                     'lng' => null,
                     'resolved_address' => $cleanAddr,
                     'error_message' => "Maazrat! Yeh ilaqa hamare delivery radius ({$maxRadius} km) se bahar hai. Barahe karam Bahawalpur city ke andar ka address share karein.",
+                ];
+            }
+        }
+
+        // If restaurant is in/near Lodhran:
+        if (str_contains($restCity, 'lodhran') || ($restLat && $restLat >= 29.50 && $restLat <= 29.65)) {
+            if (preg_match('/\b(?:multan|dunyapur|dunya\s*pur|kahror\s*pakka|kahror|jalalpur|jalal\s*pur)\b/i', $cleanAddr)) {
+                return [
+                    'valid' => false,
+                    'lat' => null,
+                    'lng' => null,
+                    'resolved_address' => $cleanAddr,
+                    'error_message' => "Maazrat! Yeh ilaqa hamare delivery radius ({$maxRadius} km) se bahar hai. Hum sirf Lodhran city aur qareebi ilaqon mein delivery karte hain.",
                 ];
             }
         }
@@ -1857,9 +1878,10 @@ class OrderingStateEngine
             ];
         }
 
+        // 3. Strict local geocoding check within local bounding box
         try {
             $locService = app(\App\Services\LocationResolutionService::class);
-            $geo = $locService->geocodeAddress($cleanAddr, $city);
+            $geo = $locService->geocodeAddress($cleanAddr, $this->restaurant->city ?? '', (float)$restLat, (float)$restLng, max($maxRadius * 2, 25.0));
             if ($geo && !empty($geo['lat']) && !empty($geo['lng'])) {
                 $lat = (float) $geo['lat'];
                 $lng = (float) $geo['lng'];
@@ -1869,25 +1891,19 @@ class OrderingStateEngine
                     $distRounded = round($dist, 1);
                     return [
                         'valid' => false,
-                        'lat' => $lat,
-                        'lng' => $lng,
-                        'resolved_address' => $geo['display_name'] ?? $cleanAddr,
+                        'lat' => null,
+                        'lng' => null,
+                        'resolved_address' => $cleanAddr,
                         'error_message' => "Maazrat! Yeh address hamare delivery radius ({$maxRadius} km) se bahar hai (Faasla: {$distRounded} km door hai). Barahe karam delivery area ke andar ka address share karein.",
                     ];
                 }
-
-                return [
-                    'valid' => true,
-                    'lat' => $lat,
-                    'lng' => $lng,
-                    'resolved_address' => $cleanAddr,
-                    'error_message' => null,
-                ];
             }
         } catch (\Throwable $e) {
             Log::warning("Error validating address distance: " . $e->getMessage());
         }
 
+        // If geocoding did not return a verified match, the address is accepted as a local street/landmark.
+        // lat/lng are returned null to avoid false coordinates (such as Model City for Model Bazaar).
         return [
             'valid' => true,
             'lat' => null,
