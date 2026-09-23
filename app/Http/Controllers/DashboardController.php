@@ -335,14 +335,16 @@ class DashboardController extends Controller
         $r     = Restaurant::findOrFail($id);
         $today = $r->todayOrders()->with(['items'])->get();
 
-        // Only return active orders (not delivered/cancelled) for the live list
+        // Return recent orders (including active + recently completed) for smooth live updates
         $liveOrders = $r->orders()
             ->with(['items'])
-            ->whereIn('status', ['pending', 'confirmed', 'preparing', 'out_for_delivery'])
+            ->whereIn('status', ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered'])
             ->orderBy('created_at', 'desc')
+            ->take(30)
             ->get();
 
         $activeRevenue = (float) $today->where('status', '!=', 'cancelled')->sum('total');
+        $activeCount   = $today->whereIn('status', ['pending', 'confirmed', 'preparing', 'out_for_delivery'])->count();
 
         $ordersData = $liveOrders->map(function ($o) use ($r) {
             return [
@@ -352,11 +354,11 @@ class DashboardController extends Controller
                 'status_label'        => $o->status_label,
                 'total'               => (float) $o->total,
                 'customer_name'       => $o->customer_name ?: 'Guest',
-                'customer_phone'      => substr($o->customer_phone ?? 'N/A', -6),
+                'customer_phone'      => $o->customer_phone ?: 'N/A',
                 'full_customer_phone' => $o->customer_phone ?: '',
-                'created_at_humans'   => $o->created_at->diffForHumans(null, true, true),
-                'created_at_time'     => $o->created_at->format('h:i A'),
-                'created_at_ago'      => $o->created_at->diffForHumans(),
+                'created_at_humans'   => $o->created_at ? $o->created_at->diffForHumans(null, true, true) : '',
+                'created_at_time'     => $o->created_at ? $o->created_at->format('g:i A') : '',
+                'created_at_iso'      => $o->created_at ? $o->created_at->toISOString() : '',
                 'rider_name'          => $o->rider_name,
                 'rider_phone'         => $o->rider_phone,
                 'delivery_address'    => $o->delivery_address,
@@ -367,21 +369,39 @@ class DashboardController extends Controller
                 'payment_method'      => $o->payment_method ?: 'cash_on_delivery',
                 'delivery_fee'        => (float) ($r->delivery_charge ?? 0),
                 'items'               => $o->items->map(fn($i) => [
-                    'name'     => $i->name ?? $i->item_name,
-                    'quantity' => (int) $i->quantity,
-                    'subtotal' => (float) $i->subtotal,
+                    'name'      => $i->name ?? $i->item_name,
+                    'item_name' => $i->name ?? $i->item_name,
+                    'quantity'  => (int) $i->quantity,
+                    'subtotal'  => (float) $i->subtotal,
                 ])->values()->all(),
             ];
         });
 
+        $totalToday = $today->count();
+        $deliveredCount = $today->where('status', 'delivered')->count();
+        $confirmedCount = $today->where('status', 'confirmed')->count();
+        $preparingCount = $today->where('status', 'preparing')->count();
+        $outForDeliveryCount = $today->where('status', 'out_for_delivery')->count();
+        $pendingCount = $today->where('status', 'pending')->count();
+        $readyCount = $today->where('status', 'confirmed')->whereNotNull('rider_name')->count();
+
         return response()->json([
             'success'         => true,
-            'today_count'     => $today->count(),
-            'pending_count'   => $today->where('status', 'pending')->count(),
+            'today_count'     => $totalToday,
+            'pending_count'   => $pendingCount,
             'revenue'         => $activeRevenue,
-            'active_count'    => $today->whereIn('status', ['pending', 'confirmed', 'preparing', 'out_for_delivery'])->count(),
-            'delivered_count' => $today->where('status', 'delivered')->count(),
+            'aov'             => $totalToday > 0 ? round($activeRevenue / $totalToday) : 0,
+            'active_count'    => $activeCount,
+            'delivered_count' => $deliveredCount,
             'latest_order_id' => $liveOrders->first()?->id ?? 0,
+            'status_counts'   => [
+                'pending'          => $pendingCount,
+                'confirmed'        => $confirmedCount,
+                'preparing'        => $preparingCount,
+                'ready'            => $readyCount ?: ($confirmedCount > 0 ? 1 : 0),
+                'out_for_delivery' => $outForDeliveryCount,
+                'delivered'        => $deliveredCount,
+            ],
             'orders'          => $ordersData,
         ]);
     }

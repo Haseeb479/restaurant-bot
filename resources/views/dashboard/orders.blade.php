@@ -834,6 +834,89 @@
         .pipeline-steps-strip { flex-direction: column; }
         .pipeline-arrow { transform: rotate(90deg); }
     }
+
+    /* Real-Time Live Order Row Pulse Animation */
+    @keyframes orderRowHighlight {
+        0%   { background-color: rgba(245, 158, 11, 0.35); }
+        50%  { background-color: rgba(245, 158, 11, 0.15); }
+        100% { background-color: transparent; }
+    }
+    .new-order-highlight {
+        animation: orderRowHighlight 3.5s ease-out forwards;
+    }
+
+    /* Live Status Pulse Dot */
+    @keyframes liveDotPulse {
+        0%   { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+        70%  { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+    .live-pulse-dot {
+        width: 8px;
+        height: 8px;
+        background: #10b981;
+        border-radius: 50%;
+        display: inline-block;
+        animation: liveDotPulse 2s infinite;
+    }
+
+    /* Floating Toast Notification */
+    .live-order-toast {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background: #0f172a;
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 14px;
+        padding: 12px 18px;
+        display: none;
+        align-items: center;
+        gap: 14px;
+        box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.45);
+        z-index: 99999;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+    }
+    .live-order-toast:hover {
+        transform: translateY(-2px);
+    }
+    .toast-icon-box {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: rgba(16, 185, 129, 0.2);
+        color: #10b981;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+    .toast-details {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .toast-title {
+        font-size: 13.5px;
+        font-weight: 800;
+        color: #ffffff;
+    }
+    .toast-desc {
+        font-size: 12px;
+        color: #94a3b8;
+    }
+    .toast-action-btn {
+        background: #10b981;
+        color: #ffffff;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 11.5px;
+        font-weight: 700;
+        white-space: nowrap;
+        margin-left: 6px;
+    }
 </style>
 
 <div class="dashboard-container">
@@ -851,7 +934,7 @@
                     </svg>
                 </div>
                 <span class="metric-label">Today's Sales</span>
-                <span class="metric-value">Rs {{ number_format($todayRevenue) }}</span>
+                <span class="metric-value" id="kpi-sales">Rs {{ number_format($todayRevenue) }}</span>
                 <div class="metric-trend-badge">
                     <span>↑ 12%</span> <span class="muted">vs yesterday</span>
                 </div>
@@ -877,7 +960,7 @@
                     </svg>
                 </div>
                 <span class="metric-label">Total Orders</span>
-                <span class="metric-value">{{ $totalOrdersToday }}</span>
+                <span class="metric-value" id="kpi-total-orders">{{ $totalOrdersToday }}</span>
                 <div class="metric-trend-badge">
                     <span>↑ 8%</span> <span class="muted">vs yesterday</span>
                 </div>
@@ -901,7 +984,7 @@
                     </svg>
                 </div>
                 <span class="metric-label">Average Order Value</span>
-                <span class="metric-value">
+                <span class="metric-value" id="kpi-aov">
                     Rs {{ number_format($totalOrdersToday > 0 ? round($todayRevenue / $totalOrdersToday) : 0) }}
                 </span>
                 <div class="metric-trend-badge">
@@ -926,7 +1009,7 @@
                     </svg>
                 </div>
                 <span class="metric-label">Completed Orders</span>
-                <span class="metric-value">{{ $statusCounts['delivered'] ?? 0 }}</span>
+                <span class="metric-value" id="kpi-completed">{{ $statusCounts['delivered'] ?? 0 }}</span>
                 <div class="metric-trend-badge">
                     <span>↑ 10%</span> <span class="muted">vs yesterday</span>
                 </div>
@@ -1035,7 +1118,10 @@
                             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
                         </svg>
                         <span>Live Orders</span>
-                        <span style="background: #ef4444; color: #fff; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 9999px;">
+                        <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #10b981; font-weight: 700; margin-left: 2px;">
+                            <span class="live-pulse-dot"></span> Live
+                        </span>
+                        <span id="liveOrdersBadgeCount" style="background: #ef4444; color: #fff; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 9999px;">
                             {{ $liveOrdersCount }}
                         </span>
                     </div>
@@ -1045,19 +1131,19 @@
                 <!-- Filter Pills -->
                 <div class="pill-filters-row">
                     <button type="button" class="filter-pill-btn active" onclick="filterTableStatus('all')" id="btn-tab-all">
-                        All {{ $liveOrdersCount }}
+                        All <span id="pillCountAll">{{ $liveOrdersCount }}</span>
                     </button>
                     <button type="button" class="filter-pill-btn" onclick="filterTableStatus('pending')" id="btn-tab-pending">
-                        New {{ $pendingCount }}
+                        New <span id="pillCountPending">{{ $pendingCount }}</span>
                     </button>
                     <button type="button" class="filter-pill-btn" onclick="filterTableStatus('preparing')" id="btn-tab-preparing">
-                        Preparing {{ $statusCounts['preparing'] ?? 0 }}
+                        Preparing <span id="pillCountPreparing">{{ $statusCounts['preparing'] ?? 0 }}</span>
                     </button>
                     <button type="button" class="filter-pill-btn" onclick="filterTableStatus('ready')" id="btn-tab-ready">
-                        Ready {{ $readyCount ?: 2 }}
+                        Ready <span id="pillCountReady">{{ $readyCount ?: 2 }}</span>
                     </button>
                     <button type="button" class="filter-pill-btn" onclick="filterTableStatus('out_for_delivery')" id="btn-tab-delivery">
-                        Delivery {{ $deliveryCount ?: 4 }}
+                        Delivery <span id="pillCountDelivery">{{ $deliveryCount ?: 4 }}</span>
                     </button>
                 </div>
 
@@ -1158,7 +1244,7 @@
                         </svg>
                         <span style="color: var(--text-heading);">Needs Attention</span>
                     </div>
-                    <span class="attention-badge-count">3</span>
+                    <span class="attention-badge-count" id="attentionBadgeCount">{{ $pendingCount > 0 ? (2 + 1) : 2 }}</span>
                 </div>
 
                 <div class="attention-items-list">
@@ -1169,8 +1255,8 @@
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                             </div>
                             <div class="attention-text-wrap">
-                                <h5>{{ $pendingCount > 0 ? "{$pendingCount} new orders waiting" : '2 new orders waiting' }}</h5>
-                                <p>{{ $todayOrders->where('status', 'pending')->take(2)->map(fn($o) => '#' . $o->id)->implode(', ') ?: '#1048, #1049' }}</p>
+                                <h5 id="attentionPendingTitle">{{ $pendingCount > 0 ? "{$pendingCount} new orders waiting" : 'No new orders waiting' }}</h5>
+                                <p id="attentionPendingListText">{{ $todayOrders->where('status', 'pending')->take(2)->map(fn($o) => '#' . $o->id)->implode(', ') ?: 'All caught up' }}</p>
                             </div>
                         </div>
                         <span class="chevron-icon">›</span>
@@ -1366,7 +1452,7 @@
                         <circle cx="50" cy="50" r="38" stroke="#6366f1" stroke-width="9" stroke-dasharray="25 238" stroke-dashoffset="-205" fill="none" stroke-linecap="round"/>
                     </svg>
                     <div class="donut-center-text">
-                        <h4>12</h4>
+                        <h4 id="donutActiveCount">{{ $liveOrdersCount ?: 12 }}</h4>
                         <p>Active</p>
                     </div>
                 </div>
@@ -1378,7 +1464,7 @@
                             <span class="donut-legend-dot pending"></span>
                             <span>Pending</span>
                         </div>
-                        <span class="donut-legend-val">{{ $pendingCount ?: 12 }}</span>
+                        <span class="donut-legend-val" id="donutLegendPending">{{ $pendingCount ?: 12 }}</span>
                     </div>
 
                     <div class="donut-legend-row">
@@ -1386,7 +1472,7 @@
                             <span class="donut-legend-dot preparing"></span>
                             <span>Preparing</span>
                         </div>
-                        <span class="donut-legend-val">{{ $statusCounts['preparing'] ?? 7 }}</span>
+                        <span class="donut-legend-val" id="donutLegendPreparing">{{ $statusCounts['preparing'] ?? 7 }}</span>
                     </div>
 
                     <div class="donut-legend-row">
@@ -1394,7 +1480,7 @@
                             <span class="donut-legend-dot ready"></span>
                             <span>Ready</span>
                         </div>
-                        <span class="donut-legend-val">{{ $readyCount ?: 3 }}</span>
+                        <span class="donut-legend-val" id="donutLegendReady">{{ $readyCount ?: 3 }}</span>
                     </div>
 
                     <div class="donut-legend-row">
@@ -1402,7 +1488,7 @@
                             <span class="donut-legend-dot onroute"></span>
                             <span>On Route</span>
                         </div>
-                        <span class="donut-legend-val">{{ $deliveryCount ?: 2 }}</span>
+                        <span class="donut-legend-val" id="donutLegendDelivery">{{ $deliveryCount ?: 2 }}</span>
                     </div>
                 </div>
             </div>
@@ -1561,31 +1647,354 @@
     </div>
 </div>
 
+<!-- ── FLOATING LIVE ORDER TOAST NOTIFICATION ── -->
+<div id="liveOrderToast" class="live-order-toast" role="alert" aria-live="assertive">
+    <div class="toast-icon-box">🔔</div>
+    <div class="toast-details">
+        <span class="toast-title" id="toastTitle">New Order Placed!</span>
+        <span class="toast-desc" id="toastBody">Customer Name • Rs 0</span>
+    </div>
+    <span class="toast-action-btn">View Order ➔</span>
+</div>
+
 <!-- ── CLIENT SCRIPT ENGINE ── -->
 <script>
 let currentDrawerOrderId = null;
 let currentDrawerOrderStatus = null;
+let currentFilterStatus = 'all';
+let latestKnownOrderId = {{ (int) ($orders->first()?->id ?? 0) }};
 const allOrdersMap = @json($orders->keyBy('id'));
+const newlyArrivedOrderIds = new Set();
+let isPollingActive = false;
+
+// ── Web Audio API Synthesizer Chime ──
+function playNewOrderSound() {
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        if (ctx.state === 'suspended') {
+            ctx.resume();
+        }
+        const now = ctx.currentTime;
+
+        // Tone 1: 587.33 Hz (D5)
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(587.33, now);
+        gain1.gain.setValueAtTime(0.18, now);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.35);
+
+        // Tone 2: 880 Hz (A5)
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(880, now + 0.15);
+        gain2.gain.setValueAtTime(0.22, now + 0.15);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(now + 0.15);
+        osc2.stop(now + 0.55);
+    } catch (e) {
+        console.warn('Audio chime notice:', e);
+    }
+}
+
+// ── Floating Toast Notification ──
+let toastTimeoutId = null;
+function showLiveOrderToast(order) {
+    const toast = document.getElementById('liveOrderToast');
+    if (!toast) return;
+
+    document.getElementById('toastTitle').textContent = `New Order #${order.id} Placed!`;
+    document.getElementById('toastBody').textContent = `${order.customer_name || 'Customer'} • Rs ${Number(order.total || 0).toLocaleString()}`;
+    toast.style.display = 'flex';
+    toast.onclick = () => {
+        openOrderDrawer(order.id);
+        toast.style.display = 'none';
+    };
+
+    if (toastTimeoutId) clearTimeout(toastTimeoutId);
+    toastTimeoutId = setTimeout(() => {
+        if (toast.style.display === 'flex') {
+            toast.style.display = 'none';
+        }
+    }, 8000);
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return String(text).replace(/[&<>"']/g, m => map[m]);
+}
+
+function formatItemsSummary(items) {
+    if (!items || !items.length) return 'Standard order';
+    const firstTwo = items.slice(0, 2).map(i => `${i.quantity}x ${i.name || i.item_name || 'Item'}`).join(', ');
+    if (items.length > 2) {
+        return firstTwo + ` +${items.length - 2} more`;
+    }
+    return firstTwo;
+}
+
+function getStatusMeta(status) {
+    switch (status) {
+        case 'pending':
+            return { badgeClass: 'new', label: 'New' };
+        case 'confirmed':
+            return { badgeClass: 'preparing', label: 'Confirmed' };
+        case 'preparing':
+            return { badgeClass: 'preparing', label: 'Preparing' };
+        case 'ready':
+            return { badgeClass: 'ready', label: 'Ready' };
+        case 'out_for_delivery':
+            return { badgeClass: 'delivery', label: 'Out for Delivery' };
+        case 'delivered':
+            return { badgeClass: 'delivered', label: 'Delivered' };
+        default:
+            return { badgeClass: 'new', label: (status || '').toUpperCase() };
+    }
+}
+
+// ── Render dynamic rows in Live Orders table ──
+function renderOrdersTable(orders) {
+    const tbody = document.getElementById('ordersTableBody');
+    if (!tbody) return;
+
+    let filtered = orders;
+    if (currentFilterStatus === 'pending') {
+        filtered = orders.filter(o => o.status === 'pending');
+    } else if (currentFilterStatus === 'preparing') {
+        filtered = orders.filter(o => o.status === 'preparing');
+    } else if (currentFilterStatus === 'ready') {
+        filtered = orders.filter(o => o.status === 'confirmed' || o.status === 'preparing');
+    } else if (currentFilterStatus === 'out_for_delivery') {
+        filtered = orders.filter(o => o.status === 'out_for_delivery');
+    } else if (currentFilterStatus === 'delivered') {
+        filtered = orders.filter(o => o.status === 'delivered');
+    }
+
+    if (!filtered.length) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                    No active orders found in this view. New orders will appear here automatically!
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    const slice = filtered.slice(0, 15);
+    let html = '';
+    slice.forEach(order => {
+        const custName = escapeHtml(order.customer_name || 'Customer');
+        const custInitial = custName.charAt(0).toUpperCase() || 'C';
+        const itemsSummary = escapeHtml(formatItemsSummary(order.items));
+        const meta = getStatusMeta(order.status);
+        const isNewHighlight = newlyArrivedOrderIds.has(order.id) ? 'new-order-highlight' : '';
+        const orderTime = order.created_at_time || (order.created_at ? new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '');
+
+        html += `
+            <tr class="live-order-row ${isNewHighlight}" data-status="${escapeHtml(order.status)}" onclick="openOrderDrawer(${order.id})">
+                <td class="order-id-cell">#${order.id}</td>
+                <td>
+                    <div class="customer-info-cell">
+                        <div class="customer-initial-avatar">${custInitial}</div>
+                        <div class="customer-meta">
+                            <h4>${custName}</h4>
+                            <span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                                WhatsApp
+                            </span>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div class="order-items-preview" title="${itemsSummary}">
+                        ${itemsSummary}
+                    </div>
+                </td>
+                <td class="order-total-cell">Rs ${Number(order.total || 0).toLocaleString()}</td>
+                <td>
+                    <span class="status-pill ${meta.badgeClass}">${meta.label}</span>
+                </td>
+                <td class="order-time-cell">${orderTime}</td>
+                <td style="text-align: right;">
+                    <span class="chevron-icon">›</span>
+                </td>
+            </tr>
+        `;
+    });
+
+    tbody.innerHTML = html;
+}
 
 // ── Filter Table by Pipeline Step / Tabs ──
 function filterTableStatus(status) {
-    // Update pill buttons active state
+    currentFilterStatus = status;
     document.querySelectorAll('.filter-pill-btn').forEach(b => b.classList.remove('active'));
     const targetBtn = document.getElementById('btn-tab-' + (status === 'out_for_delivery' ? 'delivery' : status));
     if (targetBtn) targetBtn.classList.add('active');
 
-    // Filter table rows
-    const rows = document.querySelectorAll('#ordersTableBody tr.live-order-row');
-    rows.forEach(row => {
-        const rowStatus = row.getAttribute('data-status');
-        if (status === 'all') {
-            row.style.display = '';
-        } else if (status === 'ready') {
-            row.style.display = (rowStatus === 'confirmed' || rowStatus === 'preparing') ? '' : 'none';
-        } else {
-            row.style.display = (rowStatus === status) ? '' : 'none';
+    const ordersList = Object.values(allOrdersMap).sort((a,b) => b.id - a.id);
+    renderOrdersTable(ordersList);
+}
+
+// ── Real-Time Live Orders Poller ──
+async function fetchLiveOrdersFeed() {
+    if (isPollingActive) return;
+    isPollingActive = true;
+    try {
+        const res = await fetch(`/dashboard/{{ $restaurant->id }}/orders/live-feed`, {
+            headers: { 'Accept': 'application/json' }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data || !data.success) return;
+
+        // Detect newly arrived orders
+        let hasNewOrder = false;
+        let latestNewOrder = null;
+
+        if (Array.isArray(data.orders)) {
+            data.orders.forEach(o => {
+                if (!allOrdersMap[o.id] && latestKnownOrderId > 0 && o.id > latestKnownOrderId) {
+                    hasNewOrder = true;
+                    newlyArrivedOrderIds.add(o.id);
+                    if (!latestNewOrder || o.id > latestNewOrder.id) {
+                        latestNewOrder = o;
+                    }
+                }
+                allOrdersMap[o.id] = o;
+            });
         }
-    });
+
+        if (hasNewOrder && latestNewOrder) {
+            playNewOrderSound();
+            showLiveOrderToast(latestNewOrder);
+        }
+
+        if (data.latest_order_id && data.latest_order_id > latestKnownOrderId) {
+            latestKnownOrderId = data.latest_order_id;
+        }
+
+        // Update Top 4 KPI Metrics
+        const kpiSales = document.getElementById('kpi-sales');
+        if (kpiSales) kpiSales.textContent = 'Rs ' + Number(data.revenue || 0).toLocaleString();
+
+        const kpiTotal = document.getElementById('kpi-total-orders');
+        if (kpiTotal) kpiTotal.textContent = data.today_count ?? 0;
+
+        const kpiAov = document.getElementById('kpi-aov');
+        if (kpiAov) kpiAov.textContent = 'Rs ' + Number(data.aov || 0).toLocaleString();
+
+        const kpiComp = document.getElementById('kpi-completed');
+        if (kpiComp) kpiComp.textContent = data.delivered_count ?? 0;
+
+        // Update Order Pipeline Stage Counters
+        const sc = data.status_counts || {};
+        const pPending = document.getElementById('pipe-pending');
+        if (pPending) pPending.textContent = sc.pending ?? 0;
+
+        const pConfirmed = document.getElementById('pipe-confirmed');
+        if (pConfirmed) pConfirmed.textContent = sc.confirmed ?? 0;
+
+        const pPrep = document.getElementById('pipe-preparing');
+        if (pPrep) pPrep.textContent = sc.preparing ?? 0;
+
+        const pReady = document.getElementById('pipe-ready');
+        if (pReady) pReady.textContent = sc.ready ?? 0;
+
+        const pDel = document.getElementById('pipe-delivery');
+        if (pDel) pDel.textContent = sc.out_for_delivery ?? 0;
+
+        const pDelivered = document.getElementById('pipe-delivered');
+        if (pDelivered) pDelivered.textContent = sc.delivered ?? 0;
+
+        // Update Live Orders header badge & filter pill counts
+        const badgeCount = document.getElementById('liveOrdersBadgeCount');
+        if (badgeCount) badgeCount.textContent = data.active_count ?? 0;
+
+        const pillAll = document.getElementById('pillCountAll');
+        if (pillAll) pillAll.textContent = data.active_count ?? 0;
+
+        const pillPending = document.getElementById('pillCountPending');
+        if (pillPending) pillPending.textContent = sc.pending ?? 0;
+
+        const pillPrep = document.getElementById('pillCountPreparing');
+        if (pillPrep) pillPrep.textContent = sc.preparing ?? 0;
+
+        const pillReady = document.getElementById('pillCountReady');
+        if (pillReady) pillReady.textContent = sc.ready ?? 0;
+
+        const pillDelivery = document.getElementById('pillCountDelivery');
+        if (pillDelivery) pillDelivery.textContent = sc.out_for_delivery ?? 0;
+
+        // Update Needs Attention Card
+        const attBadge = document.getElementById('attentionBadgeCount');
+        if (attBadge) attBadge.textContent = sc.pending > 0 ? (sc.pending + 2) : 2;
+
+        const attTitle = document.getElementById('attentionPendingTitle');
+        if (attTitle) {
+            attTitle.textContent = sc.pending > 0 ? `${sc.pending} new orders waiting` : 'No new orders waiting';
+        }
+
+        const attText = document.getElementById('attentionPendingListText');
+        if (attText) {
+            const pendingIds = (data.orders || [])
+                .filter(o => o.status === 'pending')
+                .slice(0, 3)
+                .map(o => '#' + o.id)
+                .join(', ');
+            attText.textContent = pendingIds || 'All caught up';
+        }
+
+        // Update Delivery Overview Donut
+        const donutActive = document.getElementById('donutActiveCount');
+        if (donutActive) donutActive.textContent = data.active_count ?? 0;
+
+        const dPending = document.getElementById('donutLegendPending');
+        if (dPending) dPending.textContent = sc.pending ?? 0;
+
+        const dPrep = document.getElementById('donutLegendPreparing');
+        if (dPrep) dPrep.textContent = sc.preparing ?? 0;
+
+        const dReady = document.getElementById('donutLegendReady');
+        if (dReady) dReady.textContent = sc.ready ?? 0;
+
+        const dDel = document.getElementById('donutLegendDelivery');
+        if (dDel) dDel.textContent = sc.out_for_delivery ?? 0;
+
+        // Update Drawer if currently inspecting an order whose status changed
+        if (currentDrawerOrderId && allOrdersMap[currentDrawerOrderId]) {
+            const currentO = allOrdersMap[currentDrawerOrderId];
+            if (currentO.status !== currentDrawerOrderStatus) {
+                openOrderDrawer(currentDrawerOrderId);
+            }
+        }
+
+        // Render updated table rows
+        const ordersList = Object.values(allOrdersMap).sort((a,b) => b.id - a.id);
+        renderOrdersTable(ordersList);
+
+    } catch (err) {
+        console.error('Live orders feed poll error:', err);
+    } finally {
+        isPollingActive = false;
+    }
 }
 
 // ── Open Slide-over Order Drawer ──
@@ -1596,8 +2005,12 @@ function openOrderDrawer(orderId) {
     currentDrawerOrderId = orderId;
     currentDrawerOrderStatus = o.status;
 
+    // Clear highlight if user clicks on this order
+    newlyArrivedOrderIds.delete(orderId);
+
     document.getElementById('drawerOrderTitle').textContent = 'Order #' + o.id;
-    document.getElementById('drawerOrderSub').textContent = 'Received ' + (o.created_at ? new Date(o.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '');
+    const timeFormatted = o.created_at_time || (o.created_at ? new Date(o.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '');
+    document.getElementById('drawerOrderSub').textContent = 'Received ' + timeFormatted;
     document.getElementById('drawerCustomerName').textContent = o.customer_name || 'Guest';
     document.getElementById('drawerCustomerPhone').textContent = o.customer_phone || 'N/A';
     document.getElementById('drawerDeliveryAddress').textContent = o.delivery_address || 'No address provided';
@@ -1613,8 +2026,9 @@ function openOrderDrawer(orderId) {
 
     // Status pill
     const pill = document.getElementById('drawerStatusPill');
-    pill.textContent = o.status.replace(/_/g, ' ').toUpperCase();
-    pill.className = 'status-pill ' + (o.status === 'out_for_delivery' ? 'delivery' : o.status);
+    const meta = getStatusMeta(o.status);
+    pill.textContent = meta.label.toUpperCase();
+    pill.className = 'status-pill ' + meta.badgeClass;
 
     // Items list
     const itemsCont = document.getElementById('drawerItemsList');
@@ -1625,7 +2039,7 @@ function openOrderDrawer(orderId) {
             row.style.display = 'flex';
             row.style.justifyContent = 'space-between';
             row.style.fontSize = '12.5px';
-            row.innerHTML = `<span><strong>${it.quantity}x</strong> ${it.name || it.item_name}</span><span>Rs ${it.subtotal || 0}</span>`;
+            row.innerHTML = `<span><strong>${it.quantity}x</strong> ${escapeHtml(it.name || it.item_name)}</span><span>Rs ${Number(it.subtotal || 0).toLocaleString()}</span>`;
             itemsCont.appendChild(row);
         });
     } else {
@@ -1699,13 +2113,18 @@ async function postStatusUpdate(orderId, status, extra = {}) {
         });
         const data = await res.json();
         if (data.success || res.ok) {
-            window.location.reload();
+            closeOrderDrawer();
+            closeDispatchModal();
+            // Instantly refresh live orders feed without full page reload
+            fetchLiveOrdersFeed();
         } else {
             alert(data.error || 'Failed to update order status.');
         }
     } catch (e) {
         console.error(e);
-        window.location.reload();
+        closeOrderDrawer();
+        closeDispatchModal();
+        fetchLiveOrdersFeed();
     }
 }
 
@@ -1754,6 +2173,9 @@ function switchTrendRange(range, btn) {
     document.querySelectorAll('.trend-toggle-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
 }
+
+// ── Start polling every 4 seconds ──
+setInterval(fetchLiveOrdersFeed, 4000);
 </script>
 
 @endsection
