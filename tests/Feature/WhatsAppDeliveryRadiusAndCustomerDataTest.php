@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Category;
 use App\Models\Conversation;
 use App\Models\MenuItem;
+use App\Models\Order;
 use App\Models\Restaurant;
 use App\Services\OrderingStateEngine;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -408,5 +409,116 @@ class WhatsAppDeliveryRadiusAndCustomerDataTest extends TestCase
         $kardoNlu = $botService->extractNlu($this->restaurant, 'kardo');
         $this->assertEquals('CONFIRM_ORDER', $kardoNlu['intent']);
     }
+
+    /**
+     * Test 9: GPS pin inside radius sets location_valid=true, calculates distance, and saves delivery_distance_km.
+     */
+    public function test_gps_pin_inside_radius_sets_location_valid_true_and_stores_distance(): void
+    {
+        $phone = '923001234574';
+        $engine = new OrderingStateEngine($this->restaurant, $phone);
+
+        $engine->process([
+            'intent' => 'ADD_ITEM',
+            'items' => [['name' => 'Chicken Tikka Pizza', 'quantity' => 1]],
+            'raw_text' => '1 Chicken Tikka Pizza',
+        ]);
+        $engine->process([
+            'intent' => 'UNKNOWN',
+            'raw_text' => 'Ali Khan',
+        ]);
+
+        // Restaurant at (29.5400, 71.6300), Pin at (29.5450, 71.6350) => ~0.7 km away <= 9 km radius
+        $reply = $engine->handleLocationPin(29.5450, 71.6350);
+
+        $session = $engine->getSession();
+        $this->assertTrue($session['location_valid']);
+        $this->assertEquals(29.5450, $session['delivery_lat']);
+        $this->assertEquals(71.6350, $session['delivery_lng']);
+        $this->assertNotNull($session['delivery_distance_km']);
+        $this->assertEquals(OrderingStateEngine::STATE_WAITING_FOR_ORDER_CONFIRMATION, $engine->getState());
+
+        // Confirm
+        $confirmReply = $engine->process([
+            'intent' => 'CONFIRM_ORDER',
+            'raw_text' => 'confirm',
+        ]);
+
+        $this->assertStringContainsString('AAPKA ORDER CONFIRM HO GAYA HAI', $confirmReply);
+
+        $order = Order::where('customer_phone', $phone)->latest()->first();
+        $this->assertNotNull($order);
+        $this->assertEquals(29.5450, (float)$order->delivery_lat);
+        $this->assertEquals(71.6350, (float)$order->delivery_lng);
+        $this->assertNotNull($order->delivery_distance_km);
+        $this->assertEquals('whatsapp_pin', $order->location_source);
+    }
+
+    /**
+     * Test 10: GPS pin outside radius sets location_valid=false and politely rejects delivery.
+     */
+    public function test_gps_pin_outside_radius_sets_location_valid_false_and_politely_rejects(): void
+    {
+        $phone = '923001234575';
+        $engine = new OrderingStateEngine($this->restaurant, $phone);
+
+        $engine->process([
+            'intent' => 'ADD_ITEM',
+            'items' => [['name' => 'Chicken Tikka Pizza', 'quantity' => 1]],
+            'raw_text' => '1 Chicken Tikka Pizza',
+        ]);
+
+        // Pin 30 km away (> 9 km radius)
+        $reply = $engine->handleLocationPin(29.2500, 71.6300);
+
+        $this->assertStringContainsString('radius', strtolower($reply));
+        $this->assertStringContainsString('bahar hai', $reply);
+
+        $session = $engine->getSession();
+        $this->assertFalse($session['location_valid']);
+        $this->assertNull($session['delivery_lat']);
+        $this->assertNull($session['delivery_lng']);
+    }
+
+    /**
+     * Test 11: OrderService revalidates GPS distance before order creation and blocks if outside radius.
+     */
+    public function test_order_service_revalidates_gps_before_order_creation(): void
+    {
+        $orderService = app(\App\Services\OrderService::class);
+
+        $mockSession = [
+            'cart' => [
+                [
+                    'item_id' => $this->restaurant->menuItems->first()->id,
+                    'quantity' => 1,
+                ]
+            ],
+            'customer_name' => 'Test User',
+            'customer_address' => 'Faraway Location',
+            'delivery_lat' => 29.1000, // ~49 km away
+            'delivery_lng' => 71.6300,
+        ];
+
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessage('delivery radius');
+
+        $orderService->createOrder($this->restaurant, $mockSession, '923001234576');
+    }
+
+    /**
+     * Test 12: Confirm keyword cannot be searched as a menu item.
+     */
+    public function test_confirm_keyword_cannot_be_searched_as_menu_item(): void
+    {
+        $engine = new OrderingStateEngine($this->restaurant, '923001234577');
+
+        $this->assertNull($engine->resolveMenuItemFromDb('confirm'));
+        $this->assertNull($engine->resolveMenuItemFromDb('confim'));
+        $this->assertNull($engine->resolveMenuItemFromDb('cnfrm'));
+        $this->assertNull($engine->resolveMenuItemFromDb('yes'));
+        $this->assertNull($engine->resolveMenuItemFromDb('done'));
+    }
 }
+
 

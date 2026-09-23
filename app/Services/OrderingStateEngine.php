@@ -21,7 +21,8 @@ class OrderingStateEngine
     public const STATE_WAITING_FOR_VARIANT = 'WAITING_FOR_VARIANT';
     public const STATE_COLLECT_CUSTOMER_INFO = 'COLLECT_CUSTOMER_INFO';
     public const STATE_WAITING_FOR_LOCATION = 'WAITING_FOR_LOCATION';
-    public const STATE_WAITING_FOR_CONFIRMATION = 'WAITING_FOR_CONFIRMATION';
+    public const STATE_WAITING_FOR_ORDER_CONFIRMATION = 'WAITING_FOR_ORDER_CONFIRMATION';
+    public const STATE_WAITING_FOR_CONFIRMATION = self::STATE_WAITING_FOR_ORDER_CONFIRMATION;
     public const STATE_ORDER_CREATED = 'ORDER_CREATED';
     public const STATE_COMPLETED = 'COMPLETED';
     public const STATE_MODIFY_EXISTING_ORDER = 'MODIFY_EXISTING_ORDER';
@@ -260,8 +261,9 @@ class OrderingStateEngine
             case self::STATE_WAITING_FOR_LOCATION:
                 return $this->handleWaitingForLocationState($intent, $nlu);
 
-            case self::STATE_WAITING_FOR_CONFIRMATION:
-                return $this->handleWaitingForConfirmationState($intent, $nlu);
+            case self::STATE_WAITING_FOR_ORDER_CONFIRMATION:
+            case 'WAITING_FOR_CONFIRMATION':
+                return $this->handleWaitingForOrderConfirmationState($intent, $nlu);
 
             case self::STATE_MODIFY_EXISTING_ORDER:
                 return $this->handleModifyExistingOrder($nlu);
@@ -528,7 +530,7 @@ class OrderingStateEngine
         if (preg_match('/^(?:skip|nahi|rehne\s*do|no|skip\s*karo)$/i', $rawLower) || str_contains($rawLower, 'skip') || str_contains($rawLower, 'rehne do')) {
             $this->session['location_skipped'] = true;
             $this->saveSession();
-            $this->transitionTo(self::STATE_WAITING_FOR_CONFIRMATION);
+            $this->transitionTo(self::STATE_WAITING_FOR_ORDER_CONFIRMATION);
             return $this->renderFinalOrderReview();
         }
 
@@ -545,17 +547,18 @@ class OrderingStateEngine
             $this->session['delivery_lat'] = null;
             $this->session['delivery_lng'] = null;
             $this->saveSession();
-            $this->transitionTo(self::STATE_WAITING_FOR_CONFIRMATION);
+            $this->transitionTo(self::STATE_WAITING_FOR_ORDER_CONFIRMATION);
             return "📍 Delivery Address note kar liya gaya hai: *{$manualAddress}*.\n\n" . $this->renderFinalOrderReview();
         }
 
         return "📍 Barahe karam WhatsApp se apni *Current Location pin share karein* (Attachment 📎 -> Location).\n\nAgar aap pin share nahi kar sakte to *Skip* likhein ya apna *Address/Landmark* likhein.";
     }
 
-    protected function handleWaitingForConfirmationState(string $intent, array $nlu): string
+    protected function handleWaitingForOrderConfirmationState(string $intent, array $nlu): string
     {
         $raw = trim($nlu['raw_text'] ?? '');
 
+        // If customer says Confirm/Yes/Haan/Han/Ji/Okay/Done/etc., interpret as CONFIRM_ORDER
         if ($intent === 'CONFIRM_ORDER' || $this->isAffirmative($raw)) {
             return $this->executeOrderCreation();
         }
@@ -576,8 +579,9 @@ class OrderingStateEngine
             return "Theek hai! Naya order shuru karte hain. Menu dekhne ke liye *Menu* likhein ya direct item batayein.";
         }
 
+        // Do NOT send confirmation text back through menu-item matching!
+        // Only if legitimate ADD_ITEM intent or customer explicitly named an existing menu item in DB:
         if ($intent === 'ADD_ITEM' || !empty($nlu['items'])) {
-            // Guard: Only transition to MENU_SELECTION if at least one item actually exists in the menu!
             $items = $nlu['items'] ?? [];
             $hasRealMenuItem = false;
             foreach ($items as $itemData) {
@@ -598,7 +602,7 @@ class OrderingStateEngine
                 return $this->executeOrderCreation();
             }
 
-            // Keep user in WAITING_FOR_CONFIRMATION and prompt clearly
+            // Keep user in WAITING_FOR_ORDER_CONFIRMATION and prompt clearly
             return "Barahe karam order confirm karne ke liye *Confirm* likhein, ya cancel karne ke liye *Cancel* likhein.\n\n" . $this->renderFinalOrderReview();
         }
 
@@ -614,6 +618,11 @@ class OrderingStateEngine
         }
 
         return "Barahe karam order confirm karne ke liye *Yes / Confirm* likhein, ya cancel karne ke liye *Cancel* likhein.\n\n" . $this->renderFinalOrderReview();
+    }
+
+    protected function handleWaitingForConfirmationState(string $intent, array $nlu): string
+    {
+        return $this->handleWaitingForOrderConfirmationState($intent, $nlu);
     }
 
     protected function handleCompletedState(string $intent, array $nlu): string
@@ -1067,22 +1076,36 @@ class OrderingStateEngine
     {
         Log::info("State Engine [{$this->cleanPhone}]: Native GPS pin received: {$lat}, {$lng}");
 
-        $this->session['delivery_lat'] = $lat;
-        $this->session['delivery_lng'] = $lng;
-
-        // Radius check
         $restLat = $this->restaurant->restaurant_lat;
         $restLng = $this->restaurant->restaurant_lng;
-        $maxRadius = $this->restaurant->maxDeliveryRadiusKm();
+        $maxRadius = (float)$this->restaurant->maxDeliveryRadiusKm();
 
+        // 1. Authoritative Backend Distance Calculation
         if ($restLat && $restLng) {
             $dist = $this->calculateDistanceKm((float)$restLat, (float)$restLng, $lat, $lng);
             if ($dist > $maxRadius) {
-                return "Maazrat! Yeh location hamare delivery radius ({$maxRadius} km) se bahar hai (Faasla: " . round($dist, 1) . " km). Barahe karam delivery area ke andar ki location share karein.";
+                $distRounded = round($dist, 1);
+                $this->session['location_valid'] = false;
+                $this->session['delivery_lat'] = null;
+                $this->session['delivery_lng'] = null;
+                $this->session['delivery_distance_km'] = null;
+                $this->session['location_source'] = null;
+                $this->saveSession();
+
+                return "Maazrat! Yeh location hamare delivery radius ({$maxRadius} km) se bahar hai (Faasla: {$distRounded} km door hai). Hum sirf {$maxRadius} km ke andar delivery karte hain. Barahe karam delivery area ke andar ki location pin share karein.";
             }
         }
 
-        // Landmark / POI Detection
+        // Inside radius → location_valid = true
+        $distCalculated = ($restLat && $restLng) ? round($this->calculateDistanceKm((float)$restLat, (float)$restLng, $lat, $lng), 2) : null;
+        $this->session['location_valid'] = true;
+        $this->session['delivery_lat'] = $lat;
+        $this->session['delivery_lng'] = $lng;
+        $this->session['delivery_distance_km'] = $distCalculated;
+        $this->session['location_source'] = 'whatsapp_pin';
+        $this->session['location_skipped'] = false;
+
+        // 2. Supplemental POI / Landmark Detection (Never replaces GPS coords)
         $placeName = null;
         $resolvedAddress = null;
         try {
@@ -1094,16 +1117,13 @@ class OrderingStateEngine
             Log::warning("LocationResolutionService error in State Engine: " . $e->getMessage());
         }
 
-        // New location pin always sets landmark (clearing any old stale landmark)
         $this->session['poi_name'] = $placeName ?: null;
 
-        // Guaranteed valid customer address from pin
-        if (!empty($resolvedAddress)) {
-            $this->session['customer_address'] = $resolvedAddress;
-        } elseif (!empty($placeName)) {
-            $this->session['customer_address'] = $placeName;
-        } else {
-            $this->session['customer_address'] = "GPS Pin ({$lat}, {$lng})";
+        // Display address: preserve manual typed address if customer provided one, otherwise use reverse geocode
+        if (empty($this->session['customer_address']) ||
+            str_starts_with($this->session['customer_address'], 'GPS Pin') ||
+            str_starts_with($this->session['customer_address'], 'WhatsApp')) {
+            $this->session['customer_address'] = $resolvedAddress ?: ($placeName ?: "GPS Pin ({$lat}, {$lng})");
         }
 
         $this->saveSession();
@@ -1114,14 +1134,14 @@ class OrderingStateEngine
             return "📍 Location receive ho gayi hai{$locTxt}!\n\nAb bataiye aap kya order karna chahenge? (Type *Menu* to see all items)";
         }
 
-        // Customer pin is accepted as authoritative address. Check if customer name is missing:
+        // Check if customer name is missing:
         if (empty($this->session['customer_name'])) {
             $this->transitionTo(self::STATE_COLLECT_CUSTOMER_INFO);
             $locTxt = $this->session['poi_name'] ? " (*{$this->session['poi_name']}*)" : "";
             return "📍 Location confirm ho gayi hai{$locTxt}!\n\nOrder aage barhane ke liye barahe karam apna *Naam* (Full Name) batayein:";
         }
 
-        $this->transitionTo(self::STATE_WAITING_FOR_CONFIRMATION);
+        $this->transitionTo(self::STATE_WAITING_FOR_ORDER_CONFIRMATION);
         return "📍 Location tasdeeq ho gayi hai!\n\n" . $this->renderFinalOrderReview();
     }
 
@@ -1342,7 +1362,7 @@ class OrderingStateEngine
             return "📍 Delivery tez aur exact karne ke liye WhatsApp se apni *Location pin share karein*. (Ya *Skip* likhein)";
         }
 
-        $this->transitionTo(self::STATE_WAITING_FOR_CONFIRMATION);
+        $this->transitionTo(self::STATE_WAITING_FOR_ORDER_CONFIRMATION);
         return $this->renderFinalOrderReview();
     }
 
@@ -1468,84 +1488,27 @@ class OrderingStateEngine
 
     public function executeOrderCreation(): string
     {
+        $currentState = $this->getState();
+        if ($currentState !== self::STATE_WAITING_FOR_ORDER_CONFIRMATION && $currentState !== 'WAITING_FOR_CONFIRMATION') {
+            Log::warning("Order creation blocked: State is {$currentState}, expected WAITING_FOR_ORDER_CONFIRMATION.");
+            return "Order create karne ke liye pehle summary review confirm karein.";
+        }
+
         $cart = $this->session['cart'] ?? [];
         if (empty($cart)) {
             $this->transitionTo(self::STATE_MENU_SELECTION);
             return "Aapka cart khaali hai. Order create nahi ho sakta.";
         }
 
-        $subtotal = 0;
-        $orderItemsData = [];
-
-        foreach ($cart as $cItem) {
-            $menuItem = MenuItem::find($cItem['item_id']);
-            if (!$menuItem) {
-                continue;
-            }
-
-            $unitPrice = (float)$menuItem->price;
-            $variantName = null;
-
-            if (!empty($cItem['variant_id'])) {
-                $variant = MenuItemVariant::find($cItem['variant_id']);
-                if ($variant) {
-                    $unitPrice = (float)$variant->price;
-                    $variantName = $variant->name;
-                }
-            }
-
-            $lineTotal = $unitPrice * $cItem['quantity'];
-            $subtotal += $lineTotal;
-
-            $orderItemsData[] = [
-                'item_id' => $menuItem->id,
-                'name' => $menuItem->name,
-                'variant_id' => $cItem['variant_id'] ?? null,
-                'variant_name' => $variantName,
-                'unit_price' => $unitPrice,
-                'quantity' => $cItem['quantity'],
-                'subtotal' => $lineTotal,
-            ];
+        try {
+            $orderService = app(\App\Services\OrderService::class);
+            $order = $orderService->createOrder($this->restaurant, $this->session, $this->cleanPhone);
+        } catch (\DomainException $e) {
+            return $e->getMessage();
+        } catch (\Throwable $e) {
+            Log::error("executeOrderCreation failed: " . $e->getMessage(), ['exception' => $e]);
+            return "Maazrat! Order process karne mein masla paish aaya hai. Barahe karam thori dair baad dobara koshish karein.";
         }
-
-        $deliveryCharge = (float)($this->restaurant->delivery_charge ?? 0);
-        $total = $subtotal + $deliveryCharge;
-
-        $order = DB::transaction(function () use ($subtotal, $deliveryCharge, $total, $orderItemsData) {
-            $trackingCode = Order::generateTrackingCode($this->restaurant);
-
-            $newOrder = Order::create([
-                'restaurant_id' => $this->restaurant->id,
-                'customer_name' => $this->session['customer_name'] ?? 'WhatsApp Customer',
-                'customer_phone' => $this->cleanPhone,
-                'delivery_address' => $this->session['customer_address'] ?? 'WhatsApp Order',
-                'delivery_lat' => $this->session['delivery_lat'] ?? null,
-                'delivery_lng' => $this->session['delivery_lng'] ?? null,
-                'delivery_place_name' => $this->session['poi_name'] ?? null,
-                'location_source' => ($this->session['delivery_lat'] ? 'whatsapp_pin' : null),
-                'subtotal' => $subtotal,
-                'delivery_charge' => $deliveryCharge,
-                'total' => $total,
-                'payment_method' => 'cash_on_delivery',
-                'status' => 'pending',
-                'is_paid' => false,
-                'tracking_code' => $trackingCode,
-            ]);
-
-            foreach ($orderItemsData as $item) {
-                OrderItem::create([
-                    'order_id' => $newOrder->id,
-                    'menu_item_id' => $item['item_id'],
-                    'name' => $item['name'],
-                    'size' => $item['variant_name'],
-                    'unit_price' => $item['unit_price'],
-                    'quantity' => $item['quantity'],
-                    'subtotal' => $item['subtotal'],
-                ]);
-            }
-
-            return $newOrder;
-        });
 
         $this->notifyOwner($order);
 
@@ -1556,10 +1519,12 @@ class OrderingStateEngine
         $this->session['customer_address'] = null;
         $this->session['delivery_lat'] = null;
         $this->session['delivery_lng'] = null;
+        $this->session['delivery_distance_km'] = null;
         $this->session['poi_name'] = null;
         $this->session['modifying_order_id'] = null;
         $this->session['pending_mod_items'] = [];
         $this->session['location_skipped'] = false;
+        $this->session['location_valid'] = null;
         $this->transitionTo(self::STATE_ORDER_CREATED);
 
         $appUrl = config('app.url', 'http://localhost');
@@ -1569,6 +1534,9 @@ class OrderingStateEngine
         $receipt .= "🆔 *Order #{$order->id}* (Code: `{$order->tracking_code}`)\n";
         $receipt .= "👤 *Customer:* {$order->customer_name}\n";
         $receipt .= "📍 *Delivery to:* " . ($order->delivery_place_name ? "{$order->delivery_place_name} ({$order->delivery_address})" : $order->delivery_address) . "\n";
+        if ($order->delivery_distance_km) {
+            $receipt .= "📏 *Distance:* {$order->delivery_distance_km} km\n";
+        }
         $receipt .= "💵 *Payment:* Cash on Delivery\n";
         $receipt .= "💰 *Total Bill:* Rs. " . number_format($order->total) . "\n\n";
         $receipt .= "⏱️ Estimated Delivery: 30–45 mins\n";
@@ -1648,6 +1616,15 @@ class OrderingStateEngine
     public function resolveMenuItemFromDb(string $query): ?MenuItem
     {
         $queryClean = strtolower(trim($query));
+
+        // Authority Rule: Never allow confirmation words or workflow actions to be searched as menu items
+        if (empty($queryClean) || in_array($queryClean, [
+            'confirm', 'confim', 'cnfrm', 'cnfm', 'conferm', 'confrm', 'comfirm', 'confrim',
+            'yes', 'yep', 'yup', 'haan', 'ha', 'han', 'jee', 'ji', 'theek', 'thek', 'ok', 'okay',
+            'done', 'cancel', 'radd', 'skip', 'menu', 'status', 'track', 'kardo', 'kr do', 'bhej do', 'bhejo'
+        ], true)) {
+            return null;
+        }
 
         // Exact match
         $item = MenuItem::where('restaurant_id', $this->restaurant->id)
@@ -1922,38 +1899,15 @@ class OrderingStateEngine
             ];
         }
 
-        // 3. Strict local geocoding check within local bounding box
-        try {
-            $locService = app(\App\Services\LocationResolutionService::class);
-            $geo = $locService->geocodeAddress($cleanAddr, $this->restaurant->city ?? '', (float)$restLat, (float)$restLng, max($maxRadius * 2, 25.0));
-            if ($geo && !empty($geo['lat']) && !empty($geo['lng'])) {
-                $lat = (float) $geo['lat'];
-                $lng = (float) $geo['lng'];
-                $dist = $this->calculateDistanceKm((float) $restLat, (float) $restLng, $lat, $lng);
-
-                if ($dist > $maxRadius) {
-                    $distRounded = round($dist, 1);
-                    return [
-                        'valid' => false,
-                        'lat' => null,
-                        'lng' => null,
-                        'resolved_address' => $cleanAddr,
-                        'error_message' => "Maazrat! Yeh address hamare delivery radius ({$maxRadius} km) se bahar hai (Faasla: {$distRounded} km door hai). Barahe karam delivery area ke andar ka address share karein.",
-                    ];
-                }
-            }
-        } catch (\Throwable $e) {
-            Log::warning("Error validating address distance: " . $e->getMessage());
-        }
-
-        // If geocoding did not return a verified match, the address is accepted as a local street/landmark.
-        // lat/lng are returned null to avoid false coordinates (such as Model City for Model Bazaar).
+        // 3. Authority Rule: Never infer delivery eligibility from the customer's typed address.
+        // WhatsApp shared GPS lat/lng is the authoritative delivery location.
+        // Typed address is accepted as customer address text without geocoding inference.
         return [
-            'valid' => true,
-            'lat' => null,
-            'lng' => null,
+            'valid'            => true,
+            'lat'              => null,
+            'lng'              => null,
             'resolved_address' => $cleanAddr,
-            'error_message' => null,
+            'error_message'    => null,
         ];
     }
 

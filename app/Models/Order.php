@@ -33,6 +33,7 @@ class Order extends Model
         'rider_location_updated_at',
         'delivery_lat',
         'delivery_lng',
+        'delivery_distance_km',
         'delivery_place_name',
         'delivery_place_id',
         'location_source',
@@ -50,6 +51,7 @@ class Order extends Model
         'rider_location_updated_at' => 'datetime',
         'delivery_lat'              => 'decimal:7',
         'delivery_lng'              => 'decimal:7',
+        'delivery_distance_km'      => 'decimal:2',
     ];
 
     // ─── Relationships ────────────────────────────────────────────────────────
