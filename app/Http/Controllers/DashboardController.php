@@ -241,6 +241,7 @@ class DashboardController extends Controller
             'restaurant'          => $r,
             'orders'              => $orders,
             'today'               => $todayOrders,
+            'todayOrders'         => $todayOrders,
             'liveOrders'          => $liveOrders,
             'liveOrdersCount'     => $liveOrdersCount,
             'todayRevenue'        => $todayRevenue,

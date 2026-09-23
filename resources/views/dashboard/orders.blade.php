@@ -3,6 +3,21 @@
 
 @section('content')
 
+@php
+    $restaurant          = $restaurant ?? ($r ?? null);
+    $todayOrders         = $todayOrders ?? ($today ?? collect());
+    $orders              = $orders ?? collect();
+    $liveOrdersCount     = $liveOrdersCount ?? (isset($liveOrders) ? $liveOrders->count() : 0);
+    $todayRevenue        = $todayRevenue ?? 0;
+    $totalOrdersToday    = $totalOrdersToday ?? $todayOrders->count();
+    $pendingCount        = $pendingCount ?? $todayOrders->where('status', 'pending')->count();
+    $statusCounts        = $statusCounts ?? [];
+    $unavailableItems    = $unavailableItems ?? collect();
+    $waitingRidersOrders = $waitingRidersOrders ?? collect();
+    $topSellingItems     = $topSellingItems ?? collect();
+    $riders              = $riders ?? collect();
+@endphp
+
 <style>
     /* ═════════════════════════════════════════════════════════════
        FOODIO MODERN POS DASHBOARD (CONCEPT UI MATCH)
