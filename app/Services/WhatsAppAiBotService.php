@@ -44,6 +44,11 @@ class WhatsAppAiBotService
     //  Public entry point
     // ──────────────────────────────────────────────────────────────────────────
 
+    public function handleIncomingMessage(Restaurant $restaurant, string $customerPhone, string $recipientJid, string $messageText, ?array $locationCoords = null): void
+    {
+        $this->handle($restaurant, $customerPhone, $recipientJid, $messageText, $locationCoords);
+    }
+
     public function handle(Restaurant $restaurant, string $customerPhone, string $recipientJid, string $messageText, ?array $locationCoords = null): void
     {
         $text = trim($messageText);
@@ -165,8 +170,37 @@ class WhatsAppAiBotService
 
         // 4. Handle GPS location pin natively if received
         if ($locationCoords && isset($locationCoords['lat'], $locationCoords['lng'])) {
+            $lat = (float) $locationCoords['lat'];
+            $lng = (float) $locationCoords['lng'];
+            $sessionKey = "wa_session_{$restaurant->id}_{$customerPhone}";
+
+            try {
+                $locResolution = app(\App\Services\LocationResolutionService::class)->resolve($lat, $lng);
+                Cache::put("verified_delivery_coords_{$sessionKey}", [$lat, $lng], now()->addMinutes(45));
+                if (!empty($locResolution['delivery_place_name'])) {
+                    Cache::put("verified_delivery_place_name_{$sessionKey}", $locResolution['delivery_place_name'], now()->addMinutes(45));
+                }
+                if (!empty($locResolution['location_source'])) {
+                    Cache::put("verified_delivery_source_{$sessionKey}", $locResolution['location_source'], now()->addMinutes(45));
+                }
+                if (!empty($locResolution['delivery_place_id'])) {
+                    Cache::put("verified_delivery_place_id_{$sessionKey}", $locResolution['delivery_place_id'], now()->addMinutes(45));
+                }
+                $history = Cache::get($sessionKey, []);
+                if (!is_array($history)) {
+                    $history = [];
+                }
+                $history[] = [
+                    'role' => 'user',
+                    'content' => "Shared GPS Pin: [Lat: {$lat}, Lng: {$lng}]" . (!empty($locResolution['delivery_place_name']) ? " near {$locResolution['delivery_place_name']}" : ''),
+                ];
+                Cache::put($sessionKey, $history, now()->addMinutes(45));
+            } catch (\Throwable $e) {
+                Log::warning("Error caching verified delivery coords: " . $e->getMessage());
+            }
+
             $engine = new OrderingStateEngine($restaurant, $customerPhone);
-            $reply = $engine->handleLocationPin((float) $locationCoords['lat'], (float) $locationCoords['lng']);
+            $reply = $engine->handleLocationPin($lat, $lng);
             BotEvolutionClient::sendMessage($restaurant, $recipientJid, $reply);
             return;
         }

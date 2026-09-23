@@ -203,14 +203,20 @@ class WhatsAppWebhookController extends Controller
             ?? $data['locationMessage']
             ?? $data['liveLocationMessage']
             ?? $data['data']['message']['locationMessage']
+            ?? $data['data']['message']['liveLocationMessage']
+            ?? $data['message']['locationMessage']
+            ?? $data['message']['liveLocationMessage']
+            ?? $data['data']['location']
+            ?? $data['location']
+            ?? $messageObj['location']
             ?? $messageObj['ephemeralMessage']['message']['locationMessage']
             ?? $messageObj['viewOnceMessage']['message']['locationMessage']
             ?? null;
 
         $locationCoords = null;
         if ($locMsg && is_array($locMsg)) {
-            $rawLat = $locMsg['degreesLatitude'] ?? $locMsg['latitude'] ?? null;
-            $rawLng = $locMsg['degreesLongitude'] ?? $locMsg['longitude'] ?? null;
+            $rawLat = $locMsg['degreesLatitude'] ?? $locMsg['latitude'] ?? $locMsg['lat'] ?? null;
+            $rawLng = $locMsg['degreesLongitude'] ?? $locMsg['longitude'] ?? $locMsg['lng'] ?? null;
             if ($rawLat !== null && $rawLng !== null && is_numeric($rawLat) && is_numeric($rawLng)) {
                 $lat = (float) $rawLat;
                 $lng = (float) $rawLng;
@@ -231,6 +237,25 @@ class WhatsAppWebhookController extends Controller
                     Log::info("Evolution Webhook: Received validated location from [{$maskedJid}] for {$restaurant->name} (lat/lng sanitized)");
                 } else {
                     Log::warning("Evolution Webhook: Invalid GPS coordinates rejected: lat={$rawLat}, lng={$rawLng}");
+                }
+            }
+        }
+
+        // Also check if text contains a Google Maps URL or coordinate string
+        if ($locationCoords === null && $text !== '') {
+            if (preg_match('/(?:maps\.google\.com|google\.com\/maps).*?[?&]q=([-+]?\d{1,2}\.\d+),([-+]?\d{1,3}\.\d+)/i', $text, $gMatch) ||
+                preg_match('/@([-+]?\d{1,2}\.\d+),([-+]?\d{1,3}\.\d+)/', $text, $gMatch) ||
+                preg_match('/^\s*([-+]?\d{1,2}\.\d{4,8})\s*,\s*([-+]?\d{1,3}\.\d{4,8})\s*$/', $text, $gMatch)) {
+                $gLat = (float) $gMatch[1];
+                $gLng = (float) $gMatch[2];
+                if ($gLat >= -90.0 && $gLat <= 90.0 && $gLng >= -180.0 && $gLng <= 180.0 && ! ($gLat == 0.0 && $gLng == 0.0)) {
+                    $locationCoords = [
+                        'lat'     => $gLat,
+                        'lng'     => $gLng,
+                        'name'    => 'Shared Map Location',
+                        'address' => '',
+                    ];
+                    Log::info("Evolution Webhook: Extracted coordinates from map link/text for {$restaurant->name}: {$gLat}, {$gLng}");
                 }
             }
         }

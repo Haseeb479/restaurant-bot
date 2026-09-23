@@ -32,6 +32,11 @@ class OrderItem extends Model
         return $this->belongsTo(MenuItem::class);
     }
 
+    public function getItemNameAttribute(): string
+    {
+        return $this->name ?? '';
+    }
+
     /**
      * Display label e.g. "Mango Juice (L) x2"
      */

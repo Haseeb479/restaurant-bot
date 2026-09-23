@@ -314,4 +314,90 @@ class LocationResolutionService
 
         return $earthRadiusKm * $c;
     }
+
+    /**
+     * Forward geocode a text address into [lat, lng].
+     * Tries Nominatim first, then Photon fallback, with city context and caching.
+     */
+    public function geocodeAddress(string $address, string $city = ''): ?array
+    {
+        $clean = trim($address);
+        if ($clean === '' || strlen($clean) < 3) {
+            return null;
+        }
+
+        $clean = preg_replace('/[#*`~_]/', ' ', $clean);
+        $clean = trim(preg_replace('/\s+/', ' ', $clean));
+
+        $cacheKey = 'fwd_geocode_' . md5(strtolower($clean . '_' . $city));
+        return Cache::remember($cacheKey, now()->addDays(7), function () use ($clean, $city) {
+            $queriesToTry = [];
+
+            if ($city && stripos($clean, $city) === false) {
+                $queriesToTry[] = "{$clean}, {$city}, Pakistan";
+            }
+            $queriesToTry[] = "{$clean}, Pakistan";
+
+            if (str_contains($clean, ',')) {
+                $parts = array_map('trim', explode(',', $clean));
+                if (!empty($parts[0]) && strlen($parts[0]) > 3) {
+                    if ($city && stripos($parts[0], $city) === false) {
+                        $queriesToTry[] = "{$parts[0]}, {$city}, Pakistan";
+                    }
+                    $queriesToTry[] = "{$parts[0]}, Pakistan";
+                }
+            }
+
+            // 1. Try Nominatim
+            foreach ($queriesToTry as $q) {
+                try {
+                    $url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" . urlencode($q);
+                    $res = Http::timeout(5)
+                        ->withoutVerifying()
+                        ->withHeaders(['User-Agent' => 'Foodio-RestaurantBot/1.0'])
+                        ->get($url);
+
+                    if ($res->successful()) {
+                        $data = $res->json();
+                        if (!empty($data[0]['lat']) && !empty($data[0]['lon'])) {
+                            return [
+                                'lat'          => (float) $data[0]['lat'],
+                                'lng'          => (float) $data[0]['lon'],
+                                'display_name' => $data[0]['display_name'] ?? null,
+                            ];
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    Log::info("Nominatim geocoding failed for '{$q}': " . $e->getMessage());
+                }
+            }
+
+            // 2. Try Photon fallback
+            foreach ($queriesToTry as $q) {
+                try {
+                    $url = "https://photon.komoot.io/api/?limit=1&q=" . urlencode($q);
+                    $res = Http::timeout(5)
+                        ->withoutVerifying()
+                        ->get($url);
+
+                    if ($res->successful()) {
+                        $data = $res->json();
+                        $features = $data['features'] ?? [];
+                        if (!empty($features[0]['geometry']['coordinates'])) {
+                            $coords = $features[0]['geometry']['coordinates'];
+                            return [
+                                'lat'          => (float) $coords[1],
+                                'lng'          => (float) $coords[0],
+                                'display_name' => $features[0]['properties']['name'] ?? null,
+                            ];
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    Log::info("Photon geocoding failed for '{$q}': " . $e->getMessage());
+                }
+            }
+
+            return null;
+        });
+    }
 }

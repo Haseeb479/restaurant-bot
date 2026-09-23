@@ -112,13 +112,9 @@ class LocationConfirmationController extends Controller
 
         // Format final human-readable delivery address
         if ($userInputAddress !== '') {
-            if ($placeName && stripos($userInputAddress, $placeName) === false) {
-                $finalAddress = $userInputAddress . ', ' . ($resolvedAddress ?: $placeName);
-            } elseif (! $placeName && $resolvedAddress && stripos($userInputAddress, $resolvedAddress) === false) {
-                $finalAddress = $userInputAddress . ', ' . $resolvedAddress;
-            } else {
-                $finalAddress = $userInputAddress;
-            }
+            $finalAddress = $placeName && !str_contains(strtolower($userInputAddress), strtolower($placeName))
+                ? "{$userInputAddress}, Near {$placeName}"
+                : $userInputAddress;
         } else {
             $finalAddress = $resolvedAddress;
         }

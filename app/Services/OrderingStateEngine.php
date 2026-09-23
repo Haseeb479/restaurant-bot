@@ -60,14 +60,22 @@ class OrderingStateEngine
         if ($conversation) {
             $cart = is_array($conversation->cart) ? $conversation->cart : (json_decode($conversation->cart ?? '[]', true) ?: []);
             $meta = is_array($conversation->metadata) ? $conversation->metadata : (json_decode($conversation->metadata ?? '[]', true) ?: []);
+            
+            $hasActiveDraft = !empty($cart) && in_array($conversation->state, [
+                self::STATE_COLLECT_CUSTOMER_INFO,
+                self::STATE_WAITING_FOR_LOCATION,
+                self::STATE_WAITING_FOR_CONFIRMATION,
+                self::STATE_WAITING_FOR_MODIFICATION_CONFIRMATION,
+            ], true);
+
             return [
                 'state' => $conversation->state ?: self::STATE_WELCOME,
                 'cart' => $cart,
-                'customer_name' => $this->sanitizeCustomerName($conversation->customer_name ?? null),
-                'customer_address' => $this->sanitizeCustomerAddress($conversation->customer_address ?? null),
-                'delivery_lat' => $meta['delivery_lat'] ?? null,
-                'delivery_lng' => $meta['delivery_lng'] ?? null,
-                'poi_name' => $meta['poi_name'] ?? null,
+                'customer_name' => $hasActiveDraft ? $this->sanitizeCustomerName($conversation->customer_name ?? null) : null,
+                'customer_address' => $hasActiveDraft ? $this->sanitizeCustomerAddress($conversation->customer_address ?? null) : null,
+                'delivery_lat' => $hasActiveDraft ? ($meta['delivery_lat'] ?? null) : null,
+                'delivery_lng' => $hasActiveDraft ? ($meta['delivery_lng'] ?? null) : null,
+                'poi_name' => $hasActiveDraft ? ($meta['poi_name'] ?? null) : null,
                 'pending_variant_item' => $meta['pending_variant_item'] ?? null,
                 'last_order_id' => $meta['last_order_id'] ?? null,
                 'modifying_order_id' => $meta['modifying_order_id'] ?? null,
@@ -159,7 +167,7 @@ class OrderingStateEngine
         $this->saveSession();
     }
 
-    public function resetSession(bool $keepCustomerProfile = true): void
+    public function resetSession(bool $keepCustomerProfile = false): void
     {
         $preservedName = $keepCustomerProfile ? $this->sanitizeCustomerName($this->session['customer_name'] ?? null) : null;
         $preservedAddr = $keepCustomerProfile ? $this->sanitizeCustomerAddress($this->session['customer_address'] ?? null) : null;
@@ -204,7 +212,7 @@ class OrderingStateEngine
                 $activeOrder->update(['status' => 'cancelled']);
             }
 
-            $this->resetSession(true);
+            $this->resetSession(false);
             return "Aapka order cancel kar diya gaya hai aur cart clear ho gaya hai. Dobara order karne ke liye koi bhi message karein.";
         }
 
@@ -219,7 +227,7 @@ class OrderingStateEngine
 
         // Global intent: Explicit New Order
         if ($intent === 'START_NEW_ORDER') {
-            $this->resetSession(true);
+            $this->resetSession(false);
             $this->transitionTo(self::STATE_MENU_SELECTION);
             return "Theek hai! Naya order shuru karte hain. Menu dekhne ke liye *Menu* likhein ya direct apna order batayein.";
         }
@@ -320,15 +328,27 @@ class OrderingStateEngine
         }
 
         // If cart has items and customer provides info or confirms
-        if (!empty($this->session['cart']) && (
-            $intent === 'CONFIRM_ORDER' || 
-            $intent === 'COLLECT_CUSTOMER_INFO' ||
-            $intent === 'PROVIDE_NAME' ||
-            $intent === 'PROVIDE_ADDRESS' ||
-            $this->hasCustomerInfoProvided($nlu)
-        )) {
-            $this->captureCustomerInfo($nlu);
-            return $this->proceedToNextStepAfterCart();
+        if (!empty($this->session['cart'])) {
+            if (
+                $intent === 'CONFIRM_ORDER' || 
+                $intent === 'COLLECT_CUSTOMER_INFO' ||
+                $intent === 'PROVIDE_NAME' ||
+                $intent === 'PROVIDE_ADDRESS' ||
+                $this->hasCustomerInfoProvided($nlu)
+            ) {
+                $this->captureCustomerInfo($nlu);
+                return $this->proceedToNextStepAfterCart();
+            }
+
+            // Also check if raw text is a valid customer name
+            if (empty($this->session['customer_name'])) {
+                $sanitizedName = $this->sanitizeCustomerName($raw);
+                if ($sanitizedName) {
+                    $this->session['customer_name'] = $sanitizedName;
+                    $this->saveSession();
+                    return $this->proceedToNextStepAfterCart();
+                }
+            }
         }
 
         if ($intent === 'ADD_ITEM') {
@@ -424,12 +444,12 @@ class OrderingStateEngine
         }
 
         if ($intent === 'CANCEL_ORDER' || $this->isNegative($raw)) {
-            $this->resetSession(true);
+            $this->resetSession(false);
             return "Aapka order cancel kar diya gaya hai aur cart clear ho gaya hai. Dobara order karne ke liye koi bhi message karein.";
         }
 
         if ($intent === 'START_NEW_ORDER' || preg_match('/\b(?:new|another|naya)\s*order\b/i', $raw)) {
-            $this->resetSession(true);
+            $this->resetSession(false);
             $this->transitionTo(self::STATE_MENU_SELECTION);
             return "Theek hai! Naya order shuru karte hain. Menu dekhne ke liye *Menu* likhein ya direct item batayein.";
         }
@@ -457,7 +477,17 @@ class OrderingStateEngine
 
             $sanitizedAddr = $this->sanitizeCustomerAddress($raw, $this->session['customer_address'] ?? null);
             if ($sanitizedAddr && strtolower($sanitizedAddr) !== strtolower($this->session['customer_name'] ?? '')) {
+                $valCheck = $this->validateAddressDistance($sanitizedAddr);
+                if (!$valCheck['valid']) {
+                    return $valCheck['error_message'];
+                }
+
                 $this->session['customer_address'] = $sanitizedAddr;
+                $this->session['poi_name'] = null;
+                if (!empty($valCheck['lat']) && !empty($valCheck['lng'])) {
+                    $this->session['delivery_lat'] = $valCheck['lat'];
+                    $this->session['delivery_lng'] = $valCheck['lng'];
+                }
                 $this->saveSession();
             } else {
                 return "Shukriya *{$this->session['customer_name']}*! Barahe karam apna *Delivery Address* batayein (House/Street/Area ya Landmark):";
@@ -478,12 +508,12 @@ class OrderingStateEngine
         }
 
         if ($intent === 'CANCEL_ORDER' || $this->isNegative($raw)) {
-            $this->resetSession(true);
+            $this->resetSession(false);
             return "Aapka order cancel kar diya gaya hai aur cart clear ho gaya hai. Dobara order karne ke liye koi bhi message karein.";
         }
 
         if ($intent === 'START_NEW_ORDER' || preg_match('/\b(?:new|another|naya)\s*order\b/i', $raw)) {
-            $this->resetSession(true);
+            $this->resetSession(false);
             $this->transitionTo(self::STATE_MENU_SELECTION);
             return "Theek hai! Naya order shuru karte hain. Menu dekhne ke liye *Menu* likhein ya direct item batayein.";
         }
@@ -497,9 +527,16 @@ class OrderingStateEngine
         // Check if customer typed a manual address or landmark (e.g. "jamshaid Medical store")
         $manualAddress = $this->sanitizeCustomerAddress(!empty($nlu['address']) ? $nlu['address'] : $raw);
         if ($manualAddress && strtolower($manualAddress) !== strtolower($this->session['customer_name'] ?? '')) {
+            $valCheck = $this->validateAddressDistance($manualAddress);
+            if (!$valCheck['valid']) {
+                return $valCheck['error_message'];
+            }
+
             $this->session['customer_address'] = $manualAddress;
-            if (empty($this->session['poi_name'])) {
-                $this->session['poi_name'] = $manualAddress;
+            $this->session['poi_name'] = null;
+            if (!empty($valCheck['lat']) && !empty($valCheck['lng'])) {
+                $this->session['delivery_lat'] = $valCheck['lat'];
+                $this->session['delivery_lng'] = $valCheck['lng'];
             }
             $this->saveSession();
             $this->transitionTo(self::STATE_WAITING_FOR_CONFIRMATION);
@@ -518,7 +555,7 @@ class OrderingStateEngine
         }
 
         if ($intent === 'CANCEL_ORDER' || $this->isNegative($raw)) {
-            $this->resetSession(true);
+            $this->resetSession(false);
             return "Aapka order cancel kar diya gaya hai aur cart clear ho gaya hai. Dobara order karne ke liye koi bhi message karein.";
         }
 
@@ -528,7 +565,7 @@ class OrderingStateEngine
         }
 
         if ($intent === 'START_NEW_ORDER' || preg_match('/\b(?:new|another|naya)\s*order\b/i', $raw)) {
-            $this->resetSession(true);
+            $this->resetSession(false);
             $this->transitionTo(self::STATE_MENU_SELECTION);
             return "Theek hai! Naya order shuru karte hain. Menu dekhne ke liye *Menu* likhein ya direct item batayein.";
         }
@@ -560,14 +597,14 @@ class OrderingStateEngine
 
         // If previous order was cancelled, delivered, or none exists, treat as fresh session
         if (!$activeOrder || in_array($activeOrder->status, ['cancelled', 'delivered'], true)) {
-            $this->resetSession(true);
+            $this->resetSession(false);
             $this->transitionTo(self::STATE_WELCOME);
             return $this->handleWelcomeState($intent, $nlu);
         }
 
         // If customer explicitly asks for new order
         if ($intent === 'START_NEW_ORDER' || preg_match('/\b(new|another|naya|alag)\s*order\b/i', $raw)) {
-            $this->resetSession(true);
+            $this->resetSession(false);
             $this->transitionTo(self::STATE_MENU_SELECTION);
             return "Theek hai! Naya order shuru karte hain. Menu dekhne ke liye *Menu* likhein ya direct item batayein.";
         }
@@ -1019,29 +1056,27 @@ class OrderingStateEngine
         }
 
         // Landmark / POI Detection
+        $placeName = null;
+        $resolvedAddress = null;
         try {
             $locService = app(\App\Services\LocationResolutionService::class);
             $resolution = $locService->resolve($lat, $lng);
             $placeName = $resolution['delivery_place_name'] ?? null;
             $resolvedAddress = $resolution['delivery_address'] ?? $placeName;
-
-            if ($placeName) {
-                $this->session['poi_name'] = $placeName;
-            }
-
-            $currentAddr = trim((string)($this->session['customer_address'] ?? ''));
-            $currentName = trim((string)($this->session['customer_name'] ?? ''));
-            $isSameAsName = ($currentAddr !== '' && strtolower($currentAddr) === strtolower($currentName));
-
-            if (!empty($resolvedAddress)) {
-                if (empty($currentAddr) || $isSameAsName) {
-                    $this->session['customer_address'] = $resolvedAddress;
-                }
-            } elseif ($placeName && (empty($currentAddr) || $isSameAsName)) {
-                $this->session['customer_address'] = $placeName;
-            }
         } catch (\Throwable $e) {
             Log::warning("LocationResolutionService error in State Engine: " . $e->getMessage());
+        }
+
+        // New location pin always sets landmark (clearing any old stale landmark)
+        $this->session['poi_name'] = $placeName ?: null;
+
+        // Guaranteed valid customer address from pin
+        if (!empty($resolvedAddress)) {
+            $this->session['customer_address'] = $resolvedAddress;
+        } elseif (!empty($placeName)) {
+            $this->session['customer_address'] = $placeName;
+        } else {
+            $this->session['customer_address'] = "GPS Pin ({$lat}, {$lng})";
         }
 
         $this->saveSession();
@@ -1052,15 +1087,11 @@ class OrderingStateEngine
             return "📍 Location receive ho gayi hai{$locTxt}!\n\nAb bataiye aap kya order karna chahenge? (Type *Menu* to see all items)";
         }
 
-        $addrValid = !empty($this->session['customer_address']) &&
-            strtolower(trim($this->session['customer_address'])) !== strtolower(trim((string)($this->session['customer_name'] ?? '')));
-
-        if (empty($this->session['customer_name']) || !$addrValid) {
+        // Customer pin is accepted as authoritative address. Check if customer name is missing:
+        if (empty($this->session['customer_name'])) {
             $this->transitionTo(self::STATE_COLLECT_CUSTOMER_INFO);
-            if (empty($this->session['customer_name'])) {
-                return "📍 Location confirm ho gayi!\n\nBarahe karam apna *Naam* (Full Name) batayein:";
-            }
-            return "📍 Location confirm ho gayi!\n\nBarahe karam apna *Delivery Address* batayein (House/Street/Area):";
+            $locTxt = $this->session['poi_name'] ? " (*{$this->session['poi_name']}*)" : "";
+            return "📍 Location confirm ho gayi hai{$locTxt}!\n\nOrder aage barhane ke liye barahe karam apna *Naam* (Full Name) batayein:";
         }
 
         $this->transitionTo(self::STATE_WAITING_FOR_CONFIRMATION);
@@ -1267,6 +1298,18 @@ class OrderingStateEngine
             return "Shukriya {$this->session['customer_name']}! Barahe karam apna *Delivery Address* batayein (House/Street/Area):";
         }
 
+        // Validate address radius if an address is set
+        $valCheck = $this->validateAddressDistance($this->session['customer_address']);
+        if (!$valCheck['valid']) {
+            $this->session['customer_address'] = null;
+            $this->session['delivery_lat'] = null;
+            $this->session['delivery_lng'] = null;
+            $this->session['poi_name'] = null;
+            $this->saveSession();
+            $this->transitionTo(self::STATE_COLLECT_CUSTOMER_INFO);
+            return $valCheck['error_message'];
+        }
+
         if (empty($this->session['delivery_lat'])) {
             $this->transitionTo(self::STATE_WAITING_FOR_LOCATION);
             return "📍 Delivery tez aur exact karne ke liye WhatsApp se apni *Location pin share karein*. (Ya *Skip* likhein)";
@@ -1322,6 +1365,14 @@ class OrderingStateEngine
         // Check if customer explicitly requested previous address
         if (preg_match('/^(?:same|wohi|wahi|same\s*address|same\s*location|same\s*pata|pehle\s*wala|pehle\s*wali|previous|sab\s*kuch\s*wohi|usi\s*order|same\s*usi)$/iu', $val) ||
             preg_match('/\b(?:same|wohi|wahi|pichla|pehle|use\s*kr|use\s*kar|sub\s*kuch|sab\s*kuch)\b/iu', $val)) {
+            $pastOrder = Order::where('restaurant_id', $this->restaurant->id)
+                ->where('customer_phone', $this->cleanPhone)
+                ->whereNotNull('delivery_address')
+                ->latest()
+                ->first();
+            if ($pastOrder && !empty($pastOrder->delivery_address)) {
+                return $pastOrder->delivery_address;
+            }
             return $fallback ? $this->sanitizeCustomerAddress($fallback) : null;
         }
 
@@ -1354,7 +1405,15 @@ class OrderingStateEngine
         if (!empty($nlu['address'])) {
             $cleanAddr = $this->sanitizeCustomerAddress($nlu['address'], $this->session['customer_address'] ?? null);
             if ($cleanAddr) {
-                $this->session['customer_address'] = $cleanAddr;
+                $valCheck = $this->validateAddressDistance($cleanAddr);
+                if ($valCheck['valid']) {
+                    $this->session['customer_address'] = $cleanAddr;
+                    $this->session['poi_name'] = null;
+                    if (!empty($valCheck['lat']) && !empty($valCheck['lng'])) {
+                        $this->session['delivery_lat'] = $valCheck['lat'];
+                        $this->session['delivery_lng'] = $valCheck['lng'];
+                    }
+                }
             }
         }
 
@@ -1468,6 +1527,11 @@ class OrderingStateEngine
         // Rule 6: Cart/Order Separation - finalize cart immediately
         $this->session['last_order_id'] = $order->id;
         $this->session['cart'] = [];
+        $this->session['customer_name'] = null;
+        $this->session['customer_address'] = null;
+        $this->session['delivery_lat'] = null;
+        $this->session['delivery_lng'] = null;
+        $this->session['poi_name'] = null;
         $this->session['modifying_order_id'] = null;
         $this->session['pending_mod_items'] = [];
         $this->transitionTo(self::STATE_ORDER_CREATED);
@@ -1737,6 +1801,100 @@ class OrderingStateEngine
     protected function renderCartReview(): string
     {
         return $this->renderCartSummary() . "\n\nProceed karne ke liye *Checkout* likhein.";
+    }
+
+    /**
+     * Validates whether an address string is within the restaurant delivery radius.
+     */
+    public function validateAddressDistance(string $address): array
+    {
+        $cleanAddr = trim($address);
+        if (empty($cleanAddr)) {
+            return [
+                'valid' => false,
+                'lat' => null,
+                'lng' => null,
+                'resolved_address' => null,
+                'error_message' => "Barahe karam durust delivery address batayein.",
+            ];
+        }
+
+        $restLat = $this->restaurant->restaurant_lat;
+        $restLng = $this->restaurant->restaurant_lng;
+        $maxRadius = $this->restaurant->maxDeliveryRadiusKm();
+        $city = $this->restaurant->city ?? 'Bahawalpur';
+
+        // Fast keyword check for areas notoriously outside Bahawalpur urban delivery
+        if (stripos($city, 'bahawalpur') !== false || empty($city)) {
+            // DHA Bahawalpur is ~22-25 km away, Ahmedpur East is 45km, Yazman is 35km, Lodhran is 20km, Uch Sharif is 70km, Lal Suhanra is 35km
+            if (preg_match('/\b(?:dha|d\.h\.a|defence)\b/i', $cleanAddr) && $maxRadius < 20.0) {
+                return [
+                    'valid' => false,
+                    'lat' => 29.3449,
+                    'lng' => 71.6796,
+                    'resolved_address' => 'DHA Bahawalpur',
+                    'error_message' => "Maazrat! DHA Bahawalpur hamare delivery radius ({$maxRadius} km) se bahar hai (~22 km door hai). Hum sirf Bahawalpur city ke andar delivery karte hain. Barahe karam delivery area ke andar ka address share karein.",
+                ];
+            }
+            if (preg_match('/\b(?:ahmedpur|yazman|uch\s*sharif|lal\s*suhanra|sama\s*satta|sammasatta)\b/i', $cleanAddr)) {
+                return [
+                    'valid' => false,
+                    'lat' => null,
+                    'lng' => null,
+                    'resolved_address' => $cleanAddr,
+                    'error_message' => "Maazrat! Yeh ilaqa hamare delivery radius ({$maxRadius} km) se bahar hai. Barahe karam Bahawalpur city ke andar ka address share karein.",
+                ];
+            }
+        }
+
+        if (!$restLat || !$restLng) {
+            return [
+                'valid' => true,
+                'lat' => null,
+                'lng' => null,
+                'resolved_address' => $cleanAddr,
+                'error_message' => null,
+            ];
+        }
+
+        try {
+            $locService = app(\App\Services\LocationResolutionService::class);
+            $geo = $locService->geocodeAddress($cleanAddr, $city);
+            if ($geo && !empty($geo['lat']) && !empty($geo['lng'])) {
+                $lat = (float) $geo['lat'];
+                $lng = (float) $geo['lng'];
+                $dist = $this->calculateDistanceKm((float) $restLat, (float) $restLng, $lat, $lng);
+
+                if ($dist > $maxRadius) {
+                    $distRounded = round($dist, 1);
+                    return [
+                        'valid' => false,
+                        'lat' => $lat,
+                        'lng' => $lng,
+                        'resolved_address' => $geo['display_name'] ?? $cleanAddr,
+                        'error_message' => "Maazrat! Yeh address hamare delivery radius ({$maxRadius} km) se bahar hai (Faasla: {$distRounded} km door hai). Barahe karam delivery area ke andar ka address share karein.",
+                    ];
+                }
+
+                return [
+                    'valid' => true,
+                    'lat' => $lat,
+                    'lng' => $lng,
+                    'resolved_address' => $cleanAddr,
+                    'error_message' => null,
+                ];
+            }
+        } catch (\Throwable $e) {
+            Log::warning("Error validating address distance: " . $e->getMessage());
+        }
+
+        return [
+            'valid' => true,
+            'lat' => null,
+            'lng' => null,
+            'resolved_address' => $cleanAddr,
+            'error_message' => null,
+        ];
     }
 
     protected function calculateDistanceKm(float $lat1, float $lon1, float $lat2, float $lon2): float
