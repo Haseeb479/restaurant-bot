@@ -1082,7 +1082,7 @@
                         <div class="pipeline-step-label">
                             <span style="font-size: 8px;">🟢</span> Ready
                         </div>
-                        <div class="pipeline-step-count" id="pipe-ready">{{ $readyCount ?: 2 }}</div>
+                        <div class="pipeline-step-count" id="pipe-ready">{{ $readyCount }}</div>
                     </div>
 
                     <span class="pipeline-arrow">→</span>
@@ -1095,7 +1095,7 @@
                         <div class="pipeline-step-label">
                             <span style="font-size: 8px;">🔷</span> Out for Delivery
                         </div>
-                        <div class="pipeline-step-count" id="pipe-delivery">{{ $deliveryCount ?: 4 }}</div>
+                        <div class="pipeline-step-count" id="pipe-delivery">{{ $deliveryCount }}</div>
                     </div>
 
                     <span class="pipeline-arrow">→</span>
@@ -1140,10 +1140,10 @@
                         Preparing <span id="pillCountPreparing">{{ $statusCounts['preparing'] ?? 0 }}</span>
                     </button>
                     <button type="button" class="filter-pill-btn" onclick="filterTableStatus('ready')" id="btn-tab-ready">
-                        Ready <span id="pillCountReady">{{ $readyCount ?: 2 }}</span>
+                        Ready <span id="pillCountReady">{{ $readyCount }}</span>
                     </button>
                     <button type="button" class="filter-pill-btn" onclick="filterTableStatus('out_for_delivery')" id="btn-tab-delivery">
-                        Delivery <span id="pillCountDelivery">{{ $deliveryCount ?: 4 }}</span>
+                        Delivery <span id="pillCountDelivery">{{ $deliveryCount }}</span>
                     </button>
                 </div>
 
@@ -1234,75 +1234,108 @@
         <!-- RIGHT COLUMN: Needs Attention + Sales Trend -->
         <div class="workspace-right">
             <!-- Needs Attention Card -->
+            @php
+                $pendingOrders = $todayOrders->where('status', 'pending');
+                $waitingRiders = $todayOrders->whereIn('status', ['confirmed', 'preparing'])->whereNull('rider_name');
+                $unavailableList = $unavailableItems ?? collect();
+                $isBotOffline = ($restaurant->bot_status ?? 'connected') !== 'connected';
+
+                $attentionIssuesCount = 0;
+                if ($pendingOrders->count() > 0) $attentionIssuesCount++;
+                if ($waitingRiders->count() > 0) $attentionIssuesCount++;
+                if ($unavailableList->count() > 0) $attentionIssuesCount++;
+                if ($isBotOffline) $attentionIssuesCount++;
+            @endphp
             <div class="attention-card">
                 <div class="card-header-row">
-                    <div class="card-title-group" style="color: #ef4444;">
+                    <div class="card-title-group" id="attentionHeaderGroup" style="color: {{ $attentionIssuesCount > 0 ? '#ef4444' : '#10b981' }};">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
-                            <line x1="12" x2="12" y1="9" y2="13"/>
-                            <line x1="12" x2="12.01" y1="17" y2="17"/>
+                            @if($attentionIssuesCount > 0)
+                                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                                <line x1="12" x2="12" y1="9" y2="13"/>
+                                <line x1="12" x2="12.01" y1="17" y2="17"/>
+                            @else
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                <polyline points="22 4 12 14.01 9 11.01"/>
+                            @endif
                         </svg>
                         <span style="color: var(--text-heading);">Needs Attention</span>
                     </div>
-                    <span class="attention-badge-count" id="attentionBadgeCount">{{ $pendingCount > 0 ? (2 + 1) : 2 }}</span>
+                    <span class="attention-badge-count" id="attentionBadgeCount" style="background: {{ $attentionIssuesCount > 0 ? '#ef4444' : '#10b981' }};">{{ $attentionIssuesCount }}</span>
                 </div>
 
-                <div class="attention-items-list">
-                    <!-- Row 1: New orders waiting -->
-                    <div class="attention-item-row" onclick="filterTableStatus('pending')">
-                        <div class="attention-item-left">
-                            <div class="attention-icon-box orange">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                            </div>
-                            <div class="attention-text-wrap">
-                                <h5 id="attentionPendingTitle">{{ $pendingCount > 0 ? "{$pendingCount} new orders waiting" : 'No new orders waiting' }}</h5>
-                                <p id="attentionPendingListText">{{ $todayOrders->where('status', 'pending')->take(2)->map(fn($o) => '#' . $o->id)->implode(', ') ?: 'All caught up' }}</p>
-                            </div>
+                <div class="attention-items-list" id="attentionItemsList">
+                    @if($attentionIssuesCount === 0)
+                        <div style="text-align: center; padding: 26px 16px;">
+                            <div style="font-size: 26px; margin-bottom: 6px;">✅</div>
+                            <h5 style="font-size: 13.5px; font-weight: 800; color: var(--text-heading); margin-bottom: 4px;">All caught up!</h5>
+                            <p style="font-size: 12px; color: var(--text-muted); line-height: 1.4;">No urgent actions needed. Your orders and restaurant are running smoothly.</p>
                         </div>
-                        <span class="chevron-icon">›</span>
-                    </div>
+                    @else
+                        <!-- Issue 1: Pending Orders Waiting -->
+                        @if($pendingOrders->count() > 0)
+                            <div class="attention-item-row" onclick="filterTableStatus('pending')">
+                                <div class="attention-item-left">
+                                    <div class="attention-icon-box orange">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                    </div>
+                                    <div class="attention-text-wrap">
+                                        <h5>{{ $pendingOrders->count() }} new {{ Str::plural('order', $pendingOrders->count()) }} waiting</h5>
+                                        <p>{{ $pendingOrders->take(3)->map(fn($o) => '#' . $o->id)->implode(', ') }}</p>
+                                    </div>
+                                </div>
+                                <span class="chevron-icon">›</span>
+                            </div>
+                        @endif
 
-                    <!-- Row 2: Delivery waiting for rider -->
-                    <div class="attention-item-row" onclick="openDispatchModalDirect()">
-                        <div class="attention-item-left">
-                            <div class="attention-icon-box blue">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/></svg>
+                        <!-- Issue 2: Orders Waiting for Rider Assignment -->
+                        @if($waitingRiders->count() > 0)
+                            <div class="attention-item-row" onclick="openDispatchModalDirect()">
+                                <div class="attention-item-left">
+                                    <div class="attention-icon-box blue">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/></svg>
+                                    </div>
+                                    <div class="attention-text-wrap">
+                                        <h5>{{ $waitingRiders->count() }} {{ Str::plural('delivery', $waitingRiders->count()) }} waiting for rider</h5>
+                                        <p>{{ $waitingRiders->take(3)->map(fn($o) => '#' . $o->id)->implode(', ') }}</p>
+                                    </div>
+                                </div>
+                                <span class="chevron-icon">›</span>
                             </div>
-                            <div class="attention-text-wrap">
-                                <h5>1 delivery waiting for rider</h5>
-                                <p>Order #1042</p>
-                            </div>
-                        </div>
-                        <span class="chevron-icon">›</span>
-                    </div>
+                        @endif
 
-                    <!-- Row 3: Menu items unavailable -->
-                    <a href="{{ route('dashboard.menu', $restaurant->id) }}" class="attention-item-row">
-                        <div class="attention-item-left">
-                            <div class="attention-icon-box pink">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/></svg>
-                            </div>
-                            <div class="attention-text-wrap">
-                                <h5>{{ $unavailableItems->count() > 0 ? "{$unavailableItems->count()} menu items unavailable" : '3 menu items unavailable' }}</h5>
-                                <p>{{ $unavailableItems->count() > 0 ? Str::limit($unavailableItems->pluck('name')->implode(', '), 26) : 'Creamy Tikka Pizza, Wings...' }}</p>
-                            </div>
-                        </div>
-                        <span class="chevron-icon">›</span>
-                    </a>
+                        <!-- Issue 3: Unavailable Menu Items -->
+                        @if($unavailableList->count() > 0)
+                            <a href="{{ route('dashboard.menu', $restaurant->id) }}" class="attention-item-row">
+                                <div class="attention-item-left">
+                                    <div class="attention-icon-box pink">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/></svg>
+                                    </div>
+                                    <div class="attention-text-wrap">
+                                        <h5>{{ $unavailableList->count() }} menu {{ Str::plural('item', $unavailableList->count()) }} unavailable</h5>
+                                        <p>{{ Str::limit($unavailableList->pluck('name')->implode(', '), 30) }}</p>
+                                    </div>
+                                </div>
+                                <span class="chevron-icon">›</span>
+                            </a>
+                        @endif
 
-                    <!-- Row 4: WhatsApp connection status -->
-                    <a href="{{ route('dashboard.connect-whatsapp', $restaurant->id) }}" class="attention-item-row">
-                        <div class="attention-item-left">
-                            <div class="attention-icon-box purple">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-                            </div>
-                            <div class="attention-text-wrap">
-                                <h5>{{ $restaurant->bot_status === 'connected' ? 'WhatsApp Connected' : 'WhatsApp connection issue' }}</h5>
-                                <p>{{ $restaurant->bot_status === 'connected' ? 'EvolutionAPI active & online' : 'Check EvolutionAPI status' }}</p>
-                            </div>
-                        </div>
-                        <span class="chevron-icon">›</span>
-                    </a>
+                        <!-- Issue 4: WhatsApp Bot Connection Offline -->
+                        @if($isBotOffline)
+                            <a href="{{ route('dashboard.connect-whatsapp', $restaurant->id) }}" class="attention-item-row">
+                                <div class="attention-item-left">
+                                    <div class="attention-icon-box purple">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                                    </div>
+                                    <div class="attention-text-wrap">
+                                        <h5 style="color: #dc2626;">WhatsApp Bot Offline</h5>
+                                        <p>Click to scan QR code & reconnect</p>
+                                    </div>
+                                </div>
+                                <span class="chevron-icon">›</span>
+                            </a>
+                        @endif
+                    @endif
                 </div>
             </div>
 
@@ -1387,16 +1420,7 @@
             </div>
 
             <div class="top-selling-list">
-                @php
-                    $sampleItems = [
-                        ['rank' => '01', 'name' => 'Creamy Tikka Pizza', 'icon' => '🍕', 'sold' => '28 sold'],
-                        ['rank' => '02', 'name' => 'Behari Wrap',         'icon' => '🌯', 'sold' => '24 sold'],
-                        ['rank' => '03', 'name' => 'Zinger Burger',       'icon' => '🍔', 'sold' => '19 sold'],
-                        ['rank' => '04', 'name' => 'Lemon Soda',          'icon' => '🥤', 'sold' => '17 sold'],
-                        ['rank' => '05', 'name' => 'Chicken Wings',        'icon' => '🍗', 'sold' => '14 sold'],
-                    ];
-                @endphp
-                @foreach($topSellingItems->take(5) as $idx => $realItem)
+                @forelse($topSellingItems->take(5) as $idx => $realItem)
                     <div class="top-selling-row">
                         <div class="top-selling-left">
                             <span class="top-item-rank">0{{ $idx + 1 }}</span>
@@ -1405,19 +1429,11 @@
                         </div>
                         <span class="top-item-sold">{{ (int)$realItem->total_qty }} sold</span>
                     </div>
-                @endforeach
-                @if($topSellingItems->count() < 5)
-                    @for($i = $topSellingItems->count(); $i < 5; $i++)
-                        <div class="top-selling-row">
-                            <div class="top-selling-left">
-                                <span class="top-item-rank">{{ $sampleItems[$i]['rank'] }}</span>
-                                <div class="top-item-thumb">{{ $sampleItems[$i]['icon'] }}</div>
-                                <span class="top-item-name">{{ $sampleItems[$i]['name'] }}</span>
-                            </div>
-                            <span class="top-item-sold">{{ $sampleItems[$i]['sold'] }}</span>
-                        </div>
-                    @endfor
-                @endif
+                @empty
+                    <div style="text-align: center; padding: 30px 16px; color: var(--text-muted); font-size: 12.5px;">
+                        No item sales recorded today yet.
+                    </div>
+                @endforelse
             </div>
         </div>
 
@@ -1452,7 +1468,7 @@
                         <circle cx="50" cy="50" r="38" stroke="#6366f1" stroke-width="9" stroke-dasharray="25 238" stroke-dashoffset="-205" fill="none" stroke-linecap="round"/>
                     </svg>
                     <div class="donut-center-text">
-                        <h4 id="donutActiveCount">{{ $liveOrdersCount ?: 12 }}</h4>
+                        <h4 id="donutActiveCount">{{ $liveOrdersCount }}</h4>
                         <p>Active</p>
                     </div>
                 </div>
@@ -1464,7 +1480,7 @@
                             <span class="donut-legend-dot pending"></span>
                             <span>Pending</span>
                         </div>
-                        <span class="donut-legend-val" id="donutLegendPending">{{ $pendingCount ?: 12 }}</span>
+                        <span class="donut-legend-val" id="donutLegendPending">{{ $pendingCount }}</span>
                     </div>
 
                     <div class="donut-legend-row">
@@ -1472,7 +1488,7 @@
                             <span class="donut-legend-dot preparing"></span>
                             <span>Preparing</span>
                         </div>
-                        <span class="donut-legend-val" id="donutLegendPreparing">{{ $statusCounts['preparing'] ?? 7 }}</span>
+                        <span class="donut-legend-val" id="donutLegendPreparing">{{ $statusCounts['preparing'] ?? 0 }}</span>
                     </div>
 
                     <div class="donut-legend-row">
@@ -1480,7 +1496,7 @@
                             <span class="donut-legend-dot ready"></span>
                             <span>Ready</span>
                         </div>
-                        <span class="donut-legend-val" id="donutLegendReady">{{ $readyCount ?: 3 }}</span>
+                        <span class="donut-legend-val" id="donutLegendReady">{{ $readyCount }}</span>
                     </div>
 
                     <div class="donut-legend-row">
@@ -1488,7 +1504,7 @@
                             <span class="donut-legend-dot onroute"></span>
                             <span>On Route</span>
                         </div>
-                        <span class="donut-legend-val" id="donutLegendDelivery">{{ $deliveryCount ?: 2 }}</span>
+                        <span class="donut-legend-val" id="donutLegendDelivery">{{ $deliveryCount }}</span>
                     </div>
                 </div>
             </div>
@@ -1507,32 +1523,38 @@
                 <a href="{{ route('dashboard.orders', $restaurant->id) }}" class="card-action-link">View all →</a>
             </div>
 
-            <div class="recent-activity-list">
-                <div class="activity-feed-row">
-                    <span class="activity-time">10:42</span>
-                    <span class="activity-dot green"></span>
-                    <span class="activity-desc">Order #1048 created</span>
-                </div>
-                <div class="activity-feed-row">
-                    <span class="activity-time">10:39</span>
-                    <span class="activity-dot blue"></span>
-                    <span class="activity-desc">Order #1047 marked Ready</span>
-                </div>
-                <div class="activity-feed-row">
-                    <span class="activity-time">10:31</span>
-                    <span class="activity-dot purple"></span>
-                    <span class="activity-desc">Rider assigned to #1042</span>
-                </div>
-                <div class="activity-feed-row">
-                    <span class="activity-time">10:24</span>
-                    <span class="activity-dot orange"></span>
-                    <span class="activity-desc">Menu item "Mango Shake" updated</span>
-                </div>
-                <div class="activity-feed-row">
-                    <span class="activity-time">10:10</span>
-                    <span class="activity-dot slate"></span>
-                    <span class="activity-desc">Order #1039 delivered</span>
-                </div>
+            <div class="recent-activity-list" id="recentActivityList">
+                @forelse($recentActivity as $act)
+                    @php
+                        $dotClass = match($act->status) {
+                            'pending'          => 'orange',
+                            'confirmed'        => 'blue',
+                            'preparing'        => 'purple',
+                            'out_for_delivery' => 'blue',
+                            'delivered'        => 'green',
+                            'cancelled'        => 'slate',
+                            default            => 'blue',
+                        };
+                        $statusText = match($act->status) {
+                            'pending'          => 'placed / waiting confirmation',
+                            'confirmed'        => 'confirmed',
+                            'preparing'        => 'in preparation',
+                            'out_for_delivery' => 'out for delivery',
+                            'delivered'        => 'delivered',
+                            'cancelled'        => 'cancelled',
+                            default            => $act->status,
+                        };
+                    @endphp
+                    <div class="activity-feed-row" onclick="openOrderDrawer({{ $act->id }})" style="cursor: pointer;">
+                        <span class="activity-time">{{ $act->created_at->format('h:i A') }}</span>
+                        <span class="activity-dot {{ $dotClass }}"></span>
+                        <span class="activity-desc">Order #{{ $act->id }} {{ $statusText }}</span>
+                    </div>
+                @empty
+                    <div style="text-align: center; padding: 30px 16px; color: var(--text-muted); font-size: 12.5px;">
+                        No recent activity recorded today.
+                    </div>
+                @endforelse
             </div>
         </div>
     </div>
@@ -1779,7 +1801,7 @@ function renderOrdersTable(orders) {
     } else if (currentFilterStatus === 'preparing') {
         filtered = orders.filter(o => o.status === 'preparing');
     } else if (currentFilterStatus === 'ready') {
-        filtered = orders.filter(o => o.status === 'confirmed' || o.status === 'preparing');
+        filtered = orders.filter(o => (o.status === 'confirmed' || o.status === 'preparing') && o.rider_name);
     } else if (currentFilterStatus === 'out_for_delivery') {
         filtered = orders.filter(o => o.status === 'out_for_delivery');
     } else if (currentFilterStatus === 'delivered') {
@@ -1943,23 +1965,108 @@ async function fetchLiveOrdersFeed() {
         const pillDelivery = document.getElementById('pillCountDelivery');
         if (pillDelivery) pillDelivery.textContent = sc.out_for_delivery ?? 0;
 
-        // Update Needs Attention Card
-        const attBadge = document.getElementById('attentionBadgeCount');
-        if (attBadge) attBadge.textContent = sc.pending > 0 ? (sc.pending + 2) : 2;
+        // Update Needs Attention Card dynamically
+        const attBadge  = document.getElementById('attentionBadgeCount');
+        const attList   = document.getElementById('attentionItemsList');
+        const attHeader = document.getElementById('attentionHeaderGroup');
+        if (attBadge && attList) {
+            const pendingOrders = (data.orders || []).filter(o => o.status === 'pending');
+            const waitingRiders = (data.orders || []).filter(o => (o.status === 'confirmed' || o.status === 'preparing') && !o.rider_name);
+            const unavailableCount = data.attention ? (data.attention.unavailable_count || 0) : 0;
+            const botOffline = data.attention ? (data.attention.bot_offline || false) : false;
 
-        const attTitle = document.getElementById('attentionPendingTitle');
-        if (attTitle) {
-            attTitle.textContent = sc.pending > 0 ? `${sc.pending} new orders waiting` : 'No new orders waiting';
-        }
+            let issues = 0;
+            let rowsHtml = '';
 
-        const attText = document.getElementById('attentionPendingListText');
-        if (attText) {
-            const pendingIds = (data.orders || [])
-                .filter(o => o.status === 'pending')
-                .slice(0, 3)
-                .map(o => '#' + o.id)
-                .join(', ');
-            attText.textContent = pendingIds || 'All caught up';
+            if (pendingOrders.length > 0) {
+                issues++;
+                const pIds = pendingOrders.slice(0, 3).map(o => '#' + o.id).join(', ');
+                rowsHtml += `
+                    <div class="attention-item-row" onclick="filterTableStatus('pending')">
+                        <div class="attention-item-left">
+                            <div class="attention-icon-box orange">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            </div>
+                            <div class="attention-text-wrap">
+                                <h5>${pendingOrders.length} new ${pendingOrders.length === 1 ? 'order' : 'orders'} waiting</h5>
+                                <p>${pIds}</p>
+                            </div>
+                        </div>
+                        <span class="chevron-icon">›</span>
+                    </div>
+                `;
+            }
+
+            if (waitingRiders.length > 0) {
+                issues++;
+                const wIds = waitingRiders.slice(0, 3).map(o => '#' + o.id).join(', ');
+                rowsHtml += `
+                    <div class="attention-item-row" onclick="openDispatchModalDirect()">
+                        <div class="attention-item-left">
+                            <div class="attention-icon-box blue">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/></svg>
+                            </div>
+                            <div class="attention-text-wrap">
+                                <h5>${waitingRiders.length} ${waitingRiders.length === 1 ? 'delivery' : 'deliveries'} waiting for rider</h5>
+                                <p>${wIds}</p>
+                            </div>
+                        </div>
+                        <span class="chevron-icon">›</span>
+                    </div>
+                `;
+            }
+
+            if (unavailableCount > 0) {
+                issues++;
+                rowsHtml += `
+                    <a href="/dashboard/{{ $restaurant->id }}/menu" class="attention-item-row">
+                        <div class="attention-item-left">
+                            <div class="attention-icon-box pink">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/></svg>
+                            </div>
+                            <div class="attention-text-wrap">
+                                <h5>${unavailableCount} menu ${unavailableCount === 1 ? 'item' : 'items'} unavailable</h5>
+                                <p>Check out-of-stock items</p>
+                            </div>
+                        </div>
+                        <span class="chevron-icon">›</span>
+                    </a>
+                `;
+            }
+
+            if (botOffline) {
+                issues++;
+                rowsHtml += `
+                    <a href="/dashboard/{{ $restaurant->id }}/connect-whatsapp" class="attention-item-row">
+                        <div class="attention-item-left">
+                            <div class="attention-icon-box purple">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                            </div>
+                            <div class="attention-text-wrap">
+                                <h5 style="color: #dc2626;">WhatsApp Bot Offline</h5>
+                                <p>Click to scan QR code & reconnect</p>
+                            </div>
+                        </div>
+                        <span class="chevron-icon">›</span>
+                    </a>
+                `;
+            }
+
+            attBadge.textContent = issues;
+            attBadge.style.background = issues > 0 ? '#ef4444' : '#10b981';
+            if (attHeader) attHeader.style.color = issues > 0 ? '#ef4444' : '#10b981';
+
+            if (issues === 0) {
+                attList.innerHTML = `
+                    <div style="text-align: center; padding: 26px 16px;">
+                        <div style="font-size: 26px; margin-bottom: 6px;">✅</div>
+                        <h5 style="font-size: 13.5px; font-weight: 800; color: var(--text-heading); margin-bottom: 4px;">All caught up!</h5>
+                        <p style="font-size: 12px; color: var(--text-muted); line-height: 1.4;">No urgent actions needed. Your orders and restaurant are running smoothly.</p>
+                    </div>
+                `;
+            } else {
+                attList.innerHTML = rowsHtml;
+            }
         }
 
         // Update Delivery Overview Donut

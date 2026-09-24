@@ -5,29 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Restaurant Dashboard') — {{ $restaurant->name ?? ($r->name ?? 'Foodio') }}</title>
 
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-
-    <!-- Immediate theme initializer & Client-side Auth Guard -->
+    <!-- Immediate theme initializer -->
     <script>
         (function() {
             const t = localStorage.getItem('owner_theme') || 'light';
             document.documentElement.setAttribute('data-theme', t);
-
-            @if(session('admin_logged_in') !== true)
-            sessionStorage.setItem('owner_authenticated_session', 'active');
-            window.addEventListener('pageshow', function (event) {
-                if (sessionStorage.getItem('owner_authenticated_session') !== 'active') {
-                    document.documentElement.style.display = 'none';
-                    window.location.replace('{{ route("landing.owner-login-page") }}');
-                }
-            });
-            @endif
         })();
     </script>
 
-    <!-- Google Font: Plus Jakarta Sans -->
+    <!-- Google Font: Plus Jakarta Sans with DNS Prefetch -->
+    <link rel="dns-prefetch" href="//fonts.googleapis.com">
+    <link rel="dns-prefetch" href="//fonts.gstatic.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1117,7 +1105,24 @@ async function quickToggleRestaurantStatus() {
     setInterval(pollPending, 8000);
 })();
 
-document.addEventListener('DOMContentLoaded', initOwnerTheme);
+document.addEventListener('DOMContentLoaded', () => {
+    initOwnerTheme();
+
+    // Instant Navbar Link Hover Prefetcher (Zero delay / zero glitch)
+    const navLinks = document.querySelectorAll('aside#ownerSidebar a[href], .mobile-bottom-nav a[href]');
+    const prefetchedUrls = new Set();
+    navLinks.forEach(link => {
+        link.addEventListener('mouseenter', () => {
+            const url = link.href;
+            if (!url || url.includes('javascript:') || prefetchedUrls.has(url)) return;
+            prefetchedUrls.add(url);
+            const prefetchEl = document.createElement('link');
+            prefetchEl.rel = 'prefetch';
+            prefetchEl.href = url;
+            document.head.appendChild(prefetchEl);
+        }, { passive: true });
+    });
+});
 </script>
 
 </body>

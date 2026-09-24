@@ -385,6 +385,10 @@ class DashboardController extends Controller
         $pendingCount = $today->where('status', 'pending')->count();
         $readyCount = $today->where('status', 'confirmed')->whereNotNull('rider_name')->count();
 
+        $waitingRidersCount = $today->whereIn('status', ['confirmed', 'preparing'])->whereNull('rider_name')->count();
+        $unavailableCount   = $r->menuItems()->where('is_available', false)->count();
+        $isBotOffline       = $r->bot_status !== 'connected';
+
         return response()->json([
             'success'         => true,
             'today_count'     => $totalToday,
@@ -398,9 +402,15 @@ class DashboardController extends Controller
                 'pending'          => $pendingCount,
                 'confirmed'        => $confirmedCount,
                 'preparing'        => $preparingCount,
-                'ready'            => $readyCount ?: ($confirmedCount > 0 ? 1 : 0),
+                'ready'            => $readyCount,
                 'out_for_delivery' => $outForDeliveryCount,
                 'delivered'        => $deliveredCount,
+            ],
+            'attention'       => [
+                'pending_count'        => $pendingCount,
+                'waiting_riders_count' => $waitingRidersCount,
+                'unavailable_count'    => $unavailableCount,
+                'bot_offline'          => $isBotOffline,
             ],
             'orders'          => $ordersData,
         ]);
