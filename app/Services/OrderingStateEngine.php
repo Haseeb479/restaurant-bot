@@ -1530,17 +1530,15 @@ class OrderingStateEngine
         $this->session['location_valid'] = null;
         $this->transitionTo(self::STATE_ORDER_CREATED);
 
-        $receipt = "🎉 *MUBARAK HO! AAPKA ORDER CONFIRM HO GAYA HAI!*\n\n";
+        $receipt = "🎉 *AAPKA ORDER PLACE HO GAYA HAI!*\n\n";
         $receipt .= "🆔 *Order #{$order->id}*\n";
         $receipt .= "👤 *Customer:* {$order->customer_name}\n";
         $receipt .= "📍 *Delivery to:* " . ($order->delivery_place_name ? "{$order->delivery_place_name} ({$order->delivery_address})" : $order->delivery_address) . "\n";
-        if ($order->delivery_distance_km) {
-            $receipt .= "📏 *Distance:* {$order->delivery_distance_km} km\n";
-        }
         $receipt .= "💵 *Payment:* Cash on Delivery\n";
-        $receipt .= "💰 *Total Bill:* Rs. " . number_format($order->total) . "\n\n";
-        $receipt .= "⏱️ Estimated Delivery: 30–45 mins\n\n";
-        $receipt .= "Foodio istemal karne ka shukriya! ❤️";
+        $receipt .= "🍔 *Food Subtotal:* Rs. " . number_format($order->subtotal) . "\n";
+        $receipt .= "🛵 *Delivery Charges:* Restaurant review karke confirm karega.\n\n";
+        $receipt .= "⏱️ Restaurant jald hi order accept karke final bill WhatsApp par bhejega.\n\n";
+        $receipt .= "Shukriya! ❤️";
 
         return $receipt;
     }
@@ -1783,9 +1781,6 @@ class OrderingStateEngine
             $subtotal += $item['subtotal'];
         }
 
-        $deliveryCharge = (float)($this->restaurant->delivery_charge ?? 0);
-        $total = $subtotal + $deliveryCharge;
-
         $name = $this->session['customer_name'] ?? 'N/A';
         $address = $this->session['customer_address'] ?? 'N/A';
         if (strtolower(trim((string)$address)) === strtolower(trim((string)$name)) || empty($address)) {
@@ -1796,15 +1791,14 @@ class OrderingStateEngine
             : "";
         $coords = ($this->session['delivery_lat'] && $this->session['delivery_lng']) ? "\n📌 *GPS:* {$this->session['delivery_lat']}, {$this->session['delivery_lng']}" : "";
 
-        $out = "📋 *ORDER SUMMARY REVIEW:*\n\n";
+        $out = "📋 *ORDER SUMMARY:*\n\n";
         $out .= "{$itemsText}\n";
-        $out .= "Subtotal: Rs. " . number_format($subtotal) . "\n";
-        $out .= "Delivery Fee: Rs. " . number_format($deliveryCharge) . "\n";
         $out .= "━━━━━━━━━━━━━\n";
-        $out .= "💰 *TOTAL:* Rs. " . number_format($total) . " (COD)\n\n";
+        $out .= "🍔 *Food Total:* Rs. " . number_format($subtotal) . "\n";
+        $out .= "🛵 *Delivery:* (Restaurant confirms upon order acceptance)\n\n";
         $out .= "👤 *Name:* {$name}\n";
         $out .= "🏠 *Address:* {$address}{$poi}{$coords}\n\n";
-        $out .= "Kya yeh order confirm hai? Reply *Confirm* ya *Cancel*.";
+        $out .= "Order confirm karein? Reply *Confirm* ya *Cancel*.";
 
         return $out;
     }

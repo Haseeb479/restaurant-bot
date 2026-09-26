@@ -825,6 +825,27 @@
         overflow: hidden;
     }
 
+    .deliv-charge-pill {
+        padding: 10px 8px;
+        border-radius: 10px;
+        border: 1.5px solid var(--border-card);
+        background: var(--bg-card);
+        color: var(--text-body);
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        text-align: center;
+        transition: all 0.15s ease;
+    }
+    .deliv-charge-pill:hover {
+        border-color: var(--brand-primary);
+    }
+    .deliv-charge-pill.active {
+        border-color: var(--brand-primary);
+        background: var(--brand-primary-light);
+        color: var(--brand-primary);
+    }
+
     /* Responsive */
     @media (max-width: 1200px) {
         .metric-cards-grid { grid-template-columns: repeat(2, 1fr); }
@@ -1643,6 +1664,72 @@
     </div>
 </div>
 
+<!-- ── CONFIRM ORDER & SET DELIVERY FEE MODAL ── -->
+<div id="confirmOrderModal" class="modal-backdrop">
+    <div class="modal-dialog-box" style="padding: 24px; max-width: 480px; width: 95%;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="font-size: 17px; font-weight: 800; color: var(--text-heading); display: flex; align-items: center; gap: 8px;">
+                <span>✅ Confirm Order</span>
+                <span id="confirmModalCode" style="font-size: 13px; color: var(--brand-primary); font-weight: 700;">#0</span>
+            </h3>
+            <button type="button" onclick="closeConfirmOrderModal()" style="background: none; border: none; font-size: 18px; cursor: pointer; color: var(--text-muted);">&times;</button>
+        </div>
+
+        <div style="background: var(--bg-canvas); border: 1px solid var(--border-card); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Customer:</span>
+                <span id="confirmModalCustomer" style="font-size: 13px; font-weight: 700; color: var(--text-heading);">Customer Name</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 6px;">
+                <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Delivery Address:</span>
+                <span id="confirmModalAddress" style="font-size: 12px; font-weight: 600; color: var(--text-body); text-align: right; word-break: break-word; max-width: 280px;">Address</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-top: 1px dashed var(--border-card); padding-top: 6px; margin-top: 6px;">
+                <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Food Subtotal:</span>
+                <span id="confirmModalSubtotal" style="font-size: 13px; font-weight: 800; color: var(--text-heading);">Rs. 0</span>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 18px;">
+            <label style="display: block; font-size: 12.5px; font-weight: 700; color: var(--text-heading); margin-bottom: 8px;">
+                Select Delivery Charges:
+            </label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+                <button type="button" class="deliv-charge-pill active" id="btnDelivFree" onclick="selectDeliveryCharge(0)">
+                    🟢 Free (Rs. 0)
+                </button>
+                <button type="button" class="deliv-charge-pill" id="btnDelivStandard" onclick="selectDeliveryCharge(250)">
+                    🟡 Rs. 250
+                </button>
+                <button type="button" class="deliv-charge-pill" id="btnDelivCustom" onclick="enableCustomDeliveryCharge()">
+                    ✏️ Custom
+                </button>
+            </div>
+            <div id="customDeliveryChargeRow" style="display: none; margin-top: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 13px; font-weight: 700; color: var(--text-muted);">Rs.</span>
+                    <input type="number" id="inputCustomDeliveryCharge" min="0" max="50000" placeholder="e.g. 100"
+                        oninput="onCustomDeliveryInput(this.value)"
+                        style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-card); background: var(--bg-card); color: var(--text-heading); font-size: 13px; font-weight: 700;">
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Payable Calculation Preview -->
+        <div style="background: var(--brand-primary-light); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 12px; padding: 12px 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 13px; font-weight: 700; color: var(--brand-primary);">Total Bill (to collect):</span>
+            <span id="confirmModalTotalPreview" style="font-size: 18px; font-weight: 800; color: var(--brand-primary);">Rs. 0</span>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+            <button type="button" onclick="closeConfirmOrderModal()" class="btn" style="background: var(--bg-canvas); border: 1px solid var(--border-card);">Cancel</button>
+            <button type="button" id="btnSubmitConfirmOrder" onclick="submitConfirmOrder()" class="btn btn-primary" style="font-weight: 700;">
+                ✓ Confirm & Send WhatsApp
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- ── DISPATCH RIDER MODAL ── -->
 <div id="dispatchRiderModal" class="modal-backdrop">
     <div class="modal-dialog-box" style="padding: 22px;">
@@ -2198,6 +2285,93 @@ function closeOrderDrawer() {
     document.getElementById('posDrawerBackdrop').classList.remove('open');
 }
 
+// ── Confirm Order Modal Logic ──
+let confirmModalOrderId = null;
+let confirmModalSubtotalVal = 0;
+let selectedDeliveryChargeVal = 0;
+
+function openConfirmOrderModal(orderId) {
+    const o = allOrdersMap[orderId];
+    if (!o) return;
+    confirmModalOrderId = orderId;
+    confirmModalSubtotalVal = parseFloat(o.subtotal || o.total || 0);
+
+    document.getElementById('confirmModalCode').textContent = '#' + (o.tracking_code || o.id);
+    document.getElementById('confirmModalCustomer').textContent = o.customer_name || 'Guest';
+    document.getElementById('confirmModalAddress').textContent = o.delivery_address || 'Address provided on WhatsApp';
+    document.getElementById('confirmModalSubtotal').textContent = 'Rs. ' + confirmModalSubtotalVal.toLocaleString();
+
+    // Default to Free (Rs. 0)
+    selectDeliveryCharge(0);
+
+    document.getElementById('confirmOrderModal').classList.add('open');
+}
+
+function closeConfirmOrderModal() {
+    document.getElementById('confirmOrderModal').classList.remove('open');
+    confirmModalOrderId = null;
+}
+
+function selectDeliveryCharge(amount) {
+    selectedDeliveryChargeVal = parseFloat(amount) || 0;
+    const btnFree = document.getElementById('btnDelivFree');
+    const btnStd = document.getElementById('btnDelivStandard');
+    const btnCust = document.getElementById('btnDelivCustom');
+    const custRow = document.getElementById('customDeliveryChargeRow');
+
+    if (btnFree) btnFree.classList.toggle('active', amount === 0);
+    if (btnStd) btnStd.classList.toggle('active', amount === 250);
+    if (btnCust) btnCust.classList.remove('active');
+    if (custRow) custRow.style.display = 'none';
+
+    updateConfirmTotalPreview();
+}
+
+function enableCustomDeliveryCharge() {
+    const btnFree = document.getElementById('btnDelivFree');
+    const btnStd = document.getElementById('btnDelivStandard');
+    const btnCust = document.getElementById('btnDelivCustom');
+    const custRow = document.getElementById('customDeliveryChargeRow');
+    const input = document.getElementById('inputCustomDeliveryCharge');
+
+    if (btnFree) btnFree.classList.remove('active');
+    if (btnStd) btnStd.classList.remove('active');
+    if (btnCust) btnCust.classList.add('active');
+    if (custRow) custRow.style.display = 'block';
+
+    if (input) {
+        input.focus();
+        selectedDeliveryChargeVal = parseFloat(input.value) || 0;
+    }
+    updateConfirmTotalPreview();
+}
+
+function onCustomDeliveryInput(val) {
+    selectedDeliveryChargeVal = Math.max(0, parseFloat(val) || 0);
+    updateConfirmTotalPreview();
+}
+
+function updateConfirmTotalPreview() {
+    const total = confirmModalSubtotalVal + selectedDeliveryChargeVal;
+    const preview = document.getElementById('confirmModalTotalPreview');
+    if (preview) preview.textContent = 'Rs. ' + total.toLocaleString();
+}
+
+async function submitConfirmOrder() {
+    if (!confirmModalOrderId) return;
+    const btn = document.getElementById('btnSubmitConfirmOrder');
+    if (btn) { btn.disabled = true; btn.textContent = 'Confirming...'; }
+
+    try {
+        await postStatusUpdate(confirmModalOrderId, 'confirmed', {
+            delivery_charge: selectedDeliveryChargeVal
+        });
+        closeConfirmOrderModal();
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '✓ Confirm & Send WhatsApp'; }
+    }
+}
+
 // ── Advance Order Status ──
 async function advanceCurrentOrderStatus() {
     if (!currentDrawerOrderId) return;
@@ -2209,6 +2383,11 @@ async function advanceCurrentOrderStatus() {
     };
     const nextStatus = nextStatusMap[currentDrawerOrderStatus];
     if (!nextStatus) return;
+
+    if (nextStatus === 'confirmed') {
+        openConfirmOrderModal(currentDrawerOrderId);
+        return;
+    }
 
     if (nextStatus === 'out_for_delivery') {
         openDispatchModalFromDrawer();
@@ -2223,6 +2402,11 @@ async function postStatusUpdate(orderId, status, extra = {}) {
     if (allOrdersMap[orderId]) {
         allOrdersMap[orderId].status = status;
         allOrdersMap[orderId].status_label = status.toUpperCase();
+        if (extra.delivery_charge !== undefined) {
+            allOrdersMap[orderId].delivery_charge = extra.delivery_charge;
+            const sub = parseFloat(allOrdersMap[orderId].subtotal || allOrdersMap[orderId].total || 0);
+            allOrdersMap[orderId].total = sub + extra.delivery_charge;
+        }
         if (extra.rider_name) allOrdersMap[orderId].rider_name = extra.rider_name;
         if (extra.rider_phone) allOrdersMap[orderId].rider_phone = extra.rider_phone;
         const ordersList = Object.values(allOrdersMap).sort((a,b) => b.id - a.id);

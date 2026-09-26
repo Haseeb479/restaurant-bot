@@ -430,6 +430,7 @@ class DashboardController extends Controller
         // and tracking page afterwards.
         $validated = $request->validate([
             'status'            => ['required', 'string', Rule::in(Order::STATUSES)],
+            'delivery_charge'   => ['nullable', 'numeric', 'min:0', 'max:50000'],
             'rider_name'        => ['nullable', 'string', 'max:100'],
             'rider_phone'       => ['nullable', 'string', 'max:32'],
             'rider_notes'       => ['nullable', 'string', 'max:500'],
@@ -451,6 +452,13 @@ class DashboardController extends Controller
         }
 
         $updateData = ['status' => $status];
+
+        // Owner-applied delivery charges upon confirmation
+        if ($request->has('delivery_charge') && $request->input('delivery_charge') !== null) {
+            $deliveryCharge = max(0.0, (float) $request->input('delivery_charge'));
+            $updateData['delivery_charge'] = $deliveryCharge;
+            $updateData['total'] = (float) $order->subtotal + $deliveryCharge;
+        }
 
         foreach (['rider_name', 'rider_phone', 'rider_notes'] as $field) {
             if ($request->filled($field)) {
@@ -480,8 +488,28 @@ class DashboardController extends Controller
 
         $etaText = $order->estimated_minutes ? "\n⏱️ *Estimated Delivery:* ~{$order->estimated_minutes} mins" : "\n⏱️ *Estimated Delivery:* ~20-30 mins";
 
+        $deliveryChargeFormatted = ($order->delivery_charge && (float)$order->delivery_charge > 0)
+            ? 'Rs. ' . number_format($order->delivery_charge, 0)
+            : 'Free (Rs. 0) 🎉';
+
+        $itemsSummary = $order->items->map(function ($it) {
+            $sz = $it->size ? " ({$it->size})" : '';
+            return "• {$it->quantity}x {$it->name}{$sz} — Rs. " . number_format($it->subtotal, 0);
+        })->implode("\n");
+
+        $confirmedMsg = "✅ *Aapka Order Confirm Ho Gaya!*\n\n"
+            . "Aapka order *#{$order->id}* accept kar liya gaya hai.\n\n"
+            . ($itemsSummary ? "{$itemsSummary}\n━━━━━━━━━━━━━\n" : "")
+            . "🍔 *Food Subtotal:* Rs. " . number_format($order->subtotal, 0) . "\n"
+            . "🛵 *Delivery Charges:* {$deliveryChargeFormatted}\n"
+            . "━━━━━━━━━━━━━\n"
+            . "💰 *Total Payable (COD):* Rs. " . number_format($order->total, 0) . "\n"
+            . "📍 *Delivery to:* " . ($order->delivery_place_name ? "{$order->delivery_place_name} ({$order->delivery_address})" : $order->delivery_address) . "\n"
+            . "⏱️ Estimated time: 30–40 mins.\n\n"
+            . "Shukriya! Khana tayyar ho raha hai. ❤️";
+
         $messages = [
-            'confirmed' => "✅ *Order Confirmed!*\n\nYour order *#{$order->id}* has been accepted by *{$r->name}*!",
+            'confirmed' => $confirmedMsg,
             'preparing' => "👨‍🍳 *Preparing Your Food!*\n\nOur kitchen is preparing your order *#{$order->id}* fresh.",
             'out_for_delivery' => "🛵 *Order Dispatched & On The Way!*\n\nYour order *#{$order->id}* has been dispatched by *{$r->name}*!{$riderInfo}{$etaText}\n💰 *Total to Pay:* Rs. " . number_format($order->total, 0) . " (" . ucwords(str_replace('_', ' ', $order->payment_method ?: 'COD')) . ")",
             'delivered' => "🎉 *Order Delivered!*\n\nYour order *#{$order->id}* has been delivered. Enjoy your meal! Thank you for ordering from *{$r->name}*! 🙏\n\n⭐ *Rate Your Experience:*\nPlease reply with a rating from *1 to 5* ⭐ (e.g. *5* or *5 star*), along with any feedback, to let us know how we did!",
@@ -579,10 +607,12 @@ class DashboardController extends Controller
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
-                'success'      => true,
-                'status'       => $order->status,
-                'status_label' => $order->status_label,
-                'message'      => "Order #{$order->tracking_code} marked as " . ucwords(str_replace('_', ' ', $status)) . '!',
+                'success'         => true,
+                'status'          => $order->status,
+                'status_label'    => $order->status_label,
+                'delivery_charge' => (float) $order->delivery_charge,
+                'total'           => (float) $order->total,
+                'message'         => "Order #{$order->tracking_code} marked as " . ucwords(str_replace('_', ' ', $status)) . '!',
             ]);
         }
 

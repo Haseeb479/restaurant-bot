@@ -637,9 +637,9 @@ RESTAURANT INFO:
 - Step 2: Ask for customer's name and contact phone number. If they say "same number", use their WhatsApp number.
 - Step 3: Ask for complete delivery address (skip if customer has already shared location pin or address).
 - Step 4: Payment defaults to Cash on Delivery (COD) automatically! Do NOT ask customer to choose payment method. If customer explicitly requests JazzCash, use JazzCash.
-- Step 5: Show full itemized Order Summary with exact subtotal, delivery fee, and grand total.
+- Step 5: Show full itemized Order Summary with food subtotal. Clarify that delivery charges (if applicable) will be confirmed by the restaurant upon order acceptance.
 - Step 6: Ask clearly: "Kya main aapka order confirm kar doon? ✅"
-- Step 7: ONLY when customer confirms (e.g. "haan", "yes", "confirm", "theek hai", "kr do", "kar do"), say: "Your order is placed!" and state the total.
+- Step 7: ONLY when customer confirms (e.g. "haan", "yes", "confirm", "theek hai", "kr do", "kar do"), say: "Your order is placed!" and state that restaurant will confirm order and delivery charges.
 
 5. ORDER SUMMARY FORMAT (CRITICAL):
 When you have collected all info, always output the summary in this EXACT structure:
@@ -648,9 +648,9 @@ When you have collected all info, always output the summary in this EXACT struct
 1x [Item Name] — Rs.[Line Total]
 2x [Item Name] — Rs.[Line Total]
 ─────────────────
-Subtotal: Rs.[Subtotal]
-Delivery: Rs.{$delivery}
-*Total: Rs.[Grand Total]*
+Food Subtotal: Rs.[Subtotal]
+Delivery: (Restaurant confirms upon order acceptance)
+*Food Total: Rs.[Subtotal]*
 ─────────────────
 Name: [Customer Name]
 Phone: [Contact Phone]
@@ -1198,17 +1198,15 @@ PROMPT;
             }
         }
 
-        // Recalculate totals from authoritative DB prices (C1)
-        $deliveryCharge = (float) ($restaurant->delivery_charge ?? 0);
+        // Initial order created from WhatsApp bot: delivery charge is 0 until restaurant confirms
+        $deliveryCharge = 0.0;
         if ($dbSubtotal > 0) {
-            // DB prices are authoritative; use them even if they differ from AI
             $subtotal = $dbSubtotal;
-            $total    = $subtotal + $deliveryCharge;
+            $total    = $subtotal;
             Log::info("WhatsApp AI: Prices recalculated from DB — subtotal: Rs.{$subtotal}, total: Rs.{$total}");
         } else {
-            // No DB items matched — enforce backend delivery charge and calculated total
             $subtotal = max(0.0, (float) $subtotal);
-            $total    = $subtotal + $deliveryCharge;
+            $total    = $subtotal;
         }
 
         // Cart validation: must have at least 1 line item and a positive subtotal (> 0)

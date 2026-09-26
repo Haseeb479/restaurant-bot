@@ -280,6 +280,27 @@
     .status-pill.delivered { background: #dcfce7; color: #15803d; }
     .status-pill.cancelled { background: #fee2e2; color: #b91c1c; }
 
+    .deliv-charge-pill {
+        padding: 10px 8px;
+        border-radius: 10px;
+        border: 1.5px solid #cbd5e1;
+        background: #ffffff;
+        color: #334155;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        text-align: center;
+        transition: all 0.15s ease;
+    }
+    .deliv-charge-pill:hover {
+        border-color: #2563eb;
+    }
+    .deliv-charge-pill.active {
+        border-color: #2563eb;
+        background: #eff6ff;
+        color: #1d4ed8;
+    }
+
     /* Order Details Workbench */
     .order-detail-header {
         display: flex;
@@ -757,7 +778,7 @@
                 <div class="action-btn-row" id="action-btn-row">
                     @if($selectedOrder->status === 'pending')
                         <button type="button" class="btn-action-primary" style="background: #2563eb;"
-                            onclick="ajaxUpdateStatus('{{ route('dashboard.update-status', [$restaurant->id, $selectedOrder->id]) }}', 'confirmed', this)">
+                            onclick="openConfirmOrderModal('{{ $selectedOrder->id }}')">
                             ✓ Mark as Confirmed
                         </button>
                     @elseif($selectedOrder->status === 'confirmed')
@@ -839,6 +860,72 @@
             </div>
         </div>
 
+    </div>
+</div>
+
+<!-- CONFIRM ORDER & SET DELIVERY FEE MODAL -->
+<div id="confirmOrderModal" style="display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(4px); align-items: center; justify-content: center;">
+    <div style="background: #ffffff; width: 460px; max-width: calc(100% - 32px); border-radius: 20px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25); overflow: hidden; padding: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="font-size: 17px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                <span>✅ Confirm Order</span>
+                <span id="confirmModalCode" style="font-size: 13px; color: #2563eb; font-weight: 700;">#0</span>
+            </h3>
+            <button type="button" onclick="closeConfirmOrderModal()" style="background: none; border: none; font-size: 18px; cursor: pointer; color: #64748b;">✕</button>
+        </div>
+
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span style="font-size: 12px; color: #64748b; font-weight: 600;">Customer:</span>
+                <span id="confirmModalCustomer" style="font-size: 13px; font-weight: 700; color: #0f172a;">Customer Name</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 6px;">
+                <span style="font-size: 12px; color: #64748b; font-weight: 600;">Delivery Address:</span>
+                <span id="confirmModalAddress" style="font-size: 12px; font-weight: 600; color: #334155; text-align: right; word-break: break-word; max-width: 260px;">Address</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-top: 1px dashed #cbd5e1; padding-top: 6px; margin-top: 6px;">
+                <span style="font-size: 12px; color: #64748b; font-weight: 600;">Food Subtotal:</span>
+                <span id="confirmModalSubtotal" style="font-size: 13px; font-weight: 800; color: #0f172a;">Rs. 0</span>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 18px;">
+            <label style="display: block; font-size: 12.5px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
+                Select Delivery Charges:
+            </label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+                <button type="button" class="deliv-charge-pill active" id="btnDelivFree" onclick="selectDeliveryCharge(0)">
+                    🟢 Free (Rs. 0)
+                </button>
+                <button type="button" class="deliv-charge-pill" id="btnDelivStandard" onclick="selectDeliveryCharge(250)">
+                    🟡 Rs. 250
+                </button>
+                <button type="button" class="deliv-charge-pill" id="btnDelivCustom" onclick="enableCustomDeliveryCharge()">
+                    ✏️ Custom
+                </button>
+            </div>
+            <div id="customDeliveryChargeRow" style="display: none; margin-top: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 13px; font-weight: 700; color: #64748b;">Rs.</span>
+                    <input type="number" id="inputCustomDeliveryCharge" min="0" max="50000" placeholder="e.g. 100"
+                        oninput="onCustomDeliveryInput(this.value)"
+                        style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: #ffffff; color: #0f172a; font-size: 13px; font-weight: 700;">
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Payable Calculation Preview -->
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 12px 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 13px; font-weight: 700; color: #1d4ed8;">Total Bill (to collect):</span>
+            <span id="confirmModalTotalPreview" style="font-size: 18px; font-weight: 800; color: #1d4ed8;">Rs. 0</span>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+            <button type="button" onclick="closeConfirmOrderModal()" style="padding: 10px 18px; border-radius: 10px; border: 1px solid #cbd5e1; background: #ffffff; font-weight: 600; cursor: pointer; color: #475569;">Cancel</button>
+            <button type="button" id="btnSubmitConfirmOrder" onclick="submitConfirmOrder()" style="padding: 10px 20px; border-radius: 10px; border: none; background: #2563eb; color: #ffffff; font-weight: 700; cursor: pointer;">
+                ✓ Confirm & Send WhatsApp
+            </button>
+        </div>
     </div>
 </div>
 
@@ -955,7 +1042,7 @@
             next: 'confirmed',
             btnText: '✓ Mark as Confirmed',
             btnColor: '#2563eb',
-            btnAction: (url, order) => `ajaxUpdateStatus('${url}', 'confirmed', this)`
+            btnAction: (url, order) => `openConfirmOrderModal('${order.id}')`
         },
         confirmed: {
             label: 'Confirmed',
@@ -1097,7 +1184,95 @@
         return false;
     }
 
-    async function ajaxUpdateStatus(url, status, btn) {
+    // ── Confirm Order Modal Logic ──
+    let confirmModalOrderId = null;
+    let confirmModalSubtotalVal = 0;
+    let selectedDeliveryChargeVal = 0;
+
+    function openConfirmOrderModal(orderId) {
+        const o = currentOrdersMap[orderId];
+        if (!o) return;
+        confirmModalOrderId = orderId;
+        confirmModalSubtotalVal = parseFloat(o.subtotal || o.total || 0);
+
+        document.getElementById('confirmModalCode').textContent = '#' + (o.tracking_code || o.id);
+        document.getElementById('confirmModalCustomer').textContent = o.customer_name || 'Guest Customer';
+        document.getElementById('confirmModalAddress').textContent = o.delivery_address || 'Address provided in WhatsApp chat';
+        document.getElementById('confirmModalSubtotal').textContent = 'Rs. ' + confirmModalSubtotalVal.toLocaleString();
+
+        // Default to Free (Rs. 0)
+        selectDeliveryCharge(0);
+
+        document.getElementById('confirmOrderModal').style.display = 'flex';
+    }
+
+    function closeConfirmOrderModal() {
+        document.getElementById('confirmOrderModal').style.display = 'none';
+        confirmModalOrderId = null;
+    }
+
+    function selectDeliveryCharge(amount) {
+        selectedDeliveryChargeVal = parseFloat(amount) || 0;
+        const btnFree = document.getElementById('btnDelivFree');
+        const btnStd = document.getElementById('btnDelivStandard');
+        const btnCust = document.getElementById('btnDelivCustom');
+        const custRow = document.getElementById('customDeliveryChargeRow');
+
+        if (btnFree) btnFree.classList.toggle('active', amount === 0);
+        if (btnStd) btnStd.classList.toggle('active', amount === 250);
+        if (btnCust) btnCust.classList.remove('active');
+        if (custRow) custRow.style.display = 'none';
+
+        updateConfirmTotalPreview();
+    }
+
+    function enableCustomDeliveryCharge() {
+        const btnFree = document.getElementById('btnDelivFree');
+        const btnStd = document.getElementById('btnDelivStandard');
+        const btnCust = document.getElementById('btnDelivCustom');
+        const custRow = document.getElementById('customDeliveryChargeRow');
+        const input = document.getElementById('inputCustomDeliveryCharge');
+
+        if (btnFree) btnFree.classList.remove('active');
+        if (btnStd) btnStd.classList.remove('active');
+        if (btnCust) btnCust.classList.add('active');
+        if (custRow) custRow.style.display = 'block';
+
+        if (input) {
+            input.focus();
+            selectedDeliveryChargeVal = parseFloat(input.value) || 0;
+        }
+        updateConfirmTotalPreview();
+    }
+
+    function onCustomDeliveryInput(val) {
+        selectedDeliveryChargeVal = Math.max(0, parseFloat(val) || 0);
+        updateConfirmTotalPreview();
+    }
+
+    function updateConfirmTotalPreview() {
+        const total = confirmModalSubtotalVal + selectedDeliveryChargeVal;
+        const preview = document.getElementById('confirmModalTotalPreview');
+        if (preview) preview.textContent = 'Rs. ' + total.toLocaleString();
+    }
+
+    async function submitConfirmOrder() {
+        if (!confirmModalOrderId) return;
+        const btn = document.getElementById('btnSubmitConfirmOrder');
+        if (btn) { btn.disabled = true; btn.textContent = 'Confirming...'; }
+
+        try {
+            const updateUrl = `/dashboard/${RESTAURANT_ID}/orders/${confirmModalOrderId}/status`;
+            await ajaxUpdateStatus(updateUrl, 'confirmed', btn, {
+                delivery_charge: selectedDeliveryChargeVal
+            });
+            closeConfirmOrderModal();
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = '✓ Confirm & Send WhatsApp'; }
+        }
+    }
+
+    async function ajaxUpdateStatus(url, status, btn, extra = {}) {
         if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
 
         try {
@@ -1108,7 +1283,7 @@
                     'Accept':       'application/json',
                     'X-CSRF-TOKEN': CSRF_TOKEN,
                 },
-                body: JSON.stringify({ status }),
+                body: JSON.stringify({ status, ...extra }),
             });
 
             const data = await res.json();
@@ -1119,6 +1294,8 @@
             if (currentOrdersMap[SELECTED_ORDER_ID]) {
                 currentOrdersMap[SELECTED_ORDER_ID].status = data.status;
                 currentOrdersMap[SELECTED_ORDER_ID].status_label = data.status_label;
+                if (data.delivery_charge !== undefined) currentOrdersMap[SELECTED_ORDER_ID].delivery_charge = data.delivery_charge;
+                if (data.total !== undefined) currentOrdersMap[SELECTED_ORDER_ID].total = data.total;
                 renderOrderDetail(currentOrdersMap[SELECTED_ORDER_ID]);
             }
 

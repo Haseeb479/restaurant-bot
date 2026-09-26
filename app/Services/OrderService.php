@@ -114,8 +114,9 @@ class OrderService
             throw new \DomainException("No valid menu items in cart.");
         }
 
-        $deliveryCharge = (float)($restaurant->delivery_charge ?? 0);
-        $total = $subtotal + $deliveryCharge;
+        // Initial order created from WhatsApp bot: delivery charge is decided by owner upon confirmation
+        $deliveryCharge = 0.0;
+        $total = $subtotal;
 
         // ── 3. Database Transaction & Order Creation ──────────────────────────
         return DB::transaction(function () use (
