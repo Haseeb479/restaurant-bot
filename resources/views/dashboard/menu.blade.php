@@ -31,18 +31,20 @@
 </div>
 
 <!-- Category Filter Tabs -->
-<div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; margin-bottom: 24px; scrollbar-width: none;">
-    @php
-        $totalItemsCount = $categories->sum(fn($c) => $c->items->count());
-    @endphp
-    <button onclick="filterCategory('all')" id="tab-all" class="cat-pill active-pill">
-        All Items <span class="pill-count">({{ $totalItemsCount }})</span>
-    </button>
-    @foreach($categories as $cat)
-        <button onclick="filterCategory('cat-{{ $cat->id }}')" id="tab-cat-{{ $cat->id }}" class="cat-pill">
-            {{ $cat->name }} <span class="pill-count">({{ $cat->items->count() }})</span>
+<div class="category-tabs-container">
+    <div class="category-tabs-scroll" id="catTabsScroll">
+        @php
+            $totalItemsCount = $categories->sum(fn($c) => $c->items->count());
+        @endphp
+        <button onclick="filterCategory('all')" id="tab-all" class="cat-pill active-pill">
+            All Items <span class="pill-count">({{ $totalItemsCount }})</span>
         </button>
-    @endforeach
+        @foreach($categories as $cat)
+            <button onclick="filterCategory('cat-{{ $cat->id }}')" id="tab-cat-{{ $cat->id }}" class="cat-pill">
+                {{ $cat->name }} <span class="pill-count">({{ $cat->items->count() }})</span>
+            </button>
+        @endforeach
+    </div>
 </div>
 
 <!-- Menu Categories & Items List -->
@@ -60,12 +62,12 @@
         </div>
     </div>
 @else
-    <div id="categories-container" style="display: flex; flex-direction: column; gap: 32px;">
+    <div id="categories-container" class="categories-list-container">
         @foreach($categories as $category)
             <div class="category-block" id="cat-{{ $category->id }}">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <h2 style="font-size: 17px; font-weight: 800; color: #0f172a; letter-spacing: -0.01em;">
+                        <h2 style="font-size: 17px; font-weight: 800; color: var(--text-heading, #0f172a); letter-spacing: -0.01em;">
                             {{ $category->name }}
                         </h2>
                         <span style="font-size: 12px; background: #e2e8f0; color: #475569; padding: 2px 8px; border-radius: 99px; font-weight: 600;">
@@ -83,8 +85,8 @@
                         No items in this category yet.
                     </div>
                 @else
-                    <!-- Grid of Item Cards -->
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+                    <!-- Grid of Item Cards (Adjusts cleanly in default frame) -->
+                    <div class="menu-items-grid">
                         @foreach($category->items as $item)
                             <div class="menu-card {{ $item->is_available ? '' : 'item-disabled' }}">
                                 <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px;">
@@ -505,6 +507,33 @@
 <!-- STYLES & INTERACTIVITY -->
 <!-- ========================================================================= -->
 <style>
+/* Category Filter Tabs Scrollable Container (No Page Overflow) */
+.category-tabs-container {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 24px;
+}
+.category-tabs-scroll {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 6px;
+    max-width: 100%;
+    min-width: 0;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+}
+.category-tabs-scroll::-webkit-scrollbar {
+    display: none;
+    height: 0;
+    width: 0;
+}
+
 /* Category Pills */
 .cat-pill {
     background: #ffffff;
@@ -517,10 +546,42 @@
     cursor: pointer;
     white-space: nowrap;
     transition: all 0.15s ease;
+    flex-shrink: 0;
 }
 .cat-pill:hover { border-color: #cbd5e1; color: #0f172a; }
 .active-pill { background: #0f172a !important; color: #ffffff !important; border-color: #0f172a !important; }
 .pill-count { opacity: 0.7; font-size: 11px; margin-left: 2px; }
+
+/* Categories Container & Blocks */
+.categories-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+.category-block {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+
+/* Menu Items Responsive Grid - Adjusts gracefully in default frame without horizontal slidebar */
+.menu-items-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+
+@media (max-width: 600px) {
+    .menu-items-grid {
+        grid-template-columns: 1fr;
+    }
+}
 
 /* Menu Card */
 .menu-card {
@@ -533,6 +594,8 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    min-width: 0;
+    overflow: hidden;
 }
 .menu-card:hover {
     border-color: #cbd5e1;
@@ -540,6 +603,14 @@
     transform: translateY(-2px);
 }
 .item-disabled { opacity: 0.6; background: #f8fafc; }
+.menu-card-title {
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+.menu-card-desc {
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
 
 /* Dark Theme Support */
 [data-theme="dark"] .menu-card {
@@ -956,6 +1027,19 @@
             sizeRowIndex = presetSizes.length;
         }
     }
+
+    // Enable smooth mouse wheel horizontal scrolling for category pills without causing page overflow
+    document.addEventListener('DOMContentLoaded', function() {
+        const catScroll = document.getElementById('catTabsScroll');
+        if (catScroll) {
+            catScroll.addEventListener('wheel', function(evt) {
+                if (evt.deltaY !== 0) {
+                    evt.preventDefault();
+                    catScroll.scrollLeft += evt.deltaY * 0.8;
+                }
+            }, { passive: false });
+        }
+    });
 </script>
 
 @endsection

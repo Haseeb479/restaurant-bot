@@ -91,6 +91,11 @@
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
+        html {
+            overflow-x: hidden;
+            max-width: 100vw;
+        }
+
         body {
             background-color: var(--bg-canvas);
             color: var(--text-body);
@@ -99,6 +104,9 @@
             font-size: 13px;
             line-height: 1.5;
             transition: background-color 0.2s ease, color 0.2s ease;
+            overflow-x: hidden;
+            max-width: 100vw;
+            width: 100%;
         }
 
         /* ═══════════════════════════════════════════════════
@@ -249,15 +257,23 @@
             margin-left: 76px;
             flex: 1;
             min-height: 100vh;
+            min-width: 0;
+            max-width: calc(100vw - 76px);
+            width: calc(100% - 76px);
             display: flex;
             flex-direction: column;
             background: var(--bg-canvas);
             transition: margin-left 0.25s ease;
+            overflow-x: hidden;
         }
 
         header.topbar {
             height: 84px;
-            background: transparent;
+            background: rgba(248, 250, 252, 0.78);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.75);
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -265,7 +281,15 @@
             position: sticky;
             top: 0;
             z-index: 90;
-            transition: background 0.2s;
+            transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        [data-theme="dark"] header.topbar {
+            background: rgba(11, 15, 25, 0.78);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.35);
         }
 
         .header-left {
@@ -330,7 +354,9 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: var(--bg-card);
+            background: rgba(255, 255, 255, 0.82);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             border: 1px solid var(--border-card);
             color: var(--text-body);
             padding: 6px 14px;
@@ -339,13 +365,19 @@
             font-weight: 600;
             box-shadow: 0 1px 2px rgba(0,0,0,0.03);
         }
+        [data-theme="dark"] .date-pill {
+            background: rgba(19, 27, 46, 0.75);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
 
         /* Theme Toggle Button */
         .theme-icon-btn {
             width: 38px;
             height: 38px;
             border-radius: 50%;
-            background: var(--bg-card);
+            background: rgba(255, 255, 255, 0.82);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             border: 1px solid var(--border-card);
             color: var(--text-muted);
             display: flex;
@@ -360,13 +392,19 @@
             border-color: #cbd5e1;
             transform: translateY(-1px);
         }
+        [data-theme="dark"] .theme-icon-btn {
+            background: rgba(19, 27, 46, 0.75);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
 
         /* Notification Bell */
         .notif-bell-btn {
             width: 38px;
             height: 38px;
             border-radius: 50%;
-            background: var(--bg-card);
+            background: rgba(255, 255, 255, 0.82);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             border: 1px solid var(--border-card);
             color: var(--text-muted);
             display: flex;
@@ -381,6 +419,10 @@
             color: var(--text-heading);
             border-color: #cbd5e1;
             transform: translateY(-1px);
+        }
+        [data-theme="dark"] .notif-bell-btn {
+            background: rgba(19, 27, 46, 0.75);
+            border-color: rgba(255, 255, 255, 0.1);
         }
         .notif-dot-badge {
             position: absolute;
@@ -421,6 +463,8 @@
             flex: 1;
             max-width: 1720px;
             width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
         }
 
         /* Bot Alert Notice */
@@ -737,6 +781,9 @@
             }
             .main-wrapper {
                 margin-left: 0 !important;
+                max-width: 100vw !important;
+                width: 100% !important;
+                min-width: 0 !important;
             }
             header.topbar {
                 padding: 0 20px;
