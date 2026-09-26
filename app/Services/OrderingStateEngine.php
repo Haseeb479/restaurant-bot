@@ -334,7 +334,7 @@ class OrderingStateEngine
         if (!empty($this->session['cart'])) {
             if ($intent === 'CONFIRM_ORDER' || $this->isAffirmative($raw)) {
                 $this->captureCustomerInfo($nlu);
-                if ($this->hasCompleteInfo() && (!empty($this->session['delivery_lat']) || !empty($this->session['location_skipped']))) {
+                if ($this->hasCompleteInfo()) {
                     return $this->executeOrderCreation();
                 }
                 return $this->proceedToNextStepAfterCart();
@@ -432,8 +432,14 @@ class OrderingStateEngine
                     return $this->proceedToNextStepAfterCart();
                 }
 
+                $cartPrompt = empty($this->session['customer_name'])
+                    ? "Kuch aur chahiye ya proceed karein?  Apna name bataein ?"
+                    : (empty($this->session['customer_address'])
+                        ? "Kuch aur chahiye ya proceed karein?  Apna address batayein ?"
+                        : "Kuch aur chahiye ya proceed karein? (Type *Checkout*)");
+
                 $reply .= $this->renderCartSummary();
-                $reply .= "\n\nKuch aur add karna chahenge, ya proceed karein? (Type *Checkout* ya apna address batayein)";
+                $reply .= "\n\n" . $cartPrompt;
                 
                 $this->transitionTo(self::STATE_MENU_SELECTION);
                 return $reply;
@@ -1231,7 +1237,13 @@ class OrderingStateEngine
             return $this->proceedToNextStepAfterCart();
         }
 
-        return "✅ Added to Cart:\n" . implode("\n", $addedSummary) . "\n\n" . $this->renderCartSummary() . "\n\nKuch aur chahiye ya proceed karein? (Type *Checkout* ya address batayein)";
+        $cartPrompt = empty($this->session['customer_name'])
+            ? "Kuch aur chahiye ya proceed karein?  Apna name bataein ?"
+            : (empty($this->session['customer_address'])
+                ? "Kuch aur chahiye ya proceed karein?  Apna address batayein ?"
+                : "Kuch aur chahiye ya proceed karein? (Type *Checkout*)");
+
+        return "✅ Added to Cart:\n" . implode("\n", $addedSummary) . "\n\n" . $this->renderCartSummary() . "\n\n" . $cartPrompt;
     }
 
     protected function addItemToCart(MenuItem $item, ?MenuItemVariant $variant, int $qty): void
@@ -1351,11 +1363,6 @@ class OrderingStateEngine
             $this->saveSession();
             $this->transitionTo(self::STATE_COLLECT_CUSTOMER_INFO);
             return $valCheck['error_message'];
-        }
-
-        if (empty($this->session['delivery_lat']) && empty($this->session['location_skipped'])) {
-            $this->transitionTo(self::STATE_WAITING_FOR_LOCATION);
-            return "📍 Delivery tez aur exact karne ke liye WhatsApp se apni *Location pin share karein*. (Ya *Skip* likhein)";
         }
 
         $this->transitionTo(self::STATE_WAITING_FOR_ORDER_CONFIRMATION);

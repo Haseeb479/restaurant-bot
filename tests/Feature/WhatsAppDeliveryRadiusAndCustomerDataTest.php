@@ -141,16 +141,7 @@ class WhatsAppDeliveryRadiusAndCustomerDataTest extends TestCase
 
         $this->assertEquals('House 12, Street 3, Model Town B', $engine->getSession()['customer_address']);
         $this->assertNull($engine->getSession()['delivery_lat']); // GPS coords are NOT fabricated for manual text addresses
-        $this->assertStringContainsString('Location pin share karein', $reply);
-        $this->assertEquals(OrderingStateEngine::STATE_WAITING_FOR_LOCATION, $engine->getState());
-
-        // Customer skips pin sharing
-        $skipReply = $engine->process([
-            'intent' => 'UNKNOWN',
-            'raw_text' => 'Skip',
-        ]);
-
-        $this->assertStringContainsString('ORDER SUMMARY REVIEW', $skipReply);
+        $this->assertStringContainsString('ORDER SUMMARY REVIEW', $reply);
         $this->assertEquals(OrderingStateEngine::STATE_WAITING_FOR_CONFIRMATION, $engine->getState());
     }
 
@@ -186,8 +177,8 @@ class WhatsAppDeliveryRadiusAndCustomerDataTest extends TestCase
         $this->assertNull($engine->getSession()['delivery_lat']);
         $this->assertNull($engine->getSession()['delivery_lng']);
         $this->assertStringNotContainsString('Model City', $reply);
-        $this->assertStringNotContainsString('bahar hai', $reply);
-        $this->assertStringContainsString('Location pin share karein', $reply);
+        $this->assertStringContainsString('ORDER SUMMARY REVIEW', $reply);
+        $this->assertEquals(OrderingStateEngine::STATE_WAITING_FOR_CONFIRMATION, $engine->getState());
     }
 
     /**
@@ -327,11 +318,6 @@ class WhatsAppDeliveryRadiusAndCustomerDataTest extends TestCase
             'raw_text' => 'Jamsahid medical store , Adda permit',
         ]);
 
-        $engine->process([
-            'intent' => 'UNKNOWN',
-            'raw_text' => 'skip',
-        ]);
-
         $this->assertEquals(OrderingStateEngine::STATE_WAITING_FOR_CONFIRMATION, $engine->getState());
 
         // Customer replies with typo: "confim"
@@ -369,11 +355,6 @@ class WhatsAppDeliveryRadiusAndCustomerDataTest extends TestCase
         $engine->process([
             'intent' => 'UNKNOWN',
             'raw_text' => 'Jamsahid medical store , Adda permit',
-        ]);
-
-        $engine->process([
-            'intent' => 'UNKNOWN',
-            'raw_text' => 'skip',
         ]);
 
         $this->assertEquals(OrderingStateEngine::STATE_WAITING_FOR_CONFIRMATION, $engine->getState());
