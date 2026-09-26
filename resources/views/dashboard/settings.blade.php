@@ -4,8 +4,6 @@
 @section('header_subtitle', 'Configure business information, delivery rules, and WhatsApp bot preferences')
 
 @section('content')
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <style>
     .settings-grid {
@@ -263,50 +261,6 @@
                     </div>
                 </div>
 
-                <!-- 2. INTERACTIVE COVERAGE GEOFENCE MAP -->
-                <div class="form-group" style="margin-bottom: 24px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <span style="font-size: 12.5px; font-weight: 700; color: #1e293b;">📍 Kitchen Location & Delivery Geofence</span>
-                    </div>
-
-                    <!-- Map Search & Layer Switcher Bar -->
-                    <div style="display: flex; gap: 8px; margin-bottom: 10px; align-items: center; flex-wrap: wrap;">
-                        <div style="position: relative; flex: 1; min-width: 220px;">
-                            <input type="text" id="map-search-input" placeholder="🔍 Search city, colony, chowk, or landmark (e.g. Model Town)..." 
-                                   class="form-control" style="padding-right: 75px; height: 36px; font-size: 12px; background: #fff;"
-                                   onkeydown="if(event.key === 'Enter') { event.preventDefault(); searchMapLocation(); }">
-                            <button type="button" onclick="searchMapLocation()" id="btn-map-search"
-                                    class="btn" style="position: absolute; right: 3px; top: 3px; bottom: 3px; padding: 0 12px; font-size: 11px; background: #0f172a; color: #fff; border-radius: 6px; font-weight: 600;">
-                                Search
-                            </button>
-                        </div>
-                        <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-                            <div style="display: flex; background: #e2e8f0; padding: 2px; border-radius: 8px;">
-                                <button type="button" id="btn-layer-streets" onclick="switchMapLayer('streets')" 
-                                        style="padding: 5px 11px; font-size: 11px; font-weight: 700; border: none; border-radius: 6px; background: #0f172a; color: #fff; cursor: pointer; transition: all 0.2s;">
-                                    🗺️ Google Map
-                                </button>
-                                <button type="button" id="btn-layer-satellite" onclick="switchMapLayer('satellite')" 
-                                        style="padding: 5px 11px; font-size: 11px; font-weight: 700; border: none; border-radius: 6px; background: transparent; color: #475569; cursor: pointer; transition: all 0.2s;">
-                                    🛰️ Satellite
-                                </button>
-                                <button type="button" id="btn-layer-osm" onclick="switchMapLayer('osm')" 
-                                        style="padding: 5px 11px; font-size: 11px; font-weight: 700; border: none; border-radius: 6px; background: transparent; color: #475569; cursor: pointer; transition: all 0.2s;">
-                                    🌐 OSM
-                                </button>
-                            </div>
-                            <button type="button" onclick="locateMyKitchen()" class="btn" style="padding: 5px 11px; font-size: 11px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; color: #166534; font-weight: 600; white-space: nowrap;">
-                                🎯 Auto-Detect GPS
-                            </button>
-                        </div>
-                    </div>
-
-
-                    <div id="coverage-map" style="width: 100%; height: 360px; border-radius: 12px; border: 1.5px solid #cbd5e1; overflow: hidden; background: #f8fafc; position: relative; z-index: 1;"></div>
-                    <span style="font-size: 11px; color: #64748b; margin-top: 6px; display: block;">
-                        💡 <strong>Real Google Map:</strong> Every street, colony, chowk, and shop is clearly visible. Drag the 🏪 pin or click anywhere to reposition. The green circle is your live delivery radius!
-                    </span>
-                </div>
 
 
                 <!-- 3. OPTIONAL NEIGHBORHOOD WHITELIST -->
@@ -475,207 +429,14 @@
 </form>
 
 <script>
-// ── Interactive Coverage Map & Radius Geofence (Google Maps Engine) ────────────
-let map, marker, circle, currentTileLayer;
-let currentLayerType = 'streets';
-
-const GOOGLE_ROADMAP = 'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
-const GOOGLE_HYBRID  = 'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}';
-const OSM_ROADMAP    = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-
-function initCoverageMap() {
-    const latInput = document.getElementById('restaurant_lat');
-    const lngInput = document.getElementById('restaurant_lng');
-    const radiusInput = document.getElementById('delivery_radius_km');
-    const mapContainer = document.getElementById('coverage-map');
-    if (!mapContainer || !window.L) return;
-
-    // Fallback known city centers
-    const cityCoords = {
-        'lodhran': [29.5405, 71.6336], 'multan': [30.1575, 71.5249],
-        'bahawalpur': [29.3544, 71.6911], 'lahore': [31.5204, 74.3587],
-        'faisalabad': [31.4504, 73.1350], 'rawalpindi': [33.5651, 73.0169],
-        'islamabad': [33.6844, 73.0479], 'karachi': [24.8607, 67.0011],
-        'peshawar': [34.0151, 71.5249], 'quetta': [30.1798, 66.9750],
-        'gujranwala': [32.1877, 74.1945], 'sialkot': [32.4945, 74.5229],
-        'sargodha': [32.0836, 72.6711], 'sahiwal': [30.6682, 73.1114],
-        'hyderabad': [25.3960, 68.3578], 'sukkur': [27.7052, 68.8574],
-    };
-
-    const restCity = @json(strtolower(trim($restaurant->city ?? '')));
-    let defaultLat = 29.5405;
-    let defaultLng = 71.6336;
-    for (const [c, coords] of Object.entries(cityCoords)) {
-        if (restCity && (restCity.includes(c) || c.includes(restCity))) {
-            defaultLat = coords[0];
-            defaultLng = coords[1];
-            break;
-        }
-    }
-
-    let lat = parseFloat(latInput.value) || defaultLat;
-    let lng = parseFloat(lngInput.value) || defaultLng;
-    let radiusKm = parseFloat(radiusInput.value) || 5.0;
-
-    map = L.map('coverage-map', { zoomControl: true, attributionControl: false }).setView([lat, lng], 15);
-
-    // Default: High-Resolution Google Maps Roadmap (Full streets, colonies, landmarks, shops)
-    currentTileLayer = L.tileLayer(GOOGLE_ROADMAP, {
-        maxZoom: 20,
-        subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-    }).addTo(map);
-
-    const kitchenIcon = L.divIcon({
-        html: '<div style="background:#0f172a;color:white;width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 6px 15px rgba(0,0,0,0.45);border:2.5px solid white;cursor:grab;">🏪</div>',
-        className: '', iconSize: [38, 38], iconAnchor: [19, 19]
-    });
-
-    marker = L.marker([lat, lng], { icon: kitchenIcon, draggable: true }).addTo(map);
-    circle = L.circle([lat, lng], {
-        radius: radiusKm * 1000,
-        color: '#10b981',
-        fillColor: '#10b981',
-        fillOpacity: 0.18,
-        weight: 2.5
-    }).addTo(map);
-
-    function updateCoords(newLat, newLng) {
-        latInput.value = newLat.toFixed(7);
-        lngInput.value = newLng.toFixed(7);
-        marker.setLatLng([newLat, newLng]);
-        circle.setLatLng([newLat, newLng]);
-    }
-
-    window.updateMapCoords = updateCoords;
-
-    marker.on('dragend', function(e) {
-        const pos = e.target.getLatLng();
-        updateCoords(pos.lat, pos.lng);
-    });
-
-    map.on('click', function(e) {
-        updateCoords(e.latlng.lat, e.latlng.lng);
-    });
-
-    // If initial coords were empty, save default into inputs
-    if (!latInput.value) {
-        latInput.value = lat.toFixed(7);
-        lngInput.value = lng.toFixed(7);
-    }
-}
-
-window.switchMapLayer = function(type) {
-    currentLayerType = type;
-    if (!map) return;
-    if (currentTileLayer) {
-        map.removeLayer(currentTileLayer);
-    }
-    const btnStreets   = document.getElementById('btn-layer-streets');
-    const btnSatellite = document.getElementById('btn-layer-satellite');
-    const btnOsm       = document.getElementById('btn-layer-osm');
-
-    // Reset buttons style
-    [btnStreets, btnSatellite, btnOsm].forEach(b => {
-        if (b) { b.style.background = 'transparent'; b.style.color = '#475569'; }
-    });
-
-    if (type === 'satellite') {
-        currentTileLayer = L.tileLayer(GOOGLE_HYBRID, {
-            maxZoom: 20,
-            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-        }).addTo(map);
-        if (btnSatellite) { btnSatellite.style.background = '#0f172a'; btnSatellite.style.color = '#fff'; }
-    } else if (type === 'osm') {
-        currentTileLayer = L.tileLayer(OSM_ROADMAP, {
-            maxZoom: 19,
-            subdomains: ['a', 'b', 'c']
-        }).addTo(map);
-        if (btnOsm) { btnOsm.style.background = '#0f172a'; btnOsm.style.color = '#fff'; }
-    } else {
-        currentTileLayer = L.tileLayer(GOOGLE_ROADMAP, {
-            maxZoom: 20,
-            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-        }).addTo(map);
-        if (btnStreets) { btnStreets.style.background = '#0f172a'; btnStreets.style.color = '#fff'; }
-    }
-};
-
-window.searchMapLocation = function() {
-    const input = document.getElementById('map-search-input');
-    const query = input ? input.value.trim() : '';
-    if (!query) return;
-
-    const btn = document.getElementById('btn-map-search');
-    const origText = btn ? btn.textContent : 'Search';
-    if (btn) btn.textContent = 'Searching...';
-
-    // Geocode via Nominatim with address details
-    fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query) + '&limit=1&addressdetails=1', {
-        headers: { 'Accept': 'application/json' }
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (btn) btn.textContent = origText;
-        if (data && data.length > 0) {
-            const newLat = parseFloat(data[0].lat);
-            const newLng = parseFloat(data[0].lon);
-            map.flyTo([newLat, newLng], 16, { duration: 1.2 });
-            if (typeof window.updateMapCoords === 'function') {
-                window.updateMapCoords(newLat, newLng);
-            }
-        } else {
-            alert('Location "' + query + '" not found. Try typing with city name, e.g. "' + query + ', Multan" or "' + query + ', Pakistan".');
-        }
-    })
-    .catch(() => {
-        if (btn) btn.textContent = origText;
-        alert('Location search service temporarily unavailable. Please drag the pin on the map.');
-    });
-};
-
+// ── Maximum Delivery Radius Slider ────────────────────────────
 window.onRadiusSliderChange = function(val) {
     const km = parseFloat(val);
-    document.getElementById('radius-val-badge').textContent = km + ' KM';
-    document.getElementById('radius-hint-text').textContent = km;
-    if (circle) {
-        circle.setRadius(km * 1000);
-        map.fitBounds(circle.getBounds(), { padding: [20, 20] });
-    }
+    const badge = document.getElementById('radius-val-badge');
+    const hint = document.getElementById('radius-hint-text');
+    if (badge) badge.textContent = km + ' KM';
+    if (hint) hint.textContent = km;
 };
-
-window.locateMyKitchen = function() {
-    if (!navigator.geolocation) {
-        alert('Geolocation is not supported by your browser.');
-        return;
-    }
-    navigator.geolocation.getCurrentPosition(function(pos) {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        document.getElementById('restaurant_lat').value = lat.toFixed(7);
-        document.getElementById('restaurant_lng').value = lng.toFixed(7);
-        if (map && marker && circle) {
-            marker.setLatLng([lat, lng]);
-            circle.setLatLng([lat, lng]);
-            map.flyTo([lat, lng], 16, { duration: 1.2 });
-        }
-    }, function() {
-        alert('Unable to retrieve your current location. Please click on the map to set your kitchen pin.');
-    });
-};
-
-function safeInitCoverageMap() {
-    if (typeof L === 'undefined') {
-        setTimeout(safeInitCoverageMap, 50);
-        return;
-    }
-    initCoverageMap();
-}
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', safeInitCoverageMap);
-} else {
-    safeInitCoverageMap();
-}
 
 
 // ── Delivery Area Tag Chip Manager ────────────────────────────────────────────

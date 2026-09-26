@@ -335,12 +335,12 @@ class DashboardController extends Controller
         $r     = Restaurant::findOrFail($id);
         $today = $r->todayOrders()->with(['items'])->get();
 
-        // Return recent orders (including active + recently completed) for smooth live updates
+        // Return recent orders (including active + recently completed/cancelled) for smooth live updates
         $liveOrders = $r->orders()
             ->with(['items'])
-            ->whereIn('status', ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered'])
+            ->whereIn('status', ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'])
             ->orderBy('created_at', 'desc')
-            ->take(30)
+            ->take(40)
             ->get();
 
         $activeRevenue = (float) $today->where('status', '!=', 'cancelled')->sum('total');

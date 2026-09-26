@@ -708,15 +708,6 @@
                     </div>
                 </div>
 
-                <!-- Route Map Graphic -->
-                <div class="route-map-preview">
-                    <span class="map-distance-badge">📍 2.3 km away</span>
-                    <div style="font-size: 24px;">🏪</div>
-                    <svg style="flex:1; height: 40px; margin: 0 16px;" viewBox="0 0 300 40" preserveAspectRatio="none">
-                        <path d="M 10 20 Q 150 -10 290 20" stroke="#818cf8" stroke-width="3" stroke-dasharray="6,6" fill="none"/>
-                    </svg>
-                    <div style="font-size: 24px;">📍</div>
-                </div>
 
                 <!-- Order Items List -->
                 <div class="order-items-list" id="detail-items-list">
@@ -1262,15 +1253,6 @@
                 </div>
             </div>
 
-            <!-- Route Map Graphic -->
-            <div class="route-map-preview">
-                <span class="map-distance-badge">📍 2.3 km away</span>
-                <div style="font-size: 24px;">🏪</div>
-                <svg style="flex:1; height: 40px; margin: 0 16px;" viewBox="0 0 300 40" preserveAspectRatio="none">
-                    <path d="M 10 20 Q 150 -10 290 20" stroke="#818cf8" stroke-width="3" stroke-dasharray="6,6" fill="none"/>
-                </svg>
-                <div style="font-size: 24px;">📍</div>
-            </div>
 
             <!-- Order Items -->
             <div class="order-items-list" id="detail-items-list">

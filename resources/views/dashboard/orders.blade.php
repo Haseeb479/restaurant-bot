@@ -386,12 +386,14 @@
     .status-pill.ready     { background: #ecfdf5; color: #059669; border: 1px solid #d1fae5; }
     .status-pill.delivery  { background: #ecfeff; color: #0891b2; border: 1px solid #cffafe; }
     .status-pill.delivered { background: #f8fafc; color: #64748b; border: 1px solid #f1f5f9; }
+    .status-pill.cancelled { background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; }
 
     [data-theme="dark"] .status-pill.new       { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.25); }
     [data-theme="dark"] .status-pill.preparing { background: rgba(14, 165, 233, 0.15); color: #38bdf8; border-color: rgba(14, 165, 233, 0.25); }
     [data-theme="dark"] .status-pill.ready     { background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.25); }
     [data-theme="dark"] .status-pill.delivery  { background: rgba(6, 182, 212, 0.15); color: #22d3ee; border-color: rgba(6, 182, 212, 0.25); }
     [data-theme="dark"] .status-pill.delivered { background: rgba(100, 116, 139, 0.15); color: #94a3b8; border-color: rgba(100, 116, 139, 0.25); }
+    [data-theme="dark"] .status-pill.cancelled { background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.25); }
 
     .order-time-cell {
         font-size: 12px;
@@ -1179,7 +1181,8 @@
                                         'preparing'        => 'preparing',
                                         'out_for_delivery' => 'delivery',
                                         'delivered'        => 'delivered',
-                                        default            => 'new',
+                                        'cancelled'        => 'cancelled',
+                                        default            => 'cancelled',
                                     };
                                     $label = match($order->status) {
                                         'pending'          => 'New',
@@ -1187,7 +1190,8 @@
                                         'preparing'        => 'Preparing',
                                         'out_for_delivery' => 'Out for Delivery',
                                         'delivered'        => 'Delivered',
-                                        default            => ucfirst($order->status),
+                                        'cancelled'        => 'CANCELLED',
+                                        default            => strtoupper($order->status),
                                     };
                                 @endphp
                                 <tr class="live-order-row" data-status="{{ $order->status }}" onclick="openOrderDrawer({{ $order->id }})">
@@ -1632,7 +1636,7 @@
             <a href="javascript:void(0)" id="drawerPrintLink" target="_blank" class="btn" style="flex: 1; justify-content: center; background: var(--bg-canvas); border: 1px solid var(--border-card); font-size: 11.5px;">
                 🖨️ Print Bill
             </a>
-            <button type="button" onclick="openCancelModalFromDrawer()" class="btn" style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; font-size: 11.5px;">
+            <button type="button" id="drawerCancelBtn" onclick="openCancelModalFromDrawer()" class="btn" style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; font-size: 11.5px;">
                 Cancel
             </button>
         </div>
@@ -1785,8 +1789,10 @@ function getStatusMeta(status) {
             return { badgeClass: 'delivery', label: 'Out for Delivery' };
         case 'delivered':
             return { badgeClass: 'delivered', label: 'Delivered' };
+        case 'cancelled':
+            return { badgeClass: 'cancelled', label: 'CANCELLED' };
         default:
-            return { badgeClass: 'new', label: (status || '').toUpperCase() };
+            return { badgeClass: 'cancelled', label: (status || '').toUpperCase() };
     }
 }
 
@@ -2178,6 +2184,11 @@ function openOrderDrawer(orderId) {
         advBtn.style.display = 'none';
     }
 
+    const cancelBtn = document.getElementById('drawerCancelBtn');
+    if (cancelBtn) {
+        cancelBtn.style.display = (o.status === 'cancelled' || o.status === 'delivered') ? 'none' : 'inline-flex';
+    }
+
     document.getElementById('posOrderDrawer').classList.add('open');
     document.getElementById('posDrawerBackdrop').classList.add('open');
 }
@@ -2208,6 +2219,16 @@ async function advanceCurrentOrderStatus() {
 }
 
 async function postStatusUpdate(orderId, status, extra = {}) {
+    // Immediate zero-delay optimistic update in local map & UI
+    if (allOrdersMap[orderId]) {
+        allOrdersMap[orderId].status = status;
+        allOrdersMap[orderId].status_label = status.toUpperCase();
+        if (extra.rider_name) allOrdersMap[orderId].rider_name = extra.rider_name;
+        if (extra.rider_phone) allOrdersMap[orderId].rider_phone = extra.rider_phone;
+        const ordersList = Object.values(allOrdersMap).sort((a,b) => b.id - a.id);
+        renderOrdersTable(ordersList);
+    }
+
     try {
         const res = await fetch(`/dashboard/{{ $restaurant->id }}/orders/${orderId}/status`, {
             method: 'POST',
@@ -2222,16 +2243,23 @@ async function postStatusUpdate(orderId, status, extra = {}) {
         if (data.success || res.ok) {
             closeOrderDrawer();
             closeDispatchModal();
+            if (data.status && allOrdersMap[orderId]) {
+                allOrdersMap[orderId].status = data.status;
+                allOrdersMap[orderId].status_label = data.status_label || data.status.toUpperCase();
+                const ordersList = Object.values(allOrdersMap).sort((a,b) => b.id - a.id);
+                renderOrdersTable(ordersList);
+            }
             // Instantly refresh live orders feed without full page reload
-            fetchLiveOrdersFeed();
+            await fetchLiveOrdersFeed();
         } else {
             alert(data.error || 'Failed to update order status.');
+            await fetchLiveOrdersFeed();
         }
     } catch (e) {
         console.error(e);
         closeOrderDrawer();
         closeDispatchModal();
-        fetchLiveOrdersFeed();
+        await fetchLiveOrdersFeed();
     }
 }
 
