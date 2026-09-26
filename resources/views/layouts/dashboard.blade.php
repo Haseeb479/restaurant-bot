@@ -255,6 +255,7 @@
            ═══════════════════════════════════════════════════ */
         .main-wrapper {
             margin-left: 76px;
+            padding-top: 84px;
             flex: 1;
             min-height: 100vh;
             min-width: 0;
@@ -278,8 +279,10 @@
             align-items: center;
             justify-content: space-between;
             padding: 0 36px;
-            position: sticky;
+            position: fixed;
             top: 0;
+            left: 76px;
+            right: 0;
             z-index: 90;
             transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
         }
@@ -781,6 +784,7 @@
             }
             .main-wrapper {
                 margin-left: 0 !important;
+                padding-top: 72px !important;
                 max-width: 100vw !important;
                 width: 100% !important;
                 min-width: 0 !important;
@@ -788,6 +792,8 @@
             header.topbar {
                 padding: 0 20px;
                 height: 72px;
+                left: 0 !important;
+                right: 0 !important;
             }
             main {
                 padding: 12px 18px 80px;
