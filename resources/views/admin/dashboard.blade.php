@@ -38,12 +38,12 @@
             <span class="metric-title">Active Restaurants</span>
             <div class="metric-icon green">🏪</div>
         </div>
-        <div class="metric-value">{{ $activeRestaurants }} <span style="font-size: 14px; font-weight: 500; color: var(--text-secondary);">/ {{ $totalRestaurants }}</span></div>
+        <div class="metric-value">{{ $activeRestaurants }} <span style="font-size: 14px; font-weight: 500; color: var(--text-muted);">/ {{ $totalRestaurants }}</span></div>
         <div class="metric-footer">
             @if($pendingCount > 0)
-                <span style="color: #ea580c; font-weight: 700;">{{ $pendingCount }} pending approval</span>
+                <span style="color: var(--warning-text); font-weight: 700;">{{ $pendingCount }} pending approval</span>
             @else
-                <span>All accounts reviewed</span>
+                <span style="color: var(--success-text); font-weight: 600;">All accounts reviewed</span>
             @endif
         </div>
     </div>
@@ -53,12 +53,12 @@
             <span class="metric-title">WhatsApp Bots</span>
             <div class="metric-icon {{ $disconnectedBots > 0 ? 'orange' : 'green' }}">🤖</div>
         </div>
-        <div class="metric-value">{{ $botConnected }} <span style="font-size: 14px; font-weight: 500; color: var(--text-secondary);">online</span></div>
+        <div class="metric-value">{{ $botConnected }} <span style="font-size: 14px; font-weight: 500; color: var(--text-muted);">online</span></div>
         <div class="metric-footer">
             @if($disconnectedBots > 0)
-                <span style="color: #ea580c; font-weight: 700;">{{ $disconnectedBots }} disconnected</span>
+                <span style="color: var(--warning-text); font-weight: 700;">{{ $disconnectedBots }} disconnected</span>
             @else
-                <span style="color: #10b981; font-weight: 700;">All active bots linked</span>
+                <span style="color: var(--success-text); font-weight: 700;">All active bots linked</span>
             @endif
         </div>
     </div>
@@ -66,7 +66,7 @@
 
 @if($pendingCount > 0)
 <!-- Pending Approval Alert Queue -->
-<div class="panel-card" style="border-left: 4px solid #f97316;">
+<div class="panel-card" style="border-left: 4px solid #f59e0b;">
     <div class="panel-header">
         <div class="panel-title">
             <h3 style="display: flex; align-items: center; gap: 8px;">
@@ -93,7 +93,7 @@
                 @foreach($pendingQueue as $p)
                     <tr>
                         <td><strong>{{ $p->name }}</strong></td>
-                        <td><code>{{ $p->whatsapp_number }}</code></td>
+                        <td><code style="background: var(--border-subtle); padding: 3px 6px; border-radius: 6px; font-size: 11.5px;">{{ $p->whatsapp_number }}</code></td>
                         <td>{{ $p->owner_phone }}</td>
                         <td>{{ $p->city ?: 'N/A' }}</td>
                         <td>{{ $p->created_at->diffForHumans() }}</td>
@@ -127,7 +127,7 @@
         </div>
         
         <!-- Canvas for Chart -->
-        <div style="position: relative; height: 260px; width: 100%;">
+        <div style="position: relative; height: 270px; width: 100%;">
             <canvas id="dashboardTrendChart"></canvas>
         </div>
     </div>
@@ -140,27 +140,27 @@
                 <p>This month's highest order volume</p>
             </div>
         </div>
-        <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; flex-direction: column; gap: 10px;">
             @forelse($topRestaurants as $tr)
-                <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 8px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--bg-canvas); border: 1px solid var(--border-card); border-radius: 12px; transition: transform 0.15s ease;">
                     <div>
-                        <div style="font-weight: 700; font-size: 13px;">{{ $tr['name'] }}</div>
-                        <div style="font-size: 11px; color: var(--text-secondary);">{{ $tr['city'] ?: 'Pakistan' }} • {{ $tr['orders'] }} orders</div>
+                        <div style="font-weight: 700; font-size: 13px; color: var(--text-heading);">{{ $tr['name'] }}</div>
+                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 1px;">{{ $tr['city'] ?: 'Pakistan' }} • {{ $tr['orders'] }} orders</div>
                     </div>
                     <div style="text-align: right;">
-                        <div style="font-weight: 800; color: #10b981; font-size: 13px;">Rs. {{ number_format($tr['revenue']) }}</div>
-                        <a href="{{ route('admin.restaurant.analytics', $tr['id']) }}" style="font-size: 10.5px; color: #4f46e5; text-decoration: none;">View Stats →</a>
+                        <div style="font-weight: 800; color: var(--success-text); font-size: 13px;">Rs. {{ number_format($tr['revenue']) }}</div>
+                        <a href="{{ route('admin.restaurant.analytics', $tr['id']) }}" style="font-size: 11px; color: var(--brand-primary); text-decoration: none; font-weight: 600;">View Stats →</a>
                     </div>
                 </div>
             @empty
-                <div style="text-align: center; color: var(--text-secondary); padding: 20px;">No order data yet.</div>
+                <div style="text-align: center; color: var(--text-muted); padding: 30px;">No order data yet.</div>
             @endforelse
         </div>
     </div>
 </div>
 
 <!-- Bottom Section: Quick Links & Recent Admin Activity Audit Trail -->
-<div class="admin-grid-half">
+<div class="admin-grid-half" style="margin-top: 22px;">
     <!-- Recent Activity Audit Logs -->
     <div class="panel-card" style="margin-bottom: 0;">
         <div class="panel-header">
@@ -170,17 +170,17 @@
             </div>
             <a href="{{ route('admin.audit-logs') }}" class="btn btn-secondary btn-sm">All Logs →</a>
         </div>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; flex-direction: column; gap: 10px;">
             @forelse($recentAuditLogs as $log)
-                <div style="padding: 8px 12px; border-left: 3px solid #4f46e5; background: var(--bg-page); border-radius: 4px; font-size: 12px;">
-                    <div style="display: flex; justify-content: space-between; font-weight: 700;">
+                <div style="padding: 10px 14px; border-left: 3px solid var(--brand-primary); background: var(--bg-canvas); border: 1px solid var(--border-card); border-left-width: 3px; border-radius: 10px; font-size: 12px;">
+                    <div style="display: flex; justify-content: space-between; font-weight: 700; color: var(--text-heading);">
                         <span>{{ $log->action }}</span>
-                        <span style="font-size: 10.5px; color: var(--text-secondary); font-weight: 500;">{{ $log->created_at->diffForHumans() }}</span>
+                        <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">{{ $log->created_at->diffForHumans() }}</span>
                     </div>
-                    <div style="color: var(--text-secondary); font-size: 11.5px; margin-top: 2px;">{{ $log->details ?: 'Action executed by Super Admin' }}</div>
+                    <div style="color: var(--text-muted); font-size: 11.5px; margin-top: 3px;">{{ $log->details ?: 'Action executed by Super Admin' }}</div>
                 </div>
             @empty
-                <div style="color: var(--text-secondary); text-align: center; padding: 15px;">No activity logs recorded yet.</div>
+                <div style="color: var(--text-muted); text-align: center; padding: 25px;">No activity logs recorded yet.</div>
             @endforelse
         </div>
     </div>
@@ -193,41 +193,41 @@
                 <p>Fast access to core administration tools</p>
             </div>
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <a href="{{ route('admin.create-restaurant') }}" class="btn btn-secondary" style="justify-content: flex-start; padding: 12px;">
-                <span>➕</span><span>Register Restaurant</span>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <a href="{{ route('admin.create-restaurant') }}" class="btn btn-secondary" style="justify-content: flex-start; padding: 14px; border-radius: 12px; gap: 10px;">
+                <span style="font-size: 16px;">➕</span><span style="font-size: 12.5px;">Register Restaurant</span>
             </a>
-            <a href="{{ route('admin.bot-settings') }}" class="btn btn-secondary" style="justify-content: flex-start; padding: 12px;">
-                <span>🤖</span><span>AI Model Config</span>
+            <a href="{{ route('admin.bot-settings') }}" class="btn btn-secondary" style="justify-content: flex-start; padding: 14px; border-radius: 12px; gap: 10px;">
+                <span style="font-size: 16px;">🤖</span><span style="font-size: 12.5px;">AI Model Config</span>
             </a>
-            <a href="{{ route('admin.billing') }}" class="btn btn-secondary" style="justify-content: flex-start; padding: 12px;">
-                <span>💳</span><span>Invoices & Plans</span>
+            <a href="{{ route('admin.billing') }}" class="btn btn-secondary" style="justify-content: flex-start; padding: 14px; border-radius: 12px; gap: 10px;">
+                <span style="font-size: 16px;">💳</span><span style="font-size: 12.5px;">Invoices & Plans</span>
             </a>
-            <a href="{{ route('admin.menu-templates') }}" class="btn btn-secondary" style="justify-content: flex-start; padding: 12px;">
-                <span>📋</span><span>Global Menu Cloner</span>
+            <a href="{{ route('admin.menu-templates') }}" class="btn btn-secondary" style="justify-content: flex-start; padding: 14px; border-radius: 12px; gap: 10px;">
+                <span style="font-size: 16px;">📋</span><span style="font-size: 12.5px;">Global Menu Cloner</span>
             </a>
-            <a href="{{ route('admin.support') }}" class="btn btn-secondary" style="justify-content: flex-start; padding: 12px;">
-                <span>🎫</span><span>Support Desk ({{ $openTicketsCount }})</span>
+            <a href="{{ route('admin.support') }}" class="btn btn-secondary" style="justify-content: flex-start; padding: 14px; border-radius: 12px; gap: 10px;">
+                <span style="font-size: 16px;">🎫</span><span style="font-size: 12.5px;">Support Desk ({{ $openTicketsCount }})</span>
             </a>
-            <a href="{{ route('admin.system-health') }}" class="btn btn-secondary" style="justify-content: flex-start; padding: 12px;">
-                <span>🛡️</span><span>System Health & DB</span>
+            <a href="{{ route('admin.system-health') }}" class="btn btn-secondary" style="justify-content: flex-start; padding: 14px; border-radius: 12px; gap: 10px;">
+                <span style="font-size: 16px;">🛡️</span><span style="font-size: 12.5px;">System Health & DB</span>
             </a>
         </div>
     </div>
 </div>
 
 <!-- Modal for Rejection Reason -->
-<div id="rejectModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:999; align-items:center; justify-content:center;">
-    <div style="background:var(--card-bg); border-radius:12px; padding:24px; width:440px; max-width:90%; border:1px solid var(--border-color);">
-        <h3 style="margin-bottom:8px;">Reject Restaurant Application</h3>
-        <p style="font-size:12px; color:var(--text-secondary); margin-bottom:16px;">Specify the reason for rejection for <strong id="rejectRestName"></strong>.</p>
+<div id="rejectModal" style="display:none; position:fixed; inset:0; background:rgba(11, 15, 25, 0.7); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); z-index:999; align-items:center; justify-content:center;">
+    <div style="background:var(--bg-card); border-radius:16px; padding:26px; width:460px; max-width:92%; border:1px solid var(--border-card); box-shadow:var(--shadow-elevated);">
+        <h3 style="margin-bottom:8px; font-size:16px; font-weight:800; color:var(--text-heading);">Reject Restaurant Application</h3>
+        <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:18px;">Specify the reason for rejection for <strong id="rejectRestName" style="color:var(--text-heading);"></strong>.</p>
         <form id="rejectForm" method="POST" action="">
             @csrf
             <div class="form-group">
                 <label class="form-label">Reason</label>
                 <textarea name="reason" class="form-textarea" rows="3" required placeholder="e.g. Invalid phone number, unreachable owner, duplicate registration."></textarea>
             </div>
-            <div style="display:flex; justify-content:flex-end; gap:8px;">
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:18px;">
                 <button type="button" class="btn btn-secondary" onclick="closeRejectModal()">Cancel</button>
                 <button type="submit" class="btn btn-danger">Confirm Rejection</button>
             </div>
@@ -285,7 +285,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         display: true,
                         position: 'left',
                         beginAtZero: true,
-                        grid: { color: 'rgba(150, 150, 150, 0.1)' }
+                        grid: { color: 'rgba(150, 150, 150, 0.08)' }
                     },
                     y1: {
                         type: 'linear',
