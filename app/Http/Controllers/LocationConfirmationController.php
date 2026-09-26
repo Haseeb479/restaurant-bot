@@ -232,7 +232,6 @@ class LocationConfirmationController extends Controller
                 'place_name'      => $placeName,
                 'address'         => $finalAddress,
                 'location_source' => $locationSource,
-                'tracking_url'    => url('/track/' . $order->tracking_code),
             ]);
         }
 

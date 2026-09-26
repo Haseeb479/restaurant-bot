@@ -142,17 +142,13 @@ export class TrackingHandler {
             riderSection += '\n';
         }
 
-        const appUrl = process.env.APP_URL || 'http://localhost:8000';
-        const webLink = `\n📍 *Live Web Tracking:* ${appUrl}/track/${order.tracking_code}\n`;
-
         return (
             `📦 *Order Status — ${order.restaurant_name || 'Restaurant'}*\n\n` +
             `🔖 Tracking Code: *${order.tracking_code}*\n` +
             `📊 Status: *${statusLabel}*\n\n` +
             `${statusMsg}\n` +
             riderSection +
-            `💰 Total: Rs. ${Number(order.total || 0).toLocaleString()}\n` +
-            webLink
+            `💰 Total: Rs. ${Number(order.total || 0).toLocaleString()}\n`
         );
     }
 }

@@ -921,9 +921,6 @@ class OrderingStateEngine
         $this->session['pending_mod_items'] = [];
         $this->transitionTo(self::STATE_ORDER_CREATED);
 
-        $appUrl = config('app.url', 'http://localhost');
-        $trackingUrl = "{$appUrl}/track/{$order->tracking_code}";
-
         $receipt = "🎉 *ORDER #{$order->id} UPDATE HO GAYA HAI!*\n\n";
         $receipt .= "Aapke order mein tabdeeli darj kar li gayi hai:\n\n";
         foreach ($orderItemsData as $i) {
@@ -934,7 +931,6 @@ class OrderingStateEngine
         $receipt .= "Subtotal: Rs. " . number_format($subtotal) . "\n";
         $receipt .= "Delivery Fee: Rs. " . number_format($deliveryCharge) . "\n";
         $receipt .= "💰 *NEW TOTAL:* Rs. " . number_format($total) . " (COD)\n\n";
-        $receipt .= "🔴 *Live Tracking:* {$trackingUrl}\n\n";
         $receipt .= "Kitchen ko update bhej di gayi hai. Shukriya! ❤️";
 
         return $receipt;
@@ -1527,11 +1523,8 @@ class OrderingStateEngine
         $this->session['location_valid'] = null;
         $this->transitionTo(self::STATE_ORDER_CREATED);
 
-        $appUrl = config('app.url', 'http://localhost');
-        $trackingUrl = "{$appUrl}/track/{$order->tracking_code}";
-
         $receipt = "🎉 *MUBARAK HO! AAPKA ORDER CONFIRM HO GAYA HAI!*\n\n";
-        $receipt .= "🆔 *Order #{$order->id}* (Code: `{$order->tracking_code}`)\n";
+        $receipt .= "🆔 *Order #{$order->id}*\n";
         $receipt .= "👤 *Customer:* {$order->customer_name}\n";
         $receipt .= "📍 *Delivery to:* " . ($order->delivery_place_name ? "{$order->delivery_place_name} ({$order->delivery_address})" : $order->delivery_address) . "\n";
         if ($order->delivery_distance_km) {
@@ -1539,8 +1532,7 @@ class OrderingStateEngine
         }
         $receipt .= "💵 *Payment:* Cash on Delivery\n";
         $receipt .= "💰 *Total Bill:* Rs. " . number_format($order->total) . "\n\n";
-        $receipt .= "⏱️ Estimated Delivery: 30–45 mins\n";
-        $receipt .= "🔴 *Live Tracking:* {$trackingUrl}\n\n";
+        $receipt .= "⏱️ Estimated Delivery: 30–45 mins\n\n";
         $receipt .= "Foodio istemal karne ka shukriya! ❤️";
 
         return $receipt;
@@ -1603,10 +1595,7 @@ class OrderingStateEngine
             default => $order->status,
         };
 
-        $appUrl = config('app.url', 'http://localhost');
-        $trackingUrl = "{$appUrl}/track/{$order->tracking_code}";
-
-        return "📦 *Order #{$order->id} Status:*\n\nStatus: {$statusEmoji}\nTotal: Rs. " . number_format($order->total) . "\nLive Link: {$trackingUrl}";
+        return "📦 *Order #{$order->id} Status:*\n\nStatus: {$statusEmoji}\nTotal: Rs. " . number_format($order->total);
     }
 
     // =========================================================================

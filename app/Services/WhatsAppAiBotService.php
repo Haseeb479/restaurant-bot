@@ -1589,7 +1589,6 @@ PROMPT;
         ];
 
         $statusText = $statusLabels[$order->status] ?? ucfirst($order->status);
-        $trackUrl   = url('/track/' . $order->tracking_code);
 
         $riderText = '';
         if ($order->rider_name || $order->rider_phone) {
@@ -1603,8 +1602,7 @@ PROMPT;
 
         return "📦 *Order Status: #{$order->tracking_code}*\n\n" .
                "📍 *Status:* {$statusText}{$riderText}{$itemsSummary}\n" .
-               "💰 *Total:* Rs. " . number_format($order->total, 0) . " (" . ucwords(str_replace('_', ' ', $order->payment_method)) . ")\n" .
-               "🔗 *Live Delivery Map:* {$trackUrl}\n\n" .
+               "💰 *Total:* Rs. " . number_format($order->total, 0) . " (" . ucwords(str_replace('_', ' ', $order->payment_method)) . ")\n\n" .
                "Thank you for ordering with *{$restaurant->name}*! 🙏";
     }
 

@@ -400,13 +400,9 @@
             </div>
         </div>
 
-        <!-- FOOTER & TRACKING -->
+        <!-- FOOTER -->
         <div class="receipt-footer">
-            <p><strong>Track your parcel live:</strong></p>
-            <div class="tracking-link-box">
-                {{ url('/track/' . $order->tracking_code) }}
-            </div>
-            <p style="margin-top: 6px;">Thank you for ordering with {{ $restaurant->name }}!</p>
+            <p><strong>Thank you for ordering with {{ $restaurant->name }}!</strong></p>
             <p style="font-size: 9.5px; color: #94a3b8; margin-top: 4px;">Powered by WhatsApp Restaurant Bot</p>
         </div>
 

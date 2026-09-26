@@ -470,9 +470,6 @@ class DashboardController extends Controller
         $order->update($updateData);
         $order->refresh();
 
-        // Build Live Web Tracking Link
-        $trackingUrl = url('/track/' . $order->tracking_code);
-
         // Build Rich WhatsApp Message
         $riderInfo = '';
         if ($order->rider_name || $order->rider_phone) {
@@ -484,11 +481,11 @@ class DashboardController extends Controller
         $etaText = $order->estimated_minutes ? "\n⏱️ *Estimated Delivery:* ~{$order->estimated_minutes} mins" : "\n⏱️ *Estimated Delivery:* ~20-30 mins";
 
         $messages = [
-            'confirmed' => "✅ *Order Confirmed!*\n\nYour order *{$order->tracking_code}* has been accepted by *{$r->name}*!\n\n📍 *Live Tracking:* {$trackingUrl}",
-            'preparing' => "👨‍🍳 *Preparing Your Food!*\n\nOur kitchen is preparing your order *{$order->tracking_code}* fresh.\n\n📍 *Live Tracking:* {$trackingUrl}",
-            'out_for_delivery' => "🛵 *Order Dispatched & On The Way!*\n\nYour order *{$order->tracking_code}* has been dispatched by *{$r->name}*!{$riderInfo}{$etaText}\n💰 *Total to Pay:* Rs. " . number_format($order->total, 0) . " (" . ucwords(str_replace('_', ' ', $order->payment_method ?: 'COD')) . ")\n\n📍 *Live Tracking:* {$trackingUrl}",
-            'delivered' => "🎉 *Order Delivered!*\n\nYour order *{$order->tracking_code}* has been delivered. Enjoy your meal! Thank you for ordering from *{$r->name}*! 🙏\n\n⭐ *Rate Your Experience:*\nPlease reply with a rating from *1 to 5* ⭐ (e.g. *5* or *5 star*), along with any feedback, to let us know how we did!",
-            'cancelled' => "❌ *Order Cancelled*\n\nYour order *{$order->tracking_code}* was cancelled. Please call us directly for details.",
+            'confirmed' => "✅ *Order Confirmed!*\n\nYour order *#{$order->id}* has been accepted by *{$r->name}*!",
+            'preparing' => "👨‍🍳 *Preparing Your Food!*\n\nOur kitchen is preparing your order *#{$order->id}* fresh.",
+            'out_for_delivery' => "🛵 *Order Dispatched & On The Way!*\n\nYour order *#{$order->id}* has been dispatched by *{$r->name}*!{$riderInfo}{$etaText}\n💰 *Total to Pay:* Rs. " . number_format($order->total, 0) . " (" . ucwords(str_replace('_', ' ', $order->payment_method ?: 'COD')) . ")",
+            'delivered' => "🎉 *Order Delivered!*\n\nYour order *#{$order->id}* has been delivered. Enjoy your meal! Thank you for ordering from *{$r->name}*! 🙏\n\n⭐ *Rate Your Experience:*\nPlease reply with a rating from *1 to 5* ⭐ (e.g. *5* or *5 star*), along with any feedback, to let us know how we did!",
+            'cancelled' => "❌ *Order Cancelled*\n\nYour order *#{$order->id}* was cancelled. Please call us directly for details.",
         ];
 
         if (isset($messages[$status])) {

@@ -132,15 +132,9 @@
                 </p>
             </div>
 
-            @if($isOrder)
-                <a href="{{ url('/track/' . $trackingCode) }}" class="block w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl transition">
-                    View Live Order Tracking 🛵
-                </a>
-            @else
-                <button type="button" onclick="window.close();" class="block w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl transition">
-                    Done — Return to WhatsApp 💬
-                </button>
-            @endif
+            <button type="button" onclick="window.close();" class="block w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl transition">
+                Done — Return to WhatsApp 💬
+            </button>
         </div>
     </div>
 

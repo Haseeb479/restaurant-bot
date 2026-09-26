@@ -319,7 +319,6 @@ class WhatsAppWebhookController extends Controller
         if (! $order) {
             $reply = "🔍 *Order Not Found*\n\nWe couldn't find order *{$trackingCode}* for *{$restaurant->name}*.\nPlease check the tracking code or reply with *menu* to start a new order.";
         } else {
-            $trackUrl = url('/track/' . $order->tracking_code);
             $statusLabels = [
                 'pending'          => '⏳ Received & awaiting confirmation',
                 'confirmed'        => '✅ Confirmed by kitchen',
@@ -332,8 +331,7 @@ class WhatsAppWebhookController extends Controller
 
             $reply = "📦 *Order Status: {$order->tracking_code}*\n\n"
                    . "📍 *Status:* {$statusText}\n"
-                   . "💰 *Total:* Rs. " . number_format($order->total, 0) . " ({$order->payment_method})\n"
-                   . "🔗 *Live GPS Tracking:* {$trackUrl}\n\n"
+                   . "💰 *Total:* Rs. " . number_format($order->total, 0) . " ({$order->payment_method})\n\n"
                    . "Thank you for ordering with *{$restaurant->name}*!";
         }
 

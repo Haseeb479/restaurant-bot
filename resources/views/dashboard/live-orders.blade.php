@@ -1292,9 +1292,6 @@
             <!-- Action Buttons -->
             <div class="action-btn-row" id="action-btn-row">
                 ${actionBtnHtml}
-                <a href="/track/${escHtml(o.tracking_code)}" target="_blank" class="btn-action-secondary" title="View Customer Live Tracking Page">
-                    🌐 Live Track
-                </a>
                 <a href="/dashboard/${RESTAURANT_ID}/orders/${o.id}/print-bill" target="_blank" class="btn-action-secondary" title="Print Parcel Bill / Receipt">
                     🖨️ Print Bill
                 </a>

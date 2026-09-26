@@ -45,20 +45,19 @@
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>Tracking #</th>
+                    <th>Order #</th>
                     <th>Date & Time</th>
                     <th>Restaurant</th>
                     <th>Customer</th>
                     <th>Items</th>
                     <th>Total</th>
                     <th>Status</th>
-                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($orders as $o)
                 <tr>
-                    <td><code>#{{ $o->tracking_code }}</code></td>
+                    <td><code>#{{ $o->id }}</code></td>
                     <td>
                         <div>{{ $o->created_at->format('d M Y') }}</div>
                         <div style="font-size: 11px; color: #64748b;">{{ $o->created_at->format('h:i A') }}</div>
@@ -84,15 +83,10 @@
                             {{ ucfirst(str_replace('_', ' ', $o->status)) }}
                         </span>
                     </td>
-                    <td>
-                        <a href="/track/{{ $o->tracking_code }}" target="_blank" class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;">
-                            Track ↗
-                        </a>
-                    </td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="8" style="text-align: center; color: #94a3b8; padding: 2.5rem;">
+                    <td colspan="7" style="text-align: center; color: #94a3b8; padding: 2.5rem;">
                         No orders match the selected filters.
                     </td>
                 </tr>
