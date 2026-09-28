@@ -135,38 +135,107 @@
 
             <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 20px 0;">
 
-            <h4 style="font-size: 13px; font-weight: 800; margin-bottom: 12px; color: #4f46e5;">3. AI Model & Limits</h4>
+            <h4 style="font-size: 13px; font-weight: 800; margin-bottom: 12px; color: #4f46e5;">3. AI Engine, Dedicated API Key & Limits</h4>
             @php
-                $aiConfig = $r->ai_config ?? [
-                    'model' => 'gemini-1.5-flash',
-                    'temperature' => 0.7,
-                    'system_prompt' => '',
-                ];
+                $aiConfig = $r->ai_config ?? [];
+                $currentProvider = $r->getAiProvider();
+                $hasCustomKey = $r->hasCustomAiKey();
+                $savedKey = $aiConfig['api_key'] ?? '';
             @endphp
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
                 <div class="form-group">
-                    <label class="form-label">AI Engine Model</label>
-                    <select name="ai_model" class="form-select">
-                        <option value="gemini-1.5-flash" {{ ($aiConfig['model'] ?? '') === 'gemini-1.5-flash' ? 'selected' : '' }}>Gemini 1.5 Flash (Fast & Low Cost)</option>
-                        <option value="gemini-1.5-pro" {{ ($aiConfig['model'] ?? '') === 'gemini-1.5-pro' ? 'selected' : '' }}>Gemini 1.5 Pro (Deep Reasoning)</option>
-                        <option value="gpt-4o-mini" {{ ($aiConfig['model'] ?? '') === 'gpt-4o-mini' ? 'selected' : '' }}>OpenAI GPT-4o Mini</option>
+                    <label class="form-label">AI Engine Provider</label>
+                    <select name="ai_provider" id="editAiProviderSelect" class="form-select" onchange="onEditProviderChange(this.value)">
+                        <option value="groq" {{ $currentProvider === 'groq' ? 'selected' : '' }}>Groq (Recommended - Fast & Free/Cheap)</option>
+                        <option value="gemini" {{ $currentProvider === 'gemini' ? 'selected' : '' }}>Google Gemini 1.5 Flash</option>
+                        <option value="openai" {{ $currentProvider === 'openai' ? 'selected' : '' }}>OpenAI</option>
                     </select>
                 </div>
+
+                <div class="form-group">
+                    <label class="form-label">AI Engine Model</label>
+                    <select name="ai_model" id="editAiModelSelect" class="form-select">
+                        <option value="llama-3.3-70b-versatile" {{ ($r->getAiModel() === 'llama-3.3-70b-versatile') ? 'selected' : '' }}>llama-3.3-70b-versatile (Groq)</option>
+                        <option value="llama-3.1-8b-instant" {{ ($r->getAiModel() === 'llama-3.1-8b-instant') ? 'selected' : '' }}>llama-3.1-8b-instant (Groq)</option>
+                        <option value="gemini-1.5-flash" {{ ($r->getAiModel() === 'gemini-1.5-flash') ? 'selected' : '' }}>gemini-1.5-flash (Google)</option>
+                        <option value="gemini-1.5-pro" {{ ($r->getAiModel() === 'gemini-1.5-pro') ? 'selected' : '' }}>gemini-1.5-pro (Google)</option>
+                        <option value="gpt-4o-mini" {{ ($r->getAiModel() === 'gpt-4o-mini') ? 'selected' : '' }}>gpt-4o-mini (OpenAI)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Dedicated API Key Field -->
+            <div class="form-group" style="margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                    <label class="form-label" style="margin-bottom: 0;">Dedicated API Key for this Restaurant</label>
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--brand-primary); cursor: pointer; font-weight: 700;">
+                        <input type="checkbox" name="use_platform_key" id="editUsePlatformKeyToggle" value="1" {{ !$hasCustomKey ? 'checked' : '' }} onchange="onToggleEditApiKey()">
+                        <span>Use Platform Default Master Key</span>
+                    </label>
+                </div>
+                <input type="text" name="ai_api_key" id="editAiApiKeyInput" class="form-input" value="{{ $savedKey }}" placeholder="e.g. gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx" style="{{ !$hasCustomKey ? 'background: var(--bg-canvas); color: var(--text-muted);' : '' }}" {{ !$hasCustomKey ? 'disabled' : '' }}>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;" id="editApiKeyHint">
+                    @if($hasCustomKey)
+                        ⚡ Dedicated API key active. Rate limits & tokens are 100% isolated for this restaurant.
+                    @else
+                        🔒 Currently using platform master key. Uncheck above to assign an isolated dedicated API key.
+                    @endif
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
                 <div class="form-group">
                     <label class="form-label">Temperature (Creativity 0.0 - 1.0)</label>
                     <input type="number" step="0.1" min="0" max="1" name="ai_temperature" class="form-input" value="{{ $aiConfig['temperature'] ?? 0.7 }}">
                 </div>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Monthly Message Quota (Rate Limit)</label>
-                <input type="number" name="rate_limit_per_month" class="form-input" value="{{ $r->rate_limit_per_month ?? 1000 }}">
+                <div class="form-group">
+                    <label class="form-label">Monthly Message Quota (Rate Limit)</label>
+                    <input type="number" name="rate_limit_per_month" class="form-input" value="{{ $r->rate_limit_per_month ?? 1000 }}">
+                </div>
             </div>
 
             <div class="form-group">
                 <label class="form-label">Custom AI System Prompt Override (Optional)</label>
                 <textarea name="ai_system_prompt" class="form-textarea" rows="3" placeholder="Leave blank to use global default prompt...">{{ $aiConfig['system_prompt'] ?? '' }}</textarea>
             </div>
+
+            <script>
+            function onToggleEditApiKey() {
+                const chk = document.getElementById('editUsePlatformKeyToggle');
+                const inp = document.getElementById('editAiApiKeyInput');
+                const hint = document.getElementById('editApiKeyHint');
+                if (chk && inp) {
+                    if (chk.checked) {
+                        inp.disabled = true;
+                        inp.style.background = 'var(--bg-canvas)';
+                        inp.style.color = 'var(--text-muted)';
+                        if (hint) hint.innerHTML = '🔒 Currently using platform master key. Uncheck above to assign an isolated dedicated API key.';
+                    } else {
+                        inp.disabled = false;
+                        inp.style.background = 'var(--input-bg)';
+                        inp.style.color = 'var(--text-heading)';
+                        inp.focus();
+                        if (hint) hint.innerHTML = '⚡ Enter dedicated API key to isolate rate limits and tokens for this restaurant.';
+                    }
+                }
+            }
+
+            function onEditProviderChange(provider) {
+                const modelSelect = document.getElementById('editAiModelSelect');
+                const inp = document.getElementById('editAiApiKeyInput');
+                if (provider === 'groq') {
+                    if (modelSelect) modelSelect.value = 'llama-3.3-70b-versatile';
+                    if (inp) inp.placeholder = 'e.g. gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx';
+                } else if (provider === 'gemini') {
+                    if (modelSelect) modelSelect.value = 'gemini-1.5-flash';
+                    if (inp) inp.placeholder = 'e.g. AIzaSyxxxxxxxxxxxxxxxxxxxxxxxxxxx';
+                } else if (provider === 'openai') {
+                    if (modelSelect) modelSelect.value = 'gpt-4o-mini';
+                    if (inp) inp.placeholder = 'e.g. sk-proj-xxxxxxxxxxxxxxxxxxxxxxxxx';
+                }
+            }
+            </script>
 
             <button type="submit" class="btn btn-primary" style="padding: 10px 20px; font-size: 13px;">Save All Changes</button>
         </form>

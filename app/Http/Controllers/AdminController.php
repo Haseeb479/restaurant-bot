@@ -277,10 +277,11 @@ class AdminController extends Controller
             })
             ->latest()
             ->get();
-        return view('admin.restaurants-pending', compact('pendingRestaurants'));
+        $plans = SubscriptionPlan::all();
+        return view('admin.restaurants-pending', compact('pendingRestaurants', 'plans'));
     }
 
-    public function approveRestaurant(Restaurant $r)
+    public function approveRestaurant(Request $request, Restaurant $r)
     {
         $this->adminAuth();
         $r->status              = 'active';
@@ -289,6 +290,26 @@ class AdminController extends Controller
         $r->rejection_reason    = null;
         $r->approved_at         = now();
         $r->plan_expires_at     = now()->addMonth();
+
+        // Optional Plan override on approval
+        if ($request->filled('plan')) {
+            $r->plan = $request->input('plan');
+        }
+
+        // Dedicated AI Configuration Assignment
+        $aiProvider     = $request->input('ai_provider', 'groq');
+        $usePlatformKey = $request->boolean('use_platform_key');
+        $dedicatedKey   = $usePlatformKey ? null : trim((string) $request->input('ai_api_key', ''));
+        $aiModel        = $request->input('ai_model') ?: ($aiProvider === 'gemini' ? 'gemini-1.5-flash' : ($aiProvider === 'openai' ? 'gpt-4o-mini' : 'llama-3.3-70b-versatile'));
+
+        $existingAiConfig = is_array($r->ai_config) ? $r->ai_config : [];
+        $r->ai_config = array_merge($existingAiConfig, [
+            'provider'         => $aiProvider,
+            'api_key'          => $dedicatedKey,
+            'model'            => $aiModel,
+            'use_platform_key' => $usePlatformKey,
+        ]);
+
         // ── C6: Mark payment as verified now that admin has reviewed it ──────
         $r->payment_status      = 'completed';
         $r->save();
@@ -323,9 +344,10 @@ class AdminController extends Controller
             BotEvolutionClient::createInstance($r);
         } catch (\Throwable $e) {}
 
-        AuditLog::log('restaurant.approved', "Approved restaurant: {$r->name} (#{$r->id})");
+        $keyMsg = $usePlatformKey ? 'Platform Default Master Key' : ($dedicatedKey ? 'Dedicated Custom API Key' : 'Default Key');
+        AuditLog::log('restaurant.approved', "Approved restaurant: {$r->name} (#{$r->id}) with AI Provider: {$aiProvider} ({$keyMsg})");
 
-        return back()->with('success', "🎉 Restaurant '{$r->name}' has been approved and activated!");
+        return back()->with('success', "🎉 Restaurant '{$r->name}' has been approved and activated with {$aiProvider} AI engine!");
     }
 
     public function rejectRestaurant(Request $request, Restaurant $r)
@@ -448,11 +470,20 @@ class AdminController extends Controller
         ];
 
         // AI Configuration overrides
-        $r->ai_config = [
-            'model'        => $request->input('ai_model', 'gemini-1.5-flash'),
-            'temperature'  => (float) $request->input('ai_temperature', 0.7),
-            'system_prompt'=> $request->input('ai_system_prompt', ''),
-        ];
+        $aiProvider     = $request->input('ai_provider', $r->getAiProvider());
+        $usePlatformKey = $request->boolean('use_platform_key');
+        $dedicatedKey   = $usePlatformKey ? null : trim((string) $request->input('ai_api_key', $r->ai_config['api_key'] ?? ''));
+        $aiModel        = $request->input('ai_model', $r->getAiModel());
+
+        $existingAiConfig = is_array($r->ai_config) ? $r->ai_config : [];
+        $r->ai_config = array_merge($existingAiConfig, [
+            'provider'         => $aiProvider,
+            'api_key'          => $dedicatedKey,
+            'model'            => $aiModel,
+            'use_platform_key' => $usePlatformKey,
+            'temperature'      => (float) $request->input('ai_temperature', $r->ai_config['temperature'] ?? 0.7),
+            'system_prompt'    => $request->input('ai_system_prompt', $r->ai_config['system_prompt'] ?? ''),
+        ]);
 
         $r->save();
 

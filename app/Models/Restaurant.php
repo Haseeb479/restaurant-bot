@@ -304,4 +304,58 @@ class Restaurant extends Model
             default        => 's-inactive',
         };
     }
+
+    /**
+     * Get the dedicated AI API key for this restaurant, or fallback to platform master key.
+     */
+    public function getAiApiKey(): ?string
+    {
+        $key = $this->ai_config['api_key'] ?? null;
+        if (!empty($key) && trim($key) !== '') {
+            return trim($key);
+        }
+
+        $provider = $this->getAiProvider();
+        if ($provider === 'groq') {
+            return config('services.groq.key') ?: env('GROQ_API_KEY');
+        }
+        if ($provider === 'gemini') {
+            return env('GEMINI_API_KEY');
+        }
+        return env('OPENAI_API_KEY');
+    }
+
+    /**
+     * Get the configured AI Provider for this restaurant (default: groq).
+     */
+    public function getAiProvider(): string
+    {
+        return $this->ai_config['provider'] ?? 'groq';
+    }
+
+    /**
+     * Get the configured AI Model for this restaurant.
+     */
+    public function getAiModel(): string
+    {
+        if (!empty($this->ai_config['model'])) {
+            return $this->ai_config['model'];
+        }
+
+        $provider = $this->getAiProvider();
+        return match($provider) {
+            'gemini' => 'gemini-1.5-flash',
+            'openai' => 'gpt-4o-mini',
+            default  => env('GROQ_MODEL', 'llama-3.3-70b-versatile'),
+        };
+    }
+
+    /**
+     * Check if this restaurant has its own custom dedicated API key assigned.
+     */
+    public function hasCustomAiKey(): bool
+    {
+        $key = $this->ai_config['api_key'] ?? null;
+        return !empty($key) && trim($key) !== '';
+    }
 }

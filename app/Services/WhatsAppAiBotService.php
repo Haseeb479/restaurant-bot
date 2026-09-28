@@ -318,7 +318,7 @@ SYS;
             $groqResult = $this->callGroqNlu([
                 ['role' => 'system', 'content' => $systemPrompt],
                 ['role' => 'user', 'content' => $clean],
-            ]);
+            ], $restaurant);
 
             if ($groqResult !== null) {
                 $cleanJson = trim(preg_replace('/^```(?:json)?|```$/i', '', trim($groqResult)));
@@ -467,48 +467,53 @@ SYS;
     /**
      * @param  array<int, array{role: string, content: string}>  $messages
      */
-    private function callGroq(array $messages): ?string
+    private function callGroq(array $messages, ?Restaurant $restaurant = null): ?string
     {
-        $apiKey = config('services.groq.key') ?: env('GROQ_API_KEY');
+        $primaryKey = $restaurant?->getAiApiKey() ?: (config('services.groq.key') ?: env('GROQ_API_KEY'));
+        $masterKey  = config('services.groq.key') ?: env('GROQ_API_KEY');
 
-        if (empty($apiKey)) {
-            Log::error('WhatsApp AI: GROQ_API_KEY is not set in .env — bot cannot function properly!');
+        $keysToTry = array_values(array_filter(array_unique([$primaryKey, $masterKey])));
+
+        if (empty($keysToTry)) {
+            Log::error('WhatsApp AI: No Groq API Key configured on restaurant or platform .env!');
             return null;
         }
 
-        $preferred = env('GROQ_MODEL');
+        $preferred = $restaurant?->getAiModel() ?: env('GROQ_MODEL');
         $models    = $preferred ? array_unique(array_merge([$preferred], self::MODELS)) : self::MODELS;
 
         $caPath = class_exists(\Composer\CaBundle\CaBundle::class)
             ? \Composer\CaBundle\CaBundle::getSystemCaRootBundlePath()
             : null;
 
-        foreach ($models as $model) {
-            try {
-                $req = Http::withToken($apiKey)->timeout(15);
-                if ($caPath && file_exists($caPath)) {
-                    $req = $req->withOptions(['verify' => $caPath]);
-                }
-
-                $response = $req->post(self::GROQ_API_URL, [
-                    'model'       => $model,
-                    'messages'    => $messages,
-                    'temperature' => 0.7,
-                    'max_tokens'  => 700,
-                ]);
-
-                if ($response->successful()) {
-                    $data  = $response->json();
-                    $reply = trim((string) ($data['choices'][0]['message']['content'] ?? ''));
-                    if ($reply !== '') {
-                        return $reply;
+        foreach ($keysToTry as $apiKey) {
+            foreach ($models as $model) {
+                try {
+                    $req = Http::withToken($apiKey)->timeout(15);
+                    if ($caPath && file_exists($caPath)) {
+                        $req = $req->withOptions(['verify' => $caPath]);
                     }
+
+                    $response = $req->post(self::GROQ_API_URL, [
+                        'model'       => $model,
+                        'messages'    => $messages,
+                        'temperature' => 0.7,
+                        'max_tokens'  => 700,
+                    ]);
+
+                    if ($response->successful()) {
+                        $data  = $response->json();
+                        $reply = trim((string) ($data['choices'][0]['message']['content'] ?? ''));
+                        if ($reply !== '') {
+                            return $reply;
+                        }
+                    }
+
+                    Log::warning("WhatsApp AI: Groq [{$model}] returned status " . $response->status() . " — " . $response->body());
+
+                } catch (\Throwable $e) {
+                    Log::warning("WhatsApp AI: Groq [{$model}] exception: " . $e->getMessage());
                 }
-
-                Log::warning("WhatsApp AI: Groq [{$model}] returned status " . $response->status() . " — " . $response->body());
-
-            } catch (\Throwable $e) {
-                Log::warning("WhatsApp AI: Groq [{$model}] exception: " . $e->getMessage());
             }
         }
 
@@ -516,12 +521,15 @@ SYS;
     }
 
     /**
-     * Fast single-model Groq call for NLU extraction (3s timeout).
+     * Fast single-model Groq call for NLU extraction (3s timeout) with per-restaurant key and failover.
      */
-    private function callGroqNlu(array $messages): ?string
+    private function callGroqNlu(array $messages, ?Restaurant $restaurant = null): ?string
     {
-        $apiKey = config('services.groq.key') ?: env('GROQ_API_KEY');
-        if (empty($apiKey)) {
+        $primaryKey = $restaurant?->getAiApiKey() ?: (config('services.groq.key') ?: env('GROQ_API_KEY'));
+        $masterKey  = config('services.groq.key') ?: env('GROQ_API_KEY');
+
+        $keysToTry = array_values(array_filter(array_unique([$primaryKey, $masterKey])));
+        if (empty($keysToTry)) {
             return null;
         }
 
@@ -529,28 +537,30 @@ SYS;
             ? \Composer\CaBundle\CaBundle::getSystemCaRootBundlePath()
             : null;
 
-        try {
-            $req = Http::withToken($apiKey)->timeout(3);
-            if ($caPath && file_exists($caPath)) {
-                $req = $req->withOptions(['verify' => $caPath]);
-            }
-
-            $response = $req->post(self::GROQ_API_URL, [
-                'model'       => 'llama-3.1-8b-instant',
-                'messages'    => $messages,
-                'temperature' => 0.0,
-                'max_tokens'  => 300,
-            ]);
-
-            if ($response->successful()) {
-                $data = $response->json();
-                $reply = trim((string) ($data['choices'][0]['message']['content'] ?? ''));
-                if ($reply !== '') {
-                    return $reply;
+        foreach ($keysToTry as $apiKey) {
+            try {
+                $req = Http::withToken($apiKey)->timeout(3);
+                if ($caPath && file_exists($caPath)) {
+                    $req = $req->withOptions(['verify' => $caPath]);
                 }
+
+                $response = $req->post(self::GROQ_API_URL, [
+                    'model'       => 'llama-3.1-8b-instant',
+                    'messages'    => $messages,
+                    'temperature' => 0.0,
+                    'max_tokens'  => 300,
+                ]);
+
+                if ($response->successful()) {
+                    $data = $response->json();
+                    $reply = trim((string) ($data['choices'][0]['message']['content'] ?? ''));
+                    if ($reply !== '') {
+                        return $reply;
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::debug("WhatsApp AI: Fast Groq NLU fallback triggered: " . $e->getMessage());
             }
-        } catch (\Throwable $e) {
-            Log::debug("WhatsApp AI: Fast Groq NLU fallback triggered: " . $e->getMessage());
         }
 
         return null;
