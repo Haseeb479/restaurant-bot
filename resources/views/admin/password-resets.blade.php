@@ -62,9 +62,9 @@
                                 <div style="font-size: 10.5px;">{{ $req->created_at->diffForHumans() }}</div>
                             </td>
                             <td>
-                                @if($req->resolved_password)
-                                    <div style="font-size: 11.5px;">
-                                        Generated PW: <code style="font-weight: 800; color: #4f46e5;">{{ $req->resolved_password }}</code>
+                                @if($req->status === 'resolved')
+                                    <div style="font-size: 11.5px; color: #10b981; font-weight: 700;">
+                                        ✓ Dispatched to Owner Contact
                                     </div>
                                 @endif
                                 @if($req->admin_notes)
@@ -72,7 +72,7 @@
                                         {{ $req->admin_notes }}
                                     </div>
                                 @endif
-                                @if(!$req->resolved_password && !$req->admin_notes)
+                                @if($req->status !== 'resolved' && !$req->admin_notes)
                                     <span style="color: var(--text-secondary); font-size: 11px;">Awaiting action</span>
                                 @endif
                             </td>
@@ -80,11 +80,10 @@
                                 @if($req->status === 'pending')
                                     <div style="display: inline-flex; gap: 6px; align-items: center;">
                                         <!-- Resolve Modal/Form -->
-                                        <form method="POST" action="{{ route('admin.password-resets.resolve', $req->id) }}" style="display: inline-flex; gap: 4px;" onsubmit="return confirm('Generate new password and update restaurant credentials?');">
+                                        <form method="POST" action="{{ route('admin.password-resets.resolve', $req->id) }}" style="display: inline-flex;" onsubmit="return confirm('Generate a secure temporary password and dispatch directly to {{ addslashes($req->restaurant_name) }}\'s contact?');">
                                             @csrf
-                                            <input type="text" name="password" placeholder="Custom or auto" style="padding: 4px 8px; font-size: 11px; border: 1px solid var(--border-color); border-radius: 6px; width: 110px; background: var(--input-bg); color: var(--text-primary);">
-                                            <button type="submit" class="btn btn-success btn-sm" title="Reset & notify via WhatsApp">
-                                                🔑 Reset
+                                            <button type="submit" class="btn btn-success btn-sm" title="Generate & dispatch to owner">
+                                                🔑 Dispatch Reset
                                             </button>
                                         </form>
 

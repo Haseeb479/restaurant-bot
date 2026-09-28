@@ -104,9 +104,8 @@
                         </td>
                         <td style="text-align: right;">
                             <div style="display: inline-flex; gap: 5px;">
-                                <a href="{{ route('dashboard.orders', $r->id) }}" class="btn btn-secondary btn-sm" title="Open Live Dashboard">🏪 Dashboard</a>
-                                <a href="{{ route('admin.restaurant.edit', $r->id) }}" class="btn btn-secondary btn-sm" title="Edit & Bot Settings">✏️ Edit</a>
-                                <a href="{{ route('admin.restaurant.analytics', $r->id) }}" class="btn btn-secondary btn-sm" title="Analytics">📊</a>
+                                <a href="{{ route('admin.restaurant.edit', $r->id) }}" class="btn btn-secondary btn-sm" title="Edit & Bot Settings">✏️ Configure</a>
+                                <a href="{{ route('admin.restaurant.analytics', $r->id) }}" class="btn btn-secondary btn-sm" title="Tenant Diagnostics">📊 Diagnostics</a>
                                 
                                 <form method="POST" action="{{ route('admin.toggle-restaurant', $r->id) }}" style="display:inline;">
                                     @csrf

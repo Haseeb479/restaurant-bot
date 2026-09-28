@@ -359,20 +359,24 @@ class OnboardingController extends Controller
 
         $sessionOnboardingId = session('onboarding_restaurant_id');
         $isOwnerSession      = session("restaurant_{$restaurant->id}") === true;
+        $isApplicantSession  = (int) $sessionOnboardingId === (int) $restaurant->id;
         $isSuperAdmin        = session('admin_logged_in') === true;
-        $isLegitimateOwner   = $isSuperAdmin || $isOwnerSession || (int) $sessionOnboardingId === (int) $restaurant->id;
 
-        // Auto-authenticate ONLY if the requester is verified as the applicant from this session
-        if ($isLegitimateOwner && ($restaurant->status === 'active' || $restaurant->registration_status === 'approved')) {
+        // Auto-authenticate ONLY if the requester is verified as the actual applicant from this session
+        if ($isApplicantSession && ($restaurant->status === 'active' || $restaurant->registration_status === 'approved')) {
             session([
                 "restaurant_{$restaurant->id}" => true,
                 "restaurant_{$restaurant->id}_login_time" => now()->toIso8601String(),
             ]);
+            $isOwnerSession = true;
         }
+
+        $canViewStatus = $isSuperAdmin || $isOwnerSession || $isApplicantSession;
+        abort_unless($canViewStatus, 403, 'Unauthorized access to this registration status.');
 
         return view('onboarding.status', [
             'restaurant'           => $restaurant,
-            'isAuthenticatedOwner' => $isLegitimateOwner,
+            'isAuthenticatedOwner' => $isOwnerSession,
         ]);
     }
 }

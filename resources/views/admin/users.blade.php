@@ -46,9 +46,14 @@
                         @endif
                     </td>
                     <td>
-                        <a href="{{ route('dashboard.orders', $r->id) }}" class="btn btn-secondary" style="padding: 5px 12px; font-size: 12px;">
-                            🏪 Open Dashboard ↗
-                        </a>
+                        <div style="display: flex; gap: 6px;">
+                            <a href="{{ route('admin.restaurant.edit', $r->id) }}" class="btn btn-secondary btn-sm" style="font-size: 11.5px; padding: 4px 10px;">
+                                ⚙️ Configure
+                            </a>
+                            <a href="{{ route('admin.restaurant.analytics', $r->id) }}" class="btn btn-secondary btn-sm" style="font-size: 11.5px; padding: 4px 10px;">
+                                📊 Diagnostics
+                            </a>
+                        </div>
                     </td>
                 </tr>
                 @endforeach

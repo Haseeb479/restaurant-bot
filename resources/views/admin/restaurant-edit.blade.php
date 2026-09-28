@@ -47,24 +47,18 @@
                     <input type="email" name="email" class="form-input" value="{{ old('email', $r->email) }}" placeholder="owner@example.com">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Change Owner Password (Optional)</label>
-                    <input type="text" name="owner_password" class="form-input" placeholder="Leave blank to keep existing password">
-                </div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
-                <div class="form-group">
                     <label class="form-label">City</label>
                     <input type="text" name="city" class="form-input" value="{{ old('city', $r->city) }}">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Subscription Tier *</label>
-                    <select name="plan" class="form-select" required>
-                        @foreach($plans as $p)
-                            <option value="{{ $p->slug }}" {{ (old('plan', $r->plan) === $p->slug) ? 'selected' : '' }}>{{ $p->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Subscription Tier *</label>
+                <select name="plan" class="form-select" required>
+                    @foreach($plans as $p)
+                        <option value="{{ $p->slug }}" {{ (old('plan', $r->plan) === $p->slug) ? 'selected' : '' }}>{{ $p->name }}</option>
+                    @endforeach
+                </select>
             </div>
 
             <div class="form-group">
@@ -247,15 +241,14 @@
         <div class="panel-card">
             <div class="panel-title" style="margin-bottom: 12px;">
                 <h3>Reset Owner Password</h3>
-                <p>Generate a new login credential for the restaurant owner</p>
+                <p>Generate and dispatch credentials to the owner</p>
             </div>
-            <form method="POST" action="{{ route('admin.restaurant.reset-password', $r->id) }}">
+            <p style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.5;">
+                In accordance with tenant privacy, clicking below generates a cryptographically random temporary password and sends it directly to the owner's WhatsApp/email. Superadmins do not see this password.
+            </p>
+            <form method="POST" action="{{ route('admin.restaurant.reset-password', $r->id) }}" onsubmit="return confirm('Generate and dispatch a temporary password to {{ addslashes($r->name) }}\'s registered contact?');">
                 @csrf
-                <div class="form-group">
-                    <label class="form-label">New Password (or leave blank to auto-generate)</label>
-                    <input type="text" name="new_password" class="form-input" placeholder="e.g. Pass@1234">
-                </div>
-                <button type="submit" class="btn btn-secondary" style="width: 100%; justify-content: center;">🔑 Reset Credentials</button>
+                <button type="submit" class="btn btn-secondary" style="width: 100%; justify-content: center; font-weight: 700;">🔑 Dispatch Reset Credentials</button>
             </form>
         </div>
 

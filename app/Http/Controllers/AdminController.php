@@ -444,7 +444,6 @@ class AdminController extends Controller
             'greeting_message'=> 'nullable|string',
             'plan'            => 'required|string',
             'rate_limit_per_month' => 'nullable|integer|min:50',
-            'owner_password'  => \App\Support\PasswordPolicy::rule(false),
         ]);
 
         $r->fill($request->only([
@@ -454,10 +453,6 @@ class AdminController extends Controller
         ]));
 
         $r->plan = $request->input('plan');
-
-        if ($request->filled('owner_password')) {
-            $r->owner_password = Hash::make(trim($request->input('owner_password')));
-        }
 
         // Bot feature flags
         $r->features = [
@@ -497,16 +492,26 @@ class AdminController extends Controller
     public function resetRestaurantPassword(Request $request, Restaurant $r)
     {
         $this->adminAuth();
-        $request->validate([
-            'new_password' => ['nullable', 'string', 'min:12'],
-        ]);
-        $newPassword = trim((string) $request->input('new_password')) ?: Str::random(16);
+
+        $newPassword = Str::random(16);
         $r->owner_password = Hash::make($newPassword);
         $r->save();
 
-        AuditLog::log('restaurant.password_reset', "Reset owner credentials for {$r->name} (#{$r->id})");
+        // Dispatch new credentials directly to owner via WhatsApp
+        $waMsg = "🔑 *Foodio Password Reset*\n\n" .
+                 "Hello! Your password for *{$r->name}* has been updated by the Platform Admin.\n\n" .
+                 "🔐 *Temporary Password:* {$newPassword}\n" .
+                 "🌐 *Login Link:* " . route('landing.owner-login-page') . "\n\n" .
+                 "Please log in and update your password immediately.";
+        try {
+            if ($r->owner_phone) {
+                BotEvolutionClient::sendMessage($r, $r->owner_phone, $waMsg);
+            }
+        } catch (\Throwable) {}
 
-        return back()->with('success', "🔑 Password reset for {$r->name}. New Password: {$newPassword}");
+        AuditLog::log('restaurant.password_reset', "Triggered secure owner password reset for {$r->name} (#{$r->id})");
+
+        return back()->with('success', "🔑 A secure temporary password was generated and dispatched directly to {$r->name}'s registered contact. Superadmins do not have access to view tenant passwords.");
     }
 
     public function resetRestaurantBot(Restaurant $r)
@@ -1578,11 +1583,7 @@ class AdminController extends Controller
     {
         $this->adminAuth();
 
-        $request->validate([
-            'password' => ['nullable', 'string', 'min:12'],
-        ]);
-
-        $newPassword = trim((string) $request->input('password')) ?: Str::random(16);
+        $newPassword = Str::random(16);
         $restaurant  = $resetRequest->restaurant;
 
         if (! $restaurant) {
@@ -1598,9 +1599,9 @@ class AdminController extends Controller
             $notifyPhone = $resetRequest->phone ?: $restaurant->owner_phone;
             $waMsg = "🔑 *Foodio Password Reset*\n\n" .
                      "Hello! Your password for *{$restaurant->name}* has been updated by the Platform Admin.\n\n" .
-                     "🔐 *New Password:* {$newPassword}\n" .
+                     "🔐 *Temporary Password:* {$newPassword}\n" .
                      "🌐 *Login Link:* " . route('landing.owner-login-page') . "\n\n" .
-                     "Please keep your credentials safe.";
+                     "Please log in and update your password immediately.";
             try {
                 BotEvolutionClient::sendMessage($restaurant, $notifyPhone, $waMsg);
             } catch (\Throwable) {}
@@ -1608,14 +1609,14 @@ class AdminController extends Controller
 
         $resetRequest->update([
             'status'            => 'resolved',
-            'resolved_password' => $newPassword,
+            'resolved_password' => '[DISPATCHED_TO_OWNER]',
             'resolved_at'       => now(),
-            'admin_notes'       => $request->input('admin_notes', 'Password reset provided by Super Admin'),
+            'admin_notes'       => $request->input('admin_notes', 'Temporary password generated and dispatched directly to owner.'),
         ]);
 
         AuditLog::log('owner.password_reset_resolved', "Resolved password reset for {$resetRequest->restaurant_name} (ID: {$resetRequest->id})");
 
-        return back()->with('success', "✅ Password reset successfully. New Password: {$newPassword}");
+        return back()->with('success', "✅ Secure password generated and dispatched directly to the restaurant owner's verified contact.");
     }
 
     public function rejectPasswordReset(Request $request, PasswordResetRequest $resetRequest)

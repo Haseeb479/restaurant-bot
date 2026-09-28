@@ -42,11 +42,6 @@ class DashboardController extends Controller
     {
         $r = Restaurant::where('id', $slug)->firstOrFail();
 
-        // If authenticated SuperAdmin is visiting, directly open dashboard
-        if (session('admin_logged_in') === true) {
-            return redirect()->route('dashboard.orders', $r->id);
-        }
-
         return view('dashboard.login', compact('r'));
     }
 
@@ -1195,10 +1190,6 @@ class DashboardController extends Controller
      */
     private function botBelongsTo(array $status, string $id): bool
     {
-        if (session('admin_logged_in') === true) {
-            return true;
-        }
-
         $boundTo = $status['restaurant_id'] ?? null;
 
         return $boundTo === null || (int) $boundTo === (int) $id;
@@ -2282,11 +2273,10 @@ class DashboardController extends Controller
     // ── Auth helper (Access Isolation enforced at query level) ─
     private function authCheck(string $id): void
     {
-        $isSuperAdmin = session('admin_logged_in') === true;
-        $isOwner      = session("restaurant_{$id}") === true;
+        $isOwner = session("restaurant_{$id}") === true;
 
-        // 1. Must be logged in as Super Admin OR the specific restaurant owner
-        if (!$isSuperAdmin && !$isOwner) {
+        // 1. Must be logged in as the specific restaurant owner (Superadmins cannot bypass)
+        if (!$isOwner) {
             // Redirect to the dashboard-specific login page (or general login)
             $r = \App\Models\Restaurant::find($id);
             if ($r) {
@@ -2299,10 +2289,8 @@ class DashboardController extends Controller
         $r = \App\Models\Restaurant::find($id);
         abort_if(!$r, 404, 'Restaurant not found.');
 
-        // 3. If standard restaurant owner login (not super admin), block if deactivated or unverified
-        if (!$isSuperAdmin) {
-            abort_if(!$r->isVerified(), 403, 'Please verify your email address before accessing the dashboard.');
-            abort_if(!$r->is_active, 403, 'This restaurant account has been deactivated. Please contact the platform admin.');
-        }
+        // 3. Block if deactivated or unverified
+        abort_if(!$r->isVerified(), 403, 'Please verify your email address before accessing the dashboard.');
+        abort_if(!$r->is_active, 403, 'This restaurant account has been deactivated. Please contact the platform admin.');
     }
 }

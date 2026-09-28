@@ -131,15 +131,10 @@
                             {{ $r->bot_last_seen_at ? $r->bot_last_seen_at->diffForHumans() : 'Never' }}
                         </td>
                         <td style="text-align: right;">
-                            <div style="display: inline-flex; gap: 6px; align-items: center;">
-                                <a href="{{ route('dashboard.connect-whatsapp', $r->id) }}" target="_blank" class="btn btn-secondary btn-sm" style="font-size: 11px; padding: 4px 8px;" title="Open Owner QR Pairing Screen">
-                                    📱 View QR
-                                </a>
-                                <form method="POST" action="{{ route('admin.restaurant.reset-bot', $r->id) }}" style="display: inline;">
-                                    @csrf
-                                    <button type="submit" class="btn btn-secondary btn-sm" style="font-size: 11px; padding: 4px 8px;" title="Restart Instance & Reset Error">🔄 Restart</button>
-                                </form>
-                            </div>
+                            <form method="POST" action="{{ route('admin.restaurant.reset-bot', $r->id) }}" style="display: inline;">
+                                @csrf
+                                <button type="submit" class="btn btn-secondary btn-sm" style="font-size: 11px; padding: 4px 10px;" title="Restart Instance & Reset Error">🔄 Restart Bot</button>
+                            </form>
                         </td>
                     </tr>
                 @endforeach
