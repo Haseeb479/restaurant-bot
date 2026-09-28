@@ -33,10 +33,10 @@
                     <td>{{ $r->last_error_at ? $r->last_error_at->diffForHumans() : 'Recently' }}</td>
                     <td><span class="badge badge-red">Failed</span></td>
                     <td>
-                        <form method="POST" action="{{ route('admin.clear-error', $r->id) }}">
+                        <form method="POST" action="{{ route('admin.restaurant.reset-bot', $r->id) }}">
                             @csrf
                             <button type="submit" class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;">
-                                Clear Log
+                                Clear Error & Reset
                             </button>
                         </form>
                     </td>
@@ -80,7 +80,7 @@
                     <td>{{ $o->created_at->format('M d, H:i:s') }}</td>
                     <td><strong>{{ $o->restaurant->name ?? '—' }}</strong></td>
                     <td><code>#{{ $o->tracking_code }}</code></td>
-                    <td>{{ $o->customer_phone }}</td>
+                    <td><code>{{ \App\Support\LogSanitizer::maskPhone($o->customer_phone) }}</code></td>
                     <td><strong>PKR {{ number_format($o->total, 0) }}</strong></td>
                     <td><span class="badge badge-green">{{ ucfirst($o->status) }}</span></td>
                 </tr>

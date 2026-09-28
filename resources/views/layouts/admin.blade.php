@@ -1207,17 +1207,17 @@
                 </a>
             </div>
 
-            <!-- 3. Analytics & Orders -->
+            <!-- 3. Platform Telemetry & Usage -->
             <div class="module-group">
-                <div class="module-group-title">3. Analytics & Orders</div>
+                <div class="module-group-title">3. Platform Telemetry & Usage</div>
                 <a href="{{ route('admin.analytics') }}" class="module-link-item {{ request()->routeIs('admin.analytics') ? 'active' : '' }}">
-                    <span>📈 Platform Analytics</span>
+                    <span>📈 Platform Telemetry</span>
                 </a>
                 <a href="{{ route('admin.reports.custom') }}" class="module-link-item {{ request()->routeIs('admin.reports.custom') ? 'active' : '' }}">
-                    <span>📑 Custom Reports & CSV</span>
+                    <span>📑 SaaS Usage & Billing Reports</span>
                 </a>
                 <a href="{{ route('admin.orders') }}" class="module-link-item {{ request()->routeIs('admin.orders') ? 'active' : '' }}">
-                    <span>📦 Live Orders Feed</span>
+                    <span>⚡ Bot Order Telemetry</span>
                 </a>
             </div>
 

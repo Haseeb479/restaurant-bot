@@ -27,6 +27,30 @@ class LogSanitizer
     }
 
     /**
+     * Mask customer names: e.g. "Muhammad Ali" -> "M**** A**", "John" -> "J***"
+     */
+    public static function maskName(?string $name): string
+    {
+        if (empty($name)) {
+            return 'Guest';
+        }
+
+        $parts = preg_split('/\s+/', trim($name));
+        $maskedParts = [];
+
+        foreach ($parts as $part) {
+            $len = mb_strlen($part);
+            if ($len <= 2) {
+                $maskedParts[] = mb_substr($part, 0, 1) . '*';
+            } else {
+                $maskedParts[] = mb_substr($part, 0, 1) . str_repeat('*', min(4, $len - 1));
+            }
+        }
+
+        return implode(' ', $maskedParts);
+    }
+
+    /**
      * Mask emails: e.g. customer@example.com -> c******r@example.com
      */
     public static function maskEmail(?string $email): string

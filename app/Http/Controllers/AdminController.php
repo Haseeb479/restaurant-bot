@@ -604,36 +604,34 @@ class AdminController extends Controller
 
         $r->loadCount(['orders', 'menuItems', 'conversations', 'customers']);
         $totalOrders = $r->orders()->count();
-        $totalRevenue = $r->orders()->where('status', '!=', 'cancelled')->sum('total');
+        $deliveredOrders = $r->orders()->where('status', 'delivered')->count();
         $cancelledOrders = $r->orders()->where('status', 'cancelled')->count();
-        $avgOrderValue = $totalOrders > 0 ? $totalRevenue / max(1, $totalOrders - $cancelledOrders) : 0;
+        $totalConversations = $r->conversations()->count();
+        $conversionRate = $totalConversations > 0 ? round(($totalOrders / $totalConversations) * 100, 1) : 0;
 
-        // 14-day history
+        // 14-day bot telemetry history (conversations & orders)
         $chartLabels = [];
         $chartOrders = [];
-        $chartRevenue = [];
+        $chartConversations = [];
         for ($i = 13; $i >= 0; $i--) {
             $d = Carbon::today()->subDays($i);
             $chartLabels[] = $d->format('d M');
             $chartOrders[] = $r->orders()->whereDate('created_at', $d)->count();
-            $chartRevenue[] = (float) $r->orders()->whereDate('created_at', $d)->where('status', '!=', 'cancelled')->sum('total');
+            $chartConversations[] = $r->conversations()->whereDate('created_at', $d)->count();
         }
 
-        $topItems = DB::table('order_items')
-            ->join('orders', 'order_items.order_id', '=', 'orders.id')
-            ->where('orders.restaurant_id', $r->id)
-            ->select('order_items.item_name', DB::raw('SUM(order_items.quantity) as total_qty'), DB::raw('SUM(order_items.subtotal) as total_sales'))
-            ->groupBy('order_items.item_name')
-            ->orderByDesc('total_qty')
-            ->take(8)
-            ->get();
+        // Recent Bot Transmissions & Order Signals (PII Protected)
+        $recentOrders = $r->orders()->latest()->take(10)->get();
 
-        $recentOrders = $r->orders()->take(10)->get();
+        // AI Engine and Diagnostics
+        $aiProvider = $r->getAiProvider();
+        $aiModel = $r->getAiModel();
+        $hasCustomKey = $r->hasCustomAiKey();
 
         return view('admin.restaurant-analytics', compact(
-            'r', 'totalOrders', 'totalRevenue', 'cancelledOrders',
-            'avgOrderValue', 'chartLabels', 'chartOrders', 'chartRevenue',
-            'topItems', 'recentOrders'
+            'r', 'totalOrders', 'deliveredOrders', 'cancelledOrders',
+            'totalConversations', 'conversionRate', 'chartLabels', 'chartOrders',
+            'chartConversations', 'recentOrders', 'aiProvider', 'aiModel', 'hasCustomKey'
         ));
     }
 
@@ -844,30 +842,45 @@ class AdminController extends Controller
     {
         $this->adminAuth();
 
-        $query = Order::with('restaurant')->latest();
-
         $startDate = $request->input('start_date') ? Carbon::parse($request->input('start_date'))->startOfDay() : now()->subDays(30)->startOfDay();
         $endDate   = $request->input('end_date') ? Carbon::parse($request->input('end_date'))->endOfDay() : now()->endOfDay();
 
-        $query->whereBetween('created_at', [$startDate, $endDate]);
+        $query = Restaurant::query();
 
         if ($request->filled('restaurant_id')) {
-            $query->where('restaurant_id', $request->input('restaurant_id'));
+            $query->where('id', $request->input('restaurant_id'));
         }
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->input('status'));
+        if ($request->filled('plan')) {
+            $query->where('plan', $request->input('plan'));
         }
 
-        $orders = $query->paginate(30)->withQueryString();
-        $restaurants = Restaurant::orderBy('name')->get();
+        if ($request->filled('bot_status')) {
+            $query->where('bot_status', $request->input('bot_status'));
+        }
 
-        $totalFilteredOrders  = (clone $query)->count();
-        $totalFilteredRevenue = (clone $query)->where('status', '!=', 'cancelled')->sum('total');
+        $allRestaurants = Restaurant::orderBy('name')->get();
+
+        $tenants = $query->withCount([
+            'orders as period_orders_count' => function($q) use ($startDate, $endDate) {
+                $q->whereBetween('created_at', [$startDate, $endDate]);
+            },
+            'conversations as period_conversations_count' => function($q) use ($startDate, $endDate) {
+                $q->whereBetween('created_at', [$startDate, $endDate]);
+            }
+        ])->orderBy('name')->paginate(25)->withQueryString();
+
+        $totalFilteredTenants = (clone $query)->count();
+        $totalPeriodOrders = Order::whereBetween('created_at', [$startDate, $endDate])
+            ->when($request->filled('restaurant_id'), fn($q) => $q->where('restaurant_id', $request->input('restaurant_id')))
+            ->count();
+        $totalPeriodConversations = Conversation::whereBetween('created_at', [$startDate, $endDate])
+            ->when($request->filled('restaurant_id'), fn($q) => $q->where('restaurant_id', $request->input('restaurant_id')))
+            ->count();
 
         return view('admin.reports-custom', compact(
-            'orders', 'restaurants', 'startDate', 'endDate',
-            'totalFilteredOrders', 'totalFilteredRevenue'
+            'tenants', 'allRestaurants', 'startDate', 'endDate',
+            'totalFilteredTenants', 'totalPeriodOrders', 'totalPeriodConversations'
         ));
     }
 
@@ -875,38 +888,68 @@ class AdminController extends Controller
     {
         $this->adminAuth();
 
-        $query = Order::with('restaurant')->latest();
-        if ($request->filled('start_date')) {
-            $query->whereDate('created_at', '>=', $request->input('start_date'));
-        }
-        if ($request->filled('end_date')) {
-            $query->whereDate('created_at', '<=', $request->input('end_date'));
-        }
+        $startDate = $request->input('start_date') ? Carbon::parse($request->input('start_date'))->startOfDay() : now()->subDays(30)->startOfDay();
+        $endDate   = $request->input('end_date') ? Carbon::parse($request->input('end_date'))->endOfDay() : now()->endOfDay();
+
+        $query = Restaurant::query();
+
         if ($request->filled('restaurant_id')) {
-            $query->where('restaurant_id', $request->input('restaurant_id'));
+            $query->where('id', $request->input('restaurant_id'));
+        }
+        if ($request->filled('plan')) {
+            $query->where('plan', $request->input('plan'));
+        }
+        if ($request->filled('bot_status')) {
+            $query->where('bot_status', $request->input('bot_status'));
         }
 
-        $orders = $query->get();
+        $tenants = $query->withCount([
+            'orders as period_orders_count' => function($q) use ($startDate, $endDate) {
+                $q->whereBetween('created_at', [$startDate, $endDate]);
+            },
+            'conversations as period_conversations_count' => function($q) use ($startDate, $endDate) {
+                $q->whereBetween('created_at', [$startDate, $endDate]);
+            }
+        ])->orderBy('name')->get();
 
         $headers = [
             'Content-Type'        => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="orders_report_' . date('Y-m-d_H-i') . '.csv"',
+            'Content-Disposition' => 'attachment; filename="saas_tenant_usage_' . date('Y-m-d_H-i') . '.csv"',
         ];
 
-        $callback = function() use ($orders) {
+        $callback = function() use ($tenants, $startDate, $endDate) {
             $file = fopen('php://output', 'w');
-            fputcsv($file, ['Order ID', 'Tracking Code', 'Restaurant', 'Customer Name', 'Phone', 'Total (PKR)', 'Status', 'Date Time']);
+            fputcsv($file, [
+                'Tenant ID',
+                'Restaurant Name',
+                'City',
+                'WhatsApp Number',
+                'Subscription Plan',
+                'Active Status',
+                'Bot Status',
+                'AI Provider',
+                'AI Key Mode',
+                'Orders Throughput (' . $startDate->format('M d') . ' - ' . $endDate->format('M d') . ')',
+                'Conversations (' . $startDate->format('M d') . ' - ' . $endDate->format('M d') . ')',
+                'Plan Expiry',
+                'Registered Date'
+            ]);
 
-            foreach ($orders as $o) {
+            foreach ($tenants as $r) {
                 fputcsv($file, [
-                    $o->id,
-                    $o->tracking_code,
-                    $o->restaurant->name ?? 'N/A',
-                    $o->customer_name,
-                    $o->customer_phone,
-                    $o->total,
-                    $o->status,
-                    $o->created_at->format('Y-m-d H:i:s'),
+                    $r->id,
+                    $r->name,
+                    $r->city ?: 'N/A',
+                    $r->whatsapp_number,
+                    strtoupper($r->plan),
+                    $r->is_active ? 'Active' : 'Suspended',
+                    ucfirst($r->bot_status ?? 'Disconnected'),
+                    strtoupper($r->getAiProvider()),
+                    $r->hasCustomAiKey() ? 'BYOK (Dedicated)' : 'Platform Master Key',
+                    $r->period_orders_count ?? 0,
+                    $r->period_conversations_count ?? 0,
+                    $r->plan_expires_at ? $r->plan_expires_at->format('Y-m-d') : 'Lifetime/Never',
+                    $r->created_at->format('Y-m-d H:i:s'),
                 ]);
             }
             fclose($file);
@@ -1376,15 +1419,12 @@ class AdminController extends Controller
     {
         $this->adminAuth();
 
-        $query = Order::with(['restaurant', 'items'])->latest();
+        $query = Order::with('restaurant')->latest();
 
         if ($request->filled('search')) {
             $s = trim($request->input('search'));
-            $query->where(function($q) use ($s) {
-                $q->where('tracking_code', 'like', "%{$s}%")
-                  ->orWhere('customer_phone', 'like', "%{$s}%")
-                  ->orWhere('customer_name', 'like', "%{$s}%");
-            });
+            // Superadmin can only search by platform tracking code to prevent customer PII snooping
+            $query->where('tracking_code', 'like', "%{$s}%");
         }
 
         if ($request->filled('restaurant_id')) {

@@ -1,21 +1,33 @@
 @extends('layouts.admin')
-@section('title', 'Orders (All)')
-@section('header_title', 'All Platform Orders')
-@section('header_subtitle', 'Real-time feed and historical order archive across all tenant restaurants')
+@section('title', 'Bot Activity & Order Telemetry')
+@section('header_title', 'Bot Activity & Order Telemetry')
+@section('header_subtitle', 'Real-time WhatsApp bot transaction flow, delivery states, and channel health across all tenants')
 
 @section('content')
+
+<!-- Privacy Protection Notice -->
+<div class="panel-card" style="border-left: 4px solid var(--brand-primary); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; background: rgba(79, 70, 229, 0.04);">
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 22px;">🛡️</span>
+        <div>
+            <div style="font-weight: 800; font-size: 13.5px; color: var(--text-heading);">Tenant Privacy & Customer PII Protection Guard</div>
+            <div style="font-size: 12px; color: var(--text-muted);">In compliance with multi-tenant privacy architecture, customer phone numbers and names are masked, and private culinary orders remain strictly isolated to tenant restaurants.</div>
+        </div>
+    </div>
+    <span class="badge badge-green" style="font-size: 11px; padding: 4px 10px;">Zero Customer Snooping ✓</span>
+</div>
 
 <div class="panel-card" style="margin-bottom: 24px;">
     <div class="panel-header" style="flex-wrap: wrap; gap: 14px;">
         <div class="panel-title">
-            <h3>Orders Directory ({{ $orders->total() }})</h3>
-            <p>Search by tracking code, phone, or filter by restaurant</p>
+            <h3>Bot Activity Feed ({{ $orders->total() }})</h3>
+            <p>Filter bot-dispatched orders by tracking code, status, or restaurant</p>
         </div>
 
-        <form method="GET" action="{{ route('admin.orders') }}" style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <input type="text" name="search" value="{{ request('search') }}" placeholder="🔍 Tracking # / phone..." style="padding: 8px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 13px; outline: none; background: #fff; width: 180px;">
+        <form method="GET" action="{{ route('admin.orders') }}" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+            <input type="text" name="search" value="{{ request('search') }}" placeholder="🔍 Tracking code..." style="padding: 8px 14px; border: 1px solid var(--border-card); border-radius: 10px; font-size: 13px; outline: none; background: var(--bg-card); color: var(--text-heading); width: 180px;">
 
-            <select name="restaurant_id" onchange="this.form.submit()" style="padding: 8px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 13px; outline: none; background: #fff;">
+            <select name="restaurant_id" onchange="this.form.submit()" style="padding: 8px 14px; border: 1px solid var(--border-card); border-radius: 10px; font-size: 13px; outline: none; background: var(--bg-card); color: var(--text-heading);">
                 <option value="">All Restaurants</option>
                 @foreach($restaurants as $r)
                     <option value="{{ $r->id }}" {{ request('restaurant_id') == $r->id ? 'selected' : '' }}>
@@ -24,7 +36,7 @@
                 @endforeach
             </select>
 
-            <select name="status" onchange="this.form.submit()" style="padding: 8px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 13px; outline: none; background: #fff;">
+            <select name="status" onchange="this.form.submit()" style="padding: 8px 14px; border: 1px solid var(--border-card); border-radius: 10px; font-size: 13px; outline: none; background: var(--bg-card); color: var(--text-heading);">
                 <option value="">All Statuses</option>
                 <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
                 <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>Confirmed</option>
@@ -45,30 +57,42 @@
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>Order #</th>
+                    <th>Order & Tracking #</th>
                     <th>Date & Time</th>
-                    <th>Restaurant</th>
-                    <th>Customer</th>
-                    <th>Items</th>
-                    <th>Total</th>
+                    <th>Restaurant Tenant</th>
+                    <th>Channel</th>
+                    <th>Customer (Masked)</th>
+                    <th>Order Value</th>
                     <th>Status</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($orders as $o)
                 <tr>
-                    <td><code>#{{ $o->id }}</code></td>
+                    <td>
+                        <div style="font-weight: 800; font-size: 13px; color: var(--text-heading);">#{{ $o->id }}</div>
+                        <div style="font-size: 11px; font-family: monospace; color: var(--brand-primary); margin-top: 1px;">{{ $o->tracking_code }}</div>
+                    </td>
                     <td>
                         <div>{{ $o->created_at->format('d M Y') }}</div>
-                        <div style="font-size: 11px; color: #64748b;">{{ $o->created_at->format('h:i A') }}</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">{{ $o->created_at->format('h:i A') }}</div>
                     </td>
-                    <td><strong>{{ $o->restaurant->name ?? '—' }}</strong></td>
                     <td>
-                        <div>{{ $o->customer_name ?: 'Guest' }}</div>
-                        <div style="font-size: 11px; color: #64748b;">{{ $o->customer_phone }}</div>
+                        <strong>{{ $o->restaurant->name ?? '—' }}</strong>
+                        <div style="font-size: 11px; color: var(--text-muted);">{{ $o->restaurant->city ?? 'Pakistan' }}</div>
                     </td>
-                    <td>{{ $o->items->count() }} items</td>
-                    <td><strong>PKR {{ number_format($o->total, 0) }}</strong></td>
+                    <td>
+                        <span class="badge badge-purple" style="font-size: 11px; gap: 4px;">
+                            <span>🤖</span> WhatsApp Bot
+                        </span>
+                    </td>
+                    <td>
+                        <div style="font-weight: 600;">{{ \App\Support\LogSanitizer::maskName($o->customer_name) }}</div>
+                        <div style="font-size: 11px; color: var(--text-muted); font-family: monospace;">{{ \App\Support\LogSanitizer::maskPhone($o->customer_phone) }}</div>
+                    </td>
+                    <td>
+                        <strong>PKR {{ number_format($o->total, 0) }}</strong>
+                    </td>
                     <td>
                         @php
                             $badgeClass = match($o->status) {
@@ -86,8 +110,8 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="7" style="text-align: center; color: #94a3b8; padding: 2.5rem;">
-                        No orders match the selected filters.
+                    <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 3rem;">
+                        No bot activity or orders match the selected filters.
                     </td>
                 </tr>
                 @endforelse
