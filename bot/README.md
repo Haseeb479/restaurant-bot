@@ -1,6 +1,11 @@
-# WhatsApp Bot Service
+# Legacy Node.js WhatsApp Bot
 
-The Foodio WhatsApp bot is a Node.js microservice (`whatsapp-web.js` + Puppeteer) that handles customer conversations, AI-assisted ordering via Groq, menu OCR, and real-time order state updates directly in MySQL.
+> This service is retained for reference and development. Production WhatsApp
+> connections use the Evolution API integration in the Laravel application.
+
+This older Node.js microservice uses `whatsapp-web.js` and Puppeteer. It handles
+customer conversations, AI-assisted ordering via Groq, menu OCR, and order
+state updates. Do not start it alongside Evolution API for the same restaurant.
 
 ## Architecture & Responsibilities
 
@@ -25,7 +30,7 @@ The Foodio WhatsApp bot is a Node.js microservice (`whatsapp-web.js` + Puppeteer
   - `PromptBuilder.js`: Contextual prompt assembly including restaurant metadata and live menu.
   - `MenuOcrService.js`: Vision-based OCR to ingest menu photos into structured items.
 - **Services & Data Layer (`bot/src/services/`):**
-  - `Database.js`: MySQL connection pool reading and writing shared tables.
+  - `Database.js`: MySQL connection pool used by this legacy service.
   - `OrderService.js`: Parses structured orders from conversational history and commits to MySQL.
   - `SessionManager.js`: In-memory conversation state per customer with TTL eviction.
   - `RateLimiter.js`: Per-sender message rate limiting.
@@ -52,10 +57,4 @@ npm test
 
 # Test Groq LLM connectivity
 npm run test:groq
-```
-
-### Production
-Managed alongside Laravel using PM2:
-```bash
-pm2 start ecosystem.config.cjs
 ```

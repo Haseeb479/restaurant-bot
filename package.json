@@ -8,7 +8,7 @@
         "bot": "node bot/index.js",
         "bot:dev": "node --watch bot/index.js",
         "test": "node --test --test-force-exit \"bot/tests/**/*.test.mjs\"",
-        "test:groq": "node scripts/testing/test-groq.js"
+        "test:groq": "node bot/scripts/test-groq.js"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",

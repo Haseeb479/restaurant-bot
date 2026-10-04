@@ -7,49 +7,20 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            50: '#ecfdf5',
-                            100: '#d1fae5',
-                            200: '#a7f3d0',
-                            300: '#6ee7b7',
-                            400: '#34d399',
-                            500: '#10b981',
-                            600: '#059669',
-                            700: '#047857',
-                            800: '#065f46',
-                            900: '#064e3b',
-                            wa: '#25D366',
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .gradient-wa { background: linear-gradient(135deg, #059669 0%, #047857 50%, #064e3b 100%); }
-    </style>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-white text-slate-800 antialiased selection:bg-brand-500 selection:text-white">
+<body class="landing-page bg-white text-slate-800 antialiased selection:bg-brand-500 selection:text-white">
 
     <!-- ── Header Navigation Bar ─────────────────────────────── -->
     <header class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-100 transition duration-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-3">
             
             <!-- Brand Logo -->
             <a href="/" class="flex items-center gap-2.5 group">
                 <div class="w-10 h-10 rounded-2xl bg-brand-600 flex items-center justify-center text-white shadow-lg shadow-brand-600/30 group-hover:scale-105 transition">
-                    <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24">
-                        <path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.38 5.08L2 22l5.09-1.34C8.54 21.49 10.22 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm4.64 14.34c-.23.64-1.34 1.25-1.85 1.33-.48.08-1.08.11-3.23-.78-2.61-1.08-4.27-3.76-4.4-3.93-.13-.17-1.06-1.41-1.06-2.69s.67-1.9 1-2.17c.28-.27.61-.34.81-.34.2 0 .41 0 .59.01.19.01.44-.07.69.52.26.61.88 2.14.95 2.3.07.16.12.35.02.56-.1.21-.15.34-.3.51-.15.17-.32.38-.45.51-.15.15-.3.31-.13.61.17.3.76 1.25 1.63 2.02 1.12.99 2.06 1.3 2.36 1.44.3.14.47.12.65-.08.17-.2.74-.86.94-1.15.2-.29.41-.24.68-.14.28.1.1.75 2.13.88 2.27.13.14.22.21.25.26.04.05.04.83-.19 1.47z"/>
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/>
+                        <path d="M8.5 9.5c.7 2 2 3.3 4 4"/>
                     </svg>
                 </div>
                 <div class="flex flex-col">
@@ -59,15 +30,11 @@
             </a>
 
             <!-- Center Navigation Links -->
-            <nav class="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-600">
-                <a href="#features" class="hover:text-brand-600 transition">Features</a>
-                <a href="#how-it-works" class="hover:text-brand-600 transition">How It Works</a>
-                <a href="#pricing" class="hover:text-brand-600 transition">Pricing</a>
-                <a href="#faq" class="hover:text-brand-600 transition">FAQ</a>
-                <a href="{{ route('order.track.live') }}" class="hover:text-brand-600 text-slate-500 transition flex items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                    Live Track
-                </a>
+            <nav class="hidden xl:flex items-center gap-8 text-sm font-semibold text-slate-600">
+                <a href="#features" class="nav-link">Features</a>
+                <a href="#how-it-works" class="nav-link">How It Works</a>
+                <a href="#pricing" class="nav-link">Pricing</a>
+                <a href="#faq" class="nav-link">FAQ</a>
             </nav>
 
             <!-- Right Action Buttons -->
@@ -75,7 +42,7 @@
                 <a href="{{ route('landing.owner-login-page') }}" class="text-sm font-bold text-slate-700 hover:text-brand-600 px-3 py-2 rounded-xl hover:bg-slate-50 transition">
                     Sign In
                 </a>
-                <a href="{{ route('admin.force-logout') }}" class="hidden sm:inline-flex text-xs font-semibold text-slate-500 hover:text-slate-900 border border-slate-200 px-3 py-2 rounded-xl hover:bg-slate-50 transition">
+                <a href="{{ route('admin.force-logout') }}" class="hidden lg:inline-flex text-xs font-semibold text-slate-500 hover:text-slate-900 border border-slate-200 px-3 py-2 rounded-xl hover:bg-slate-50 transition">
                     Superadmin
                 </a>
                 <a href="{{ route('onboarding.signup') }}" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm shadow-md shadow-brand-600/25 hover:shadow-lg hover:shadow-brand-600/35 transition active:scale-95">
@@ -92,7 +59,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             
             <!-- Big Hero Banner Card (Green Rounded Container) -->
-            <div class="relative gradient-wa rounded-[2.5rem] p-8 sm:p-12 lg:p-16 text-white shadow-2xl shadow-brand-900/20 overflow-hidden">
+            <div class="hero-panel relative gradient-wa rounded-[2.5rem] p-8 sm:p-12 lg:p-16 text-white shadow-2xl shadow-brand-900/20 overflow-hidden">
                 
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
                     
@@ -129,15 +96,15 @@
                         <!-- Hero Feature Pills -->
                         <div class="pt-6 border-t border-white/15 grid grid-cols-3 gap-3 sm:gap-4 text-xs font-bold text-emerald-100">
                             <div class="flex items-center gap-2">
-                                <span class="text-base">⚡</span>
+                                <svg class="h-4 w-4 text-emerald-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m13 2-3 8h7l-6 12 1-9H5l8-11Z"/></svg>
                                 <span>Instant Setup</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <span class="text-base">🛵</span>
+                                <svg class="h-4 w-4 text-emerald-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 17h10l3-7h-5l-2-3H7"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M18 10h2l2 4"/></svg>
                                 <span>Live GPS Maps</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <span class="text-base">💸</span>
+                                <svg class="h-4 w-4 text-emerald-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>
                                 <span>0% Commission</span>
                             </div>
                         </div>
@@ -146,7 +113,7 @@
 
                     <!-- Right Showcase: Simulated Smartphone with WhatsApp Live Order -->
                     <div class="lg:col-span-5 flex justify-center">
-                        <div class="w-full max-w-[340px] bg-slate-950 rounded-[3rem] p-3 shadow-2xl shadow-black/50 border-4 border-slate-800">
+                        <div class="phone-mockup w-full max-w-[340px] bg-slate-950 rounded-[3rem] p-3 shadow-2xl shadow-black/50 border-4 border-slate-800">
                             
                             <div class="bg-[#efeae2] rounded-[2.3rem] overflow-hidden flex flex-col h-[520px] text-slate-900">
                                 
@@ -222,9 +189,9 @@
     <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 mb-16 relative z-20">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             
-            <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-xl shadow-slate-200/50 flex items-start gap-4 hover:-translate-y-1 transition duration-200">
-                <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl font-bold shrink-0">
-                    🤖
+            <div class="capability-card bg-white rounded-3xl p-6 border border-slate-100 flex items-start gap-4">
+                <div class="icon-tile bg-emerald-50 text-emerald-600">
+                    <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3m0 12v3m9-9h-3M6 12H3m15.36-6.36-2.12 2.12M7.76 16.24l-2.12 2.12m12.72 0-2.12-2.12M7.76 7.76 5.64 5.64"/><circle cx="12" cy="12" r="4"/></svg>
                 </div>
                 <div>
                     <h3 class="font-extrabold text-base text-slate-900">AI Ordering Agent</h3>
@@ -232,9 +199,9 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-xl shadow-slate-200/50 flex items-start gap-4 hover:-translate-y-1 transition duration-200">
-                <div class="w-12 h-12 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center text-2xl font-bold shrink-0">
-                    🛵
+            <div class="capability-card bg-white rounded-3xl p-6 border border-slate-100 flex items-start gap-4">
+                <div class="icon-tile bg-teal-50 text-teal-600">
+                    <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 17h10l3-7h-5l-2-3H7"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M18 10h2l2 4"/></svg>
                 </div>
                 <div>
                     <h3 class="font-extrabold text-base text-slate-900">Live Rider GPS Map</h3>
@@ -242,9 +209,9 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-xl shadow-slate-200/50 flex items-start gap-4 hover:-translate-y-1 transition duration-200">
-                <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl font-bold shrink-0">
-                    📊
+            <div class="capability-card bg-white rounded-3xl p-6 border border-slate-100 flex items-start gap-4">
+                <div class="icon-tile bg-amber-50 text-amber-600">
+                    <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5h16M6 16V9m4 7V5m4 11v-4m4 4V7"/></svg>
                 </div>
                 <div>
                     <h3 class="font-extrabold text-base text-slate-900">Kitchen POS & Thermal Bills</h3>
@@ -266,38 +233,38 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div class="bg-white rounded-3xl p-8 border border-slate-200/70 shadow-sm hover:shadow-xl hover:border-brand-500/30 transition duration-300">
-                    <div class="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center text-2xl mb-6">💬</div>
+                <div class="feature-card bg-white rounded-3xl p-8 border border-slate-200/70 shadow-sm">
+                    <div class="icon-tile mb-6"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/><path d="M8.5 9.5c.7 2 2 3.3 4 4"/></svg></div>
                     <h3 class="text-lg font-bold text-slate-900 mb-2">Automated WhatsApp Ordering</h3>
                     <p class="text-sm text-slate-600 leading-relaxed">Customers browse your categories, customize sizes & add-ons, and place orders directly in chat without downloading an app.</p>
                 </div>
 
-                <div class="bg-white rounded-3xl p-8 border border-slate-200/70 shadow-sm hover:shadow-xl hover:border-brand-500/30 transition duration-300">
-                    <div class="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center text-2xl mb-6">📍</div>
+                <div class="feature-card bg-white rounded-3xl p-8 border border-slate-200/70 shadow-sm">
+                    <div class="icon-tile mb-6"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></div>
                     <h3 class="text-lg font-bold text-slate-900 mb-2">Foodpanda-Style Live Map Tracking</h3>
                     <p class="text-sm text-slate-600 leading-relaxed">Customers receive clean tracking codes (like <code>#FZ1048</code>) with an interactive OpenStreetMap link showing their rider approaching.</p>
                 </div>
 
-                <div class="bg-white rounded-3xl p-8 border border-slate-200/70 shadow-sm hover:shadow-xl hover:border-brand-500/30 transition duration-300">
-                    <div class="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center text-2xl mb-6">📄</div>
+                <div class="feature-card bg-white rounded-3xl p-8 border border-slate-200/70 shadow-sm">
+                    <div class="icon-tile mb-6"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8m-8 4h8"/></svg></div>
                     <h3 class="text-lg font-bold text-slate-900 mb-2">1-Click Excel & Image Menu OCR</h3>
                     <p class="text-sm text-slate-600 leading-relaxed">Upload your existing paper menu photo, PDF, or Excel sheet. Our AI extracts categories, items, and prices into your bot in 10 seconds.</p>
                 </div>
 
-                <div class="bg-white rounded-3xl p-8 border border-slate-200/70 shadow-sm hover:shadow-xl hover:border-brand-500/30 transition duration-300">
-                    <div class="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center text-2xl mb-6">🖨️</div>
+                <div class="feature-card bg-white rounded-3xl p-8 border border-slate-200/70 shadow-sm">
+                    <div class="icon-tile mb-6"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg></div>
                     <h3 class="text-lg font-bold text-slate-900 mb-2">Kitchen Live Feed & Print Bills</h3>
                     <p class="text-sm text-slate-600 leading-relaxed">Real-time sound bell when new orders arrive. Print standardized customer receipts and kitchen KOT tickets with a single tap.</p>
                 </div>
 
-                <div class="bg-white rounded-3xl p-8 border border-slate-200/70 shadow-sm hover:shadow-xl hover:border-brand-500/30 transition duration-300">
-                    <div class="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center text-2xl mb-6">📢</div>
+                <div class="feature-card bg-white rounded-3xl p-8 border border-slate-200/70 shadow-sm">
+                    <div class="icon-tile mb-6"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 18-5v12L3 13v-2Zm0 2 2 7h4l-2.5-6.3M21 12a3 3 0 0 1-3 3"/></svg></div>
                     <h3 class="text-lg font-bold text-slate-900 mb-2">WhatsApp Deal Broadcasts</h3>
                     <p class="text-sm text-slate-600 leading-relaxed">Send special weekend deals and promo vouchers directly to all past customers who have ever ordered from your restaurant.</p>
                 </div>
 
-                <div class="bg-white rounded-3xl p-8 border border-slate-200/70 shadow-sm hover:shadow-xl hover:border-brand-500/30 transition duration-300">
-                    <div class="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center text-2xl mb-6">📊</div>
+                <div class="feature-card bg-white rounded-3xl p-8 border border-slate-200/70 shadow-sm">
+                    <div class="icon-tile mb-6"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5h16M6 16V9m4 7V5m4 11v-4m4 4V7"/></svg></div>
                     <h3 class="text-lg font-bold text-slate-900 mb-2">Google Sheets Auto-Sync</h3>
                     <p class="text-sm text-slate-600 leading-relaxed">Every order automatically streams into your private Google Spreadsheet for real-time accounting and ledger management.</p>
                 </div>
@@ -317,21 +284,21 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-                <div class="bg-slate-50 rounded-3xl p-8 border border-slate-200/60 relative">
+                <div class="step-card bg-slate-50 rounded-3xl p-8 border border-slate-200/60 relative">
                     <div class="w-10 h-10 rounded-2xl bg-brand-600 text-white font-extrabold flex items-center justify-center text-base mb-6 shadow-md shadow-brand-600/20">1</div>
                     <h3 class="text-xl font-bold text-slate-900 mb-2">Register & Pick a Plan</h3>
                     <p class="text-sm text-slate-600 leading-relaxed">Sign up with your restaurant details and choose a flexible monthly subscription that matches your order volume.</p>
                 </div>
 
-                <div class="bg-slate-50 rounded-3xl p-8 border border-slate-200/60 relative">
+                <div class="step-card bg-slate-50 rounded-3xl p-8 border border-slate-200/60 relative">
                     <div class="w-10 h-10 rounded-2xl bg-brand-600 text-white font-extrabold flex items-center justify-center text-base mb-6 shadow-md shadow-brand-600/20">2</div>
                     <h3 class="text-xl font-bold text-slate-900 mb-2">Scan WhatsApp QR Code</h3>
                     <p class="text-sm text-slate-600 leading-relaxed">Scan the QR code from your phone's WhatsApp Linked Devices. Your bot goes live instantly without Meta API approval delays.</p>
                 </div>
 
-                <div class="bg-slate-50 rounded-3xl p-8 border border-slate-200/60 relative">
+                <div class="step-card bg-slate-50 rounded-3xl p-8 border border-slate-200/60 relative">
                     <div class="w-10 h-10 rounded-2xl bg-brand-600 text-white font-extrabold flex items-center justify-center text-base mb-6 shadow-md shadow-brand-600/20">3</div>
-                    <h3 class="text-xl font-bold text-slate-900 mb-2">Receive Orders & Live Track</h3>
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">Receive Orders & Manage Delivery</h3>
                     <p class="text-sm text-slate-600 leading-relaxed">Customers chat to place orders. Dispatched riders broadcast live GPS location to customers on an interactive map.</p>
                 </div>
             </div>
@@ -352,7 +319,7 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch max-w-6xl mx-auto">
                 
                 <!-- Starter -->
-                <div class="bg-white rounded-3xl p-8 border border-slate-200/80 shadow-sm flex flex-col justify-between hover:shadow-xl transition duration-300">
+                <div class="plan-card bg-white rounded-3xl p-8 border border-slate-200/80 shadow-sm flex flex-col justify-between">
                     <div>
                         <h3 class="text-xl font-bold text-slate-900">Starter</h3>
                         <p class="text-xs text-slate-500 mt-1">Perfect for cafes & single cloud kitchens.</p>
@@ -379,7 +346,7 @@
                 </div>
 
                 <!-- Pro -->
-                <div class="bg-white rounded-3xl p-8 border-2 border-brand-500 shadow-xl shadow-brand-500/10 flex flex-col justify-between relative">
+                <div class="plan-card bg-white rounded-3xl p-8 border-2 border-brand-500 shadow-xl shadow-brand-500/10 flex flex-col justify-between relative">
                     <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-brand-600 text-white text-[11px] font-black uppercase tracking-wider px-4 py-1 rounded-full shadow-md">
                         Most Popular
                     </div>
@@ -411,7 +378,7 @@
                 </div>
 
                 <!-- Enterprise -->
-                <div class="bg-white rounded-3xl p-8 border border-slate-200/80 shadow-sm flex flex-col justify-between hover:shadow-xl transition duration-300">
+                <div class="plan-card bg-white rounded-3xl p-8 border border-slate-200/80 shadow-sm flex flex-col justify-between">
                     <div>
                         <h3 class="text-xl font-bold text-slate-900">Enterprise</h3>
                         <p class="text-xs text-slate-500 mt-1">Multi-branch franchises & high-volume brands.</p>
@@ -519,8 +486,8 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
             
             <div class="flex items-center gap-3">
-                <div class="w-7 h-7 rounded-xl bg-brand-600 flex items-center justify-center text-white font-black text-xs">
-                    ⚡
+                <div class="brand-mark !h-7 !w-7 !rounded-lg">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m13 2-3 8h7l-6 12 1-9H5l8-11Z"/></svg>
                 </div>
                 <span class="text-white font-extrabold text-sm">Foodio</span>
                 <span class="text-slate-600">|</span>
@@ -531,7 +498,6 @@
                 <a href="{{ route('landing.owner-login-page') }}" class="hover:text-white transition">Owner Sign In</a>
                 <a href="{{ route('onboarding.signup') }}" class="hover:text-white transition">Register</a>
                 <a href="{{ route('admin.force-logout') }}" class="hover:text-white transition">Superadmin Portal</a>
-                <a href="{{ route('order.track.live') }}" class="hover:text-white transition">Track Order</a>
             </div>
 
         </div>

@@ -1,6 +1,6 @@
-// scripts/testing/test-groq.js
+// bot/scripts/test-groq.js
 // Run this to check if your Groq key works
-// Command: node scripts/testing/test-groq.js or npm run test:groq
+// Command: node bot/scripts/test-groq.js or npm run test:groq
 
 import Groq from 'groq-sdk';
 import dotenv from 'dotenv';

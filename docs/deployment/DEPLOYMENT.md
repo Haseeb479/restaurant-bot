@@ -1,95 +1,65 @@
-# Deployment Checklist
+# Railway deployment checklist
 
-This document contains the steps needed to prepare, deploy, and launch the Restaurant Bot project in production.
+This project runs on Railway with separate application, PostgreSQL, Redis, and
+Evolution API services. Configure service references and secrets in Railway's
+project dashboard; never put production credentials in the repository.
 
-## 1. Environment setup
-- Copy `.env.example` to `.env`
-- Set `APP_ENV=production`
-- Set `APP_DEBUG=false`
-- Set `APP_URL=https://your-domain.com`
-- Set a strong `ADMIN_PASSWORD`
-- Configure database settings:
-  - `DB_CONNECTION`
-  - `DB_HOST`
-  - `DB_PORT`
-  - `DB_DATABASE`
-  - `DB_USERNAME`
-  - `DB_PASSWORD`
-- Configure the bot process:
-  - `BOT_INTERNAL_TOKEN` — **required**, shared secret between Laravel and the
-    bot's control server. Generate with
-    `php -r "echo bin2hex(random_bytes(32));"`.
-  - `BOT_INTERNAL_PORT` / `BOT_INTERNAL_API` — must agree with each other.
-  - `GROQ_API_KEY`, `OWNER_PHONE`.
-  Restaurants need no per-tenant API credentials: owners connect by scanning a
-  QR code from their dashboard.
-- Configure any mail settings if needed.
+## Application service
 
-## 2. Install dependencies
-```bash
-composer install --optimize-autoloader --no-dev
-npm install
-npm run build
-```
+- Connect the Laravel application service to the intended Git repository and
+  production branch.
+- Confirm the Railway builder and start command match the service configuration.
+  This repository contains both a `Dockerfile` and `nixpacks.toml`; keep the
+  selected builder consistent with the service's Railway settings.
+- Set `APP_ENV=production`, `APP_DEBUG=false`, the public `APP_URL`, and a
+  persistent `APP_KEY`. Do not regenerate `APP_KEY` on each deploy.
+- Set a unique, strong `ADMIN_PASSWORD`.
+- Set `DB_CONNECTION=pgsql` and connect the app to the Railway PostgreSQL
+  service using Railway's private connection variables.
+- Set Redis connection variables and select Redis for the cache, session, and
+  queue drivers when those services are intended to use Redis.
+- Set `EVOLUTION_BASE_URL` to the Evolution API service's private Railway
+  address and `EVOLUTION_API_KEY` to the matching service secret.
+- Configure any enabled integrations (for example, Groq or Google Maps) with
+  Railway-managed secrets.
 
-## 3. Application keys and database
-```bash
-php artisan key:generate
-php artisan migrate --force
-php artisan db:seed --force  # optional, only if seed data is needed
-```
+## Release and data
 
-## 4. Cache and optimize
-```bash
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-php artisan optimize
-```
+- Back up PostgreSQL before schema changes and verify Railway backup retention.
+- Ensure any uploaded media that must survive deployments is stored on
+  persistent storage or an external object store.
+- Ensure Evolution API session data is stored persistently by its Railway
+  service. A successful application deploy alone does not preserve Evolution
+  sessions.
+- Run migrations as a controlled release step:
 
-## 5. File permissions
-Ensure the web server user can write to:
-- `storage`
-- `bootstrap/cache`
+  ```bash
+  php artisan migrate --force
+  ```
 
-## 6. Server configuration
-- Point the web server document root to `public/`
-- Use PHP 8.3
-- Enable HTTPS and configure SSL
-- Configure a process manager for PHP-FPM if needed
+- Do not run seeders against a live database unless the seed data is explicitly
+  intended for that environment.
 
-## 7. Production checks
-- Confirm `APP_DEBUG=false`
-- Make sure `.env` is not publicly accessible
-- Confirm the application serves correctly from the production URL
-- Test admin login, restaurant login, and dashboard flows
+## Health and smoke tests
 
-## 8. Monitoring and maintenance
-- Monitor `storage/logs/laravel.log`
-- Set up backups for the database and `.env`
-- Optionally add uptime and alert monitoring
+Use `/health/live` for process liveness and `/health/ready` to check application
+readiness, including its database and cache connections. Configure the Railway
+health check path to match the check appropriate for the service.
 
-## 9. Local LAN testing
-To test on your local network before full launch:
-```bash
-php artisan serve --host=0.0.0.0 --port=8000
-```
-Then open `http://<your-local-ip>:8000` from another device on the same LAN.
+After deploying, verify:
 
-## 10. Launch steps
-- Finalize domain and DNS records
-- Deploy code to production server
-- Run migrations and cache commands
-- Validate all core flows:
-  - Admin create restaurant
-  - Restaurant login/menu/settings
-  - Order status updates
-  - WhatsApp message delivery (if configured)
+1. The application serves over HTTPS with debug output disabled.
+2. Admin and restaurant authentication work across requests (session storage
+   should be persistent/shared).
+3. The dashboard can create or retrieve an Evolution API instance and display
+   the QR code.
+4. A paired WhatsApp account can receive a message, process an order, and send
+   a reply.
+5. An order can be tracked publicly, and order updates persist after an app
+   restart.
+6. Logs show no failed migrations, database connection errors, Redis errors, or
+   repeated Evolution API failures.
 
----
-
-### Optional improvements after launch
-- Add automated tests for core flows
-- Add queue worker support
-- Add usage analytics or error reporting
-- Harden security headers and firewall rules
+For Evolution API networking and instance operations, see
+[`EVOLUTION_API.md`](EVOLUTION_API.md). For database recovery, see
+[`../operations/BACKUP_RESTORE.md`](../operations/BACKUP_RESTORE.md).
