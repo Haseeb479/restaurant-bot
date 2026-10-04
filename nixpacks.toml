@@ -1,5 +1,11 @@
 [phases.setup]
-nixpkgs = ["php83", "php83Packages.composer"]
+nixpkgs = ["php83", "php83Packages.composer", "nodejs_22"]
+
+[phases.install]
+cmds = [
+  "composer install --optimize-autoloader --no-scripts --no-interaction",
+  "npm ci"
+]
 
 [phases.build]
-cmds = ["composer install --optimize-autoloader --no-scripts --no-interaction"]
+cmds = ["npm run build"]

@@ -63,7 +63,7 @@ RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --ignor
 
 # 5. Install Node dependencies
 COPY package.json package-lock.json* ./
-RUN npm ci --omit=dev || npm install --omit=dev
+RUN npm ci
 
 # 6. Copy application source
 COPY . .
@@ -71,8 +71,8 @@ COPY . .
 # 7. Complete Composer autoloader
 RUN composer dump-autoload --optimize --no-dev --ignore-platform-reqs
 
-# 8. Build Vite frontend assets
-RUN npm run build || true
+# 8. Build frontend assets and remove build-only dependencies
+RUN npm run build && npm prune --omit=dev
 
 # 9. Configure Nginx and Supervisor
 COPY docker/nginx.conf /etc/nginx/sites-available/default
