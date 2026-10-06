@@ -33,7 +33,7 @@
             <div class="form-group">
                 <label class="form-label">New Master Password *</label>
                 <div style="position:relative;">
-                    <input type="password" id="admin_new_password" name="new_password" class="form-input" required minlength="8" placeholder="Minimum 8 characters" style="padding-right:2.8rem;">
+                    <input type="password" id="admin_new_password" name="new_password" class="form-input" required minlength="6" placeholder="Minimum 6 characters" style="padding-right:2.8rem;">
                     <button type="button" onclick="toggleAdminField('admin_new_password','adminEye2')" tabindex="-1"
                         style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-secondary);padding:4px;">
                         <svg id="adminEye2" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">

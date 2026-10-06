@@ -1480,7 +1480,7 @@ class AdminController extends Controller
         if ($request->filled('current_password') && $request->filled('new_password')) {
             $request->validate([
                 'current_password' => 'required|string',
-                'new_password'     => ['required', 'string', 'min:12', 'different:current_password'],
+                'new_password'     => ['required', 'string', 'min:6', 'different:current_password'],
             ]);
 
             if (! $this->verifyAdminPassword((string) $request->input('current_password'))) {
@@ -1537,7 +1537,7 @@ class AdminController extends Controller
     {
         $request->validate([
             'recovery_key'     => 'required|string',
-            'new_password'     => 'required|string|min:8|confirmed',
+            'new_password'     => 'required|string|min:6|confirmed',
         ]);
 
         $inputKey = trim((string) $request->input('recovery_key'));

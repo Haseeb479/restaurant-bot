@@ -102,8 +102,8 @@
                             id="new_password_input"
                             name="new_password"
                             required
-                            minlength="8"
-                            placeholder="Minimum 8 characters"
+                            minlength="6"
+                            placeholder="Minimum 6 characters"
                             class="w-full pl-10 pr-12 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition"
                         >
                         <button type="button" onclick="toggleField('new_password_input', this)" tabindex="-1" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-400 p-1 text-sm">
@@ -122,7 +122,7 @@
                             id="new_password_confirmation_input"
                             name="new_password_confirmation"
                             required
-                            minlength="8"
+                            minlength="6"
                             placeholder="Repeat new master password"
                             class="w-full pl-10 pr-12 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition"
                         >
