@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Foodio — Smart AI WhatsApp Ordering & Live GPS Tracking for Restaurants</title>
+    <title>Foodio — Smart AI WhatsApp Ordering & Automation for Restaurants</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -79,7 +79,7 @@
 
                         <!-- Subtitle -->
                         <p class="text-base sm:text-lg text-emerald-50/90 font-normal leading-relaxed max-w-xl">
-                            AI WhatsApp assistant that answers menus, takes automated customer orders 24/7, and provides <strong>Foodpanda-style Live Rider GPS tracking</strong> without commission fees.
+                            AI WhatsApp assistant that answers menus, takes automated customer orders 24/7, and prints thermal kitchen receipts without commission fees.
                         </p>
 
                         <!-- Hero CTA Buttons -->
@@ -100,8 +100,8 @@
                                 <span>Instant Setup</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <svg class="h-4 w-4 text-emerald-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 17h10l3-7h-5l-2-3H7"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M18 10h2l2 4"/></svg>
-                                <span>Live GPS Maps</span>
+                                <svg class="h-4 w-4 text-emerald-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                                <span>Live Status Alerts</span>
                             </div>
                             <div class="flex items-center gap-2">
                                 <svg class="h-4 w-4 text-emerald-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>
@@ -149,7 +149,7 @@
                                                 Total: Rs. 850 (COD)
                                             </div>
                                             <div class="bg-emerald-50 text-emerald-700 p-1.5 rounded-lg text-[10px] font-semibold flex items-center gap-1">
-                                                <span>🛵</span> Rider dispatched with Live GPS!
+                                                <span>👨‍🍳</span> Order Accepted & Kitchen Ticket Printed!
                                             </div>
                                             <div class="text-[9px] text-slate-400 text-right">2:45 PM</div>
                                         </div>
@@ -157,9 +157,9 @@
 
                                     <div class="flex justify-start">
                                         <div class="bg-white text-slate-900 p-2.5 rounded-xl max-w-[88%] shadow-sm border border-slate-200">
-                                            <div class="text-[10px] font-bold text-slate-700 mb-1">📍 Real-time Rider Tracking</div>
+                                            <div class="text-[10px] font-bold text-slate-700 mb-1">📦 Order Status Update</div>
                                             <div class="h-14 bg-emerald-100 rounded-lg flex items-center justify-center text-xs font-bold text-emerald-800 border border-emerald-200">
-                                                🛵 5 mins away (ETA 2:50 PM)
+                                                🛵 Out for Delivery • ETA ~25 mins
                                             </div>
                                         </div>
                                     </div>
@@ -201,11 +201,11 @@
 
             <div class="capability-card bg-white rounded-3xl p-6 border border-slate-100 flex items-start gap-4">
                 <div class="icon-tile bg-teal-50 text-teal-600">
-                    <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 17h10l3-7h-5l-2-3H7"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M18 10h2l2 4"/></svg>
+                    <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                 </div>
                 <div>
-                    <h3 class="font-extrabold text-base text-slate-900">Live Rider GPS Map</h3>
-                    <p class="text-xs text-slate-500 mt-1 leading-relaxed">Riders stream live GPS directly from WhatsApp links. Customers watch their scooter move on the map with real-time ETA.</p>
+                    <h3 class="font-extrabold text-base text-slate-900">Instant WhatsApp Updates</h3>
+                    <p class="text-xs text-slate-500 mt-1 leading-relaxed">Customers automatically receive status notifications, dispatched rider contacts, and estimated delivery times directly on WhatsApp.</p>
                 </div>
             </div>
 
@@ -240,9 +240,9 @@
                 </div>
 
                 <div class="feature-card bg-white rounded-3xl p-8 border border-slate-200/70 shadow-sm">
-                    <div class="icon-tile mb-6"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></div>
-                    <h3 class="text-lg font-bold text-slate-900 mb-2">Foodpanda-Style Live Map Tracking</h3>
-                    <p class="text-sm text-slate-600 leading-relaxed">Customers receive clean tracking codes (like <code>#FZ1048</code>) with an interactive OpenStreetMap link showing their rider approaching.</p>
+                    <div class="icon-tile mb-6"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+                    <h3 class="text-lg font-bold text-slate-900 mb-2">Automated Order Status Alerts</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed">Customers receive clean order tracking codes with real-time status notifications sent directly in WhatsApp from preparation to delivery.</p>
                 </div>
 
                 <div class="feature-card bg-white rounded-3xl p-8 border border-slate-200/70 shadow-sm">
@@ -298,8 +298,8 @@
 
                 <div class="step-card bg-slate-50 rounded-3xl p-8 border border-slate-200/60 relative">
                     <div class="w-10 h-10 rounded-2xl bg-brand-600 text-white font-extrabold flex items-center justify-center text-base mb-6 shadow-md shadow-brand-600/20">3</div>
-                    <h3 class="text-xl font-bold text-slate-900 mb-2">Receive Orders & Manage Delivery</h3>
-                    <p class="text-sm text-slate-600 leading-relaxed">Customers chat to place orders. Dispatched riders broadcast live GPS location to customers on an interactive map.</p>
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">Receive Orders & Kitchen Tickets</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed">Customers chat to place orders 24/7. Live orders pop up on your kitchen dashboard with 1-tap thermal bill printing.</p>
                 </div>
             </div>
 
@@ -366,7 +366,7 @@
                         <ul class="space-y-3 text-sm text-slate-600 border-t border-slate-100 pt-6">
                             <li class="flex items-center gap-2.5"><span class="text-brand-600 font-bold">✓</span> Up to 2,000 orders/month</li>
                             <li class="flex items-center gap-2.5"><span class="text-brand-600 font-bold">✓</span> 150 Menu Items</li>
-                            <li class="flex items-center gap-2.5"><span class="text-brand-600 font-bold">✓</span> <strong>Live Rider GPS Map Tracking</strong></li>
+                            <li class="flex items-center gap-2.5"><span class="text-brand-600 font-bold">✓</span> <strong>Automated Order Status Alerts</strong></li>
                             <li class="flex items-center gap-2.5"><span class="text-brand-600 font-bold">✓</span> Excel & Image Menu OCR</li>
                             <li class="flex items-center gap-2.5"><span class="text-brand-600 font-bold">✓</span> WhatsApp Deal Broadcasts</li>
                         </ul>
@@ -432,11 +432,11 @@
 
                 <details class="group bg-slate-50 border border-slate-200/70 rounded-2xl p-6 [&_summary::-webkit-details-marker]:hidden">
                     <summary class="flex items-center justify-between cursor-pointer font-bold text-base text-slate-900">
-                        <span>How does the live rider GPS tracking work?</span>
+                        <span>How do customers get updates on their orders?</span>
                         <span class="text-brand-600 transition group-open:rotate-180">▼</span>
                     </summary>
                     <p class="mt-4 text-sm text-slate-600 leading-relaxed">
-                        When you dispatch an order, your rider receives a WhatsApp link. When the rider taps the link, their phone automatically broadcasts live GPS coordinates to the customer's web tracking map with real-time ETA.
+                        When an order is confirmed, prepared, or dispatched from your kitchen dashboard, the customer automatically receives an automated WhatsApp message with their unique order tracking code and status updates in real-time.
                     </p>
                 </details>
 

@@ -92,7 +92,6 @@
             <h4 style="font-size: 13px; font-weight: 800; margin-bottom: 12px; color: #4f46e5;">2. Bot Feature Flags & Capabilities</h4>
             @php
                 $feats = $r->features ?? [
-                    'order_tracking' => true,
                     'customer_notifications' => true,
                     'ai_suggestions' => true,
                     'human_handover' => true,
@@ -101,10 +100,6 @@
                 ];
             @endphp
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px;">
-                <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
-                    <input type="checkbox" name="feature_order_tracking" value="1" {{ !empty($feats['order_tracking']) ? 'checked' : '' }}>
-                    <span>Live Order Tracking</span>
-                </label>
                 <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
                     <input type="checkbox" name="feature_customer_notifications" value="1" {{ !empty($feats['customer_notifications']) ? 'checked' : '' }}>
                     <span>Order Status Updates</span>

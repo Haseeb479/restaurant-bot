@@ -92,7 +92,7 @@
             <!-- Header -->
             <div class="text-center mb-8">
                 <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Create Your Restaurant Bot</h1>
-                <p class="text-slate-500 text-sm mt-2">Automate WhatsApp orders, live rider GPS tracking, and menu management with AI.</p>
+                <p class="text-slate-500 text-sm mt-2">Automate WhatsApp orders, kitchen thermal receipts, and menu management with AI.</p>
             </div>
 
             @if(session('success'))

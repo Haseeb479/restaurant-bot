@@ -152,7 +152,7 @@
                                 @if($plan->slug !== 'starter')
                                 <li class="flex items-center gap-2.5">
                                     <span class="text-brand-600 font-bold">✓</span>
-                                    <span><strong>Live Rider GPS Map Tracking</strong></span>
+                                    <span><strong>Automated Order Status Alerts</strong></span>
                                 </li>
                                 <li class="flex items-center gap-2.5">
                                     <span class="text-brand-600 font-bold">✓</span>

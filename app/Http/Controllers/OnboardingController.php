@@ -54,9 +54,10 @@ class OnboardingController extends Controller
             'name', 'owner_name', 'email', 'whatsapp_number', 'owner_phone', 'city', 'address'
         ]));
 
-        // ── Req 9: Unverified pending state ──────────────────────────────────
+        // ── Direct plan onboarding state (no email verification barrier) ──
         $restaurant->status              = 'pending';
-        $restaurant->registration_status = 'pending_verification';
+        $restaurant->registration_status = 'pending_plan';
+        $restaurant->email_verified_at   = now();
         $restaurant->payment_status      = 'pending';
         $restaurant->is_active           = false;
         $restaurant->is_open             = false;
@@ -64,95 +65,48 @@ class OnboardingController extends Controller
         $restaurant->owner_password      = Hash::make($request->input('owner_password'));
         $restaurant->api_key             = 'sk_live_' . Str::random(32);
         $restaurant->features            = [
-            'order_tracking'         => true,
             'customer_notifications' => true,
             'ai_suggestions'         => true,
             'human_handover'         => true,
             'voice_notes'            => true,
             'deal_broadcast'         => true,
-            'rider_live_gps'         => true,
         ];
         $restaurant->save();
-
-        // Generate cryptographically random single-use verification token
-        $rawToken = $restaurant->generateVerificationToken();
 
         AuditLog::log('onboarding.signup', "New restaurant signup initiated: {$restaurant->name} (#{$restaurant->id}) by {$restaurant->owner_name}");
 
         session(['onboarding_restaurant_id' => $restaurant->id]);
-        session(['last_verification_token_' . $restaurant->id => $rawToken]);
 
-        return redirect()->route('onboarding.verify-notice', $restaurant->id)
-            ->with('success', "Account registered! Please verify your email address to continue.");
+        return redirect()->route('onboarding.plan', $restaurant->id)
+            ->with('success', "Account registered! Please select your subscription plan to continue.");
     }
 
     /**
-     * Show verification prompt notice (Req 9).
+     * Show verification prompt notice (Deprecated - email verification bypassed).
      * GET /register/verify-notice/{id}
      */
     public function verifyNotice($id)
     {
-        $this->authorizeOnboarding($id);
-        $restaurant = Restaurant::findOrFail($id);
-
-        if ($restaurant->isVerified()) {
-            return redirect()->route('onboarding.plan', $restaurant->id);
-        }
-
-        $rawToken = session('last_verification_token_' . $restaurant->id);
-
-        return view('onboarding.verify-notice', compact('restaurant', 'rawToken'));
+        return redirect()->route('onboarding.plan', $id);
     }
 
     /**
-     * Validate presented verification token (Req 9).
+     * Validate presented verification token (Bypassed).
      * GET /register/verify/{id}/{token}
      */
     public function verify(Request $request, $id, $token)
     {
-        $restaurant = Restaurant::findOrFail($id);
-
-        if ($restaurant->isVerified()) {
-            session(['onboarding_restaurant_id' => $restaurant->id]);
-            return redirect()->route('onboarding.plan', $restaurant->id)
-                ->with('success', 'Email already verified! Please proceed to select your plan.');
-        }
-
-        if (! $restaurant->verifyWithToken($token)) {
-            return redirect()->route('onboarding.verify-notice', $restaurant->id)
-                ->with('error', 'The verification link is invalid or has expired. Please request a new one.');
-        }
-
-        $restaurant->registration_status = 'pending_plan';
-        $restaurant->save();
-
-        session(['onboarding_restaurant_id' => $restaurant->id]);
-        AuditLog::log('onboarding.verified', "Restaurant email verified: {$restaurant->name} (#{$restaurant->id})");
-
-        return redirect()->route('onboarding.plan', $restaurant->id)
-            ->with('success', '🎉 Email verified successfully! Please choose your preferred subscription plan.');
+        session(['onboarding_restaurant_id' => $id]);
+        return redirect()->route('onboarding.plan', $id);
     }
 
     /**
-     * Resend verification link (Req 9).
+     * Resend verification link (Bypassed).
      * POST /register/resend-verification/{id}
      */
     public function resendVerification(Request $request, $id)
     {
-        $this->authorizeOnboarding($id);
-        $restaurant = Restaurant::findOrFail($id);
-
-        if ($restaurant->isVerified()) {
-            return redirect()->route('onboarding.plan', $restaurant->id);
-        }
-
-        $rawToken = $restaurant->generateVerificationToken();
-        session(['last_verification_token_' . $restaurant->id => $rawToken]);
-
-        AuditLog::log('onboarding.resend_verification', "Verification link resent for {$restaurant->name} (#{$restaurant->id})");
-
-        return redirect()->route('onboarding.verify-notice', $restaurant->id)
-            ->with('success', 'A new verification link has been generated.');
+        return redirect()->route('onboarding.plan', $id);
     }
 
     /**
@@ -177,7 +131,7 @@ class OnboardingController extends Controller
                     'max_menu_items'       => 40,
                     'is_active'            => true,
                     'is_popular'           => false,
-                    'features'             => ['AI WhatsApp Bot', 'Order Tracking', 'Customer History', 'CSV Exports'],
+                    'features'             => ['AI WhatsApp Bot', 'Order Status Updates', 'Customer History', 'CSV Exports'],
                 ]),
                 SubscriptionPlan::create([
                     'name'                 => 'Pro',
@@ -188,7 +142,7 @@ class OnboardingController extends Controller
                     'max_menu_items'       => 150,
                     'is_active'            => true,
                     'is_popular'           => true,
-                    'features'             => ['Everything in Starter', 'Live Rider GPS Tracking', 'Excel Menu OCR Import', 'Deal Broadcasts', 'Priority AI Response'],
+                    'features'             => ['Everything in Starter', 'Excel Menu OCR Import', 'Deal Broadcasts', 'Priority AI Response', 'Kitchen POS Tickets'],
                 ]),
                 SubscriptionPlan::create([
                     'name'                 => 'Enterprise',

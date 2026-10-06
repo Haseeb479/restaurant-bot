@@ -404,7 +404,6 @@ class AdminController extends Controller
         $r->owner_password  = Hash::make($request->input('owner_password'));
         $r->api_key         = 'sk_live_' . Str::random(32);
         $r->features        = [
-            'order_tracking'        => true,
             'customer_notifications'=> true,
             'ai_suggestions'        => true,
             'human_handover'        => true,
@@ -456,7 +455,6 @@ class AdminController extends Controller
 
         // Bot feature flags
         $r->features = [
-            'order_tracking'         => $request->has('feature_order_tracking'),
             'customer_notifications' => $request->has('feature_customer_notifications'),
             'ai_suggestions'         => $request->has('feature_ai_suggestions'),
             'human_handover'         => $request->has('feature_human_handover'),

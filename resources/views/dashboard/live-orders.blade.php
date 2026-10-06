@@ -802,10 +802,6 @@
                         </div>
                     @endif
 
-                    <a href="{{ route('order.track.live', $selectedOrder->tracking_code) }}" target="_blank" class="btn-action-secondary" title="View Customer Live Tracking Page">
-                        🌐 Live Track
-                    </a>
-
                     <a href="{{ route('dashboard.print-bill', [$restaurant->id, $selectedOrder->id]) }}" target="_blank" class="btn-action-secondary" title="Print Parcel Bill / Receipt">
                         🖨️ Print Bill
                     </a>

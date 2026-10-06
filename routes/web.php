@@ -245,62 +245,11 @@ Route::post('/forgot-password', function (\Illuminate\Http\Request $req) {
     return back()->with('reset_sent', true);
 })->middleware('throttle:3,5')->name('owner.forgot-password.submit');
 
-// ── Live Order Tracking (Public Web Portal - Free) ─────────
-// Throttled: tracking codes are the only secret protecting order details, so
-// this endpoint must not be usable to enumerate them. The page itself is
-// redacted — see Order::getMaskedDeliveryAddressAttribute().
-Route::get('track/{code?}', function (?string $code = null) {
-    $orderCode = $code ?? request('code');
-    $order = null;
-    if ($orderCode) {
-        $order = \App\Models\Order::where('tracking_code', strtoupper(trim($orderCode)))
-            ->with(['restaurant', 'items'])
-            ->first();
-    }
-
-    // The tracking code sits in the URL, so a shared or proxy cache holding this
-    // page would serve one customer's order to the next visitor.
-    return response()
-        ->view('tracking.live', compact('order'))
-        ->header('Cache-Control', 'no-store, no-cache, private, max-age=0');
-})->middleware('throttle:20,1')->name('order.track.live');
-
-// Status-only endpoint the tracking page polls. It used to poll
-// `/api/orders/track/{code}`, which returns the full order *and* lives in
-// routes/api.php — a file that is not registered, so live updates never worked.
-// This returns just the status, keeping PII out of a response that is fetched
-// every few seconds.
-Route::get('track/{code}/status', function (string $code) {
-    $order = \App\Models\Order::where('tracking_code', strtoupper(trim($code)))->first();
-
-    if (! $order) {
-        return response()->json(['error' => 'not_found'], 404);
-    }
-
-    return response()->json([
-        'status'         => $order->status,
-        'status_label'   => $order->status_label,
-        'status_message' => $order->status_message,
-        'has_live_gps'   => $order->hasLiveGps(),
-        'rider_lat'      => $order->hasLiveGps() ? (float) $order->rider_lat : null,
-        'rider_lng'      => $order->hasLiveGps() ? (float) $order->rider_lng : null,
-        'rider_updated'  => $order->rider_location_updated_at?->diffForHumans(),
-    ])->header('Cache-Control', 'no-store');
-})->middleware('throttle:60,1')->name('order.track.status');
-
-// ── Customer Live Map-Pin Confirmation ─────────────────────
-Route::get('confirm-location/{token}',  [\App\Http\Controllers\LocationConfirmationController::class, 'show'])->name('location.confirm');
-Route::post('confirm-location/{token}', [\App\Http\Controllers\LocationConfirmationController::class, 'update'])->middleware('throttle:30,1')->name('location.confirm.update');
-
-// ── Rider Live GPS Delivery Portal ─────────────────────────
-Route::prefix('rider/deliver/{token}')->group(function () {
-    Route::get('/',              [\App\Http\Controllers\RiderPortalController::class, 'show'])->name('rider.deliver.show');
-    Route::post('location',      [\App\Http\Controllers\RiderPortalController::class, 'updateLocation'])
-        ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class])
-        ->middleware('throttle:120,1')
-        ->name('rider.deliver.location');
-    Route::post('complete',      [\App\Http\Controllers\RiderPortalController::class, 'completeDelivery'])->name('rider.deliver.complete');
-});
+// ── Web Tracking & Location Assets (Removed) ───────────────
+Route::get('track/{code?}', fn() => redirect('/'))->name('order.track.live');
+Route::get('track/{code}/status', fn() => response()->json(['status' => 'disabled'], 404))->name('order.track.status');
+Route::get('confirm-location/{token}', fn() => redirect('/'))->name('location.confirm');
+Route::get('rider/deliver/{token}', fn() => redirect('/'))->name('rider.deliver.show');
 
 // ── SaaS Multi-Step Restaurant Onboarding & Payment Flow ───
 Route::get('register',               [OnboardingController::class, 'step1Form'])->name('onboarding.signup');
