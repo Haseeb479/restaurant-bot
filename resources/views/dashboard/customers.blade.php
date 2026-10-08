@@ -147,7 +147,7 @@
             <button onclick="document.getElementById('modal-broadcast-deal').style.display='none'" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #94a3b8;">✕</button>
         </div>
 
-        <form method="POST" action="{{ route('dashboard.broadcast-deal', $r->id) }}">
+        <form method="POST" action="{{ route('dashboard.broadcast-deal', $r->id) }}" enctype="multipart/form-data">
             @csrf
 
             <div style="margin-bottom: 16px;">
@@ -159,6 +159,37 @@
                     <option value="vip">VIP Customers Only ({{ $vipCount }} contacts)</option>
                     <option value="frequent">VIP + Frequent Regulars</option>
                 </select>
+            </div>
+
+            <!-- Deal Image Upload -->
+            <div style="margin-bottom: 18px;">
+                <label style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">
+                    <span>🖼️ Deal Banner / Promotional Image (Optional)</span>
+                    <span style="font-weight: 500; font-size: 11px; color: #64748b;">PNG, JPG, WEBP (Max 5MB)</span>
+                </label>
+
+                <div style="border: 2px dashed #cbd5e1; border-radius: 12px; padding: 16px; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s ease; position: relative;" id="dealDropZone" onclick="document.getElementById('dealImageInput').click()">
+                    <input type="file" name="deal_image" id="dealImageInput" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif" style="display: none;" onchange="previewDealImage(this)">
+                    
+                    <div id="dealUploadPrompt">
+                        <div style="font-size: 28px; margin-bottom: 4px;">📸</div>
+                        <div style="font-size: 13px; font-weight: 700; color: #334155;">Click to upload deal poster or discount photo</div>
+                        <div style="font-size: 11.5px; color: #94a3b8; margin-top: 2px;">Attach flyer, combo graphic, or discount banner to send on WhatsApp</div>
+                    </div>
+
+                    <div id="dealPreviewWrap" style="display: none; align-items: center; justify-content: space-between; gap: 12px; text-align: left;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img id="dealImagePreview" src="" alt="Deal preview" style="width: 58px; height: 58px; object-fit: cover; border-radius: 8px; border: 1px solid #e2e8f0;">
+                            <div>
+                                <div id="dealFileName" style="font-size: 12.5px; font-weight: 700; color: #0f172a; word-break: break-all;">image.png</div>
+                                <span class="sub-badge green" style="font-size: 10px; margin-top: 3px; display: inline-block;">● Image Ready to Dispatch</span>
+                            </div>
+                        </div>
+                        <button type="button" onclick="clearDealImage(event)" style="background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; border-radius: 8px; padding: 5px 12px; font-size: 11.5px; font-weight: 700; cursor: pointer;">
+                            ✕ Remove
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <div style="margin-bottom: 20px;">
@@ -180,5 +211,30 @@
         </form>
     </div>
 </div>
+
+<script>
+function previewDealImage(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('dealImagePreview').src = e.target.result;
+            document.getElementById('dealFileName').textContent = file.name;
+            document.getElementById('dealUploadPrompt').style.display = 'none';
+            document.getElementById('dealPreviewWrap').style.display = 'flex';
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function clearDealImage(e) {
+    if (e) e.stopPropagation();
+    const input = document.getElementById('dealImageInput');
+    if (input) input.value = '';
+    document.getElementById('dealImagePreview').src = '';
+    document.getElementById('dealUploadPrompt').style.display = 'block';
+    document.getElementById('dealPreviewWrap').style.display = 'none';
+}
+</script>
 
 @endsection

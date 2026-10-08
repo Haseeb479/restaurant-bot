@@ -1934,8 +1934,9 @@ class DashboardController extends Controller
         $r = Restaurant::findOrFail($id);
 
         $request->validate([
-            'message' => 'required|string|min:5',
-            'target'  => 'required|in:all,vip,frequent',
+            'message'    => 'required|string|min:5',
+            'target'     => 'required|in:all,vip,frequent',
+            'deal_image' => 'nullable|file|mimes:jpeg,jpg,png,webp,gif|max:5120',
         ]);
 
         $query = $r->customers()->where('opt_in_marketing', true);
@@ -1945,6 +1946,14 @@ class DashboardController extends Controller
             $query->whereIn('tag', ['VIP', 'Frequent']);
         }
 
+        // Store deal image if uploaded
+        $imagePath = null;
+        if ($request->hasFile('deal_image') && $request->file('deal_image')->isValid()) {
+            $storedName = 'deal_' . $r->id . '_' . time() . '.' . $request->file('deal_image')->getClientOriginalExtension();
+            $relPath    = $request->file('deal_image')->storeAs('deals', $storedName, 'public');
+            $imagePath  = \Illuminate\Support\Facades\Storage::disk('public')->path($relPath);
+        }
+
         // Limit batch to 50 recipients per broadcast run to prevent execution timeouts and Meta spam bans
         $targetCustomers = $query->take(50)->get();
         $dealMessage = trim($request->input('message'));
@@ -1952,14 +1961,27 @@ class DashboardController extends Controller
         $sentCount   = 0;
 
         foreach ($targetCustomers as $c) {
-            // 1. Try EvolutionAPI first (production multi-tenant instance)
-            $sent = BotEvolutionClient::sendMessage($r, $c->phone, $fullText, [
-                'restaurant_id' => $r->id,
-                'customer_id'   => $c->id,
-                'recipient'     => 'broadcast',
-            ]);
+            $sent = false;
 
-            // 2. Fallback to legacy single-bot client if Evolution not connected
+            // 1. If image is provided, try sending with media via EvolutionAPI first
+            if ($imagePath && file_exists($imagePath)) {
+                $sent = BotEvolutionClient::sendMedia($r, $c->phone, $imagePath, $fullText, [
+                    'restaurant_id' => $r->id,
+                    'customer_id'   => $c->id,
+                    'recipient'     => 'broadcast',
+                ]);
+            }
+
+            // 2. If no image or sendMedia was not applicable/failed, send text message via EvolutionAPI
+            if (! $sent) {
+                $sent = BotEvolutionClient::sendMessage($r, $c->phone, $fullText, [
+                    'restaurant_id' => $r->id,
+                    'customer_id'   => $c->id,
+                    'recipient'     => 'broadcast',
+                ]);
+            }
+
+            // 3. Fallback to legacy single-bot client if Evolution not connected
             if (! $sent) {
                 $sent = BotControlClient::sendMessage(
                     $c->phone,
@@ -1979,7 +2001,8 @@ class DashboardController extends Controller
             return back()->with('error', 'Nothing was sent — the WhatsApp bot is not reachable. Connect it and try again.');
         }
 
-        return back()->with('success', "🚀 Promotional deal dispatched to {$sentCount} customers via WhatsApp bot!");
+        $imageNotice = $imagePath ? ' with promo image' : '';
+        return back()->with('success', "🚀 Promotional deal{$imageNotice} dispatched to {$sentCount} customers via WhatsApp bot!");
     }
 
     // ── Export Customers CSV ─────────────────────────────────
