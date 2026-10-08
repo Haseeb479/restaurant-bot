@@ -865,7 +865,7 @@
                         <div class="wa-avatar-box">💬</div>
                         <div class="order-meta-info">
                             <div class="order-meta-top">
-                                <span class="order-code-text">#{{ $o->tracking_code }}</span>
+                                <span class="order-code-text">#{{ $o->daily_order_number ?: $o->id }}</span>
                                 <span class="order-time-text">{{ $o->created_at->diffForHumans(null, true, true) }}</span>
                             </div>
                             <div class="order-customer-text">
@@ -892,7 +892,7 @@
             @if($selectedOrder)
                 <div class="order-detail-header">
                     <div class="order-detail-title">
-                        <h3 id="detail-tracking-code">Order #{{ $selectedOrder->tracking_code }}</h3>
+                        <h3 id="detail-tracking-code">Order #{{ $selectedOrder->daily_order_number ?: $selectedOrder->id }} <span style="font-size: 13px; font-weight: 500; color: #94a3b8;">(#{{ $selectedOrder->tracking_code }})</span></h3>
                         <p id="detail-placed-time">Placed at {{ $selectedOrder->created_at->format('h:i A') }} • {{ $selectedOrder->created_at->diffForHumans() }}</p>
                     </div>
                     <span class="status-pill {{ $selectedOrder->status }}" id="selected-order-status-pill" style="font-size: 11px; padding: 4px 12px;">{{ $selectedOrder->status_label }}</span>
@@ -1651,7 +1651,7 @@
         panel.innerHTML = `
             <div class="order-detail-header">
                 <div class="order-detail-title">
-                    <h3 id="detail-tracking-code">Order #${escHtml(o.tracking_code)}</h3>
+                    <h3 id="detail-tracking-code">Order #${escHtml(o.daily_order_number || o.id)} <span style="font-size: 13px; font-weight: 500; color: #94a3b8;">(#${escHtml(o.tracking_code)})</span></h3>
                     <p id="detail-placed-time">Placed at ${escHtml(o.created_at_time || '')} • ${escHtml(o.created_at_ago || '')}</p>
                 </div>
                 <span class="status-pill ${escHtml(o.status)}" id="selected-order-status-pill" style="font-size: 11px; padding: 4px 12px;">
@@ -1729,7 +1729,7 @@
             <div class="wa-avatar-box">💬</div>
             <div class="order-meta-info">
                 <div class="order-meta-top">
-                    <span class="order-code-text">#${escHtml(o.tracking_code)}</span>
+                    <span class="order-code-text">#${escHtml(o.daily_order_number || o.id)}</span>
                     <span class="order-time-text">${escHtml(o.created_at_humans)}</span>
                 </div>
                 <div class="order-customer-text">👤 ${escHtml(o.customer_name)} (${escHtml(o.customer_phone)})</div>

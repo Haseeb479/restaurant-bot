@@ -355,6 +355,8 @@ class DashboardController extends Controller
         $ordersData = $liveOrders->map(function ($o) use ($r) {
             return [
                 'id'                  => $o->id,
+                'daily_order_number'  => $o->daily_order_number ?: $o->id,
+                'display_number'      => '#' . ($o->daily_order_number ?: $o->id),
                 'tracking_code'       => $o->tracking_code,
                 'status'              => $o->status,
                 'status_label'        => $o->status_label,
@@ -1876,25 +1878,21 @@ class DashboardController extends Controller
         $this->authCheck($id);
         $r = Restaurant::findOrFail($id);
 
-        // Auto-sync past orders into customers table if empty
-        if ($r->customers()->count() === 0 && $r->orders()->count() > 0) {
-            $pastCustomers = Order::where('restaurant_id', $r->id)
-                ->selectRaw("customer_phone, MAX(customer_name) as name, MAX(delivery_address) as address, COUNT(*) as total_orders, SUM(CASE WHEN status != 'cancelled' THEN total ELSE 0 END) as total_spent, MAX(created_at) as last_order_at")
-                ->groupBy('customer_phone')
-                ->get();
+        // Auto-sync any past orders into customers table
+        $existingCustomerPhones = $r->customers()->pluck('phone')->toArray();
+        $missingOrderPhones = Order::where('restaurant_id', $r->id)
+            ->whereNotNull('customer_phone')
+            ->where('customer_phone', '!=', '')
+            ->whereNotIn('customer_phone', $existingCustomerPhones)
+            ->pluck('customer_phone')
+            ->unique();
 
-            foreach ($pastCustomers as $pc) {
-                \App\Models\Customer::updateOrCreate(
-                    ['restaurant_id' => $r->id, 'phone' => $pc->customer_phone],
-                    [
-                        'name'         => $pc->name ?: 'Customer',
-                        'address'      => $pc->address,
-                        'total_orders' => (int) $pc->total_orders,
-                        'total_spent'  => (float) $pc->total_spent,
-                        'tag'          => $pc->total_orders >= 5 ? 'VIP' : ($pc->total_orders >= 2 ? 'Frequent' : 'New'),
-                        'last_order_at'=> $pc->last_order_at,
-                    ]
-                );
+        if ($missingOrderPhones->isNotEmpty()) {
+            foreach ($missingOrderPhones as $phone) {
+                $lastOrder = Order::where('restaurant_id', $r->id)->where('customer_phone', $phone)->latest()->first();
+                if ($lastOrder) {
+                    $lastOrder->syncCustomerProfile();
+                }
             }
         }
 
@@ -2238,11 +2236,27 @@ class DashboardController extends Controller
             ]);
         }
 
+        $pastDaysArchives = \App\Services\OrderArchiveService::getPreviousDaysArchives($r, 30);
+
         return view('dashboard.daily-closing', compact(
             'r', 'date', 'orders', 'deliveredOrders', 'cancelledOrders', 'activeOrders',
             'totalSales', 'codCollected', 'onlineCollected', 'deliveryFees', 'foodSales',
-            'paymentBreakdown', 'riderSettlement'
+            'paymentBreakdown', 'riderSettlement', 'pastDaysArchives'
         ));
+    }
+
+    // ── Download Daily Orders Archive File (CSV) ─────────────────
+    public function downloadDailyArchive(Request $request, string $id)
+    {
+        $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
+        $date = $request->input('date', today()->toDateString());
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            abort(400, 'Invalid date format (must be YYYY-MM-DD)');
+        }
+
+        return \App\Services\OrderArchiveService::downloadDayCsv($r, $date);
     }
 
     // ── Thermal POS 80mm Print Slip for Daily Closing Register ──

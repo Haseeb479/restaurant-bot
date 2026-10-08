@@ -1178,7 +1178,7 @@
                     <div class="live-order-preview-box" id="notifLatestPreview">
                         <div class="preview-meta-left">
                             <div class="preview-order-code">
-                                <span id="previewOrderId">#{{ $latestOrder->tracking_code ?: $latestOrder->id }}</span>
+                                <span id="previewOrderId">#{{ $latestOrder->daily_order_number ?: ($latestOrder->tracking_code ?: $latestOrder->id) }}</span>
                                 <span style="font-weight: 600; color: var(--text-heading);" id="previewCustomerName">{{ $latCustName }}</span>
                                 <span style="font-size: 11px; color: var(--text-light);" id="previewCustomerPhone">({{ substr($latestOrder->customer_phone ?? 'N/A', -6) }})</span>
                             </div>
@@ -1426,7 +1426,7 @@
                             <div class="recent-order-left">
                                 <div class="customer-initial-avatar">{{ strtoupper(substr($order->customer_name ?: 'C', 0, 1)) }}</div>
                                 <div>
-                                    <h5 style="font-size: 13px; font-weight: 700; color: var(--text-heading); margin: 0;">#{{ $order->tracking_code ?: $order->id }} • {{ $order->customer_name ?: 'Guest' }}</h5>
+                                    <h5 style="font-size: 13px; font-weight: 700; color: var(--text-heading); margin: 0;">#{{ $order->daily_order_number ?: ($order->tracking_code ?: $order->id) }} • {{ $order->customer_name ?: 'Guest' }}</h5>
                                     <span style="font-size: 11px; color: var(--text-muted);">{{ $order->created_at->diffForHumans() }}</span>
                                 </div>
                             </div>
@@ -2105,7 +2105,7 @@ async function fetchLiveOrdersFeed() {
                 const pTotal = document.getElementById('previewOrderTotal');
                 const pTime  = document.getElementById('previewOrderTime');
 
-                if (pId) pId.textContent = '#' + (targetLatest.tracking_code || targetLatest.id);
+                if (pId) pId.textContent = '#' + (targetLatest.daily_order_number || targetLatest.tracking_code || targetLatest.id);
                 if (pName) pName.textContent = targetLatest.customer_name || 'Customer';
                 if (pPhone) {
                     const fullP = targetLatest.customer_phone || '';
@@ -2147,7 +2147,7 @@ async function fetchLiveOrdersFeed() {
                 recentList.innerHTML = recent5.map(o => {
                     const sb = statusBadges[o.status] || { cls: 'cancelled', label: (o.status || '').toUpperCase() };
                     const initial = (o.customer_name || 'C').charAt(0).toUpperCase();
-                    const code = o.tracking_code || o.id;
+                    const code = o.daily_order_number || o.tracking_code || o.id;
                     const time = o.created_at_humans || o.created_at_time || '';
                     return `
                         <a href="/dashboard/{{ $restaurant->id }}/live-orders?order_id=${o.id}" class="recent-order-row">
@@ -2319,7 +2319,7 @@ function openOrderDrawer(orderId) {
     // Clear highlight if user clicks on this order
     newlyArrivedOrderIds.delete(orderId);
 
-    document.getElementById('drawerOrderTitle').textContent = 'Order #' + o.id;
+    document.getElementById('drawerOrderTitle').textContent = 'Order #' + (o.daily_order_number || o.id);
     const timeFormatted = o.created_at_time || (o.created_at ? new Date(o.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '');
     document.getElementById('drawerOrderSub').textContent = 'Received ' + timeFormatted;
     document.getElementById('drawerCustomerName').textContent = o.customer_name || 'Guest';

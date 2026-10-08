@@ -319,6 +319,7 @@ Route::prefix('dashboard/{id}')->group(function () {
     Route::get('reports',                      [DashboardController::class, 'reports'])->name('dashboard.reports');
     Route::get('reports/export-csv',           [DashboardController::class, 'exportSalesReportCsv'])->name('dashboard.export-sales-report-csv');
     Route::get('daily-closing',                [DashboardController::class, 'dailyClosing'])->name('dashboard.daily-closing');
+    Route::get('daily-closing/download-archive', [DashboardController::class, 'downloadDailyArchive'])->name('dashboard.download-daily-archive');
     Route::get('daily-closing/print',          [DashboardController::class, 'printDailyClosing'])->name('dashboard.print-daily-closing');
     Route::get('settings',                     [DashboardController::class, 'settings'])->name('dashboard.settings');
     Route::post('settings',                    [DashboardController::class, 'updateSettings'])->name('dashboard.update-settings');

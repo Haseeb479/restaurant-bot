@@ -18,6 +18,9 @@
             </div>
 
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <a href="{{ route('dashboard.download-daily-archive', [$r->id, 'date' => $date]) }}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700;">
+                    <span>📥</span> Download Orders File (CSV)
+                </a>
                 <a href="{{ route('dashboard.print-daily-closing', [$r->id, 'date' => $date]) }}" target="_blank" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700; background: #059669; border-color: #059669;">
                     <span>🖨️</span> Print 80mm Closing Slip
                 </a>
@@ -184,6 +187,79 @@
                     PKR {{ number_format($paymentBreakdown['bank_transfer'] ?? 0, 0) }}
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- 4. PREVIOUS DAYS SAVED ORDER FILES & ARCHIVES -->
+    <div class="panel-card" style="padding: 22px; margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+            <div>
+                <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <span>📁 Previous Days Saved Order Data Files</span>
+                    <span class="sub-badge blue" style="font-size: 11px;">Persistent Storage</span>
+                </h3>
+                <p style="font-size: 12.5px; color: #64748b; margin: 4px 0 0 0;">
+                    Complete daily sales and customer order history automatically preserved into CSV files. Download past archives anytime to inspect or import.
+                </p>
+            </div>
+            <a href="{{ route('dashboard.download-daily-archive', [$r->id, 'date' => $date]) }}" class="btn btn-primary" style="font-size: 12.5px; font-weight: 700; background: #4f46e5; border-color: #4f46e5;">
+                📥 Save & Export Selected Day ({{ $date }})
+            </a>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 2px solid #e2e8f0; text-align: left; font-size: 12px; color: #64748b; text-transform: uppercase;">
+                        <th style="padding: 10px 14px;">Date</th>
+                        <th style="padding: 10px 14px;">Total Orders</th>
+                        <th style="padding: 10px 14px;">Delivered</th>
+                        <th style="padding: 10px 14px;">Total Net Revenue</th>
+                        <th style="padding: 10px 14px;">File Status</th>
+                        <th style="padding: 10px 14px; text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($pastDaysArchives ?? [] as $arch)
+                    <tr style="border-bottom: 1px solid #f1f5f9; font-size: 13px;">
+                        <td style="padding: 12px 14px; font-weight: 700; color: #0f172a;">
+                            📅 {{ \Carbon\Carbon::parse($arch['date'])->format('d M Y (D)') }}
+                            @if($arch['date'] === $date)
+                                <span class="sub-badge green" style="font-size: 10px; margin-left: 6px;">Current View</span>
+                            @endif
+                        </td>
+                        <td style="padding: 12px 14px; font-weight: 600;">
+                            {{ $arch['total_orders'] }} orders
+                        </td>
+                        <td style="padding: 12px 14px; color: #047857; font-weight: 600;">
+                            {{ $arch['delivered_count'] }} delivered
+                        </td>
+                        <td style="padding: 12px 14px; font-weight: 800; color: #0f172a;">
+                            PKR {{ number_format($arch['total_sales'], 0) }}
+                        </td>
+                        <td style="padding: 12px 14px;">
+                            <span class="sub-badge green" style="font-size: 11px;">
+                                ● {{ $arch['file_size_human'] }}
+                            </span>
+                        </td>
+                        <td style="padding: 12px 14px; text-align: right; display: flex; justify-content: flex-end; gap: 8px;">
+                            <a href="{{ route('dashboard.daily-closing', [$r->id, 'date' => $arch['date']]) }}" class="btn btn-secondary" style="padding: 5px 10px; font-size: 11.5px; font-weight: 600;">
+                                👁️ View Day
+                            </a>
+                            <a href="{{ route('dashboard.download-daily-archive', [$r->id, 'date' => $arch['date']]) }}" class="btn btn-primary" style="padding: 5px 12px; font-size: 11.5px; font-weight: 700; background: #4f46e5; border-color: #4f46e5;">
+                                📥 Download CSV
+                            </a>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="6" style="padding: 30px; text-align: center; color: #94a3b8; font-size: 13px;">
+                            No archived days recorded yet.
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
     </div>
 

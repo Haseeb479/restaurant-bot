@@ -1568,8 +1568,9 @@ class OrderingStateEngine
         $this->session['location_valid'] = null;
         $this->transitionTo(self::STATE_ORDER_CREATED);
 
+        $dailyNum = $order->daily_order_number ?: $order->id;
         $receipt = "🎉 *AAPKA ORDER PLACE HO GAYA HAI!*\n\n";
-        $receipt .= "🆔 *Order #{$order->id}*\n";
+        $receipt .= "🆔 *Order #{$dailyNum}*\n";
         $receipt .= "👤 *Customer:* {$order->customer_name}\n";
         $receipt .= "📍 *Delivery to:* " . ($order->delivery_place_name ? "{$order->delivery_place_name} ({$order->delivery_address})" : $order->delivery_address) . "\n";
         $receipt .= "💵 *Payment:* Cash on Delivery\n";
@@ -1594,7 +1595,8 @@ class OrderingStateEngine
                 ->map(fn($i) => "{$i->quantity}x {$i->name}" . ($i->size ? " ({$i->size})" : ""))
                 ->implode(', ');
 
-            $msg = "🔔 *NEW ORDER #{$order->id} — {$this->restaurant->name}!*\n\n";
+            $dailyNum = $order->daily_order_number ?: $order->id;
+            $msg = "🔔 *NEW ORDER #{$dailyNum} — {$this->restaurant->name}!*\n\n";
             $msg .= "📦 *#{$order->tracking_code}*\n";
             $msg .= "📱 *Customer:* {$order->customer_name} ({$order->customer_phone})\n";
             if ($itemsStr) {

@@ -10,6 +10,7 @@ class Order extends Model
 {
     protected $fillable = [
         'restaurant_id',
+        'daily_order_number',
         'customer_phone',
         'customer_name',
         'delivery_address',
@@ -40,6 +41,7 @@ class Order extends Model
     ];
 
     protected $casts = [
+        'daily_order_number'        => 'integer',
         'is_paid'                   => 'boolean',
         'owner_notified'            => 'boolean',
         'customer_notified'         => 'boolean',
@@ -53,6 +55,90 @@ class Order extends Model
         'delivery_lng'              => 'decimal:7',
         'delivery_distance_km'      => 'decimal:2',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Order $order) {
+            if (empty($order->daily_order_number) && !empty($order->restaurant_id)) {
+                $date = $order->created_at ? $order->created_at->toDateString() : today()->toDateString();
+                $maxDaily = static::where('restaurant_id', $order->restaurant_id)
+                    ->whereDate('created_at', $date)
+                    ->max('daily_order_number');
+                $order->daily_order_number = ($maxDaily ? (int)$maxDaily : 0) + 1;
+            }
+        });
+
+        static::saved(function (Order $order) {
+            // 1. Sync Customer database record for CRM & future deals
+            $order->syncCustomerProfile();
+
+            // 2. Automatically save/update order record in the day's file archive
+            try {
+                if ($order->restaurant_id) {
+                    $date = $order->created_at ? $order->created_at->toDateString() : today()->toDateString();
+                    $restaurant = $order->restaurant ?? Restaurant::find($order->restaurant_id);
+                    if ($restaurant) {
+                        \App\Services\OrderArchiveService::generateDayCsv($restaurant, $date);
+                    }
+                }
+            } catch (\Throwable $e) {
+                \Log::warning('Order archive file sync error: ' . $e->getMessage());
+            }
+        });
+    }
+
+    /**
+     * Get clean daily order display number, e.g., "#1", "#2", etc.
+     */
+    public function getDisplayNumberAttribute(): string
+    {
+        return '#' . ($this->daily_order_number ?: $this->id);
+    }
+
+    /**
+     * Automatically update or create customer record in CRM so owner can broadcast future deals.
+     */
+    public function syncCustomerProfile(): void
+    {
+        if (empty($this->customer_phone) || empty($this->restaurant_id)) {
+            return;
+        }
+
+        try {
+            $c = Customer::firstOrNew([
+                'restaurant_id' => $this->restaurant_id,
+                'phone'         => $this->customer_phone,
+            ]);
+
+            if (!empty($this->customer_name) && (empty($c->name) || $c->name === 'Customer' || $c->name === 'Guest')) {
+                $c->name = $this->customer_name;
+            } elseif (empty($c->name)) {
+                $c->name = $this->customer_name ?: 'Customer';
+            }
+
+            if (!empty($this->delivery_address)) {
+                $c->address = $this->delivery_address;
+            }
+
+            $stats = static::where('restaurant_id', $this->restaurant_id)
+                ->where('customer_phone', $this->customer_phone)
+                ->selectRaw("COUNT(*) as total_cnt, SUM(CASE WHEN status != 'cancelled' THEN total ELSE 0 END) as spent, MAX(created_at) as last_order")
+                ->first();
+
+            $c->total_orders  = (int) ($stats->total_cnt ?? 1);
+            $c->total_spent   = (float) ($stats->spent ?? $this->total);
+            $c->last_order_at = $stats->last_order ?? now();
+            $c->tag           = $c->total_orders >= 5 ? 'VIP' : ($c->total_orders >= 2 ? 'Frequent' : 'New');
+
+            if (!isset($c->opt_in_marketing)) {
+                $c->opt_in_marketing = true;
+            }
+
+            $c->save();
+        } catch (\Throwable $e) {
+            \Log::warning('Customer profile sync error: ' . $e->getMessage());
+        }
+    }
 
     // ─── Relationships ────────────────────────────────────────────────────────
 
