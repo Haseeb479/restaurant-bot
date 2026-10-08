@@ -293,7 +293,7 @@ class WhatsAppAiBotService
 You are an expert NLU intent and entity extractor for a Pakistani restaurant WhatsApp ordering system.
 Analyze the customer's message and output ONLY a valid JSON object matching this schema:
 {
-  "intent": "SHOW_MENU" | "ADD_ITEM" | "MODIFY_EXISTING_ORDER" | "START_NEW_ORDER" | "REMOVE_ITEM" | "CHANGE_QUANTITY" | "SELECT_VARIANT" | "VIEW_CART" | "CHECKOUT" | "CONFIRM_ORDER" | "CANCEL_ORDER" | "ASK_ORDER_STATUS" | "UNKNOWN",
+  "intent": "SHOW_MENU" | "ADD_ITEM" | "ASK_DEAL_DETAILS" | "MODIFY_EXISTING_ORDER" | "START_NEW_ORDER" | "REMOVE_ITEM" | "CHANGE_QUANTITY" | "SELECT_VARIANT" | "VIEW_CART" | "CHECKOUT" | "CONFIRM_ORDER" | "CANCEL_ORDER" | "ASK_ORDER_STATUS" | "UNKNOWN",
   "items": [
     {
       "name": "Item name without size or price",
@@ -301,6 +301,7 @@ Analyze the customer's message and output ONLY a valid JSON object matching this
       "size": "Small" | "Medium" | "Large" | "XL" | null
     }
   ],
+  "deal_name": "Deal name if customer is asking what is in a deal (e.g. Deal 1, Deal 01) or null",
   "variant": "Small" | "Medium" | "Large" | "XL" | null,
   "name": "Customer name if provided or null",
   "address": "Customer delivery address if provided or null",
@@ -313,6 +314,8 @@ Rules:
 - If customer says "confirm", "yes", "haan", "theek hai", "order kar do", intent is CONFIRM_ORDER.
 - If customer says "cancel", "radd", intent is CANCEL_ORDER.
 - If customer asks for menu or rates, intent is SHOW_MENU.
+- If customer asks what is inside/included in a deal (e.g. "deal 1 mein kya hai", "what is in deal 1", "deal 2 details"), intent MUST be "ASK_DEAL_DETAILS" and deal_name set to the deal (e.g. "Deal 1").
+- If customer orders a deal (e.g. "deal 1", "deal 01", "1 deal 1", "2 deal 2", "deal 1 chahiye"), intent MUST be "ADD_ITEM" with item name (e.g. "Deal 1" or "Deal 01") and quantity.
 - If customer wants to add items to or modify their existing/previous order (e.g. "is me add kar do", "is order me add karo", "isme 2 wrap kr do", "same order me", "add 2 wraps", "order me aur add karo", "add this to my order"), intent is MODIFY_EXISTING_ORDER.
 - If customer mentions adding items or ordering food/drinks (e.g. "ik cold add kr do", "cold drink add kar do", "cold chahyee", "1 burger aur", "ek pizza add kar do"), intent MUST be "ADD_ITEM", extract items with quantity and name. NEVER classify food or drink requests as CONFIRM_ORDER and NEVER extract food/drink items as customer name.
 - Output valid, raw JSON only. No markdown formatting, no backticks, no extra text.
@@ -371,6 +374,17 @@ SYS;
 
         if (preg_match('/\b(menu|rate list|kya items|list bhejo)\b/i', $clean) && ! preg_match('/\b(chahiye|bhej do|pack)\b/i', $clean)) {
             return ['intent' => 'SHOW_MENU', 'items' => [], 'raw_text' => $clean];
+        }
+
+        // Deal details inquiry check (e.g. "deal 1 mein kya hai", "what is in deal 1", "deal 2 details", "deal 01 details")
+        if (preg_match('/(?:kya\s*(?:hai|h)|what\s*(?:is|in)|details?|batao|bataiye|samjhao|includes?|shamil)\b/iu', $clean) &&
+            preg_match('/\b(deal\s*(?:no\.?|#)?\s*\d{1,2}|deal\s*(?:one|two|three|four|five|six|seven|eight|nine|ten))\b/iu', $clean, $dm)) {
+            return [
+                'intent' => 'ASK_DEAL_DETAILS',
+                'deal_name' => $dm[1],
+                'items' => [],
+                'raw_text' => $clean,
+            ];
         }
 
         if (preg_match('/^(small|medium|large|xl|s|m|l)$/i', $clean)) {
@@ -434,7 +448,21 @@ SYS;
         $itemSearchStr = preg_replace('/\b(?:chaar|char|four)\b/iu', '4', $itemSearchStr);
         $itemSearchStr = preg_replace('/\b(?:panch|paanch|five)\b/iu', '5', $itemSearchStr);
 
-        if (preg_match_all('/(?:(?:add\s+)?(\d+)\s*(?:x\s*)?)?(?:\b(small|medium|large|xl|chota|bara|darmiyana)\b)?\s*([a-zA-Z\s]+?)(?:aur|and|,|$)/i', $itemSearchStr, $matches, PREG_SET_ORDER)) {
+        // 1. Pre-extract explicit deals with quantities (e.g. "1 deal 1", "deal 1", "2 deal 02", "deal no 3")
+        if (preg_match_all('/(?:(?:add\s+)?(\d+)\s*(?:x\s*)?)?\b(deal\s*(?:no\.?|#)?\s*\d{1,2}|deal\s*(?:one|two|three|four|five|six|seven|eight|nine|ten))\b/iu', $itemSearchStr, $dealMatches, PREG_SET_ORDER)) {
+            foreach ($dealMatches as $dm) {
+                $qty = ! empty($dm[1]) ? (int) $dm[1] : 1;
+                $dealName = trim($dm[2]);
+                $items[] = [
+                    'name' => $dealName,
+                    'quantity' => $qty,
+                    'size' => null,
+                ];
+                $itemSearchStr = str_ireplace($dm[0], '', $itemSearchStr);
+            }
+        }
+
+        if (preg_match_all('/(?:(?:add\s+)?(\d+)\s*(?:x\s*)?)?(?:\b(small|medium|large|xl|chota|bara|darmiyana)\b)?\s*([a-zA-Z0-9\s]+?)(?:aur|and|,|$)/i', $itemSearchStr, $matches, PREG_SET_ORDER)) {
             $sizeMap = [
                 'chota' => 'Small',
                 'choti' => 'Small',
@@ -747,7 +775,8 @@ PROMPT;
                     $line .= " — Rs." . number_format((float) $item->price, 0);
                 }
                 if ($item->description) {
-                    $line .= " ({$item->description})";
+                    $cleanDesc = trim(preg_replace('/\s*;\s*/', ' + ', $item->description));
+                    $line .= " [Includes: {$cleanDesc}]";
                 }
                 $menuLines .= "• {$line}\n";
             }
@@ -768,7 +797,8 @@ PROMPT;
                         $line .= " — Rs." . number_format((float) $item->price, 0);
                     }
                     if ($item->description) {
-                        $line .= " ({$item->description})";
+                        $cleanDesc = trim(preg_replace('/\s*;\s*/', ' + ', $item->description));
+                        $line .= " [Includes: {$cleanDesc}]";
                     }
                     $menuLines .= "• {$line}\n";
                 }
@@ -1952,8 +1982,11 @@ PROMPT;
                     $parts = array_map(fn($s) => ($s['name'] ?? $s['size']) . ": Rs." . number_format($s['price'] ?? 0, 0), $activeSizes);
                     $priceStr = implode(' / ', $parts);
                 }
-                $desc = $item->description ? " _({$item->description})_" : "";
-                $out .= "• *{$item->name}* — {$priceStr}{$desc}\n";
+                $out .= "• *{$item->name}* — {$priceStr}\n";
+                if (!empty($item->description)) {
+                    $cleanDesc = trim(preg_replace('/\s*;\s*/', ' + ', $item->description));
+                    $out .= "   👉 _{$cleanDesc}_\n";
+                }
             }
         }
 
@@ -1966,8 +1999,11 @@ PROMPT;
                     $parts = array_map(fn($s) => ($s['name'] ?? $s['size']) . ": Rs." . number_format($s['price'] ?? 0, 0), $activeSizes);
                     $priceStr = implode(' / ', $parts);
                 }
-                $desc = $item->description ? " _({$item->description})_" : "";
-                $out .= "• *{$item->name}* — {$priceStr}{$desc}\n";
+                $out .= "• *{$item->name}* — {$priceStr}\n";
+                if (!empty($item->description)) {
+                    $cleanDesc = trim(preg_replace('/\s*;\s*/', ' + ', $item->description));
+                    $out .= "   👉 _{$cleanDesc}_\n";
+                }
             }
         }
 

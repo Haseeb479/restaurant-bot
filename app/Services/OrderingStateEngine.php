@@ -290,9 +290,16 @@ class OrderingStateEngine
 
     protected function handleWelcomeState(string $intent, array $nlu): string
     {
+        $raw = trim($nlu['raw_text'] ?? '');
+
         if ($intent === 'SHOW_MENU') {
             $this->transitionTo(self::STATE_MENU_SELECTION);
             return $this->renderMenuText();
+        }
+
+        if ($intent === 'ASK_DEAL_DETAILS' || $this->isDealDetailInquiry($raw)) {
+            $this->transitionTo(self::STATE_MENU_SELECTION);
+            return $this->handleDealDetailInquiry($nlu);
         }
 
         if ($intent === 'ADD_ITEM' && !empty($nlu['items'])) {
@@ -328,6 +335,26 @@ class OrderingStateEngine
 
         if ($intent === 'VIEW_CART') {
             return $this->renderCartReview();
+        }
+
+        // Deal detail inquiry
+        if ($intent === 'ASK_DEAL_DETAILS' || $this->isDealDetailInquiry($raw)) {
+            return $this->handleDealDetailInquiry($nlu);
+        }
+
+        // If pending deal item exists and user responds affirmatively (e.g. "haan", "yes", "kar do")
+        if (!empty($this->session['pending_deal_item_id']) && ($this->isAffirmative($raw) || $intent === 'CONFIRM_ORDER')) {
+            $pendingDealId = $this->session['pending_deal_item_id'];
+            $this->session['pending_deal_item_id'] = null;
+            $dealItem = MenuItem::find($pendingDealId);
+            if ($dealItem) {
+                return $this->handleAddItems([
+                    'items' => [
+                        ['name' => $dealItem->name, 'quantity' => 1, 'size' => null],
+                    ],
+                    'raw_text' => $raw,
+                ]);
+            }
         }
 
         // Cart modifications have HIGHEST priority before confirmations or customer info!
@@ -612,6 +639,11 @@ class OrderingStateEngine
             $this->resetSession(false);
             $this->transitionTo(self::STATE_MENU_SELECTION);
             return "Theek hai! Naya order shuru karte hain. Menu dekhne ke liye *Menu* likhein ya direct item batayein.";
+        }
+
+        if ($intent === 'ASK_DEAL_DETAILS' || $this->isDealDetailInquiry($raw)) {
+            $this->transitionTo(self::STATE_MENU_SELECTION);
+            return $this->handleDealDetailInquiry($nlu);
         }
 
         // Do NOT send confirmation text back through menu-item matching!
@@ -1257,13 +1289,16 @@ class OrderingStateEngine
                 }
 
                 $this->addItemToCart($menuItem, $matchedVariant, $qty);
-                $addedSummary[] = "{$qty}x {$matchedVariant->name} {$menuItem->name} (Rs. " . number_format($matchedVariant->price * $qty) . ")";
+                $descSuffix = !empty($menuItem->description) ? "\n   👉 _" . trim(preg_replace('/\s*;\s*/', ' + ', $menuItem->description)) . "_" : "";
+                $addedSummary[] = "• {$qty}x {$matchedVariant->name} {$menuItem->name} (Rs. " . number_format($matchedVariant->price * $qty) . "){$descSuffix}";
             } else {
                 $this->addItemToCart($menuItem, null, $qty);
-                $addedSummary[] = "{$qty}x {$menuItem->name} (Rs. " . number_format($menuItem->price * $qty) . ")";
+                $descSuffix = !empty($menuItem->description) ? "\n   👉 _" . trim(preg_replace('/\s*;\s*/', ' + ', $menuItem->description)) . "_" : "";
+                $addedSummary[] = "• {$qty}x {$menuItem->name} (Rs. " . number_format($menuItem->price * $qty) . "){$descSuffix}";
             }
         }
 
+        $this->session['pending_deal_item_id'] = null;
         $this->saveSession();
 
         if ($this->hasCompleteInfo()) {
@@ -1680,6 +1715,64 @@ class OrderingStateEngine
             }
         }
 
+        // 1. Precise Deal Normalization & Resolution (e.g. "deal 1", "deal 01", "deal 2", "deal one", "deal #1")
+        $dealNum = null;
+        if (preg_match('/\bdeal\s*(?:no\.?|#)?\s*(\d{1,2})\b/iu', $cleanTerm ?: $queryClean, $dm)) {
+            $dealNum = (int) $dm[1];
+        } elseif (preg_match('/\bdeal\s+(one|two|three|four|five|six|seven|eight|nine|ten)\b/iu', $cleanTerm ?: $queryClean, $dm)) {
+            $wordMap = ['one' => 1, 'two' => 2, 'three' => 3, 'four' => 4, 'five' => 5, 'six' => 6, 'seven' => 7, 'eight' => 8, 'nine' => 9, 'ten' => 10];
+            $dealNum = $wordMap[strtolower($dm[1])] ?? null;
+        }
+
+        if ($dealNum !== null) {
+            $num1 = (string) $dealNum;
+            $num2 = sprintf('%02d', $dealNum); // e.g. "01"
+            $candidates = [
+                "deal {$num1}",
+                "deal {$num2}",
+                "deal{$num1}",
+                "deal{$num2}",
+                "deal #{$num1}",
+                "deal #{$num2}",
+                "deal no {$num1}",
+                "deal no. {$num1}",
+                "deal no {$num2}",
+            ];
+
+            // 1a. Exact match on normalized deal candidates
+            $dealItem = MenuItem::where('restaurant_id', $this->restaurant->id)
+                ->where('is_available', true)
+                ->where(function ($q) use ($candidates) {
+                    foreach ($candidates as $cand) {
+                        $q->orWhereRaw('LOWER(name) = ?', [$cand]);
+                    }
+                })
+                ->first();
+
+            if ($dealItem) {
+                return $dealItem;
+            }
+
+            // 1b. Boundary match on deal candidates (e.g. "Deal 01 - ...", "Deal 01 (...", "Deal 01: ...")
+            $dealItem = MenuItem::where('restaurant_id', $this->restaurant->id)
+                ->where('is_available', true)
+                ->where(function ($q) use ($num1, $num2) {
+                    $q->whereRaw('LOWER(name) LIKE ?', ["deal {$num1} %"])
+                      ->orWhereRaw('LOWER(name) LIKE ?', ["deal {$num2} %"])
+                      ->orWhereRaw('LOWER(name) LIKE ?', ["deal {$num1}-%"])
+                      ->orWhereRaw('LOWER(name) LIKE ?', ["deal {$num2}-%"])
+                      ->orWhereRaw('LOWER(name) LIKE ?', ["deal {$num1}:%"])
+                      ->orWhereRaw('LOWER(name) LIKE ?', ["deal {$num2}:%"])
+                      ->orWhereRaw('LOWER(name) LIKE ?', ["deal {$num1}(%"])
+                      ->orWhereRaw('LOWER(name) LIKE ?', ["deal {$num2}(%"]);
+                })
+                ->first();
+
+            if ($dealItem) {
+                return $dealItem;
+            }
+        }
+
         // Exact match
         $item = MenuItem::where('restaurant_id', $this->restaurant->id)
             ->where(function ($q) use ($queryClean, $cleanTerm) {
@@ -1714,6 +1807,13 @@ class OrderingStateEngine
 
         foreach ($allItems as $mItem) {
             $mName = strtolower($mItem->name);
+            // Strict Deal Number Guard: Never match Deal X to Deal Y
+            if ($dealNum !== null && preg_match('/\bdeal\s*(\d{1,2})\b/i', $mName, $itemDealMatch)) {
+                if ((int)$itemDealMatch[1] !== $dealNum) {
+                    continue;
+                }
+            }
+
             $score = 0;
             foreach ($words as $w) {
                 if (str_contains($mName, $w)) {
@@ -1799,30 +1899,128 @@ class OrderingStateEngine
 
     public function renderMenuText(): string
     {
-        $items = MenuItem::where('restaurant_id', $this->restaurant->id)
-            ->where('is_available', true)
-            ->with('variants')
+        $categories = $this->restaurant->categories()
+            ->with(['items' => function ($q) {
+                $q->where('is_available', true)->with('variants');
+            }])
+            ->orderBy('sort_order')
             ->get();
 
-        if ($items->isEmpty()) {
-            return "Menu abhi upload nahi hua.";
-        }
-
         $restaurantName = $this->restaurant->name ?? 'Foodio';
-        $out = "📜 *{$restaurantName} — Menu:*\n\n";
+        $out = "📜 *{$restaurantName} — Menu:*\n";
+        $out .= "━━━━━━━━━━━━━━━━━━━━━\n";
 
-        foreach ($items as $item) {
-            if ($item->variants->isNotEmpty()) {
-                $out .= "🍕 *{$item->name}*\n";
-                foreach ($item->variants as $v) {
-                    $out .= "   ▫️ {$v->name}: Rs. " . number_format($v->price) . "\n";
+        $hasAnyItem = false;
+
+        foreach ($categories as $cat) {
+            $catItems = $cat->items ?? collect();
+            if ($catItems->isEmpty()) {
+                continue;
+            }
+            $hasAnyItem = true;
+            $catName = strtoupper($cat->name);
+
+            // Icon for category
+            $icon = '🍽️';
+            if (stripos($catName, 'deal') !== false) {
+                $icon = '🔥';
+            } elseif (stripos($catName, 'pizza') !== false) {
+                $icon = '🍕';
+            } elseif (stripos($catName, 'burger') !== false) {
+                $icon = '🍔';
+            } elseif (stripos($catName, 'drink') !== false || stripos($catName, 'beverage') !== false) {
+                $icon = '🥤';
+            } elseif (stripos($catName, 'roll') !== false || stripos($catName, 'wrap') !== false) {
+                $icon = '🌯';
+            } elseif (stripos($catName, 'pasta') !== false) {
+                $icon = '🍝';
+            } elseif (stripos($catName, 'fries') !== false) {
+                $icon = '🍟';
+            } elseif (stripos($catName, 'wing') !== false || stripos($catName, 'nugget') !== false) {
+                $icon = '🍗';
+            }
+
+            $out .= "\n{$icon} *{$catName}*\n";
+
+            foreach ($catItems as $item) {
+                if ($item->variants->isNotEmpty()) {
+                    $out .= "• *{$item->name}*\n";
+                    $varLines = [];
+                    foreach ($item->variants as $v) {
+                        $varLines[] = "{$v->name}: Rs. " . number_format($v->price);
+                    }
+                    $out .= "   ▫️ " . implode(' / ', $varLines) . "\n";
+                } else {
+                    $out .= "• *{$item->name}* — Rs. " . number_format($item->price) . "\n";
                 }
-            } else {
-                $out .= "🍔 *{$item->name}* — Rs. " . number_format($item->price) . "\n";
+                if (!empty($item->description)) {
+                    $cleanDesc = trim(preg_replace('/\s*;\s*/', ' + ', $item->description));
+                    $out .= "   👉 _{$cleanDesc}_\n";
+                }
             }
         }
 
-        $out .= "\n_Apna order likh kar bhejein (e.g. '1 Large Shahi Pizza aur 2 Coke')_";
+        // Include uncategorized items if any
+        $uncategorized = MenuItem::where('restaurant_id', $this->restaurant->id)
+            ->where('is_available', true)
+            ->whereNull('category_id')
+            ->with('variants')
+            ->get();
+
+        if ($uncategorized->isNotEmpty()) {
+            $hasAnyItem = true;
+            $out .= "\n🍽️ *OTHER ITEMS*\n";
+            foreach ($uncategorized as $item) {
+                if ($item->variants->isNotEmpty()) {
+                    $out .= "• *{$item->name}*\n";
+                    $varLines = [];
+                    foreach ($item->variants as $v) {
+                        $varLines[] = "{$v->name}: Rs. " . number_format($v->price);
+                    }
+                    $out .= "   ▫️ " . implode(' / ', $varLines) . "\n";
+                } else {
+                    $out .= "• *{$item->name}* — Rs. " . number_format($item->price) . "\n";
+                }
+                if (!empty($item->description)) {
+                    $cleanDesc = trim(preg_replace('/\s*;\s*/', ' + ', $item->description));
+                    $out .= "   👉 _{$cleanDesc}_\n";
+                }
+            }
+        }
+
+        // Fallback flat list if categories were not populated
+        if (!$hasAnyItem) {
+            $items = MenuItem::where('restaurant_id', $this->restaurant->id)
+                ->where('is_available', true)
+                ->with('variants')
+                ->get();
+
+            if ($items->isEmpty()) {
+                return "Menu abhi upload nahi hua.";
+            }
+
+            $out .= "\n";
+            foreach ($items as $item) {
+                if ($item->variants->isNotEmpty()) {
+                    $out .= "• *{$item->name}*\n";
+                    $varLines = [];
+                    foreach ($item->variants as $v) {
+                        $varLines[] = "{$v->name}: Rs. " . number_format($v->price);
+                    }
+                    $out .= "   ▫️ " . implode(' / ', $varLines) . "\n";
+                } else {
+                    $out .= "• *{$item->name}* — Rs. " . number_format($item->price) . "\n";
+                }
+                if (!empty($item->description)) {
+                    $cleanDesc = trim(preg_replace('/\s*;\s*/', ' + ', $item->description));
+                    $out .= "   👉 _{$cleanDesc}_\n";
+                }
+            }
+        }
+
+        $out .= "\n━━━━━━━━━━━━━━━━━━━━━\n";
+        $out .= "✨ *Order karne ke liye:* Reply with item name & quantity!\n";
+        $out .= "_(Example: '1 Deal 01' ya '1 Large Shahi Pizza aur 2 Coke')_";
         return $out;
     }
 
@@ -1988,5 +2186,54 @@ class OrderingStateEngine
             sin($dLon / 2) * sin($dLon / 2);
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
         return $earthRadius * $c;
+    }
+
+    public function isDealDetailInquiry(string $text): bool
+    {
+        $clean = trim($text);
+        if (empty($clean)) {
+            return false;
+        }
+
+        $hasInquiryWord = (bool) preg_match('/(?:kya\s*(?:hai|h)|what\s*(?:is|in)|details?|batao|bataiye|samjhao|includes?|shamil)\b/iu', $clean);
+        $hasDealMention = (bool) preg_match('/\b(deal\s*(?:no\.?|#)?\s*\d{1,2}|deal\s*(?:one|two|three|four|five|six|seven|eight|nine|ten))\b/iu', $clean);
+
+        return $hasInquiryWord && $hasDealMention;
+    }
+
+    public function handleDealDetailInquiry(array $nlu): string
+    {
+        $raw = trim($nlu['raw_text'] ?? '');
+        $dealTarget = $nlu['deal_name'] ?? null;
+
+        if (!$dealTarget && preg_match('/\b(deal\s*(?:no\.?|#)?\s*\d{1,2}|deal\s*(?:one|two|three|four|five|six|seven|eight|nine|ten))\b/iu', $raw, $dm)) {
+            $dealTarget = $dm[1];
+        }
+
+        if (!$dealTarget) {
+            $dealTarget = $raw;
+        }
+
+        $menuItem = $this->resolveMenuItemFromDb($dealTarget);
+        if (!$menuItem) {
+            return "Maazrat! Yeh deal menu mein nahi mili. Aap hamara menu dekhne ke liye *Menu* likh sakte hain.";
+        }
+
+        $this->session['pending_deal_item_id'] = $menuItem->id;
+        $this->saveSession();
+
+        $desc = !empty($menuItem->description)
+            ? trim(preg_replace('/\s*;\s*/', ' + ', $menuItem->description))
+            : "Items list not available";
+
+        $priceStr = number_format($menuItem->price);
+
+        $out = "🔥 *{$menuItem->name}* Details:\n";
+        $out .= "💵 *Price:* Rs. {$priceStr}\n";
+        $out .= "📦 *Shamil Items:* {$desc}\n\n";
+        $out .= "Kya aap yeh deal order karna chahte hain?\n";
+        $out .= "Reply *Haan* / *Yes* to add to cart, ya quantity batayein (e.g. *'1 {$menuItem->name}'*).";
+
+        return $out;
     }
 }
