@@ -1220,6 +1220,8 @@
         applyLiveOrdersFilter();
     }
 
+    const ACTIVE_LIVE_STATUSES = ['pending', 'confirmed', 'preparing', 'out_for_delivery'];
+
     function applyLiveOrdersFilter() {
         const list = document.getElementById('live-orders-list');
         if (!list) return;
@@ -1237,7 +1239,17 @@
         } else if (currentLiveStageFilter === 'out_for_delivery') {
             filtered = orders.filter(o => o.status === 'out_for_delivery');
         } else if (currentLiveStageFilter === 'delivered') {
-            filtered = orders.filter(o => o.status === 'delivered');
+            list.innerHTML = `<div style="text-align:center;padding:35px 15px;color:#64748b;" id="empty-orders-state">
+                <div style="font-size:36px;margin-bottom:8px;">📦</div>
+                <p style="font-weight:800;font-size:14px;color:#0f172a;">Delivered orders are in Order History</p>
+                <p style="font-size:12px;color:#64748b;margin-top:4px;line-height:1.4;">
+                    Live Orders automatically wipes delivered orders to keep the kitchen focused. Completed orders are saved in Order History.
+                </p>
+                <a href="/dashboard/${RESTAURANT_ID}/history" style="display:inline-block;margin-top:12px;padding:8px 16px;background:#4f46e5;color:#ffffff;border-radius:10px;font-size:12px;font-weight:700;text-decoration:none;">
+                    Open Order History →
+                </a>
+            </div>`;
+            return;
         }
 
         if (filtered.length === 0) {
@@ -1251,27 +1263,28 @@
         }
     }
 
-    @if($selectedOrder)
-    currentOrdersMap[{{ $selectedOrder->id }}] = {
-        id: {{ $selectedOrder->id }},
-        tracking_code: '{{ $selectedOrder->tracking_code }}',
-        status: '{{ $selectedOrder->status }}',
-        status_label: '{{ $selectedOrder->status_label }}',
-        total: {{ (float) $selectedOrder->total }},
-        customer_name: '{{ addslashes($selectedOrder->customer_name ?: 'Guest Customer') }}',
-        customer_phone: '{{ substr($selectedOrder->customer_phone ?? 'N/A', -6) }}',
-        full_customer_phone: '{{ $selectedOrder->customer_phone ?: '' }}',
-        created_at_humans: '{{ $selectedOrder->created_at->diffForHumans(null, true, true) }}',
-        created_at_time: '{{ $selectedOrder->created_at->format('h:i A') }}',
-        created_at_ago: '{{ $selectedOrder->created_at->diffForHumans() }}',
-        rider_name: '{{ addslashes($selectedOrder->rider_name ?? '') }}',
-        rider_phone: '{{ addslashes($selectedOrder->rider_phone ?? '') }}',
-        delivery_address: '{{ addslashes($selectedOrder->delivery_address ?: '') }}',
-        estimated_minutes: {{ $selectedOrder->estimated_minutes ?? 25 }},
-        payment_method: '{{ $selectedOrder->payment_method ?: 'cash_on_delivery' }}',
+    @foreach($orders as $ord)
+    currentOrdersMap[{{ $ord->id }}] = {
+        id: {{ $ord->id }},
+        daily_order_number: {{ (int) ($ord->daily_order_number ?: $ord->id) }},
+        tracking_code: '{{ $ord->tracking_code }}',
+        status: '{{ $ord->status }}',
+        status_label: '{{ $ord->status_label }}',
+        total: {{ (float) $ord->total }},
+        customer_name: '{{ addslashes($ord->customer_name ?: 'Guest Customer') }}',
+        customer_phone: '{{ substr($ord->customer_phone ?? 'N/A', -6) }}',
+        full_customer_phone: '{{ $ord->customer_phone ?: '' }}',
+        created_at_humans: '{{ $ord->created_at ? $ord->created_at->diffForHumans(null, true, true) : '' }}',
+        created_at_time: '{{ $ord->created_at ? $ord->created_at->format('h:i A') : '' }}',
+        created_at_ago: '{{ $ord->created_at ? $ord->created_at->diffForHumans() : '' }}',
+        rider_name: '{{ addslashes($ord->rider_name ?? '') }}',
+        rider_phone: '{{ addslashes($ord->rider_phone ?? '') }}',
+        delivery_address: '{{ addslashes($ord->delivery_address ?: '') }}',
+        estimated_minutes: {{ $ord->estimated_minutes ?? 25 }},
+        payment_method: '{{ $ord->payment_method ?: 'cash_on_delivery' }}',
         delivery_fee: {{ (float) ($restaurant->delivery_charge ?? 0) }},
         items: [
-            @foreach($selectedOrder->items as $it)
+            @foreach($ord->items as $it)
             {
                 name: '{{ addslashes($it->name ?: $it->item_name) }}',
                 quantity: {{ (int) $it->quantity }},
@@ -1280,7 +1293,7 @@
             @endforeach
         ]
     };
-    @endif
+    @endforeach
 
     const STATUS_FLOW = {
         pending: {
@@ -1521,6 +1534,9 @@
     async function ajaxUpdateStatus(url, status, btn, extra = {}) {
         if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
 
+        const urlMatches = (url || '').match(/\/orders\/(\d+)\/status/);
+        const orderId = urlMatches ? parseInt(urlMatches[1]) : SELECTED_ORDER_ID;
+
         try {
             const res = await fetch(url, {
                 method: 'POST',
@@ -1535,20 +1551,31 @@
             const data = await res.json();
             if (!data.success) throw new Error(data.message || 'Failed');
 
-            showToast('✅ ' + (data.message || 'Status updated!'), 'success');
+            const orderNum = (currentOrdersMap[orderId] && currentOrdersMap[orderId].daily_order_number) 
+                ? ('#' + currentOrdersMap[orderId].daily_order_number) 
+                : ('#' + orderId);
 
-            if (currentOrdersMap[SELECTED_ORDER_ID]) {
-                currentOrdersMap[SELECTED_ORDER_ID].status = data.status;
-                currentOrdersMap[SELECTED_ORDER_ID].status_label = data.status_label;
-                if (data.delivery_charge !== undefined) currentOrdersMap[SELECTED_ORDER_ID].delivery_charge = data.delivery_charge;
-                if (data.total !== undefined) currentOrdersMap[SELECTED_ORDER_ID].total = data.total;
-                renderOrderDetail(currentOrdersMap[SELECTED_ORDER_ID]);
-            }
+            if (status === 'delivered') {
+                showToast(`✅ Order ${orderNum} marked as Delivered! Saved to Order History.`, 'success');
+                wipeDeliveredOrderFromLive(orderId);
+            } else {
+                showToast('✅ ' + (data.message || 'Status updated!'), 'success');
 
-            const listItem = document.querySelector(`[data-order-id="${SELECTED_ORDER_ID}"] .status-pill`);
-            if (listItem) {
-                listItem.textContent = data.status_label;
-                listItem.className   = 'status-pill ' + data.status;
+                if (currentOrdersMap[orderId]) {
+                    currentOrdersMap[orderId].status = data.status;
+                    currentOrdersMap[orderId].status_label = data.status_label;
+                    if (data.delivery_charge !== undefined) currentOrdersMap[orderId].delivery_charge = data.delivery_charge;
+                    if (data.total !== undefined) currentOrdersMap[orderId].total = data.total;
+                    if (SELECTED_ORDER_ID === orderId) {
+                        renderOrderDetail(currentOrdersMap[orderId]);
+                    }
+                }
+
+                const listItem = document.querySelector(`[data-order-id="${orderId}"] .status-pill`);
+                if (listItem) {
+                    listItem.textContent = data.status_label;
+                    listItem.className   = 'status-pill ' + data.status;
+                }
             }
 
         } catch (e) {
@@ -1556,6 +1583,96 @@
         } finally {
             if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
         }
+    }
+
+    function wipeDeliveredOrderFromLive(orderId) {
+        // 1. Smoothly animate wipe-out of DOM element in incoming orders list
+        const listItem = document.querySelector(`.live-order-item[data-order-id="${orderId}"]`);
+        if (listItem) {
+            listItem.style.transition = 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
+            listItem.style.opacity = '0';
+            listItem.style.transform = 'translateX(-30px) scale(0.95)';
+            listItem.style.maxHeight = listItem.offsetHeight + 'px';
+            setTimeout(() => {
+                listItem.style.maxHeight = '0';
+                listItem.style.paddingTop = '0';
+                listItem.style.paddingBottom = '0';
+                listItem.style.marginTop = '0';
+                listItem.style.marginBottom = '0';
+                listItem.style.border = 'none';
+                listItem.style.overflow = 'hidden';
+                setTimeout(() => {
+                    listItem.remove();
+                    checkEmptyLiveOrdersState();
+                }, 350);
+            }, 50);
+        }
+
+        // 2. Remove from active orders map
+        delete currentOrdersMap[orderId];
+
+        // 3. Update active badge and counters
+        const remainingCount = Object.keys(currentOrdersMap).length;
+        const kpiLive = document.getElementById('kpi-live-orders');
+        const kpiBadge = document.getElementById('live-orders-badge');
+        if (kpiLive)  kpiLive.textContent  = remainingCount;
+        if (kpiBadge) kpiBadge.textContent = remainingCount;
+
+        // Decrement dispatched / road count, increment delivered pipe count
+        const pDelivered = document.getElementById('pipe-delivered');
+        if (pDelivered) {
+            pDelivered.textContent = (parseInt(pDelivered.textContent) || 0) + 1;
+        }
+        const kpiDisp = document.getElementById('kpi-dispatched-orders');
+        if (kpiDisp) {
+            kpiDisp.textContent = Math.max(0, (parseInt(kpiDisp.textContent) || 1) - 1);
+        }
+        const pDel = document.getElementById('pipe-delivery');
+        if (pDel) {
+            pDel.textContent = Math.max(0, (parseInt(pDel.textContent) || 1) - 1);
+        }
+
+        // 4. If this was the selected order in the middle workbench, switch to next active order
+        if (SELECTED_ORDER_ID === orderId) {
+            const remainingKeys = Object.keys(currentOrdersMap).map(k => parseInt(k)).sort((a,b) => b - a);
+            if (remainingKeys.length > 0) {
+                selectOrder(remainingKeys[0]);
+            } else {
+                SELECTED_ORDER_ID = null;
+                renderEmptyWorkbenchState();
+            }
+        }
+    }
+
+    function checkEmptyLiveOrdersState() {
+        const list = document.getElementById('live-orders-list');
+        if (!list) return;
+        const remainingItems = list.querySelectorAll('.live-order-item');
+        if (remainingItems.length === 0) {
+            list.innerHTML = `<div style="text-align:center;padding:40px 10px;color:#94a3b8;" id="empty-orders-state">
+                <div style="font-size:36px;margin-bottom:8px;">🍽️</div>
+                <p style="font-weight:700;font-size:14px;color:#334155;">No active live orders right now</p>
+                <p style="font-size:11.5px;margin-top:4px;">Delivered orders are moved to Order History. New WhatsApp orders will arrive here automatically.</p>
+                <a href="/dashboard/${RESTAURANT_ID}/history" style="display:inline-block;margin-top:10px;color:#6366f1;font-weight:700;font-size:11.5px;text-decoration:none;">Open Order History →</a>
+            </div>`;
+        }
+    }
+
+    function renderEmptyWorkbenchState() {
+        const panel = document.getElementById('order-detail-panel');
+        if (!panel) return;
+        panel.innerHTML = `<div style="text-align:center;padding:80px 20px;color:#94a3b8;" id="empty-workbench-state">
+            <div style="font-size:44px;margin-bottom:12px;">🎉</div>
+            <h3 style="font-size:17px;font-weight:800;color:#0f172a;">All Orders Delivered!</h3>
+            <p style="font-size:12.5px;color:#64748b;margin-top:6px;max-width:320px;margin-left:auto;margin-right:auto;line-height:1.5;">
+                Active orders have been delivered and archived into Order History. The kitchen is all caught up!
+            </p>
+            <div style="margin-top:18px;display:flex;gap:10px;justify-content:center;">
+                <a href="/dashboard/${RESTAURANT_ID}/history" style="padding:9px 18px;background:#4f46e5;color:#ffffff;border-radius:10px;font-size:12.5px;font-weight:700;text-decoration:none;">
+                    View Order History →
+                </a>
+            </div>
+        </div>`;
     }
 
     function selectOrder(orderId) {
@@ -1750,6 +1867,9 @@
             const data = await res.json();
             if (!data.success) return;
 
+            const allFeedOrders = data.orders ?? [];
+            const activeOrders  = allFeedOrders.filter(o => ACTIVE_LIVE_STATUSES.includes(o.status));
+
             const kpiLive = document.getElementById('kpi-live-orders');
             const kpiBadge = document.getElementById('live-orders-badge');
             const kpiRev  = document.getElementById('kpi-revenue');
@@ -1757,31 +1877,25 @@
             const kpiPrep = document.getElementById('kpi-preparing-orders');
             const kpiDisp = document.getElementById('kpi-dispatched-orders');
 
-            if (kpiLive)  kpiLive.textContent  = data.active_count ?? 0;
-            if (kpiBadge) kpiBadge.textContent  = data.active_count ?? 0;
-            if (kpiRev)   kpiRev.textContent    = 'PKR ' + Number(data.revenue ?? 0).toLocaleString();
-            if (kpiPend)  kpiPend.textContent   = data.pending_count ?? 0;
+            if (kpiLive)  kpiLive.textContent  = data.active_count ?? activeOrders.length;
+            if (kpiBadge) kpiBadge.textContent = data.active_count ?? activeOrders.length;
+            if (kpiRev)   kpiRev.textContent   = 'PKR ' + Number(data.revenue ?? 0).toLocaleString();
+            if (kpiPend)  kpiPend.textContent  = data.pending_count ?? 0;
 
-            const orders = data.orders ?? [];
-            const list   = document.getElementById('live-orders-list');
-
-            let prepCount = 0;
-            let dispCount = 0;
-            orders.forEach(o => {
-                currentOrdersMap[o.id] = o;
-                if (o.status === 'preparing' || o.status === 'confirmed') prepCount++;
-                if (o.status === 'out_for_delivery') dispCount++;
-            });
-            if (kpiPrep) kpiPrep.textContent = prepCount;
-            if (kpiDisp) kpiDisp.textContent = dispCount;
-
-            // Update live pipeline counters
+            // Pipeline counters
             const sc = data.status_counts || {};
             const pPending = document.getElementById('pipe-pending');
             if (pPending) pPending.textContent = sc.pending ?? (data.pending_count ?? 0);
 
             const pConfirmed = document.getElementById('pipe-confirmed');
             if (pConfirmed) pConfirmed.textContent = sc.confirmed ?? 0;
+
+            let prepCount = 0;
+            let dispCount = 0;
+            activeOrders.forEach(o => {
+                if (o.status === 'preparing' || o.status === 'confirmed') prepCount++;
+                if (o.status === 'out_for_delivery') dispCount++;
+            });
 
             const pPrep = document.getElementById('pipe-preparing');
             if (pPrep) pPrep.textContent = sc.preparing ?? prepCount;
@@ -1795,29 +1909,39 @@
             const pDelivered = document.getElementById('pipe-delivered');
             if (pDelivered) pDelivered.textContent = sc.delivered ?? (data.delivered_count ?? 0);
 
-            if (list) {
-                if (orders.length === 0) {
-                    list.innerHTML = `<div style="text-align:center;padding:40px 10px;color:#94a3b8;" id="empty-orders-state">
-                        <div style="font-size:36px;margin-bottom:8px;">🍽️</div>
-                        <p style="font-weight:700;font-size:14px;">No active live orders right now</p>
-                        <p style="font-size:11.5px;margin-top:4px;">Orders placed on WhatsApp appear here instantly in real-time.</p>
-                    </div>`;
+            if (kpiPrep) kpiPrep.textContent = sc.preparing ?? prepCount;
+            if (kpiDisp) kpiDisp.textContent = sc.out_for_delivery ?? dispCount;
 
-                    if (SELECTED_ORDER_ID !== null && !orders.some(o => o.id === SELECTED_ORDER_ID)) {
-                        const panel = document.getElementById('order-detail-panel');
-                        if (panel) {
-                            panel.innerHTML = `<div style="text-align:center;padding:80px 20px;color:#94a3b8;">
-                                <div style="font-size:40px;margin-bottom:12px;">🛍️</div>
-                                <h3 style="font-size:16px;font-weight:700;color:#334155;">Select an order</h3>
-                                <p style="font-size:12px;margin-top:4px;">Click any order on the left to view its items, delivery route and customer chat.</p>
-                            </div>`;
-                        }
+            // ── 1. AUTOMATICALLY WIPE OUT DELIVERED / CANCELLED ORDERS ──
+            const currentMappedIds = Object.keys(currentOrdersMap).map(k => parseInt(k));
+            currentMappedIds.forEach(mappedId => {
+                const feedOrder = allFeedOrders.find(o => o.id === mappedId);
+                // If it reached delivered or cancelled or is no longer in active orders
+                if (feedOrder && !ACTIVE_LIVE_STATUSES.includes(feedOrder.status)) {
+                    wipeDeliveredOrderFromLive(mappedId);
+                }
+            });
+
+            // ── 2. PROCESS ACTIVE ORDERS ──
+            const list = document.getElementById('live-orders-list');
+            if (list) {
+                if (activeOrders.length === 0) {
+                    currentOrdersMap = {};
+                    checkEmptyLiveOrdersState();
+                    if (SELECTED_ORDER_ID !== null) {
+                        SELECTED_ORDER_ID = null;
+                        renderEmptyWorkbenchState();
                     }
                 } else {
-                    const existingIds = [...list.querySelectorAll('[data-order-id]')].map(el => parseInt(el.dataset.orderId));
-                    const newIds      = orders.map(o => o.id);
+                    const existingIds = [...list.querySelectorAll('.live-order-item[data-order-id]')].map(el => parseInt(el.dataset.orderId));
+                    const newIds      = activeOrders.map(o => o.id);
                     const hasNew      = newIds.some(id => !existingIds.includes(id));
                     const hasGone     = existingIds.some(id => !newIds.includes(id));
+
+                    // Cache active orders in currentOrdersMap
+                    activeOrders.forEach(o => {
+                        currentOrdersMap[o.id] = o;
+                    });
 
                     if (hasNew || hasGone || list.querySelector('#empty-orders-state') || currentLiveStageFilter !== 'all') {
                         applyLiveOrdersFilter();
@@ -1828,7 +1952,8 @@
                             triggerKitchenNewOrderAlert();
                         }
                     } else {
-                        orders.forEach(o => {
+                        // In-place updates for existing active orders
+                        activeOrders.forEach(o => {
                             const row  = list.querySelector(`[data-order-id="${o.id}"]`);
                             if (!row) return;
                             const pill = row.querySelector('.status-pill');
@@ -1841,8 +1966,13 @@
                         });
                     }
 
-                    if (SELECTED_ORDER_ID === null && orders.length > 0) {
-                        selectOrder(orders[0].id);
+                    // Auto-select first active order if none is currently selected or if selected order was wiped
+                    if (SELECTED_ORDER_ID === null || !currentOrdersMap[SELECTED_ORDER_ID]) {
+                        if (activeOrders.length > 0) {
+                            selectOrder(activeOrders[0].id);
+                        }
+                    } else if (currentOrdersMap[SELECTED_ORDER_ID]) {
+                        renderOrderDetail(currentOrdersMap[SELECTED_ORDER_ID]);
                     }
                 }
             }

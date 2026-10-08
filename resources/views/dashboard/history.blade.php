@@ -49,7 +49,10 @@
             <tbody>
                 @forelse($orders as $o)
                 <tr>
-                    <td><code>#{{ $o->tracking_code }}</code></td>
+                    <td>
+                        <strong style="color: #0f172a; font-size: 13.5px;">#{{ $o->daily_order_number ?: $o->id }}</strong>
+                        <div style="font-size: 11px; color: #64748b; margin-top: 2px;"><code>#{{ $o->tracking_code }}</code></div>
+                    </td>
                     <td>
                         <div>{{ $o->created_at->format('d M Y') }}</div>
                         <div style="font-size: 11px; color: #64748b;">{{ $o->created_at->format('h:i A') }}</div>
