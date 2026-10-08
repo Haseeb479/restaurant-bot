@@ -1906,58 +1906,54 @@ class OrderingStateEngine
             ->orderBy('sort_order')
             ->get();
 
-        $restaurantName = $this->restaurant->name ?? 'Foodio';
-        $out = "📜 *{$restaurantName} — Menu:*\n";
-        $out .= "━━━━━━━━━━━━━━━━━━━━━\n";
-
-        $hasAnyItem = false;
+        $restaurantName = strtoupper(trim($this->restaurant->name ?? 'RESTAURANT'));
+        $categorySections = [];
 
         foreach ($categories as $cat) {
             $catItems = $cat->items ?? collect();
             if ($catItems->isEmpty()) {
                 continue;
             }
-            $hasAnyItem = true;
-            $catName = strtoupper($cat->name);
 
-            // Icon for category
-            $icon = '🍽️';
-            if (stripos($catName, 'deal') !== false) {
-                $icon = '🔥';
-            } elseif (stripos($catName, 'pizza') !== false) {
-                $icon = '🍕';
-            } elseif (stripos($catName, 'burger') !== false) {
-                $icon = '🍔';
-            } elseif (stripos($catName, 'drink') !== false || stripos($catName, 'beverage') !== false) {
-                $icon = '🥤';
-            } elseif (stripos($catName, 'roll') !== false || stripos($catName, 'wrap') !== false) {
-                $icon = '🌯';
-            } elseif (stripos($catName, 'pasta') !== false) {
-                $icon = '🍝';
-            } elseif (stripos($catName, 'fries') !== false) {
-                $icon = '🍟';
-            } elseif (stripos($catName, 'wing') !== false || stripos($catName, 'nugget') !== false) {
-                $icon = '🍗';
-            }
-
-            $out .= "\n{$icon} *{$catName}*\n";
+            $catName = strtoupper(trim($cat->name));
+            $itemEntries = [];
 
             foreach ($catItems as $item) {
-                if ($item->variants->isNotEmpty()) {
-                    $out .= "• *{$item->name}*\n";
+                $hasVariants = $item->variants->isNotEmpty();
+                $itemText = '';
+
+                if ($hasVariants) {
+                    $itemText .= "{$item->name}\n";
                     $varLines = [];
                     foreach ($item->variants as $v) {
-                        $varLines[] = "{$v->name}: Rs. " . number_format($v->price);
+                        $varLines[] = "{$v->name} Rs. " . number_format($v->price);
                     }
-                    $out .= "   ▫️ " . implode(' / ', $varLines) . "\n";
+                    $itemText .= implode(' | ', $varLines);
                 } else {
-                    $out .= "• *{$item->name}* — Rs. " . number_format($item->price) . "\n";
+                    $itemText .= "{$item->name} — Rs. " . number_format($item->price);
                 }
+
                 if (!empty($item->description)) {
                     $cleanDesc = trim(preg_replace('/\s*;\s*/', ' + ', $item->description));
-                    $out .= "   👉 _{$cleanDesc}_\n";
+                    $itemText .= "\n{$cleanDesc}";
+                }
+
+                $itemEntries[] = [
+                    'text' => $itemText,
+                    'is_multi' => $hasVariants || !empty($item->description),
+                ];
+            }
+
+            $catBody = '';
+            foreach ($itemEntries as $idx => $entry) {
+                $catBody .= $entry['text'];
+                if ($idx < count($itemEntries) - 1) {
+                    $next = $itemEntries[$idx + 1];
+                    $catBody .= ($entry['is_multi'] || $next['is_multi']) ? "\n\n" : "\n";
                 }
             }
+
+            $categorySections[] = "{$catName}\n\n{$catBody}";
         }
 
         // Include uncategorized items if any
@@ -1968,28 +1964,47 @@ class OrderingStateEngine
             ->get();
 
         if ($uncategorized->isNotEmpty()) {
-            $hasAnyItem = true;
-            $out .= "\n🍽️ *OTHER ITEMS*\n";
+            $itemEntries = [];
             foreach ($uncategorized as $item) {
-                if ($item->variants->isNotEmpty()) {
-                    $out .= "• *{$item->name}*\n";
+                $hasVariants = $item->variants->isNotEmpty();
+                $itemText = '';
+
+                if ($hasVariants) {
+                    $itemText .= "{$item->name}\n";
                     $varLines = [];
                     foreach ($item->variants as $v) {
-                        $varLines[] = "{$v->name}: Rs. " . number_format($v->price);
+                        $varLines[] = "{$v->name} Rs. " . number_format($v->price);
                     }
-                    $out .= "   ▫️ " . implode(' / ', $varLines) . "\n";
+                    $itemText .= implode(' | ', $varLines);
                 } else {
-                    $out .= "• *{$item->name}* — Rs. " . number_format($item->price) . "\n";
+                    $itemText .= "{$item->name} — Rs. " . number_format($item->price);
                 }
+
                 if (!empty($item->description)) {
                     $cleanDesc = trim(preg_replace('/\s*;\s*/', ' + ', $item->description));
-                    $out .= "   👉 _{$cleanDesc}_\n";
+                    $itemText .= "\n{$cleanDesc}";
+                }
+
+                $itemEntries[] = [
+                    'text' => $itemText,
+                    'is_multi' => $hasVariants || !empty($item->description),
+                ];
+            }
+
+            $catBody = '';
+            foreach ($itemEntries as $idx => $entry) {
+                $catBody .= $entry['text'];
+                if ($idx < count($itemEntries) - 1) {
+                    $next = $itemEntries[$idx + 1];
+                    $catBody .= ($entry['is_multi'] || $next['is_multi']) ? "\n\n" : "\n";
                 }
             }
+
+            $categorySections[] = "OTHER ITEMS\n\n{$catBody}";
         }
 
         // Fallback flat list if categories were not populated
-        if (!$hasAnyItem) {
+        if (empty($categorySections)) {
             $items = MenuItem::where('restaurant_id', $this->restaurant->id)
                 ->where('is_available', true)
                 ->with('variants')
@@ -1999,28 +2014,49 @@ class OrderingStateEngine
                 return "Menu abhi upload nahi hua.";
             }
 
-            $out .= "\n";
+            $itemEntries = [];
             foreach ($items as $item) {
-                if ($item->variants->isNotEmpty()) {
-                    $out .= "• *{$item->name}*\n";
+                $hasVariants = $item->variants->isNotEmpty();
+                $itemText = '';
+
+                if ($hasVariants) {
+                    $itemText .= "{$item->name}\n";
                     $varLines = [];
                     foreach ($item->variants as $v) {
-                        $varLines[] = "{$v->name}: Rs. " . number_format($v->price);
+                        $varLines[] = "{$v->name} Rs. " . number_format($v->price);
                     }
-                    $out .= "   ▫️ " . implode(' / ', $varLines) . "\n";
+                    $itemText .= implode(' | ', $varLines);
                 } else {
-                    $out .= "• *{$item->name}* — Rs. " . number_format($item->price) . "\n";
+                    $itemText .= "{$item->name} — Rs. " . number_format($item->price);
                 }
+
                 if (!empty($item->description)) {
                     $cleanDesc = trim(preg_replace('/\s*;\s*/', ' + ', $item->description));
-                    $out .= "   👉 _{$cleanDesc}_\n";
+                    $itemText .= "\n{$cleanDesc}";
+                }
+
+                $itemEntries[] = [
+                    'text' => $itemText,
+                    'is_multi' => $hasVariants || !empty($item->description),
+                ];
+            }
+
+            $catBody = '';
+            foreach ($itemEntries as $idx => $entry) {
+                $catBody .= $entry['text'];
+                if ($idx < count($itemEntries) - 1) {
+                    $next = $itemEntries[$idx + 1];
+                    $catBody .= ($entry['is_multi'] || $next['is_multi']) ? "\n\n" : "\n";
                 }
             }
+
+            $categorySections[] = $catBody;
         }
 
-        $out .= "\n━━━━━━━━━━━━━━━━━━━━━\n";
-        $out .= "✨ *Order karne ke liye:* Reply with item name & quantity!\n";
-        $out .= "_(Example: '1 Deal 01' ya '1 Large Shahi Pizza aur 2 Coke')_";
+        $out = "{$restaurantName} MENU\n\n" . implode("\n\n", $categorySections);
+
+        $out .= "\n\nORDER FORMAT\n\nTo place an order, send:\n\nItem name + quantity\n\nExample:\n1 Deal 01\n2 Large Shahi Pizza\n1 Large Fries + 2 Coke";
+
         return $out;
     }
 

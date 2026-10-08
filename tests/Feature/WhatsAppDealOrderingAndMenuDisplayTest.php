@@ -65,11 +65,17 @@ class WhatsAppDealOrderingAndMenuDisplayTest extends TestCase
         $engine = new OrderingStateEngine($restaurant, '923001112233');
         $menuText = $engine->renderMenuText();
 
-        $this->assertStringContainsString('🔥 *DEALS*', $menuText);
-        $this->assertStringContainsString('Deal 01', $menuText);
-        $this->assertStringContainsString('👉 _1 Zinger Burger + 1 Reg Drink_', $menuText);
-        $this->assertStringContainsString('Deal 02', $menuText);
-        $this->assertStringContainsString('👉 _2 Zinger Burgers + 2 Reg Drinks + 1 Fries_', $menuText);
+        $this->assertStringContainsString("PIZZA BITE MENU\n\nDEALS", $menuText);
+        $this->assertStringContainsString("Deal 01 — Rs. 450\n1 Zinger Burger + 1 Reg Drink", $menuText);
+        $this->assertStringContainsString("Deal 02 — Rs. 850\n2 Zinger Burgers + 2 Reg Drinks + 1 Fries", $menuText);
+        $this->assertStringContainsString("ORDER FORMAT\n\nTo place an order, send:", $menuText);
+
+        // Assert NO emojis in the rendered menu
+        $this->assertStringNotContainsString('🔥', $menuText);
+        $this->assertStringNotContainsString('👉', $menuText);
+        $this->assertStringNotContainsString('🍕', $menuText);
+        $this->assertStringNotContainsString('✨', $menuText);
+        $this->assertStringNotContainsString('📜', $menuText);
     }
 
     public function test_customer_can_order_deal_1_without_refusal(): void
@@ -204,5 +210,37 @@ class WhatsAppDealOrderingAndMenuDisplayTest extends TestCase
 
         $this->assertStringContainsString('Deal 01', $confirmReply);
         $this->assertStringContainsString('Added to Cart', $confirmReply);
+    }
+
+    public function test_build_formatted_customer_menu_renders_clean_minimal_format(): void
+    {
+        $restaurant = $this->createRestaurant();
+
+        $cat = Category::create([
+            'restaurant_id' => $restaurant->id,
+            'name'          => 'Burgers',
+            'sort_order'    => 1,
+        ]);
+
+        MenuItem::create([
+            'restaurant_id' => $restaurant->id,
+            'category_id'   => $cat->id,
+            'name'          => 'Zinger Burger',
+            'price'         => 400,
+            'is_available'  => true,
+        ]);
+
+        $botService = new WhatsAppAiBotService();
+        $refMethod = new \ReflectionMethod(WhatsAppAiBotService::class, 'buildFormattedCustomerMenu');
+        $refMethod->setAccessible(true);
+        $menuOutput = $refMethod->invoke($botService, $restaurant);
+
+        $this->assertStringContainsString("PIZZA BITE MENU\n\nBURGERS", $menuOutput);
+        $this->assertStringContainsString("Zinger Burger — Rs. 400", $menuOutput);
+        $this->assertStringContainsString("ORDER FORMAT\n\nTo place an order, send:", $menuOutput);
+        $this->assertStringNotContainsString('📋', $menuOutput);
+        $this->assertStringNotContainsString('🍽️', $menuOutput);
+        $this->assertStringNotContainsString('🛵', $menuOutput);
+        $this->assertStringNotContainsString('•', $menuOutput);
     }
 }

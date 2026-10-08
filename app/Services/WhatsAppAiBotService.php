@@ -1959,65 +1959,102 @@ PROMPT;
      */
     private function buildFormattedCustomerMenu(Restaurant $restaurant): string
     {
-        $name = strtoupper($restaurant->name ?: 'Restaurant');
-        $out  = "📋 *{$name} — OFFICIAL MENU*\n";
-        $out .= "───────────────────\n";
+        $name = strtoupper(trim($restaurant->name ?: 'RESTAURANT'));
+        $categorySections = [];
 
         $categories = $restaurant->categories()
-            ->with(['items' => fn($q) => $q->where('is_available', true)])
+            ->with(['items' => fn($q) => $q->where('is_available', true)->with('variants')])
             ->orderBy('sort_order')
             ->get();
 
-        $hasItems = false;
         foreach ($categories as $cat) {
             $items = $cat->items ?? collect();
             if ($items->isEmpty()) continue;
-            $hasItems = true;
-            $catName = strtoupper($cat->name);
-            $out .= "\n🍽️ *{$catName}*\n";
+
+            $catName = strtoupper(trim($cat->name));
+            $itemEntries = [];
+
             foreach ($items as $item) {
-                $priceStr = "Rs. " . number_format((float) $item->price, 0);
                 $activeSizes = $item->getActiveSizesList();
+                $hasVariants = !empty($activeSizes) || ($item->variants && $item->variants->isNotEmpty());
+                $itemText = '';
+
                 if (!empty($activeSizes)) {
-                    $parts = array_map(fn($s) => ($s['name'] ?? $s['size']) . ": Rs." . number_format($s['price'] ?? 0, 0), $activeSizes);
-                    $priceStr = implode(' / ', $parts);
+                    $parts = array_map(fn($s) => ($s['name'] ?? $s['size']) . " Rs. " . number_format($s['price'] ?? 0, 0), $activeSizes);
+                    $itemText = "{$item->name}\n" . implode(' | ', $parts);
+                } elseif ($item->variants && $item->variants->isNotEmpty()) {
+                    $parts = $item->variants->map(fn($v) => "{$v->name} Rs. " . number_format($v->price))->toArray();
+                    $itemText = "{$item->name}\n" . implode(' | ', $parts);
+                } else {
+                    $itemText = "{$item->name} — Rs. " . number_format((float) $item->price, 0);
                 }
-                $out .= "• *{$item->name}* — {$priceStr}\n";
+
                 if (!empty($item->description)) {
                     $cleanDesc = trim(preg_replace('/\s*;\s*/', ' + ', $item->description));
-                    $out .= "   👉 _{$cleanDesc}_\n";
+                    $itemText .= "\n{$cleanDesc}";
+                }
+
+                $itemEntries[] = [
+                    'text' => $itemText,
+                    'is_multi' => $hasVariants || !empty($item->description),
+                ];
+            }
+
+            $catBody = '';
+            foreach ($itemEntries as $idx => $entry) {
+                $catBody .= $entry['text'];
+                if ($idx < count($itemEntries) - 1) {
+                    $next = $itemEntries[$idx + 1];
+                    $catBody .= ($entry['is_multi'] || $next['is_multi']) ? "\n\n" : "\n";
                 }
             }
+
+            $categorySections[] = "{$catName}\n\n{$catBody}";
         }
 
-        if (!$hasItems) {
-            $items = $restaurant->menuItems()->where('is_available', true)->get();
+        if (empty($categorySections)) {
+            $items = $restaurant->menuItems()->where('is_available', true)->with('variants')->get();
+            $itemEntries = [];
             foreach ($items as $item) {
-                $priceStr = "Rs. " . number_format((float) $item->price, 0);
                 $activeSizes = $item->getActiveSizesList();
+                $hasVariants = !empty($activeSizes) || ($item->variants && $item->variants->isNotEmpty());
+                $itemText = '';
+
                 if (!empty($activeSizes)) {
-                    $parts = array_map(fn($s) => ($s['name'] ?? $s['size']) . ": Rs." . number_format($s['price'] ?? 0, 0), $activeSizes);
-                    $priceStr = implode(' / ', $parts);
+                    $parts = array_map(fn($s) => ($s['name'] ?? $s['size']) . " Rs. " . number_format($s['price'] ?? 0, 0), $activeSizes);
+                    $itemText = "{$item->name}\n" . implode(' | ', $parts);
+                } elseif ($item->variants && $item->variants->isNotEmpty()) {
+                    $parts = $item->variants->map(fn($v) => "{$v->name} Rs. " . number_format($v->price))->toArray();
+                    $itemText = "{$item->name}\n" . implode(' | ', $parts);
+                } else {
+                    $itemText = "{$item->name} — Rs. " . number_format((float) $item->price, 0);
                 }
-                $out .= "• *{$item->name}* — {$priceStr}\n";
+
                 if (!empty($item->description)) {
                     $cleanDesc = trim(preg_replace('/\s*;\s*/', ' + ', $item->description));
-                    $out .= "   👉 _{$cleanDesc}_\n";
+                    $itemText .= "\n{$cleanDesc}";
+                }
+
+                $itemEntries[] = [
+                    'text' => $itemText,
+                    'is_multi' => $hasVariants || !empty($item->description),
+                ];
+            }
+
+            $catBody = '';
+            foreach ($itemEntries as $idx => $entry) {
+                $catBody .= $entry['text'];
+                if ($idx < count($itemEntries) - 1) {
+                    $next = $itemEntries[$idx + 1];
+                    $catBody .= ($entry['is_multi'] || $next['is_multi']) ? "\n\n" : "\n";
                 }
             }
+
+            $categorySections[] = $catBody;
         }
 
-        $radius = $restaurant->delivery_radius_km ?: 5.0;
-        $fee    = (float) ($restaurant->delivery_charge ?? 50);
-        $min    = (float) ($restaurant->minimum_order ?? 0);
-
-        $out .= "\n───────────────────\n";
-        $out .= "🛵 *Delivery Fee:* Rs. {$fee} (within {$radius} KM)\n";
-        if ($min > 0) {
-            $out .= "🏷️ *Minimum Order:* Rs. {$min}\n";
-        }
-        $out .= "✨ *Order karne ke liye:* Reply with item name & quantity!\n";
-        $out .= "_(Example: \"1 Zinger Burger aur 1 Cold Drink\")_";
+        $out = "{$name} MENU\n\n" . implode("\n\n", $categorySections);
+        $out .= "\n\nORDER FORMAT\n\nTo place an order, send:\n\nItem name + quantity\n\nExample:\n1 Deal 01\n2 Large Shahi Pizza\n1 Large Fries + 2 Coke";
 
         return $out;
     }
