@@ -260,10 +260,13 @@ class WhatsAppAiBotService
         }
 
         $lowerClean = strtolower($clean);
-        if (
+        // Guard: Fast path confirmation check MUST NOT trigger if user is asking to add/modify items or mentioning food/drinks
+        $hasOrderOrItemAction = (bool) preg_match('/\b(?:add|aur|bhi|chahiye|chahyee|chaiye|chahey|chahye|chahiyay|daal|daalo|mangwa|mangwana|mangwao|remove|hatao|cold|drink|drinks|coke|pepsi|pizza|burger|fries|roll|wrap|sandwich|deal|biryani|shawarma)\b/iu', $clean);
+
+        if (!$hasOrderOrItemAction && (
             preg_match('/^(?:conf[io]rm|confim|cnfrm|cnfm|conferm|confrm|comfirm|confrim|yes|yep|yup|haan|ha|han|jee|ji|theek|thek|ok|okay|done|bhej\s*do|bhejo|kr\s*do|kardo|kar\s*do|order\s*kar\s*do|order\s*confirm|confirm\s*order|confirm\s*hai|yes\s*confirm|theek\s*hai|thek\s*hai|haan\s*ji|ji\s*haan|ha\s*ji|bilkul|confirm\s*(?:kardo|kr\s*do|kar\s*dain|karo|please)|done\s*(?:hai|karo|kar\s*do))$/i', $clean) ||
             (strlen($lowerClean) <= 15 && (levenshtein($lowerClean, 'confirm') <= 2 || levenshtein($lowerClean, 'confirmed') <= 2))
-        ) {
+        )) {
             return ['intent' => 'CONFIRM_ORDER', 'items' => [], 'raw_text' => $clean];
         }
 
@@ -311,7 +314,7 @@ Rules:
 - If customer says "cancel", "radd", intent is CANCEL_ORDER.
 - If customer asks for menu or rates, intent is SHOW_MENU.
 - If customer wants to add items to or modify their existing/previous order (e.g. "is me add kar do", "is order me add karo", "isme 2 wrap kr do", "same order me", "add 2 wraps", "order me aur add karo", "add this to my order"), intent is MODIFY_EXISTING_ORDER.
-- If customer says "new order", "naya order", "another order", "make another order", intent is START_NEW_ORDER.
+- If customer mentions adding items or ordering food/drinks (e.g. "ik cold add kr do", "cold drink add kar do", "cold chahyee", "1 burger aur", "ek pizza add kar do"), intent MUST be "ADD_ITEM", extract items with quantity and name. NEVER classify food or drink requests as CONFIRM_ORDER and NEVER extract food/drink items as customer name.
 - Output valid, raw JSON only. No markdown formatting, no backticks, no extra text.
 SYS;
 
@@ -347,9 +350,13 @@ SYS;
             return ['intent' => 'CANCEL_ORDER', 'items' => [], 'raw_text' => $clean];
         }
 
-        if ((preg_match('/\b(yes|confirm|confim|cnfrm|cnfm|conferm|confrm|comfirm|theek|thek|haan|han|jee|ji|ok|okay|order\s+kar\s+do|done|bhej\s*do|kardo|kr\s*do)\b/i', $clean) ||
+        $hasOrderOrItemAction = (bool) preg_match('/\b(?:add|aur|bhi|chahiye|chahyee|chaiye|chahey|chahye|chahiyay|daal|daalo|mangwa|mangwana|mangwao|remove|hatao|cold|drink|drinks|coke|pepsi|pizza|burger|fries|roll|wrap|sandwich|deal|biryani|shawarma)\b/iu', $clean);
+
+        if (!$hasOrderOrItemAction && (
+            (preg_match('/\b(yes|confirm|confim|cnfrm|cnfm|conferm|confrm|comfirm|theek|thek|haan|han|jee|ji|ok|okay|order\s+kar\s+do|done|bhej\s*do|kardo|kr\s*do)\b/i', $clean) ||
             (strlen($clean) <= 15 && (levenshtein(strtolower($clean), 'confirm') <= 2 || levenshtein(strtolower($clean), 'confirmed') <= 2)))
-            && ! preg_match('/\b(pizza|burger|roll|biryani|bottle|coke|deal|wrap)\b/i', $clean)) {
+            && ! preg_match('/\b(pizza|burger|roll|biryani|bottle|coke|deal|wrap)\b/i', $clean)
+        )) {
             return ['intent' => 'CONFIRM_ORDER', 'items' => [], 'raw_text' => $clean];
         }
 
@@ -387,6 +394,24 @@ SYS;
             $address = trim(preg_replace('/\b(hai|is|mera)\b/i', '', $am[1]));
         }
 
+        // Infer standalone customer name or address if message lacks ordering/food keywords
+        $hasExplicitQty = (bool) preg_match('/\b(?:\d+|ik|ek|aik|aikk|do|teen|chaar|panch)\b/iu', $clean);
+        $hasExplicitAction = (bool) preg_match('/\b(?:add|aur|bhi|chahiye|chahyee|chaiye|chahey|chahye|daal|daalo|mangwa|mangwana)\b/iu', $clean);
+        $hasFoodWord = (bool) preg_match('/\b(?:pizza|burger|drink|drinks|cold|coldrink|coke|pepsi|fries|roll|wrap|sandwich|deal|biryani|roti|naan|wings|pasta|sauce|water|tikka|kabab|boti|zinger|paratha|mighty|crust|loaded|cheese|nuggets)\b/iu', $clean);
+        $hasSize = (bool) preg_match('/\b(?:small|medium|large|xl|chota|bara|darmiyana|regular)\b/iu', $clean);
+        $hasAddressWord = (bool) preg_match('/\b(?:street|house|st|h#|road|block|sector|town|phase|lahore|karachi|islamabad|rawalpindi|gali|near|chowk|mohalla|colony|flat|apt|apartment)\b/iu', $clean);
+
+        if (! $name && ! $address) {
+            if ($hasAddressWord) {
+                $address = $clean;
+            } elseif (! $hasExplicitQty && ! $hasExplicitAction && ! $hasFoodWord && ! $hasSize) {
+                $words = array_filter(explode(' ', $clean));
+                if (count($words) >= 1 && count($words) <= 4 && ! preg_match('/[0-9?:;!+=_<>@#$%^&*()]/', $clean)) {
+                    $name = ucwords(strtolower($clean));
+                }
+            }
+        }
+
         // Strip price tampering attempt before extracting items
         $cleanWithoutPrices = preg_replace('/(?:for\s*)?(?:rs\.?|pkr\.?)\s*\d+/i', '', $clean);
 
@@ -398,6 +423,16 @@ SYS;
         if ($address) {
             $itemSearchStr = str_ireplace($address, '', $itemSearchStr);
         }
+
+        // Strip verb suffixes first so "kr do" doesn't get confused with number 2
+        $itemSearchStr = preg_replace('/\b(?:kr\s*do|kar\s*do|kardo|de\s*do|dedo|bhej\s*do|daal\s*do|daaldo)\b/iu', '', $itemSearchStr);
+
+        // Normalize Roman Urdu quantities to digits
+        $itemSearchStr = preg_replace('/\b(?:ik|ek|aik|aikk|one)\b/iu', '1', $itemSearchStr);
+        $itemSearchStr = preg_replace('/\b(?:do|two)\b(?=\s+(?:small|medium|large|xl|chota|bara|[a-z]))/iu', '2', $itemSearchStr);
+        $itemSearchStr = preg_replace('/\b(?:teen|three)\b/iu', '3', $itemSearchStr);
+        $itemSearchStr = preg_replace('/\b(?:chaar|char|four)\b/iu', '4', $itemSearchStr);
+        $itemSearchStr = preg_replace('/\b(?:panch|paanch|five)\b/iu', '5', $itemSearchStr);
 
         if (preg_match_all('/(?:(?:add\s+)?(\d+)\s*(?:x\s*)?)?(?:\b(small|medium|large|xl|chota|bara|darmiyana)\b)?\s*([a-zA-Z\s]+?)(?:aur|and|,|$)/i', $itemSearchStr, $matches, PREG_SET_ORDER)) {
             $sizeMap = [
@@ -425,7 +460,7 @@ SYS;
                 $sizeWord = ! empty($match[2]) ? strtolower($match[2]) : null;
                 $size = $sizeWord ? ($sizeMap[$sizeWord] ?? ucfirst($sizeWord)) : null;
                 $rawItem = trim($match[3] ?? '');
-                $rawItem = preg_replace('/\b(?:chahiye|mangwana|bhej\s*do|pack\s*kar\s*do|mera|naam|address|hai|deliver|for|acha|is\s*me|isme|add|kr\s*do|kardo|kar\s*do|daal\s*do|karo|aur|bhi|kr)\b/iu', '', $rawItem);
+                $rawItem = preg_replace('/\b(?:chahiye|chahyee|chaiye|chahey|chahye|chahiyay|mangwana|mangwao|bhej\s*do|pack\s*kar\s*do|mera|naam|address|hai|deliver|for|acha|is\s*me|isme|add|kr\s*do|kardo|kar\s*do|daal\s*do|daalo|karo|aur|bhi|kr)\b/iu', '', $rawItem);
                 $rawItem = trim($rawItem);
 
                 // Detect size suffix or size inside rawItem if not matched by prefix
@@ -433,6 +468,11 @@ SYS;
                     $szKey = strtolower($szMatch[1]);
                     $size = $sizeMap[$szKey] ?? ucfirst($szKey);
                     $rawItem = trim(preg_replace('/\b' . preg_quote($szMatch[1], '/') . '\b/i', '', $rawItem));
+                }
+
+                // Normalize drink
+                if (preg_match('/^(?:cold|cold\s*drink|coldrink|cold\s*drinks|soft\s*drink|drink)$/i', $rawItem)) {
+                    $rawItem = 'Drink';
                 }
 
                 if (strlen($rawItem) >= 3 && ! in_array(strtolower($rawItem), [

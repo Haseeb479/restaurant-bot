@@ -133,153 +133,196 @@
         gap: 22px;
     }
 
-    /* ── ORDER PIPELINE CARD ── */
-    .pipeline-card {
+    /* ── REAL-TIME LIVE ORDER NOTIFICATION CARD ── */
+    .live-notif-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-card);
+        border-radius: var(--radius-card);
+        padding: 22px 24px;
+        box-shadow: var(--shadow-card);
+        transition: all 0.25s ease;
+    }
+    .live-notif-card.has-alert {
+        border-color: #f59e0b;
+        box-shadow: 0 4px 25px rgba(245, 158, 11, 0.12);
+    }
+    .live-notif-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .live-notif-pulse-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #059669;
+        background: #ecfdf5;
+        padding: 5px 12px;
+        border-radius: 9999px;
+        border: 1px solid #a7f3d0;
+    }
+    [data-theme="dark"] .live-notif-pulse-tag {
+        background: rgba(16, 185, 129, 0.15);
+        color: #34d399;
+        border-color: rgba(16, 185, 129, 0.3);
+    }
+    .live-notif-banner {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px 20px;
+        border-radius: 14px;
+        background: #fffbeb;
+        border: 1.5px solid #fde68a;
+        margin-bottom: 16px;
+        transition: all 0.25s ease;
+    }
+    [data-theme="dark"] .live-notif-banner {
+        background: rgba(245, 158, 11, 0.12);
+        border-color: rgba(245, 158, 11, 0.25);
+    }
+    .live-notif-banner.caught-up {
+        background: #f0fdf4;
+        border-color: #bbf7d0;
+    }
+    [data-theme="dark"] .live-notif-banner.caught-up {
+        background: rgba(16, 185, 129, 0.1);
+        border-color: rgba(16, 185, 129, 0.2);
+    }
+    .live-notif-icon-ring {
+        width: 46px;
+        height: 46px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        flex-shrink: 0;
+        background: #fef3c7;
+        color: #d97706;
+    }
+    .live-notif-banner.caught-up .live-notif-icon-ring {
+        background: #dcfce7;
+        color: #16a34a;
+    }
+    .live-notif-text {
+        flex: 1;
+        min-width: 0;
+    }
+    .live-notif-text h4 {
+        font-size: 15.5px;
+        font-weight: 800;
+        color: var(--text-heading);
+        margin: 0 0 4px 0;
+        line-height: 1.2;
+    }
+    .live-notif-text p {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin: 0;
+        line-height: 1.4;
+    }
+    .live-order-preview-box {
+        background: var(--bg-canvas);
+        border: 1px solid var(--border-subtle);
+        border-radius: 12px;
+        padding: 14px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+    .preview-meta-left {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+    }
+    .preview-order-code {
+        font-size: 13.5px;
+        font-weight: 800;
+        color: var(--text-heading);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .preview-order-items {
+        font-size: 12px;
+        color: var(--text-muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 380px;
+    }
+    .preview-order-price {
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--brand-primary);
+        white-space: nowrap;
+        text-align: right;
+    }
+    .btn-goto-live {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        padding: 12px 20px;
+        border-radius: 12px;
+        background: #4f46e5;
+        color: #ffffff;
+        font-size: 13.5px;
+        font-weight: 800;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
+    }
+    .btn-goto-live:hover {
+        background: #4338ca;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(79, 70, 229, 0.35);
+        color: #ffffff;
+    }
+    .recent-orders-card {
         background: var(--bg-card);
         border: 1px solid var(--border-card);
         border-radius: var(--radius-card);
         padding: 20px 22px;
         box-shadow: var(--shadow-card);
     }
-
-    .card-header-row {
+    .recent-orders-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .recent-order-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 16px;
-    }
-
-    .card-title-group {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 15px;
-        font-weight: 800;
-        color: var(--text-heading);
-    }
-
-    .card-action-link {
-        font-size: 12px;
-        font-weight: 600;
-        color: var(--text-muted);
-        text-decoration: none;
-        transition: color 0.15s ease;
-    }
-    .card-action-link:hover {
-        color: var(--brand-primary);
-    }
-
-    .pipeline-steps-strip {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-    }
-
-    .pipeline-step-box {
-        flex: 1;
-        background: var(--bg-canvas);
-        border: 1px solid var(--border-subtle);
+        padding: 10px 12px;
         border-radius: 12px;
-        padding: 12px 6px;
-        text-align: center;
+        background: var(--bg-canvas);
+        border: 1px solid var(--border-subtle);
         cursor: pointer;
         transition: all 0.15s ease;
         text-decoration: none;
+        color: inherit;
     }
-    .pipeline-step-box:hover {
-        transform: translateY(-2px);
-        border-color: #cbd5e1;
-    }
-    .pipeline-step-box.active {
-        box-shadow: 0 0 0 2px var(--brand-primary);
-    }
-
-    .pipeline-step-label {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 5px;
-        font-size: 11px;
-        font-weight: 700;
-        margin-bottom: 4px;
-    }
-    .pipeline-step-count {
-        font-size: 20px;
-        font-weight: 800;
-        color: var(--text-heading);
-        line-height: 1.1;
-    }
-
-    .pipeline-arrow {
-        color: var(--text-light);
-        font-size: 14px;
-        opacity: 0.6;
-        user-select: none;
-    }
-
-    /* Step Color Accents */
-    .step-new       { background: #fffbeb; border-color: #fef3c7; color: #b45309; }
-    .step-confirmed { background: #f0f9ff; border-color: #e0f2fe; color: #0284c7; }
-    .step-preparing { background: #faf5ff; border-color: #f3e8ff; color: #9333ea; }
-    .step-ready     { background: #ecfdf5; border-color: #d1fae5; color: #059669; }
-    .step-delivery  { background: #ecfeff; border-color: #cffafe; color: #0891b2; }
-    .step-delivered { background: #f8fafc; border-color: #f1f5f9; color: #64748b; }
-
-    [data-theme="dark"] .step-new       { background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.2); color: #fbbf24; }
-    [data-theme="dark"] .step-confirmed { background: rgba(14, 165, 233, 0.12); border-color: rgba(14, 165, 233, 0.2); color: #38bdf8; }
-    [data-theme="dark"] .step-preparing { background: rgba(168, 85, 247, 0.12); border-color: rgba(168, 85, 247, 0.2); color: #c084fc; }
-    [data-theme="dark"] .step-ready     { background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.2); color: #34d399; }
-    [data-theme="dark"] .step-delivery  { background: rgba(6, 182, 212, 0.12); border-color: rgba(6, 182, 212, 0.2); color: #22d3ee; }
-    [data-theme="dark"] .step-delivered { background: rgba(100, 116, 139, 0.12); border-color: rgba(100, 116, 139, 0.2); color: #94a3b8; }
-
-    /* ── LIVE ORDERS TABLE CARD ── */
-    .live-orders-card {
-        background: var(--bg-card);
-        border: 1px solid var(--border-card);
-        border-radius: var(--radius-card);
-        padding: 22px;
-        box-shadow: var(--shadow-card);
-    }
-
-    .pill-filters-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 18px;
-        overflow-x: auto;
-        padding-bottom: 4px;
-    }
-
-    .filter-pill-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        padding: 6px 14px;
-        border-radius: 9999px;
-        font-size: 12px;
-        font-weight: 700;
-        background: var(--bg-canvas);
-        border: 1px solid var(--border-subtle);
-        color: var(--text-muted);
-        cursor: pointer;
-        transition: all 0.15s ease;
-        white-space: nowrap;
-    }
-    .filter-pill-btn:hover {
+    .recent-order-row:hover {
         background: var(--border-card);
-        color: var(--text-heading);
+        transform: translateX(2px);
     }
-    .filter-pill-btn.active {
-        background: #4f46e5;
-        border-color: #4f46e5;
-        color: #ffffff;
-        box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
-    }
-
-    .live-orders-table {
-        width: 100%;
-        border-collapse: collapse;
+    .recent-order-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
     }
 
     .live-orders-table th {
@@ -852,10 +895,35 @@
         .workspace-grid { grid-template-columns: 1fr; }
         .bottom-cards-grid { grid-template-columns: 1fr; }
     }
-    @media (max-width: 640px) {
-        .metric-cards-grid { grid-template-columns: 1fr; }
-        .pipeline-steps-strip { flex-direction: column; }
-        .pipeline-arrow { transform: rotate(90deg); }
+    @media (max-width: 768px) {
+        .metric-cards-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        .live-notif-card, .recent-orders-card, .attention-card, .trend-card, .bottom-card {
+            padding: 16px 14px !important;
+            border-radius: 14px !important;
+        }
+        .pill-filters-row {
+            gap: 6px !important;
+        }
+        .filter-pill-btn {
+            padding: 5px 12px !important;
+            font-size: 11.5px !important;
+            flex-shrink: 0 !important;
+        }
+        .pos-order-drawer {
+            width: 100vw !important;
+            max-width: 100vw !important;
+        }
+        .delivery-donut-wrap {
+            flex-direction: column !important;
+            align-items: center !important;
+            text-align: center !important;
+        }
+        .donut-legend-list {
+            width: 100% !important;
+        }
     }
 
     /* Real-Time Live Order Row Pulse Animation */
@@ -1049,209 +1117,162 @@
     <!-- ── 2. TWO-COLUMN WORKSPACE (68% / 32%) ── -->
     <div class="workspace-grid">
 
-        <!-- LEFT COLUMN: Pipeline + Live Orders -->
+        <!-- LEFT COLUMN: Live Order Arrival Alerts & Analytics -->
         <div class="workspace-left">
-            <!-- Order Pipeline Strip -->
-            <div class="pipeline-card">
-                <div class="card-header-row">
-                    <div class="card-title-group">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="6" x2="10" y1="12" y2="12"/>
-                            <line x1="8" x2="8" y1="9" y2="15"/>
-                            <circle cx="4" cy="4" r="2"/>
-                            <path d="M4 6v12a2 2 0 0 0 2 2h14"/>
-                        </svg>
-                        <span>Order Pipeline</span>
+
+            <!-- Real-Time Live Order Arrival Notification Card -->
+            @php
+                $latestPending = $todayOrders->where('status', 'pending')->first();
+                $latestOrder   = $latestPending ?? $todayOrders->first() ?? $orders->first();
+            @endphp
+            <div class="live-notif-card {{ $pendingCount > 0 ? 'has-alert' : '' }}" id="liveNotifCard">
+                <div class="live-notif-header">
+                    <div class="live-notif-pulse-tag">
+                        <span class="live-pulse-dot"></span>
+                        <span>WhatsApp Live Order Listener Active</span>
                     </div>
-                    <a href="javascript:void(0)" onclick="filterTableStatus('all')" class="card-action-link">View all →</a>
-                </div>
-
-                <div class="pipeline-steps-strip">
-                    <!-- Step 1: New -->
-                    <div class="pipeline-step-box step-new" onclick="filterTableStatus('pending')">
-                        <div class="pipeline-step-label">
-                            <span style="font-size: 8px;">🟡</span> New
-                        </div>
-                        <div class="pipeline-step-count" id="pipe-pending">{{ $pendingCount }}</div>
-                    </div>
-
-                    <span class="pipeline-arrow">→</span>
-
-                    <!-- Step 2: Confirmed -->
-                    <div class="pipeline-step-box step-confirmed" onclick="filterTableStatus('confirmed')">
-                        <div class="pipeline-step-label">
-                            <span style="font-size: 8px;">🔵</span> Confirmed
-                        </div>
-                        <div class="pipeline-step-count" id="pipe-confirmed">{{ $statusCounts['confirmed'] ?? 0 }}</div>
-                    </div>
-
-                    <span class="pipeline-arrow">→</span>
-
-                    <!-- Step 3: Preparing -->
-                    <div class="pipeline-step-box step-preparing" onclick="filterTableStatus('preparing')">
-                        <div class="pipeline-step-label">
-                            <span style="font-size: 8px;">🟣</span> Preparing
-                        </div>
-                        <div class="pipeline-step-count" id="pipe-preparing">{{ $statusCounts['preparing'] ?? 0 }}</div>
-                    </div>
-
-                    <span class="pipeline-arrow">→</span>
-
-                    <!-- Step 4: Ready -->
-                    @php
-                        $readyCount = $todayOrders->where('status', 'confirmed')->whereNotNull('rider_name')->count();
-                    @endphp
-                    <div class="pipeline-step-box step-ready" onclick="filterTableStatus('ready')">
-                        <div class="pipeline-step-label">
-                            <span style="font-size: 8px;">🟢</span> Ready
-                        </div>
-                        <div class="pipeline-step-count" id="pipe-ready">{{ $readyCount }}</div>
-                    </div>
-
-                    <span class="pipeline-arrow">→</span>
-
-                    <!-- Step 5: Out for Delivery -->
-                    @php
-                        $deliveryCount = $todayOrders->where('status', 'out_for_delivery')->count();
-                    @endphp
-                    <div class="pipeline-step-box step-delivery" onclick="filterTableStatus('out_for_delivery')">
-                        <div class="pipeline-step-label">
-                            <span style="font-size: 8px;">🔷</span> Out for Delivery
-                        </div>
-                        <div class="pipeline-step-count" id="pipe-delivery">{{ $deliveryCount }}</div>
-                    </div>
-
-                    <span class="pipeline-arrow">→</span>
-
-                    <!-- Step 6: Delivered -->
-                    <div class="pipeline-step-box step-delivered" onclick="filterTableStatus('delivered')">
-                        <div class="pipeline-step-label">
-                            <span style="font-size: 8px;">⚪</span> Delivered
-                        </div>
-                        <div class="pipeline-step-count" id="pipe-delivered">{{ $statusCounts['delivered'] ?? 0 }}</div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 11.5px; font-weight: 700; color: #4f46e5; background: #eef2ff; padding: 4px 10px; border-radius: 8px; border: 1px solid #c7d2fe;">
+                            🔔 Sound Alert: ON
+                        </span>
+                        <a href="{{ route('dashboard.live-orders', $restaurant->id) }}" class="card-action-link" style="font-weight: 700; color: #4f46e5;">
+                            Live Command Center →
+                        </a>
                     </div>
                 </div>
+
+                <!-- Dynamic Real-Time Alert Banner -->
+                <div class="live-notif-banner {{ $pendingCount > 0 ? '' : 'caught-up' }}" id="notifAlertBanner">
+                    <div class="live-notif-icon-ring">
+                        <span id="notifAlertIcon">{{ $pendingCount > 0 ? '🔔' : '✅' }}</span>
+                    </div>
+                    <div class="live-notif-text">
+                        <h4 id="notifAlertHeading">
+                            @if($pendingCount > 0)
+                                {{ $pendingCount }} New {{ Str::plural('Order', $pendingCount) }} Arrived!
+                            @else
+                                All Caught Up — Kitchen in Sync
+                            @endif
+                        </h4>
+                        <p id="notifAlertSub">
+                            @if($pendingCount > 0)
+                                Customer orders placed via WhatsApp are awaiting review & acceptance.
+                            @else
+                                No pending orders. Incoming WhatsApp orders will trigger audio chime and alert here instantly.
+                            @endif
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Latest Arrived Order Preview -->
+                @if($latestOrder)
+                    @php
+                        $latCustName = $latestOrder->customer_name ?: 'Customer';
+                        $latItemsSummary = $latestOrder->items->map(function($i) {
+                            return $i->quantity . 'x ' . ($i->name ?? $i->item_name);
+                        })->take(2)->implode(', ');
+                        if ($latestOrder->items->count() > 2) {
+                            $latItemsSummary .= ' +' . ($latestOrder->items->count() - 2) . ' more';
+                        }
+                    @endphp
+                    <div class="live-order-preview-box" id="notifLatestPreview">
+                        <div class="preview-meta-left">
+                            <div class="preview-order-code">
+                                <span id="previewOrderId">#{{ $latestOrder->tracking_code ?: $latestOrder->id }}</span>
+                                <span style="font-weight: 600; color: var(--text-heading);" id="previewCustomerName">{{ $latCustName }}</span>
+                                <span style="font-size: 11px; color: var(--text-light);" id="previewCustomerPhone">({{ substr($latestOrder->customer_phone ?? 'N/A', -6) }})</span>
+                            </div>
+                            <div class="preview-order-items" id="previewItemsText" title="{{ $latItemsSummary }}">
+                                🍽️ {{ $latItemsSummary ?: 'Standard order' }}
+                            </div>
+                        </div>
+                        <div style="text-align: right; flex-shrink: 0;">
+                            <div class="preview-order-price" id="previewOrderTotal">Rs {{ number_format($latestOrder->total) }}</div>
+                            <span style="font-size: 11px; color: var(--text-muted);" id="previewOrderTime">{{ $latestOrder->created_at->diffForHumans() }}</span>
+                        </div>
+                    </div>
+                @else
+                    <div class="live-order-preview-box" id="notifLatestPreview" style="display: none;">
+                        <div class="preview-meta-left">
+                            <div class="preview-order-code">
+                                <span id="previewOrderId">#0</span>
+                                <span style="font-weight: 600; color: var(--text-heading);" id="previewCustomerName">Customer</span>
+                            </div>
+                            <div class="preview-order-items" id="previewItemsText">🍽️ Standard order</div>
+                        </div>
+                        <div style="text-align: right; flex-shrink: 0;">
+                            <div class="preview-order-price" id="previewOrderTotal">Rs 0</div>
+                            <span style="font-size: 11px; color: var(--text-muted);" id="previewOrderTime">Just now</span>
+                        </div>
+                    </div>
+                @endif
+
+                <!-- CTA Button Linking into Dedicated Live Orders Section -->
+                <a href="{{ route('dashboard.live-orders', $restaurant->id) }}" class="btn-goto-live" id="notifCtaBtn">
+                    @if($pendingCount > 0)
+                        ⚡ Open Live Orders Command Center ({{ $liveOrdersCount }} Active) →
+                    @else
+                        ⚡ View Live Kitchen Stream ({{ $liveOrdersCount }} Active) →
+                    @endif
+                </a>
             </div>
 
-            <!-- Live Orders Table Card -->
-            <div class="live-orders-card">
+            <!-- Sales Trend Area Chart (Expanded Width in Left Column) -->
+            <div class="trend-card">
                 <div class="card-header-row">
                     <div class="card-title-group">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="m19 9-5 5-4-4-3 3"/>
                         </svg>
-                        <span>Live Orders</span>
-                        <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #10b981; font-weight: 700; margin-left: 2px;">
-                            <span class="live-pulse-dot"></span> Live
-                        </span>
-                        <span id="liveOrdersBadgeCount" style="background: #ef4444; color: #fff; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 9999px;">
-                            {{ $liveOrdersCount }}
-                        </span>
+                        <span>Sales Trend</span>
                     </div>
-                    <a href="{{ route('dashboard.live-orders', $restaurant->id) }}" class="card-action-link">View all →</a>
+                    <div class="trend-toggle-strip">
+                        <button type="button" class="trend-toggle-btn active" onclick="switchTrendRange('today', this)">Today</button>
+                        <button type="button" class="trend-toggle-btn" onclick="switchTrendRange('7d', this)">7D</button>
+                        <button type="button" class="trend-toggle-btn" onclick="switchTrendRange('30d', this)">30D</button>
+                    </div>
                 </div>
 
-                <!-- Filter Pills -->
-                <div class="pill-filters-row">
-                    <button type="button" class="filter-pill-btn active" onclick="filterTableStatus('all')" id="btn-tab-all">
-                        All <span id="pillCountAll">{{ $liveOrdersCount }}</span>
-                    </button>
-                    <button type="button" class="filter-pill-btn" onclick="filterTableStatus('pending')" id="btn-tab-pending">
-                        New <span id="pillCountPending">{{ $pendingCount }}</span>
-                    </button>
-                    <button type="button" class="filter-pill-btn" onclick="filterTableStatus('preparing')" id="btn-tab-preparing">
-                        Preparing <span id="pillCountPreparing">{{ $statusCounts['preparing'] ?? 0 }}</span>
-                    </button>
-                    <button type="button" class="filter-pill-btn" onclick="filterTableStatus('ready')" id="btn-tab-ready">
-                        Ready <span id="pillCountReady">{{ $readyCount }}</span>
-                    </button>
-                    <button type="button" class="filter-pill-btn" onclick="filterTableStatus('out_for_delivery')" id="btn-tab-delivery">
-                        Delivery <span id="pillCountDelivery">{{ $deliveryCount }}</span>
-                    </button>
-                </div>
+                <!-- Smooth Purple Area Chart SVG -->
+                <div class="sales-trend-chart-area">
+                    <svg width="100%" height="150" viewBox="0 0 320 150" preserveAspectRatio="none" fill="none">
+                        <defs>
+                            <linearGradient id="purpleAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.35"/>
+                                <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.0"/>
+                            </linearGradient>
+                        </defs>
+                        <!-- Grid lines -->
+                        <line x1="30" y1="30" x2="310" y2="30" stroke="var(--border-subtle)" stroke-dasharray="3 3"/>
+                        <line x1="30" y1="70" x2="310" y2="70" stroke="var(--border-subtle)" stroke-dasharray="3 3"/>
+                        <line x1="30" y1="110" x2="310" y2="110" stroke="var(--border-subtle)" stroke-dasharray="3 3"/>
 
-                <!-- Orders Table -->
-                <div style="overflow-x: auto;">
-                    <table class="live-orders-table" id="ordersMainTable">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Customer</th>
-                                <th>Items</th>
-                                <th>Total</th>
-                                <th>Status</th>
-                                <th>Time</th>
-                                <th style="width: 24px;"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="ordersTableBody">
-                            @forelse($orders->take(8) as $order)
-                                @php
-                                    $custName = $order->customer_name ?: 'Customer';
-                                    $custInitial = strtoupper(substr($custName, 0, 1));
-                                    $itemsSummary = $order->items->map(function($i) {
-                                        return $i->quantity . 'x ' . ($i->name ?? $i->item_name);
-                                    })->take(2)->implode(', ');
-                                    if ($order->items->count() > 2) {
-                                        $itemsSummary .= ' +' . ($order->items->count() - 2) . ' more';
-                                    }
+                        <!-- Left Y Axis Labels -->
+                        <text x="5" y="34" font-size="9" font-weight="600" fill="var(--text-light)">60k</text>
+                        <text x="5" y="74" font-size="9" font-weight="600" fill="var(--text-light)">40k</text>
+                        <text x="5" y="114" font-size="9" font-weight="600" fill="var(--text-light)">20k</text>
+                        <text x="14" y="140" font-size="9" font-weight="600" fill="var(--text-light)">0</text>
 
-                                    $badgeClass = match($order->status) {
-                                        'pending'          => 'new',
-                                        'confirmed'        => 'preparing',
-                                        'preparing'        => 'preparing',
-                                        'out_for_delivery' => 'delivery',
-                                        'delivered'        => 'delivered',
-                                        'cancelled'        => 'cancelled',
-                                        default            => 'cancelled',
-                                    };
-                                    $label = match($order->status) {
-                                        'pending'          => 'New',
-                                        'confirmed'        => 'Confirmed',
-                                        'preparing'        => 'Preparing',
-                                        'out_for_delivery' => 'Out for Delivery',
-                                        'delivered'        => 'Delivered',
-                                        'cancelled'        => 'CANCELLED',
-                                        default            => strtoupper($order->status),
-                                    };
-                                @endphp
-                                <tr class="live-order-row" data-status="{{ $order->status }}" onclick="openOrderDrawer({{ $order->id }})">
-                                    <td class="order-id-cell">#{{ $order->id }}</td>
-                                    <td>
-                                        <div class="customer-info-cell">
-                                            <div class="customer-initial-avatar">{{ $custInitial }}</div>
-                                            <div class="customer-meta">
-                                                <h4>{{ $custName }}</h4>
-                                                <span>
-                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-                                                    WhatsApp
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="order-items-preview" title="{{ $itemsSummary }}">
-                                            {{ $itemsSummary ?: 'Standard order' }}
-                                        </div>
-                                    </td>
-                                    <td class="order-total-cell">Rs {{ number_format($order->total) }}</td>
-                                    <td>
-                                        <span class="status-pill {{ $badgeClass }}">{{ $label }}</span>
-                                    </td>
-                                    <td class="order-time-cell">{{ $order->created_at->format('g:i A') }}</td>
-                                    <td style="text-align: right;">
-                                        <span class="chevron-icon">›</span>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">
-                                        No active orders currently. New orders will appear here automatically!
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                        <!-- Area Fill -->
+                        <path d="M 35 110 Q 75 100, 110 80 T 170 85 T 230 65 T 280 40 L 310 45 L 310 135 L 35 135 Z" fill="url(#purpleAreaGrad)"/>
+
+                        <!-- Top Line Curve -->
+                        <path d="M 35 110 Q 75 100, 110 80 T 170 85 T 230 65 T 280 40 L 310 45" stroke="#8b5cf6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+                        <!-- Endpoint dot -->
+                        <circle cx="310" cy="45" r="3.5" fill="#8b5cf6"/>
+                    </svg>
+
+                    <!-- X-Axis Labels -->
+                    <div style="display: flex; justify-content: space-between; padding-left: 30px; font-size: 9px; font-weight: 600; color: var(--text-light); margin-top: 4px;">
+                        <span>10 AM</span>
+                        <span>12 PM</span>
+                        <span>2 PM</span>
+                        <span>4 PM</span>
+                        <span>6 PM</span>
+                        <span>8 PM</span>
+                        <span>10 PM</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1364,62 +1385,61 @@
                 </div>
             </div>
 
-            <!-- Sales Trend Area Chart -->
-            <div class="trend-card">
+            <!-- Recent Orders Snippet Card -->
+            <div class="recent-orders-card">
                 <div class="card-header-row">
                     <div class="card-title-group">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="m19 9-5 5-4-4-3 3"/>
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" x2="8" y1="13" y2="13"/>
+                            <line x1="16" x2="8" y1="17" y2="17"/>
                         </svg>
-                        <span>Sales Trend</span>
+                        <span>Recent Orders</span>
                     </div>
-                    <div class="trend-toggle-strip">
-                        <button type="button" class="trend-toggle-btn active" onclick="switchTrendRange('today', this)">Today</button>
-                        <button type="button" class="trend-toggle-btn" onclick="switchTrendRange('7d', this)">7D</button>
-                        <button type="button" class="trend-toggle-btn" onclick="switchTrendRange('30d', this)">30D</button>
-                    </div>
+                    <a href="{{ route('dashboard.live-orders', $restaurant->id) }}" class="card-action-link">Live View →</a>
                 </div>
 
-                <!-- Smooth Purple Area Chart SVG -->
-                <div class="sales-trend-chart-area">
-                    <svg width="100%" height="150" viewBox="0 0 320 150" preserveAspectRatio="none" fill="none">
-                        <defs>
-                            <linearGradient id="purpleAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.35"/>
-                                <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.0"/>
-                            </linearGradient>
-                        </defs>
-                        <!-- Grid lines -->
-                        <line x1="30" y1="30" x2="310" y2="30" stroke="var(--border-subtle)" stroke-dasharray="3 3"/>
-                        <line x1="30" y1="70" x2="310" y2="70" stroke="var(--border-subtle)" stroke-dasharray="3 3"/>
-                        <line x1="30" y1="110" x2="310" y2="110" stroke="var(--border-subtle)" stroke-dasharray="3 3"/>
-
-                        <!-- Left Y Axis Labels -->
-                        <text x="5" y="34" font-size="9" font-weight="600" fill="var(--text-light)">60k</text>
-                        <text x="5" y="74" font-size="9" font-weight="600" fill="var(--text-light)">40k</text>
-                        <text x="5" y="114" font-size="9" font-weight="600" fill="var(--text-light)">20k</text>
-                        <text x="14" y="140" font-size="9" font-weight="600" fill="var(--text-light)">0</text>
-
-                        <!-- Area Fill -->
-                        <path d="M 35 110 Q 75 100, 110 80 T 170 85 T 230 65 T 280 40 L 310 45 L 310 135 L 35 135 Z" fill="url(#purpleAreaGrad)"/>
-
-                        <!-- Top Line Curve -->
-                        <path d="M 35 110 Q 75 100, 110 80 T 170 85 T 230 65 T 280 40 L 310 45" stroke="#8b5cf6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-
-                        <!-- Endpoint dot -->
-                        <circle cx="310" cy="45" r="3.5" fill="#8b5cf6"/>
-                    </svg>
-
-                    <!-- X-Axis Labels -->
-                    <div style="display: flex; justify-content: space-between; padding-left: 30px; font-size: 9px; font-weight: 600; color: var(--text-light); margin-top: 4px;">
-                        <span>10 AM</span>
-                        <span>12 PM</span>
-                        <span>2 PM</span>
-                        <span>4 PM</span>
-                        <span>6 PM</span>
-                        <span>8 PM</span>
-                        <span>10 PM</span>
-                    </div>
+                <div class="recent-orders-list" id="recentOrdersList">
+                    @forelse($orders->take(5) as $order)
+                        @php
+                            $badgeClass = match($order->status) {
+                                'pending'          => 'new',
+                                'confirmed'        => 'preparing',
+                                'preparing'        => 'preparing',
+                                'out_for_delivery' => 'delivery',
+                                'delivered'        => 'delivered',
+                                'cancelled'        => 'cancelled',
+                                default            => 'cancelled',
+                            };
+                            $label = match($order->status) {
+                                'pending'          => 'New',
+                                'confirmed'        => 'Confirmed',
+                                'preparing'        => 'Preparing',
+                                'out_for_delivery' => 'Delivery',
+                                'delivered'        => 'Delivered',
+                                'cancelled'        => 'CANCELLED',
+                                default            => strtoupper($order->status),
+                            };
+                        @endphp
+                        <a href="{{ route('dashboard.live-orders', ['id' => $restaurant->id, 'order_id' => $order->id]) }}" class="recent-order-row">
+                            <div class="recent-order-left">
+                                <div class="customer-initial-avatar">{{ strtoupper(substr($order->customer_name ?: 'C', 0, 1)) }}</div>
+                                <div>
+                                    <h5 style="font-size: 13px; font-weight: 700; color: var(--text-heading); margin: 0;">#{{ $order->tracking_code ?: $order->id }} • {{ $order->customer_name ?: 'Guest' }}</h5>
+                                    <span style="font-size: 11px; color: var(--text-muted);">{{ $order->created_at->diffForHumans() }}</span>
+                                </div>
+                            </div>
+                            <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 3px;">
+                                <span style="font-size: 13px; font-weight: 800; color: var(--text-heading);">Rs {{ number_format($order->total) }}</span>
+                                <span class="status-pill {{ $badgeClass }}" style="font-size: 10px; padding: 2px 8px;">{{ $label }}</span>
+                            </div>
+                        </a>
+                    @empty
+                        <div style="text-align: center; padding: 24px 10px; color: var(--text-muted); font-size: 12.5px;">
+                            No recent orders today yet.
+                        </div>
+                    @endforelse
                 </div>
             </div>
         </div>
@@ -1521,7 +1541,7 @@
                             <span class="donut-legend-dot ready"></span>
                             <span>Ready</span>
                         </div>
-                        <span class="donut-legend-val" id="donutLegendReady">{{ $readyCount }}</span>
+                        <span class="donut-legend-val" id="donutLegendReady">{{ $statusCounts['ready'] ?? 0 }}</span>
                     </div>
 
                     <div class="donut-legend-row">
@@ -1529,7 +1549,7 @@
                             <span class="donut-legend-dot onroute"></span>
                             <span>On Route</span>
                         </div>
-                        <span class="donut-legend-val" id="donutLegendDelivery">{{ $deliveryCount }}</span>
+                        <span class="donut-legend-val" id="donutLegendDelivery">{{ $statusCounts['out_for_delivery'] ?? 0 }}</span>
                     </div>
                 </div>
             </div>
@@ -2019,44 +2039,135 @@ async function fetchLiveOrdersFeed() {
         const kpiComp = document.getElementById('kpi-completed');
         if (kpiComp) kpiComp.textContent = data.delivered_count ?? 0;
 
-        // Update Order Pipeline Stage Counters
+        // Update Order Pipeline Stage Counters (if on page)
         const sc = data.status_counts || {};
-        const pPending = document.getElementById('pipe-pending');
-        if (pPending) pPending.textContent = sc.pending ?? 0;
 
-        const pConfirmed = document.getElementById('pipe-confirmed');
-        if (pConfirmed) pConfirmed.textContent = sc.confirmed ?? 0;
+        // Update Real-Time Live Order Arrival Notification Card
+        const notifCard    = document.getElementById('liveNotifCard');
+        const notifBanner  = document.getElementById('notifAlertBanner');
+        const notifIcon    = document.getElementById('notifAlertIcon');
+        const notifHeading = document.getElementById('notifAlertHeading');
+        const notifSub     = document.getElementById('notifAlertSub');
+        const notifCta     = document.getElementById('notifCtaBtn');
+        const notifPreview = document.getElementById('notifLatestPreview');
+        const pendingCount = data.pending_count ?? 0;
+        const activeCount  = data.active_count ?? 0;
 
-        const pPrep = document.getElementById('pipe-preparing');
-        if (pPrep) pPrep.textContent = sc.preparing ?? 0;
+        if (notifCard) {
+            if (pendingCount > 0) {
+                notifCard.classList.add('has-alert');
+            } else {
+                notifCard.classList.remove('has-alert');
+            }
+        }
 
-        const pReady = document.getElementById('pipe-ready');
-        if (pReady) pReady.textContent = sc.ready ?? 0;
+        if (notifBanner) {
+            if (pendingCount > 0) {
+                notifBanner.classList.remove('caught-up');
+            } else {
+                notifBanner.classList.add('caught-up');
+            }
+        }
 
-        const pDel = document.getElementById('pipe-delivery');
-        if (pDel) pDel.textContent = sc.out_for_delivery ?? 0;
+        if (notifIcon) {
+            notifIcon.textContent = pendingCount > 0 ? '🔔' : '✅';
+        }
 
-        const pDelivered = document.getElementById('pipe-delivered');
-        if (pDelivered) pDelivered.textContent = sc.delivered ?? 0;
+        if (notifHeading) {
+            notifHeading.textContent = pendingCount > 0
+                ? `${pendingCount} New ${pendingCount === 1 ? 'Order' : 'Orders'} Arrived!`
+                : 'All Caught Up — Kitchen in Sync';
+        }
 
-        // Update Live Orders header badge & filter pill counts
-        const badgeCount = document.getElementById('liveOrdersBadgeCount');
-        if (badgeCount) badgeCount.textContent = data.active_count ?? 0;
+        if (notifSub) {
+            notifSub.textContent = pendingCount > 0
+                ? 'Customer orders placed via WhatsApp are awaiting review & acceptance.'
+                : 'No pending orders. Incoming WhatsApp orders will trigger audio chime and alert here instantly.';
+        }
 
-        const pillAll = document.getElementById('pillCountAll');
-        if (pillAll) pillAll.textContent = data.active_count ?? 0;
+        if (notifCta) {
+            notifCta.textContent = pendingCount > 0
+                ? `⚡ Open Live Orders Command Center (${activeCount} Active) →`
+                : `⚡ View Live Kitchen Stream (${activeCount} Active) →`;
+        }
 
-        const pillPending = document.getElementById('pillCountPending');
-        if (pillPending) pillPending.textContent = sc.pending ?? 0;
+        // Update Latest Order Preview in Notification Card
+        if (notifPreview) {
+            const latestPending = (data.orders || []).find(o => o.status === 'pending');
+            const targetLatest  = latestPending || (data.orders && data.orders[0]);
 
-        const pillPrep = document.getElementById('pillCountPreparing');
-        if (pillPrep) pillPrep.textContent = sc.preparing ?? 0;
+            if (targetLatest) {
+                notifPreview.style.display = 'flex';
+                const pId    = document.getElementById('previewOrderId');
+                const pName  = document.getElementById('previewCustomerName');
+                const pPhone = document.getElementById('previewCustomerPhone');
+                const pItems = document.getElementById('previewItemsText');
+                const pTotal = document.getElementById('previewOrderTotal');
+                const pTime  = document.getElementById('previewOrderTime');
 
-        const pillReady = document.getElementById('pillCountReady');
-        if (pillReady) pillReady.textContent = sc.ready ?? 0;
+                if (pId) pId.textContent = '#' + (targetLatest.tracking_code || targetLatest.id);
+                if (pName) pName.textContent = targetLatest.customer_name || 'Customer';
+                if (pPhone) {
+                    const fullP = targetLatest.customer_phone || '';
+                    pPhone.textContent = fullP ? `(${fullP.slice(-6)})` : '';
+                }
+                if (pItems) {
+                    const itemsArr = targetLatest.items || [];
+                    let summ = itemsArr.slice(0, 2).map(i => `${i.quantity}x ${i.name || i.item_name}`).join(', ');
+                    if (itemsArr.length > 2) summ += ` +${itemsArr.length - 2} more`;
+                    pItems.textContent = '🍽️ ' + (summ || 'Standard order');
+                    pItems.title = summ;
+                }
+                if (pTotal) pTotal.textContent = 'Rs ' + Number(targetLatest.total || 0).toLocaleString();
+                if (pTime) pTime.textContent = targetLatest.created_at_time || targetLatest.created_at_humans || 'Just now';
+            } else {
+                notifPreview.style.display = 'none';
+            }
+        }
 
-        const pillDelivery = document.getElementById('pillCountDelivery');
-        if (pillDelivery) pillDelivery.textContent = sc.out_for_delivery ?? 0;
+        // Update Recent Orders Snippet Card in Workspace Right
+        const recentList = document.getElementById('recentOrdersList');
+        if (recentList && Array.isArray(data.orders)) {
+            const recent5 = data.orders.slice(0, 5);
+            if (recent5.length === 0) {
+                recentList.innerHTML = `
+                    <div style="text-align: center; padding: 24px 10px; color: var(--text-muted); font-size: 12.5px;">
+                        No recent orders today yet.
+                    </div>
+                `;
+            } else {
+                const statusBadges = {
+                    pending:          { cls: 'new', label: 'New' },
+                    confirmed:        { cls: 'preparing', label: 'Confirmed' },
+                    preparing:        { cls: 'preparing', label: 'Preparing' },
+                    out_for_delivery: { cls: 'delivery', label: 'Delivery' },
+                    delivered:        { cls: 'delivered', label: 'Delivered' },
+                    cancelled:        { cls: 'cancelled', label: 'CANCELLED' }
+                };
+                recentList.innerHTML = recent5.map(o => {
+                    const sb = statusBadges[o.status] || { cls: 'cancelled', label: (o.status || '').toUpperCase() };
+                    const initial = (o.customer_name || 'C').charAt(0).toUpperCase();
+                    const code = o.tracking_code || o.id;
+                    const time = o.created_at_humans || o.created_at_time || '';
+                    return `
+                        <a href="/dashboard/{{ $restaurant->id }}/live-orders?order_id=${o.id}" class="recent-order-row">
+                            <div class="recent-order-left">
+                                <div class="customer-initial-avatar">${initial}</div>
+                                <div>
+                                    <h5 style="font-size: 13px; font-weight: 700; color: var(--text-heading); margin: 0;">#${code} • ${o.customer_name || 'Guest'}</h5>
+                                    <span style="font-size: 11px; color: var(--text-muted);">${time}</span>
+                                </div>
+                            </div>
+                            <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 3px;">
+                                <span style="font-size: 13px; font-weight: 800; color: var(--text-heading);">Rs ${Number(o.total || 0).toLocaleString()}</span>
+                                <span class="status-pill ${sb.cls}" style="font-size: 10px; padding: 2px 8px;">${sb.label}</span>
+                            </div>
+                        </a>
+                    `;
+                }).join('');
+            }
+        }
+
 
         // Update Needs Attention Card dynamically
         const attBadge  = document.getElementById('attentionBadgeCount');

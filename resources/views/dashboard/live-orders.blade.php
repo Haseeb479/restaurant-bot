@@ -127,6 +127,19 @@
             grid-column: span 1;
         }
     }
+    @media (max-width: 640px) {
+        .live-stats-strip {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        .live-stat-box {
+            padding: 12px 16px;
+        }
+        .panel-card {
+            padding: 16px 14px !important;
+            border-radius: 14px !important;
+        }
+    }
 
     .panel-card {
         background: #ffffff;
@@ -578,6 +591,102 @@
     }
     .rider-tag.delivery { background: #dcfce7; color: #166534; }
     .rider-tag.offline { background: #f1f5f9; color: #64748b; }
+
+    /* ── Live Order Pipeline Strip ── */
+    .pipeline-card {
+        background: #ffffff;
+        border-radius: 18px;
+        border: 1px solid #e2e8f0;
+        padding: 18px 22px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    }
+    [data-theme="dark"] .pipeline-card {
+        background: #1e293b;
+        border-color: #334155;
+    }
+    .pipeline-steps-strip {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+    .pipeline-step-box {
+        flex: 1;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 12px 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.18s ease;
+        text-decoration: none;
+        user-select: none;
+    }
+    [data-theme="dark"] .pipeline-step-box {
+        background: #0f172a;
+        border-color: #334155;
+    }
+    .pipeline-step-box:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    }
+    .pipeline-step-box.active {
+        box-shadow: 0 0 0 2.5px #6366f1;
+        border-color: #6366f1;
+    }
+    .pipeline-step-label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        font-size: 11px;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+    .pipeline-step-count {
+        font-size: 20px;
+        font-weight: 800;
+        color: #0f172a;
+        line-height: 1.1;
+    }
+    [data-theme="dark"] .pipeline-step-count {
+        color: #f8fafc;
+    }
+    .pipeline-arrow {
+        color: #94a3b8;
+        font-size: 14px;
+        opacity: 0.6;
+        user-select: none;
+    }
+    .step-new       { background: #fffbeb; border-color: #fef3c7; color: #b45309; }
+    .step-confirmed { background: #f0f9ff; border-color: #e0f2fe; color: #0284c7; }
+    .step-preparing { background: #faf5ff; border-color: #f3e8ff; color: #9333ea; }
+    .step-ready     { background: #ecfdf5; border-color: #d1fae5; color: #059669; }
+    .step-delivery  { background: #ecfeff; border-color: #cffafe; color: #0891b2; }
+    .step-delivered { background: #f8fafc; border-color: #f1f5f9; color: #64748b; }
+    [data-theme="dark"] .step-new       { background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+    [data-theme="dark"] .step-confirmed { background: rgba(14, 165, 233, 0.12); border-color: rgba(14, 165, 233, 0.2); color: #38bdf8; }
+    [data-theme="dark"] .step-preparing { background: rgba(147, 51, 234, 0.12); border-color: rgba(147, 51, 234, 0.2); color: #c084fc; }
+    [data-theme="dark"] .step-ready     { background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.2); color: #34d399; }
+    [data-theme="dark"] .step-delivery  { background: rgba(8, 145, 178, 0.12); border-color: rgba(8, 145, 178, 0.2); color: #22d3ee; }
+    [data-theme="dark"] .step-delivered { background: rgba(100, 116, 139, 0.12); border-color: rgba(100, 116, 139, 0.2); color: #94a3b8; }
+
+    @media (max-width: 768px) {
+        .pipeline-steps-strip {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            padding-bottom: 6px !important;
+            scrollbar-width: thin;
+        }
+        .pipeline-step-box {
+            min-width: 105px !important;
+            flex-shrink: 0 !important;
+            padding: 10px 8px !important;
+        }
+        .pipeline-arrow {
+            display: none !important;
+        }
+    }
 </style>
 
 <div class="live-command-container">
@@ -657,7 +766,84 @@
         </div>
     </div>
 
-    <!-- 3. MAIN WORKBENCH 3-COLUMN GRID -->
+    <!-- 3. LIVE ORDER PIPELINE STRIP -->
+    <div class="pipeline-card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 800; color: #0f172a;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="6" x2="10" y1="12" y2="12"/>
+                    <line x1="8" x2="8" y1="9" y2="15"/>
+                    <circle cx="4" cy="4" r="2"/>
+                    <path d="M4 6v12a2 2 0 0 0 2 2h14"/>
+                </svg>
+                <span>Live Order Pipeline</span>
+                <span id="activeStageLabel" style="font-size: 11.5px; font-weight: 600; color: #6366f1; margin-left: 6px;"></span>
+            </div>
+            <a href="javascript:void(0)" onclick="filterLiveStage('all')" style="font-size: 12px; font-weight: 700; color: #6366f1; text-decoration: none;">Show All Orders →</a>
+        </div>
+
+        <div class="pipeline-steps-strip">
+            <!-- Step 1: New -->
+            <div class="pipeline-step-box step-new" onclick="filterLiveStage('pending')" id="pipe-box-pending" title="Click to view New Orders">
+                <div class="pipeline-step-label">
+                    <span style="font-size: 8px;">🟡</span> New
+                </div>
+                <div class="pipeline-step-count" id="pipe-pending">{{ $statusCounts['pending'] ?? $pendingCount }}</div>
+            </div>
+
+            <span class="pipeline-arrow">→</span>
+
+            <!-- Step 2: Confirmed -->
+            <div class="pipeline-step-box step-confirmed" onclick="filterLiveStage('confirmed')" id="pipe-box-confirmed" title="Click to view Confirmed Orders">
+                <div class="pipeline-step-label">
+                    <span style="font-size: 8px;">🔵</span> Confirmed
+                </div>
+                <div class="pipeline-step-count" id="pipe-confirmed">{{ $statusCounts['confirmed'] ?? 0 }}</div>
+            </div>
+
+            <span class="pipeline-arrow">→</span>
+
+            <!-- Step 3: Preparing -->
+            <div class="pipeline-step-box step-preparing" onclick="filterLiveStage('preparing')" id="pipe-box-preparing" title="Click to view Kitchen Orders">
+                <div class="pipeline-step-label">
+                    <span style="font-size: 8px;">🟣</span> Preparing
+                </div>
+                <div class="pipeline-step-count" id="pipe-preparing">{{ $statusCounts['preparing'] ?? $preparingCount }}</div>
+            </div>
+
+            <span class="pipeline-arrow">→</span>
+
+            <!-- Step 4: Ready -->
+            <div class="pipeline-step-box step-ready" onclick="filterLiveStage('ready')" id="pipe-box-ready" title="Click to view Ready Orders">
+                <div class="pipeline-step-label">
+                    <span style="font-size: 8px;">🟢</span> Ready
+                </div>
+                <div class="pipeline-step-count" id="pipe-ready">{{ $statusCounts['ready'] ?? 0 }}</div>
+            </div>
+
+            <span class="pipeline-arrow">→</span>
+
+            <!-- Step 5: Out for Delivery -->
+            <div class="pipeline-step-box step-delivery" onclick="filterLiveStage('out_for_delivery')" id="pipe-box-delivery" title="Click to view On Road Orders">
+                <div class="pipeline-step-label">
+                    <span style="font-size: 8px;">🔷</span> Out for Delivery
+                </div>
+                <div class="pipeline-step-count" id="pipe-delivery">{{ $statusCounts['out_for_delivery'] ?? $dispatchedCount }}</div>
+            </div>
+
+            <span class="pipeline-arrow">→</span>
+
+            <!-- Step 6: Delivered -->
+            <div class="pipeline-step-box step-delivered" onclick="filterLiveStage('delivered')" id="pipe-box-delivered" title="Click to view Completed Orders">
+                <div class="pipeline-step-label">
+                    <span style="font-size: 8px;">⚪</span> Delivered
+                </div>
+                <div class="pipeline-step-count" id="pipe-delivered">{{ $statusCounts['delivered'] ?? 0 }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. MAIN WORKBENCH 3-COLUMN GRID -->
     <div class="live-main-grid">
 
         <!-- Column 1: Live Incoming Orders Stream -->
@@ -1000,6 +1186,70 @@
     const CSRF_TOKEN        = document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}';
 
     let currentOrdersMap = {};
+    let currentLiveStageFilter = 'all';
+
+    function filterLiveStage(stage) {
+        if (currentLiveStageFilter === stage && stage !== 'all') {
+            currentLiveStageFilter = 'all';
+        } else {
+            currentLiveStageFilter = stage;
+        }
+
+        // Highlight active stage box
+        document.querySelectorAll('.pipeline-step-box').forEach(box => {
+            box.classList.remove('active');
+            box.style.transform = 'none';
+        });
+
+        const activeBox = document.getElementById('pipe-box-' + currentLiveStageFilter);
+        const labelEl = document.getElementById('activeStageLabel');
+        if (activeBox) {
+            activeBox.classList.add('active');
+            activeBox.style.transform = 'translateY(-2px)';
+        }
+
+        if (labelEl) {
+            if (currentLiveStageFilter === 'all') {
+                labelEl.textContent = '';
+            } else {
+                const name = currentLiveStageFilter.replace(/_/g, ' ').toUpperCase();
+                labelEl.textContent = `• Filtering: ${name}`;
+            }
+        }
+
+        applyLiveOrdersFilter();
+    }
+
+    function applyLiveOrdersFilter() {
+        const list = document.getElementById('live-orders-list');
+        if (!list) return;
+
+        const orders = Object.values(currentOrdersMap).sort((a,b) => b.id - a.id);
+        let filtered = orders;
+        if (currentLiveStageFilter === 'pending') {
+            filtered = orders.filter(o => o.status === 'pending');
+        } else if (currentLiveStageFilter === 'confirmed') {
+            filtered = orders.filter(o => o.status === 'confirmed');
+        } else if (currentLiveStageFilter === 'preparing') {
+            filtered = orders.filter(o => o.status === 'preparing');
+        } else if (currentLiveStageFilter === 'ready') {
+            filtered = orders.filter(o => (o.status === 'confirmed' || o.status === 'preparing') && o.rider_name);
+        } else if (currentLiveStageFilter === 'out_for_delivery') {
+            filtered = orders.filter(o => o.status === 'out_for_delivery');
+        } else if (currentLiveStageFilter === 'delivered') {
+            filtered = orders.filter(o => o.status === 'delivered');
+        }
+
+        if (filtered.length === 0) {
+            list.innerHTML = `<div style="text-align:center;padding:35px 10px;color:#94a3b8;" id="empty-orders-state">
+                <div style="font-size:32px;margin-bottom:6px;">🔍</div>
+                <p style="font-weight:700;font-size:13.5px;">No ${currentLiveStageFilter === 'all' ? 'active' : currentLiveStageFilter} orders</p>
+                <p style="font-size:11.5px;margin-top:4px;"><a href="javascript:void(0)" onclick="filterLiveStage('all')" style="color:#6366f1;font-weight:700;text-decoration:none;">Show all orders →</a></p>
+            </div>`;
+        } else {
+            list.innerHTML = filtered.map(o => renderOrderRow(o)).join('');
+        }
+    }
 
     @if($selectedOrder)
     currentOrdersMap[{{ $selectedOrder->id }}] = {
@@ -1525,6 +1775,26 @@
             if (kpiPrep) kpiPrep.textContent = prepCount;
             if (kpiDisp) kpiDisp.textContent = dispCount;
 
+            // Update live pipeline counters
+            const sc = data.status_counts || {};
+            const pPending = document.getElementById('pipe-pending');
+            if (pPending) pPending.textContent = sc.pending ?? (data.pending_count ?? 0);
+
+            const pConfirmed = document.getElementById('pipe-confirmed');
+            if (pConfirmed) pConfirmed.textContent = sc.confirmed ?? 0;
+
+            const pPrep = document.getElementById('pipe-preparing');
+            if (pPrep) pPrep.textContent = sc.preparing ?? prepCount;
+
+            const pReady = document.getElementById('pipe-ready');
+            if (pReady) pReady.textContent = sc.ready ?? 0;
+
+            const pDel = document.getElementById('pipe-delivery');
+            if (pDel) pDel.textContent = sc.out_for_delivery ?? dispCount;
+
+            const pDelivered = document.getElementById('pipe-delivered');
+            if (pDelivered) pDelivered.textContent = sc.delivered ?? (data.delivered_count ?? 0);
+
             if (list) {
                 if (orders.length === 0) {
                     list.innerHTML = `<div style="text-align:center;padding:40px 10px;color:#94a3b8;" id="empty-orders-state">
@@ -1549,8 +1819,8 @@
                     const hasNew      = newIds.some(id => !existingIds.includes(id));
                     const hasGone     = existingIds.some(id => !newIds.includes(id));
 
-                    if (hasNew || hasGone || list.querySelector('#empty-orders-state')) {
-                        list.innerHTML = orders.map(renderOrderRow).join('');
+                    if (hasNew || hasGone || list.querySelector('#empty-orders-state') || currentLiveStageFilter !== 'all') {
+                        applyLiveOrdersFilter();
                         if (hasNew && existingIds.length > 0) {
                             showToast('🔔 New order arrived!', 'success');
                             const bell = document.getElementById('notif-bell');

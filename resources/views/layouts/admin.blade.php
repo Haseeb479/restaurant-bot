@@ -843,27 +843,123 @@
             background: var(--brand-primary-light);
         }
 
+        .sidebar-btn-label {
+            display: none;
+        }
+        .sidebar-drawer-header {
+            display: none;
+        }
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(11, 15, 25, 0.65);
+            backdrop-filter: blur(4px);
+            z-index: 998;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+
         @media (max-width: 1024px) {
             aside#adminSidebar {
                 transform: translateX(-100%);
                 z-index: 1000;
-                width: 76px;
+                width: 260px;
+                align-items: stretch;
+                padding: 18px 16px 24px;
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
             }
             aside#adminSidebar.mobile-open {
                 transform: translateX(0);
-                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
             }
-            .main-wrapper {
-                margin-left: 0;
-                padding-top: 64px;
-                max-width: 100vw;
+            .sidebar-backdrop.active {
+                display: block;
+                opacity: 1;
+            }
+            .sidebar-drawer-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding-bottom: 14px;
+                margin-bottom: 16px;
+                border-bottom: 1px solid var(--border-subtle);
+            }
+            .sidebar-drawer-brand {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                text-decoration: none;
+                color: var(--text-heading);
+                font-weight: 800;
+                font-size: 15px;
+            }
+            .sidebar-drawer-close {
+                width: 32px;
+                height: 32px;
+                border-radius: 8px;
+                background: var(--border-subtle);
+                border: none;
+                color: var(--text-heading);
+                font-size: 15px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+            }
+            .sidebar-brand-badge {
+                display: none !important;
+            }
+            .sidebar-nav-stack {
+                align-items: stretch;
+                gap: 8px;
+            }
+            .sidebar-icon-btn {
+                width: 100%;
+                height: 44px;
+                justify-content: flex-start;
+                padding: 0 12px;
+                gap: 12px;
+                border-radius: 10px;
+            }
+            .sidebar-btn-label {
+                display: inline-block;
+                font-size: 13px;
+                font-weight: 700;
+                color: inherit;
+            }
+            .sidebar-icon-btn::after {
+                display: none !important;
+            }
+            .sidebar-footer-status {
+                justify-content: flex-start;
+                padding: 10px 12px;
                 width: 100%;
             }
+
+            .main-wrapper {
+                margin-left: 0 !important;
+                padding-top: 68px !important;
+                max-width: 100vw !important;
+                width: 100% !important;
+                min-width: 0 !important;
+                overflow-x: hidden !important;
+                box-sizing: border-box !important;
+            }
             header.topbar {
-                left: 0;
-                right: 0;
-                height: 64px;
-                padding: 0 20px;
+                left: 0 !important;
+                right: 0 !important;
+                height: 68px !important;
+                padding: 0 16px !important;
+                width: 100% !important;
+                max-width: 100vw !important;
+                box-sizing: border-box !important;
+            }
+            main {
+                padding: 18px 16px 84px !important;
+                max-width: 100vw !important;
+                width: 100% !important;
+                overflow-x: hidden !important;
+                box-sizing: border-box !important;
             }
             .mobile-menu-btn {
                 display: inline-flex;
@@ -872,37 +968,141 @@
 
         @media (max-width: 768px) {
             header.topbar {
-                padding: 0 16px;
+                height: 62px !important;
+                padding: 0 12px !important;
             }
-            .header-title h1 {
-                font-size: 15px;
-            }
-            .header-title p {
-                display: none;
-            }
-            .date-pill, .status-pill-toggle {
-                display: none;
+            .main-wrapper {
+                padding-top: 62px !important;
             }
             main {
-                padding: 16px 14px 85px !important;
+                padding: 14px 12px 84px !important;
+            }
+            .header-left {
+                gap: 8px !important;
+                min-width: 0 !important;
+                flex: 1 1 auto !important;
+                overflow: hidden !important;
+            }
+            .mobile-menu-btn {
+                width: 36px !important;
+                height: 36px !important;
+                padding: 0 !important;
+                font-size: 16px !important;
+                flex-shrink: 0 !important;
+            }
+            .header-title {
+                min-width: 0 !important;
+                overflow: hidden !important;
+            }
+            .header-title h1 {
+                font-size: 14px !important;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                max-width: 140px !important;
+                line-height: 1.2 !important;
+            }
+            .header-title p {
+                display: none !important;
+            }
+            .date-pill, .status-pill-toggle {
+                display: none !important;
+            }
+            .header-actions {
+                gap: 6px !important;
+                flex-shrink: 0 !important;
+            }
+            .header-icon-btn {
+                width: 34px !important;
+                height: 34px !important;
+                font-size: 13px !important;
+                flex-shrink: 0 !important;
             }
             .mobile-bottom-nav {
                 display: flex;
             }
             .user-profile {
-                padding-left: 6px;
-                border-left: none;
+                padding-left: 0 !important;
+                border-left: none !important;
+                gap: 4px !important;
+            }
+            .avatar {
+                width: 34px !important;
+                height: 34px !important;
+                font-size: 12px !important;
             }
             .user-meta {
-                display: none;
+                display: none !important;
+            }
+            .logout-link {
+                padding: 4px !important;
+                width: 30px !important;
+                height: 30px !important;
+            }
+
+            /* Panel cards & headers mobile guards */
+            .panel-card {
+                padding: 16px 14px !important;
+                border-radius: 14px !important;
+                margin-bottom: 16px !important;
+            }
+            .panel-header {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 12px !important;
+            }
+            .panel-header > div:last-child {
+                width: 100% !important;
+                display: flex !important;
+                flex-wrap: wrap !important;
+                gap: 8px !important;
+            }
+            .panel-header > div:last-child .btn {
+                flex: 1 1 auto !important;
+                justify-content: center !important;
+            }
+        }
+
+        @media (max-width: 400px) {
+            header.topbar {
+                padding: 0 8px !important;
+            }
+            main {
+                padding: 10px 8px 84px !important;
+            }
+            .header-left {
+                gap: 6px !important;
+            }
+            .header-title h1 {
+                font-size: 13px !important;
+                max-width: 100px !important;
+            }
+            .header-actions {
+                gap: 4px !important;
+            }
+            .mobile-menu-btn, .header-icon-btn, .avatar {
+                width: 32px !important;
+                height: 32px !important;
             }
         }
     </style>
 </head>
 <body>
 
+<!-- Mobile Backdrop -->
+<div id="sidebarBackdrop" class="sidebar-backdrop" onclick="toggleSidebar()"></div>
+
 <!-- SLIM ICON SIDEBAR -->
 <aside id="adminSidebar">
+    <!-- Mobile Drawer Header -->
+    <div class="sidebar-drawer-header">
+        <a href="{{ route('admin.dashboard') }}" class="sidebar-drawer-brand">
+            <span style="font-size: 18px;">👑</span>
+            <span>Foodio Admin</span>
+        </a>
+        <button type="button" class="sidebar-drawer-close" onclick="toggleSidebar()" aria-label="Close menu">✕</button>
+    </div>
+
     <!-- Brand / Knife-Fork Badge -->
     <a href="{{ route('admin.dashboard') }}" class="sidebar-brand-badge" title="Foodio Platform">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
@@ -918,6 +1118,7 @@
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
                 <polyline points="9 22 9 12 15 12 15 22"></polyline>
             </svg>
+            <span class="sidebar-btn-label">Dashboard</span>
         </a>
 
         <!-- 2. All Restaurants (Store) -->
@@ -926,6 +1127,7 @@
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
                 <rect x="7" y="13" width="10" height="9"></rect>
             </svg>
+            <span class="sidebar-btn-label">All Restaurants</span>
         </a>
 
         <!-- 3. Pending Approvals (Hourglass) -->
@@ -937,6 +1139,7 @@
                 <path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"></path>
                 <path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"></path>
             </svg>
+            <span class="sidebar-btn-label">Pending Approvals</span>
             @if($pCount > 0)
                 <span class="sidebar-dot-badge"></span>
             @endif
@@ -950,6 +1153,7 @@
                 <circle cx="7.5" cy="15.5" r="5.5"></path>
                 <path d="M16 7l-4.5 4.5"></path>
             </svg>
+            <span class="sidebar-btn-label">Password Resets</span>
             @if($rCount > 0)
                 <span class="sidebar-dot-badge" style="background: #f59e0b;"></span>
             @endif
@@ -962,6 +1166,7 @@
                 <line x1="12" y1="8" x2="12" y2="16"></line>
                 <line x1="8" y1="12" x2="16" y2="12"></line>
             </svg>
+            <span class="sidebar-btn-label">Add Restaurant</span>
         </a>
 
         <!-- 6. Owner Accounts (Users) -->
@@ -972,6 +1177,7 @@
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
                 <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
+            <span class="sidebar-btn-label">Owner Accounts</span>
         </a>
 
         <!-- 7. Bot & AI Settings (Gear) -->
@@ -980,6 +1186,7 @@
                 <circle cx="12" cy="12" r="3"></circle>
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
             </svg>
+            <span class="sidebar-btn-label">AI & Bot Settings</span>
         </a>
 
         <!-- 8. Message Templates (Chat) -->
@@ -987,6 +1194,7 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
             </svg>
+            <span class="sidebar-btn-label">Message Templates</span>
         </a>
 
         <!-- 9. Global Menu Templates (Document) -->
@@ -997,6 +1205,7 @@
                 <line x1="16" y1="13" x2="8" y2="13"></line>
                 <line x1="16" y1="17" x2="8" y2="17"></line>
             </svg>
+            <span class="sidebar-btn-label">Global Menu Templates</span>
         </a>
 
         <!-- 10. Platform Analytics (Chart) -->
@@ -1006,6 +1215,7 @@
                 <line x1="12" y1="20" x2="12" y2="4"></line>
                 <line x1="6" y1="20" x2="6" y2="14"></line>
             </svg>
+            <span class="sidebar-btn-label">Platform Analytics</span>
         </a>
 
         <!-- 11. Audit Trail (Document check) -->
@@ -1014,6 +1224,7 @@
                 <path d="M9 11l3 3L22 4"></path>
                 <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
             </svg>
+            <span class="sidebar-btn-label">Audit Trail</span>
         </a>
 
         <!-- 12. All Modules & Features Mega Drawer Launcher -->
@@ -1024,6 +1235,7 @@
                 <rect x="14" y="14" width="7" height="7"></rect>
                 <rect x="3" y="14" width="7" height="7"></rect>
             </svg>
+            <span class="sidebar-btn-label">All Modules (24+)</span>
         </button>
     </div>
 
@@ -1299,7 +1511,9 @@ function updateThemeIcon(theme) {
 
 function toggleSidebar() {
     const sb = document.getElementById('adminSidebar');
+    const bd = document.getElementById('sidebarBackdrop');
     if (sb) sb.classList.toggle('mobile-open');
+    if (bd) bd.classList.toggle('active');
 }
 
 // All Modules Modal

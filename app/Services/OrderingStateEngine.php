@@ -330,6 +330,23 @@ class OrderingStateEngine
             return $this->renderCartReview();
         }
 
+        // Cart modifications have HIGHEST priority before confirmations or customer info!
+        if ($intent === 'ADD_ITEM' || !empty($nlu['items'])) {
+            return $this->handleAddItems($nlu);
+        }
+
+        if ($intent === 'REMOVE_ITEM') {
+            return $this->handleRemoveItem($nlu);
+        }
+
+        if ($intent === 'CHANGE_QUANTITY') {
+            return $this->handleChangeQuantity($nlu);
+        }
+
+        if ($intent === 'SELECT_VARIANT') {
+            return $this->handleSelectVariantDirect($nlu);
+        }
+
         // If cart has items and customer provides info or confirms
         if (!empty($this->session['cart'])) {
             if ($intent === 'CONFIRM_ORDER' || $this->isAffirmative($raw)) {
@@ -359,26 +376,6 @@ class OrderingStateEngine
                     return $this->proceedToNextStepAfterCart();
                 }
             }
-        }
-
-        if ($intent === 'ADD_ITEM') {
-            return $this->handleAddItems($nlu);
-        }
-
-        if ($intent === 'REMOVE_ITEM') {
-            return $this->handleRemoveItem($nlu);
-        }
-
-        if ($intent === 'CHANGE_QUANTITY') {
-            return $this->handleChangeQuantity($nlu);
-        }
-
-        if ($intent === 'SELECT_VARIANT') {
-            return $this->handleSelectVariantDirect($nlu);
-        }
-
-        if (!empty($nlu['items'])) {
-            return $this->handleAddItems($nlu);
         }
 
         return "Main samajh nahi saka. Aap menu dekhne ke liye *Menu* likh sakte hain ya direct item name aur quantity batayein.\n\nExample: _'2 Large Chicken Pizza'_";
@@ -433,10 +430,10 @@ class OrderingStateEngine
                 }
 
                 $cartPrompt = empty($this->session['customer_name'])
-                    ? "Kuch aur chahiye ya proceed karein?  Apna name bataein ?"
+                    ? "Agar kuch aur add karna hai to batayein, ya proceed karne ke liye apna *Naam* (Full Name) batayein:"
                     : (empty($this->session['customer_address'])
-                        ? "Kuch aur chahiye ya proceed karein?  Apna address batayein ?"
-                        : "Kuch aur chahiye ya proceed karein? (Type *Checkout*)");
+                        ? "Agar kuch aur add karna hai to batayein, ya delivery ke liye apna *Address* batayein:"
+                        : "Agar kuch aur add karna hai to batayein ya order confirm karne ke liye *Checkout* likhein.");
 
                 $reply .= $this->renderCartSummary();
                 $reply .= "\n\n" . $cartPrompt;
@@ -468,6 +465,22 @@ class OrderingStateEngine
             $this->resetSession(false);
             $this->transitionTo(self::STATE_MENU_SELECTION);
             return "Theek hai! Naya order shuru karte hain. Menu dekhne ke liye *Menu* likhein ya direct item batayein.";
+        }
+
+        // Support adding or modifying items even while collecting customer info
+        if ($intent === 'ADD_ITEM' || !empty($nlu['items'])) {
+            $this->transitionTo(self::STATE_MENU_SELECTION);
+            return $this->handleAddItems($nlu);
+        }
+
+        if ($intent === 'REMOVE_ITEM') {
+            $this->transitionTo(self::STATE_MENU_SELECTION);
+            return $this->handleRemoveItem($nlu);
+        }
+
+        if ($intent === 'CHANGE_QUANTITY') {
+            $this->transitionTo(self::STATE_MENU_SELECTION);
+            return $this->handleChangeQuantity($nlu);
         }
 
         $this->captureCustomerInfo($nlu);
@@ -530,6 +543,22 @@ class OrderingStateEngine
             $this->resetSession(false);
             $this->transitionTo(self::STATE_MENU_SELECTION);
             return "Theek hai! Naya order shuru karte hain. Menu dekhne ke liye *Menu* likhein ya direct item batayein.";
+        }
+
+        // Support adding or modifying items even while waiting for location/address
+        if ($intent === 'ADD_ITEM' || !empty($nlu['items'])) {
+            $this->transitionTo(self::STATE_MENU_SELECTION);
+            return $this->handleAddItems($nlu);
+        }
+
+        if ($intent === 'REMOVE_ITEM') {
+            $this->transitionTo(self::STATE_MENU_SELECTION);
+            return $this->handleRemoveItem($nlu);
+        }
+
+        if ($intent === 'CHANGE_QUANTITY') {
+            $this->transitionTo(self::STATE_MENU_SELECTION);
+            return $this->handleChangeQuantity($nlu);
         }
 
         $rawLower = strtolower($raw);
@@ -1201,7 +1230,11 @@ class OrderingStateEngine
 
             $menuItem->loadMissing('variants');
             if ($menuItem->variants->isNotEmpty()) {
-                $matchedVariant = $requestedVariant ? $this->matchVariant($menuItem, $requestedVariant) : null;
+                if ($menuItem->variants->count() === 1) {
+                    $matchedVariant = $menuItem->variants->first();
+                } else {
+                    $matchedVariant = $requestedVariant ? $this->matchVariant($menuItem, $requestedVariant) : null;
+                }
 
                 if (!$matchedVariant) {
                     $detectedSize = $this->extractVariantFromText($itemName, $menuItem->variants)
@@ -1238,10 +1271,10 @@ class OrderingStateEngine
         }
 
         $cartPrompt = empty($this->session['customer_name'])
-            ? "Kuch aur chahiye ya proceed karein?  Apna name bataein ?"
+            ? "Agar kuch aur add karna hai to batayein, ya proceed karne ke liye apna *Naam* (Full Name) batayein:"
             : (empty($this->session['customer_address'])
-                ? "Kuch aur chahiye ya proceed karein?  Apna address batayein ?"
-                : "Kuch aur chahiye ya proceed karein? (Type *Checkout*)");
+                ? "Agar kuch aur add karna hai to batayein, ya delivery ke liye apna *Address* batayein:"
+                : "Agar kuch aur add karna hai to batayein ya order confirm karne ke liye *Checkout* likhein.");
 
         return "✅ Added to Cart:\n" . implode("\n", $addedSummary) . "\n\n" . $this->renderCartSummary() . "\n\n" . $cartPrompt;
     }
@@ -1392,9 +1425,14 @@ class OrderingStateEngine
         }
 
         // Reject conversational phrases, verbs, food items, or ordering instructions
-        $stopWordsRegex = '/\b(?:add|kr|kro|kardo|kardi|kr\s*do|kr\s*di|kar\s*do|karo|karna|kar|de\s*do|bata\s*do|bhej\s*do|daal\s*do|mangwa|mangwana|chahiye|order|summary|summery|menu|address|pata|location|ghar|street|house|road|block|sector|same|wohi|wahi|pichla|pichle|pehle|use|kuch|sab|sub|usi|bhai|janab|suno|yes|no|ok|theek|confirm|cancel|radd|deal|wrap|pizza|burger|coke|bottle|drink|fries|shawarma|roll|biryani|price|rate|rupaye|rs|hi|hello|hey|salam)\b/iu';
+        $stopWordsRegex = '/\b(?:add|kr|kro|kardo|kardi|kr\s*do|kr\s*di|kar\s*do|karo|karna|kar|de\s*do|bata\s*do|bhej\s*do|daal\s*do|daalo|mangwa|mangwana|mangwao|chahiye|chahyee|chaiye|chahey|chahye|chahiyay|order|summary|summery|menu|address|pata|location|ghar|street|house|road|block|sector|same|wohi|wahi|pichla|pichle|pehle|use|kuch|sab|sub|usi|bhai|janab|suno|yes|no|ok|theek|confirm|cancel|radd|deal|wrap|pizza|burger|coke|bottle|drink|cold|coldrink|soft\s*drink|next\s*cola|water|fries|shawarma|roll|biryani|price|rate|rupaye|rs|hi|hello|hey|salam|aur|bhi|ek|ik|aik|do|teen|chaar|panch)\b/iu';
 
         if (preg_match($stopWordsRegex, $val)) {
+            return $fallback ? $this->sanitizeCustomerName($fallback) : null;
+        }
+
+        // Never accept an input that resolves to an actual menu item as a person's name
+        if ($this->resolveMenuItemFromDb($val) !== null) {
             return $fallback ? $this->sanitizeCustomerName($fallback) : null;
         }
 
@@ -1620,9 +1658,34 @@ class OrderingStateEngine
             return null;
         }
 
+        // Clean leading Roman Urdu numbers and trailing verbs
+        $cleanTerm = preg_replace('/^(?:ik|ek|aik|aikk|one|do|two|teen|three|chaar|char|four)\s+/iu', '', $queryClean);
+        $cleanTerm = trim(preg_replace('/\s+(?:add|kr\s*do|kardo|kar\s*do|chahiye|chahyee|chaiye|chahey|bhejo|daalo|de\s*do)$/iu', '', $cleanTerm));
+
+        // Pakistani colloquial drinks mapping: "cold", "cold drink", "coldrink" maps to Drink / Regular Drink
+        if (preg_match('/^(?:cold|cold\s*drink|coldrink|cold\s*drinks|soft\s*drink|drink|drinks)$/i', $cleanTerm ?: $queryClean)) {
+            $drinkItem = MenuItem::where('restaurant_id', $this->restaurant->id)
+                ->where('is_available', true)
+                ->where(function ($q) {
+                    $q->whereRaw('LOWER(name) = ?', ['drink'])
+                      ->orWhereRaw('LOWER(name) = ?', ['regular drink'])
+                      ->orWhereRaw('LOWER(name) LIKE ?', ['%drink%']);
+                })
+                ->whereRaw('LOWER(name) NOT LIKE ?', ['%coffee%'])
+                ->first();
+            if ($drinkItem) {
+                return $drinkItem;
+            }
+        }
+
         // Exact match
         $item = MenuItem::where('restaurant_id', $this->restaurant->id)
-            ->whereRaw('LOWER(name) = ?', [$queryClean])
+            ->where(function ($q) use ($queryClean, $cleanTerm) {
+                $q->whereRaw('LOWER(name) = ?', [$queryClean]);
+                if ($cleanTerm && $cleanTerm !== $queryClean) {
+                    $q->orWhereRaw('LOWER(name) = ?', [$cleanTerm]);
+                }
+            })
             ->first();
 
         if ($item) {
@@ -1701,7 +1764,19 @@ class OrderingStateEngine
     protected function isAffirmative(string $text): bool
     {
         $clean = strtolower(trim($text));
-        if (preg_match('/\b(yes|ha|haan|han|confirm|confim|cnfrm|cnfm|conferm|confrm|comfirm|confrim|theek|thek|ok|okay|g|jee|ji|sahi|order\s+kar\s+do|done|update\s+kar\s+do|bhej\s*do|bhejo|kardo|kr\s*do|yup|yep|bilkul|kar\s*dain|kar\s*den)\b/i', $clean)) {
+
+        // Rejection if text contains item addition or modification actions
+        if (preg_match('/\b(?:add|aur|bhi|chahiye|chahyee|chaiye|chahey|chahye|chahiyay|daal|daalo|mangwa|mangwana|mangwao|remove|hatao|badlo|pack)\b/iu', $clean)) {
+            return false;
+        }
+
+        // Rejection if text mentions food or drink items
+        if (preg_match('/\b(?:pizza|burger|drink|drinks|cold|coldrink|coke|pepsi|fries|roll|wrap|sandwich|deal|biryani|roti|naan|wings|pasta|sauce|water)\b/iu', $clean)) {
+            return false;
+        }
+
+        if (preg_match('/^(?:yes|ha|haan|han|confirm|confim|cnfrm|cnfm|conferm|confrm|comfirm|confrim|theek|thek|ok|okay|g|jee|ji|sahi|order\s+kar\s+do|done|update\s+kar\s+do|bhej\s*do|bhejo|kardo|kr\s*do|yup|yep|bilkul|kar\s*dain|kar\s*den|theek\s*hai|thek\s*hai|haan\s*ji|ji\s*haan|ha\s*ji|done\s*hai)$/i', $clean) ||
+            preg_match('/\b(?:order\s+kar\s+do|confirm\s+kar\s+do|confirm\s+kardo|update\s+kar\s+do|theek\s+hai|thek\s+hai|ha\s+bhej\s+do|haan\s+bhej\s+do)\b/i', $clean)) {
             return true;
         }
 

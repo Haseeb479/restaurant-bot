@@ -4,6 +4,32 @@
 @section('header_subtitle', 'View, manage, edit credentials and monitor restaurant status')
 
 @section('content')
+<style>
+    .restaurant-filter-form {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr auto;
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+    @media (max-width: 768px) {
+        .restaurant-filter-form {
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+        .restaurant-filter-form .filter-btn-group {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+        }
+        .restaurant-filter-form .filter-btn-group button,
+        .restaurant-filter-form .filter-btn-group a {
+            flex: 1;
+            text-align: center;
+            justify-content: center;
+        }
+    }
+</style>
+
 <div class="panel-card">
     <div class="panel-header">
         <div class="panel-title">
@@ -21,7 +47,7 @@
     </div>
 
     <!-- Filters & Search Bar -->
-    <form method="GET" action="{{ route('admin.restaurants') }}" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; margin-bottom: 18px;">
+    <form method="GET" action="{{ route('admin.restaurants') }}" class="restaurant-filter-form">
         <input type="text" name="search" class="form-input" placeholder="Search by name, phone, WhatsApp number, city..." value="{{ request('search') }}">
         
         <select name="status" class="form-select">
@@ -39,7 +65,7 @@
             @endforeach
         </select>
 
-        <div style="display: flex; gap: 6px;">
+        <div class="filter-btn-group">
             <button type="submit" class="btn btn-secondary">Filter</button>
             <a href="{{ route('admin.restaurants') }}" class="btn btn-secondary" title="Reset">✕</a>
         </div>

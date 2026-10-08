@@ -308,6 +308,15 @@ class DashboardController extends Controller
         $todayRevenue      = (float) $todayOrders->where('status', '!=', 'cancelled')->sum('total');
         $activeRidersCount = $riders->where('is_active', true)->count();
 
+        $statusCounts = [
+            'pending'          => $todayOrders->where('status', 'pending')->count(),
+            'confirmed'        => $todayOrders->where('status', 'confirmed')->count(),
+            'preparing'        => $todayOrders->where('status', 'preparing')->count(),
+            'ready'            => $todayOrders->where('status', 'confirmed')->whereNotNull('rider_name')->count(),
+            'out_for_delivery' => $todayOrders->where('status', 'out_for_delivery')->count(),
+            'delivered'        => $todayOrders->where('status', 'delivered')->count(),
+        ];
+
         return view('dashboard.live-orders', [
             'restaurant'        => $r,
             'orders'            => $liveOrders,
@@ -320,6 +329,8 @@ class DashboardController extends Controller
             'activeRidersCount' => $activeRidersCount,
             'riders'            => $riders,
             'selectedOrder'     => $selectedOrder,
+            'todayOrders'       => $todayOrders,
+            'statusCounts'      => $statusCounts,
         ]);
     }
 
@@ -2273,10 +2284,11 @@ class DashboardController extends Controller
     // ── Auth helper (Access Isolation enforced at query level) ─
     private function authCheck(string $id): void
     {
+        $isAdmin = session('admin_logged_in') === true;
         $isOwner = session("restaurant_{$id}") === true;
 
-        // 1. Must be logged in as the specific restaurant owner (Superadmins cannot bypass)
-        if (!$isOwner) {
+        // 1. Must be logged in as the specific restaurant owner or Super Admin
+        if (!$isOwner && !$isAdmin) {
             // Redirect to the dashboard-specific login page (or general login)
             $r = \App\Models\Restaurant::find($id);
             if ($r) {
@@ -2289,8 +2301,10 @@ class DashboardController extends Controller
         $r = \App\Models\Restaurant::find($id);
         abort_if(!$r, 404, 'Restaurant not found.');
 
-        // 3. Block if deactivated or unverified
-        abort_if(!$r->isVerified(), 403, 'Please verify your email address before accessing the dashboard.');
-        abort_if(!$r->is_active, 403, 'This restaurant account has been deactivated. Please contact the platform admin.');
+        // 3. Block if deactivated or unverified (unless superadmin)
+        if (!$isAdmin) {
+            abort_if(!$r->isVerified(), 403, 'Please verify your email address before accessing the dashboard.');
+            abort_if(!$r->is_active, 403, 'This restaurant account has been deactivated. Please contact the platform admin.');
+        }
     }
 }

@@ -1,5 +1,5 @@
 @extends('layouts.admin')
-@section('title', 'Super Admin Dashboard')
+@section('title', 'Executive Dashboard — Super Admin')
 @section('header_title')
     @php
         $hour = (int) date('H');
@@ -182,9 +182,32 @@
             grid-template-columns: 1fr;
         }
     }
-    @media (max-width: 640px) {
+    @media (max-width: 768px) {
         .sa-metric-grid {
             grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        .sa-metric-card {
+            padding: 16px 14px;
+        }
+        .pending-alert-banner {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 12px !important;
+        }
+        .pending-alert-banner a.btn {
+            width: 100% !important;
+            justify-content: center !important;
+        }
+        .chart-header-actions {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 10px !important;
+            width: 100% !important;
+        }
+        .chart-header-actions a.btn {
+            width: 100% !important;
+            justify-content: center !important;
         }
     }
 </style>
@@ -204,7 +227,7 @@
                         <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
                     </svg>
                 </div>
-                <span class="sa-metric-label">SAAS MONTHLY REVENUE</span>
+                <span class="sa-metric-label">SaaS Monthly Revenue</span>
             </div>
             <!-- Sparkline curve -->
             <svg width="54" height="22" viewBox="0 0 60 24" fill="none">
@@ -324,7 +347,7 @@
 
 @if($pendingCount > 0)
 <!-- Optional Pending Alert Bar if restaurants require approval -->
-<div class="panel-card" style="border-left: 4px solid #f59e0b; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px;">
+<div class="panel-card pending-alert-banner" style="border-left: 4px solid #f59e0b; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px;">
     <div style="display: flex; align-items: center; gap: 12px;">
         <span style="font-size: 20px;">⏳</span>
         <div>
@@ -354,7 +377,7 @@
                 </div>
             </div>
 
-            <div style="display: flex; align-items: center; gap: 14px;">
+            <div class="chart-header-actions" style="display: flex; align-items: center; gap: 14px;">
                 <!-- Legend badges -->
                 <div class="chart-legend-pills">
                     <div class="chart-pill purple">

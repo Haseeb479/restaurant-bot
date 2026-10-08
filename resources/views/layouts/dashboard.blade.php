@@ -753,50 +753,128 @@
             cursor: pointer;
         }
 
+        .sidebar-btn-label {
+            display: none;
+        }
+        .sidebar-drawer-header {
+            display: none;
+        }
+
         .sidebar-backdrop {
             display: none;
             position: fixed;
             inset: 0;
             background: rgba(15, 23, 42, 0.6);
             backdrop-filter: blur(4px);
-            z-index: 95;
+            z-index: 998;
             opacity: 0;
             transition: opacity 0.25s ease;
         }
 
-        /* Responsive Breakpoints */
+        /* Responsive Breakpoints & Universal Mobile Guards */
         @media (max-width: 1024px) {
             aside#ownerSidebar {
                 transform: translateX(-100%);
                 z-index: 1000;
-                width: 76px;
+                width: 260px;
+                align-items: stretch;
+                padding: 18px 16px 24px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.45);
             }
             aside#ownerSidebar.mobile-open {
                 transform: translateX(0);
-                box-shadow: 0 10px 40px rgba(0,0,0,0.4);
             }
             .sidebar-backdrop.active {
                 display: block;
                 opacity: 1;
             }
+            .sidebar-drawer-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding-bottom: 14px;
+                margin-bottom: 16px;
+                border-bottom: 1px solid var(--border-subtle);
+            }
+            .sidebar-drawer-brand {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                text-decoration: none;
+                color: var(--text-heading);
+                font-weight: 800;
+                font-size: 15px;
+            }
+            .sidebar-drawer-close {
+                width: 32px;
+                height: 32px;
+                border-radius: 8px;
+                background: var(--border-subtle);
+                border: none;
+                color: var(--text-heading);
+                font-size: 15px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+            }
+            .sidebar-brand-badge {
+                display: none !important;
+            }
+            .sidebar-nav-stack {
+                align-items: stretch;
+                gap: 8px;
+            }
+            .sidebar-icon-btn {
+                width: 100%;
+                height: 44px;
+                justify-content: flex-start;
+                padding: 0 12px;
+                gap: 12px;
+                border-radius: 10px;
+            }
+            .sidebar-btn-label {
+                display: inline-block;
+                font-size: 13px;
+                font-weight: 700;
+                color: inherit;
+            }
+            .sidebar-icon-btn::after {
+                display: none !important;
+            }
+            .sidebar-footer-status {
+                justify-content: flex-start;
+                padding: 10px 12px;
+                width: 100%;
+            }
+
             .mobile-menu-toggle {
                 display: inline-flex;
             }
             .main-wrapper {
                 margin-left: 0 !important;
-                padding-top: 72px !important;
+                padding-top: 68px !important;
                 max-width: 100vw !important;
                 width: 100% !important;
                 min-width: 0 !important;
+                overflow-x: hidden !important;
+                box-sizing: border-box !important;
             }
             header.topbar {
-                padding: 0 20px;
-                height: 72px;
+                padding: 0 16px;
+                height: 68px;
                 left: 0 !important;
                 right: 0 !important;
+                width: 100% !important;
+                max-width: 100vw !important;
+                box-sizing: border-box !important;
             }
             main {
-                padding: 12px 18px 80px;
+                padding: 14px 16px 84px !important;
+                max-width: 100vw !important;
+                width: 100% !important;
+                overflow-x: hidden !important;
+                box-sizing: border-box !important;
             }
             .mobile-bottom-nav {
                 display: flex;
@@ -804,17 +882,108 @@
         }
 
         @media (max-width: 768px) {
+            header.topbar {
+                height: 62px !important;
+                padding: 0 12px !important;
+            }
+            .main-wrapper {
+                padding-top: 62px !important;
+            }
+            main {
+                padding: 12px 12px 84px !important;
+            }
+            .header-left {
+                gap: 8px !important;
+                min-width: 0 !important;
+                flex: 1 1 auto !important;
+                overflow: hidden !important;
+            }
+            .header-greeting-wrap {
+                min-width: 0 !important;
+                overflow: hidden !important;
+            }
+            .header-greeting-title {
+                font-size: 14px !important;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                max-width: 140px !important;
+                line-height: 1.2 !important;
+            }
+            .header-greeting-sub {
+                display: none !important;
+            }
+            .header-right-actions {
+                gap: 6px !important;
+                flex-shrink: 0 !important;
+            }
             .date-pill {
                 display: none !important;
             }
+            /* Compact Status Dot Badge */
+            .status-pill-toggle {
+                padding: 7px 10px !important;
+                gap: 0 !important;
+                min-width: unset !important;
+            }
+            #pillStatusLabel, .status-pill-toggle .pill-chevron {
+                display: none !important;
+            }
+            .theme-icon-btn, .notif-bell-btn, .user-avatar-badge {
+                width: 34px !important;
+                height: 34px !important;
+                font-size: 13px !important;
+                flex-shrink: 0 !important;
+            }
+
+            /* Responsive Panels & Blowout Prevention */
+            .panel-card, .card {
+                padding: 16px 14px !important;
+                border-radius: 14px !important;
+                margin-bottom: 16px !important;
+            }
+            .panel-header {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 12px !important;
+            }
+            .panel-header > div:last-child {
+                width: 100% !important;
+                display: flex !important;
+                flex-wrap: wrap !important;
+                gap: 8px !important;
+            }
+            .bot-alert-banner {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 10px !important;
+            }
+            .bot-alert-banner a.btn {
+                width: 100% !important;
+                justify-content: center !important;
+            }
+        }
+
+        @media (max-width: 400px) {
+            header.topbar {
+                padding: 0 8px !important;
+            }
+            main {
+                padding: 10px 8px 84px !important;
+            }
+            .header-left {
+                gap: 6px !important;
+            }
             .header-greeting-title {
-                font-size: 17px;
+                font-size: 13px !important;
+                max-width: 100px !important;
             }
-            .header-greeting-sub {
-                display: none;
+            .header-right-actions {
+                gap: 4px !important;
             }
-            .status-pill-toggle span:last-child {
-                display: none;
+            .mobile-menu-toggle, .theme-icon-btn, .notif-bell-btn, .user-avatar-badge {
+                width: 32px !important;
+                height: 32px !important;
             }
         }
     </style>
@@ -836,6 +1005,15 @@
 
 <!-- SLIM ICON SIDEBAR -->
 <aside id="ownerSidebar">
+    <!-- Mobile Drawer Header -->
+    <div class="sidebar-drawer-header">
+        <a href="{{ route('dashboard.orders', $restId) }}" class="sidebar-drawer-brand">
+            <span style="font-size: 18px;">🍽️</span>
+            <span>{{ $currentRest->name ?? 'Foodio' }}</span>
+        </a>
+        <button type="button" class="sidebar-drawer-close" onclick="toggleOwnerSidebar()" aria-label="Close menu">✕</button>
+    </div>
+
     <!-- Top Cutlery Brand Badge -->
     <a href="{{ route('dashboard.orders', $restId) }}" class="sidebar-brand-badge" title="Foodio Restaurant POS">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -856,6 +1034,7 @@
                 <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                 <polyline points="9 22 9 12 15 12 15 22"/>
             </svg>
+            <span class="sidebar-btn-label">Dashboard</span>
         </a>
 
         <!-- 2. Orders (Checklist / Live) -->
@@ -867,6 +1046,7 @@
                 <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
                 <path d="m9 14 2 2 4-4"/>
             </svg>
+            <span class="sidebar-btn-label">Live Orders</span>
             @if(isset($liveOrdersCount) && $liveOrdersCount > 0)
                 <span class="sidebar-icon-badge"></span>
             @endif
@@ -881,6 +1061,7 @@
                 <path d="M7 2v20"/>
                 <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>
             </svg>
+            <span class="sidebar-btn-label">Menu & Items</span>
         </a>
 
         <!-- 4. Customers -->
@@ -893,6 +1074,7 @@
                 <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
                 <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
             </svg>
+            <span class="sidebar-btn-label">Customers</span>
         </a>
 
         <!-- 5. Riders / Fleet -->
@@ -906,6 +1088,7 @@
                 <circle cx="7" cy="18" r="2"/>
                 <circle cx="17" cy="18" r="2"/>
             </svg>
+            <span class="sidebar-btn-label">Riders & Fleet</span>
         </a>
 
         <!-- 6. Reports -->
@@ -916,6 +1099,7 @@
                 <path d="M3 3v18h18"/>
                 <path d="m19 9-5 5-4-4-3 3"/>
             </svg>
+            <span class="sidebar-btn-label">Reports & Analytics</span>
         </a>
 
         <!-- 7. Settings -->
@@ -926,6 +1110,7 @@
                 <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
                 <circle cx="12" cy="12" r="3"/>
             </svg>
+            <span class="sidebar-btn-label">Settings</span>
         </a>
     </div>
 
@@ -944,7 +1129,7 @@
             <button type="button" class="mobile-menu-toggle" onclick="toggleOwnerSidebar()" aria-label="Open menu">
                 ☰
             </button>
-            <div>
+            <div class="header-greeting-wrap">
                 <h1 class="header-greeting-title">
                     @hasSection('header_title')
                         @yield('header_title')
@@ -963,7 +1148,7 @@
             <button type="button" class="status-pill-toggle {{ $isOpen ? '' : 'paused' }}" id="statusPillBtn" onclick="quickToggleRestaurantStatus()" title="Toggle Taking Orders">
                 <span class="sidebar-online-dot {{ $isOpen ? '' : 'paused' }}" id="pillStatusDot"></span>
                 <span id="pillStatusLabel">{{ $isOpen ? 'Restaurant Online' : 'Store Paused' }}</span>
-                <span style="font-size: 10px; opacity: 0.6;">▾</span>
+                <span class="pill-chevron" style="font-size: 10px; opacity: 0.6;">▾</span>
             </button>
 
             <!-- Live Date Pill -->
