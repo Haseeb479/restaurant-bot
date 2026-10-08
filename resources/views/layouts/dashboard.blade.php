@@ -110,6 +110,21 @@
         }
 
         /* ═══════════════════════════════════════════════════
+           PAGINATION & SVG SIZE GUARDS (PREVENTS OVERSIZED ARROWS)
+           ═══════════════════════════════════════════════════ */
+        nav[role="navigation"] svg,
+        .pagination svg,
+        svg.w-5, svg.h-5,
+        .w-5, .h-5 {
+            width: 15px !important;
+            height: 15px !important;
+            max-width: 15px !important;
+            max-height: 15px !important;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        /* ═══════════════════════════════════════════════════
            SLIM ICON SIDEBAR (CONCEPT UI MATCH)
            ═══════════════════════════════════════════════════ */
         aside#ownerSidebar {
