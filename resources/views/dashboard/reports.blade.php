@@ -129,7 +129,7 @@
                     </td>
                     <td>PKR {{ number_format($o->subtotal, 0) }}</td>
                     <td>PKR {{ number_format($o->delivery_charge, 0) }}</td>
-                    <td><strong style="color: #4f46e5;">PKR {{ number_format($o->total, 0) }}</strong></td>
+                    <td><strong style="color: #064e3b;">PKR {{ number_format($o->total, 0) }}</strong></td>
                     <td>{{ ucwords(str_replace('_', ' ', $o->payment_method ?: 'COD')) }}</td>
                     <td>
                         <span class="badge-status {{ $o->status }}">
@@ -174,7 +174,7 @@
                     <td><strong>🍕 {{ $item->name }}</strong></td>
                     <td>{{ $item->order_count }} orders</td>
                     <td><strong>{{ $item->total_qty }} units</strong></td>
-                    <td><strong style="color: #4f46e5;">PKR {{ number_format($item->total_revenue, 0) }}</strong></td>
+                    <td><strong style="color: #064e3b;">PKR {{ number_format($item->total_revenue, 0) }}</strong></td>
                 </tr>
                 @empty
                 <tr>
@@ -198,7 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
             datasets: [{
                 label: 'Daily Sales (PKR)',
                 data: {!! json_encode($chartRevenue) !!},
-                backgroundColor: '#4f46e5',
+                backgroundColor: '#064e3b',
                 borderRadius: 8,
                 maxBarThickness: 45
             }]

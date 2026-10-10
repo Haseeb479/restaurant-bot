@@ -202,7 +202,7 @@
                     Complete daily sales and customer order history automatically preserved into CSV files. Download past archives anytime to inspect or import.
                 </p>
             </div>
-            <a href="{{ route('dashboard.download-daily-archive', [$r->id, 'date' => $date]) }}" class="btn btn-primary" style="font-size: 12.5px; font-weight: 700; background: #4f46e5; border-color: #4f46e5;">
+            <a href="{{ route('dashboard.download-daily-archive', [$r->id, 'date' => $date]) }}" class="btn btn-primary" style="font-size: 12.5px; font-weight: 700; background: #064e3b; border-color: #064e3b;">
                 📥 Save & Export Selected Day ({{ $date }})
             </a>
         </div>
@@ -246,7 +246,7 @@
                             <a href="{{ route('dashboard.daily-closing', [$r->id, 'date' => $arch['date']]) }}" class="btn btn-secondary" style="padding: 5px 10px; font-size: 11.5px; font-weight: 600;">
                                 👁️ View Day
                             </a>
-                            <a href="{{ route('dashboard.download-daily-archive', [$r->id, 'date' => $arch['date']]) }}" class="btn btn-primary" style="padding: 5px 12px; font-size: 11.5px; font-weight: 700; background: #4f46e5; border-color: #4f46e5;">
+                            <a href="{{ route('dashboard.download-daily-archive', [$r->id, 'date' => $arch['date']]) }}" class="btn btn-primary" style="padding: 5px 12px; font-size: 11.5px; font-weight: 700; background: #064e3b; border-color: #064e3b;">
                                 📥 Download CSV
                             </a>
                         </td>

@@ -169,7 +169,7 @@
         <!-- 1. QR CODE SECTION (Default) -->
         <div id="section-qr" class="pairing-box" style="display: flex;">
             <div id="qr-loading" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
-                <div style="width: 36px; height: 36px; border: 3px solid #e2e8f0; border-top-color: #4f46e5; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                <div style="width: 36px; height: 36px; border: 3px solid #e2e8f0; border-top-color: #064e3b; border-radius: 50%; animation: spin 1s linear infinite;"></div>
                 <span style="font-size: 13px; color: #64748b; font-weight: 600;">Fetching live WhatsApp QR code...</span>
             </div>
 
@@ -226,7 +226,7 @@
             <div style="font-size: 11px; color: #94a3b8;" id="poll-indicator">
                 ● Auto-syncing connection status...
             </div>
-            <button type="button" onclick="requestRestart()" style="background: none; border: none; font-size: 12px; color: #4f46e5; font-weight: 700; cursor: pointer; text-decoration: underline;">
+            <button type="button" onclick="requestRestart()" style="background: none; border: none; font-size: 12px; color: #064e3b; font-weight: 700; cursor: pointer; text-decoration: underline;">
                 🔄 Reset / Re-pair Instance
             </button>
         </div>

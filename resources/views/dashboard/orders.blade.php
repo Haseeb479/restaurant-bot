@@ -274,19 +274,19 @@
         gap: 8px;
         width: 100%;
         padding: 12px 20px;
-        border-radius: 12px;
-        background: #4f46e5;
+        border-radius: 9999px;
+        background: #064e3b;
         color: #ffffff;
         font-size: 13.5px;
         font-weight: 800;
         text-decoration: none;
         transition: all 0.2s ease;
-        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
+        box-shadow: 0 4px 14px rgba(6, 78, 59, 0.25);
     }
     .btn-goto-live:hover {
-        background: #4338ca;
+        background: #043b2c;
         transform: translateY(-2px);
-        box-shadow: 0 6px 18px rgba(79, 70, 229, 0.35);
+        box-shadow: 0 6px 18px rgba(6, 78, 59, 0.35);
         color: #ffffff;
     }
     .recent-orders-card {
@@ -565,9 +565,9 @@
         transition: all 0.15s ease;
     }
     .trend-toggle-btn.active {
-        background: #4f46e5;
+        background: #064e3b;
         color: #ffffff;
-        box-shadow: 0 1px 4px rgba(79, 70, 229, 0.25);
+        box-shadow: 0 1px 4px rgba(6, 78, 59, 0.25);
     }
 
     .sales-trend-chart-area {
@@ -1134,10 +1134,10 @@
                         <span>WhatsApp Live Order Listener Active</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 8px;">
-                        <span style="font-size: 11.5px; font-weight: 700; color: #4f46e5; background: #eef2ff; padding: 4px 10px; border-radius: 8px; border: 1px solid #c7d2fe;">
+                        <span style="font-size: 11.5px; font-weight: 700; color: #064e3b; background: #e6f3ee; padding: 4px 10px; border-radius: 8px; border: 1px solid #b7dfcf;">
                             🔔 Sound Alert: ON
                         </span>
-                        <a href="{{ route('dashboard.live-orders', $restaurant->id) }}" class="card-action-link" style="font-weight: 700; color: #4f46e5;">
+                        <a href="{{ route('dashboard.live-orders', $restaurant->id) }}" class="card-action-link" style="font-weight: 700; color: #064e3b;">
                             Live Command Center →
                         </a>
                     </div>

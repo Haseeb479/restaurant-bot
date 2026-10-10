@@ -110,7 +110,7 @@
                     <td>
                         <strong>{{ $c->total_orders }}</strong> {{ Str::plural('order', $c->total_orders) }}
                     </td>
-                    <td><strong style="color: #4f46e5;">PKR {{ number_format($c->total_spent, 0) }}</strong></td>
+                    <td><strong style="color: #064e3b;">PKR {{ number_format($c->total_spent, 0) }}</strong></td>
                     <td>
                         {{ $c->last_order_at ? $c->last_order_at->diffForHumans() : 'Recently' }}
                     </td>

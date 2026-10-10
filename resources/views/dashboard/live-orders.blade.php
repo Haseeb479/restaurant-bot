@@ -203,23 +203,23 @@
         border-color: #334155;
     }
     .live-order-item:hover {
-        border-color: #6366f1;
+        border-color: #064e3b;
         background: #ffffff;
         transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(99, 102, 241, 0.12);
+        box-shadow: 0 6px 16px rgba(6, 78, 59, 0.10);
     }
     [data-theme="dark"] .live-order-item:hover {
         background: #1e293b;
-        border-color: #818cf8;
+        border-color: #10b981;
     }
     .live-order-item.active {
-        border-color: #6366f1;
-        background: #eff6ff;
-        box-shadow: 0 4px 16px rgba(99, 102, 241, 0.15);
+        border-color: #064e3b;
+        background: #ecfdf5;
+        box-shadow: 0 4px 16px rgba(6, 78, 59, 0.12);
     }
     [data-theme="dark"] .live-order-item.active {
-        background: rgba(99, 102, 241, 0.18);
-        border-color: #818cf8;
+        background: rgba(6, 78, 59, 0.25);
+        border-color: #10b981;
     }
 
     .wa-avatar-box {
@@ -425,8 +425,8 @@
     .route-map-preview {
         position: relative;
         height: 100px;
-        background: linear-gradient(135deg, #eef2ff 0%, #f0fdf4 100%);
-        border: 1px solid #e0e7ff;
+        background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+        border: 1px solid #d1fae5;
         border-radius: 14px;
         margin-bottom: 16px;
         overflow: hidden;
@@ -444,7 +444,7 @@
         top: 8px;
         left: 12px;
         background: #ffffff;
-        color: #4f46e5;
+        color: #064e3b;
         font-size: 10.5px;
         font-weight: 700;
         padding: 3px 8px;
@@ -631,8 +631,8 @@
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
     }
     .pipeline-step-box.active {
-        box-shadow: 0 0 0 2.5px #6366f1;
-        border-color: #6366f1;
+        box-shadow: 0 0 0 2.5px #064e3b;
+        border-color: #064e3b;
     }
     .pipeline-step-label {
         display: flex;
@@ -707,7 +707,7 @@
         </div>
 
         <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-            <button id="btn-sound-toggle" onclick="toggleKitchenChime()" class="btn-action-secondary" title="Kitchen audio chime on new orders" style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 700; border-color: #818cf8; color: #4f46e5;">
+            <button id="btn-sound-toggle" onclick="toggleKitchenChime()" class="btn-action-secondary" title="Kitchen audio chime on new orders" style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 700; border-color: #a7f3d0; color: #064e3b; background: #ecfdf5;">
                 <span id="sound-icon">🔔</span>
                 <span id="sound-label">Chime: ON</span>
             </button>
@@ -734,9 +734,9 @@
                     <path d="M4 6v12a2 2 0 0 0 2 2h14"/>
                 </svg>
                 <span>Live Order Pipeline</span>
-                <span id="activeStageLabel" style="font-size: 11.5px; font-weight: 600; color: #6366f1; margin-left: 6px;"></span>
+                <span id="activeStageLabel" style="font-size: 11.5px; font-weight: 600; color: #064e3b; margin-left: 6px;"></span>
             </div>
-            <a href="javascript:void(0)" onclick="filterLiveStage('all')" style="font-size: 12px; font-weight: 700; color: #6366f1; text-decoration: none;">Show All Orders →</a>
+            <a href="javascript:void(0)" onclick="filterLiveStage('all')" style="font-size: 12px; font-weight: 700; color: #064e3b; text-decoration: none;">Show All Orders →</a>
         </div>
 
         <div class="pipeline-steps-strip">
@@ -879,9 +879,9 @@
                         <div class="order-item-row">
                             <div>
                                 <span class="order-item-qty-badge">{{ $item->quantity }}x</span>
-                                <span>{{ $item->name ?: $item->item_name }}@if($item->size) <strong style="color: #4f46e5;">({{ $item->size }})</strong>@endif</span>
+                                <span>{{ $item->name ?: $item->item_name }}@if($item->size) <strong style="color: #064e3b;">({{ $item->size }})</strong>@endif</span>
                                 @if($item->unit_price > 0)
-                                    <span style="font-size: 11px; color: #64748b; margin-left: 4px;">@ Rs. {{ number_format($item->unit_price) }}</span>
+                                     <span style="font-size: 11px; color: #64748b; margin-left: 4px;">@ Rs. {{ number_format($item->unit_price) }}</span>
                                 @endif
                             </div>
                             <span style="font-weight: 700;">PKR {{ number_format($item->subtotal) }}</span>
@@ -894,7 +894,7 @@
                     <div class="order-bill-divider"></div>
                     <div class="order-total-row">
                         <span>Total Bill</span>
-                        <span style="color: #4f46e5; font-size: 17px;">PKR {{ number_format($selectedOrder->total) }}</span>
+                        <span style="color: #064e3b; font-size: 17px;">PKR {{ number_format($selectedOrder->total) }}</span>
                     </div>
                 </div>
 
@@ -965,7 +965,7 @@
                     <span>Delivery Fleet</span>
                     <span class="status-pill delivered">{{ $activeRidersCount }}</span>
                 </div>
-                <a href="{{ route('dashboard.riders', $restaurant->id) }}" style="font-size: 11px; font-weight: 700; color: #6366f1; text-decoration: none;">Manage</a>
+                <a href="{{ route('dashboard.riders', $restaurant->id) }}" style="font-size: 11px; font-weight: 700; color: #064e3b; text-decoration: none;">Manage</a>
             </div>
 
             <div class="rider-list">
@@ -1202,7 +1202,7 @@
                 <p style="font-size:12px;color:#64748b;margin-top:4px;line-height:1.4;">
                     Live Orders automatically wipes delivered orders to keep the kitchen focused. Completed orders are saved in Order History.
                 </p>
-                <a href="/dashboard/${RESTAURANT_ID}/history" style="display:inline-block;margin-top:12px;padding:8px 16px;background:#4f46e5;color:#ffffff;border-radius:10px;font-size:12px;font-weight:700;text-decoration:none;">
+                <a href="/dashboard/${RESTAURANT_ID}/history" style="display:inline-block;margin-top:12px;padding:8px 16px;background:#064e3b;color:#ffffff;border-radius:9999px;font-size:12px;font-weight:700;text-decoration:none;">
                     Open Order History →
                 </a>
             </div>`;
@@ -1213,7 +1213,7 @@
             list.innerHTML = `<div style="text-align:center;padding:35px 10px;color:#94a3b8;" id="empty-orders-state">
                 <div style="font-size:32px;margin-bottom:6px;">🔍</div>
                 <p style="font-weight:700;font-size:13.5px;">No ${currentLiveStageFilter === 'all' ? 'active' : currentLiveStageFilter} orders</p>
-                <p style="font-size:11.5px;margin-top:4px;"><a href="javascript:void(0)" onclick="filterLiveStage('all')" style="color:#6366f1;font-weight:700;text-decoration:none;">Show all orders →</a></p>
+                <p style="font-size:11.5px;margin-top:4px;"><a href="javascript:void(0)" onclick="filterLiveStage('all')" style="color:#064e3b;font-weight:700;text-decoration:none;">Show all orders →</a></p>
             </div>`;
         } else {
             list.innerHTML = filtered.map(o => renderOrderRow(o)).join('');
@@ -1610,7 +1610,7 @@
                 <div style="font-size:36px;margin-bottom:8px;">🍽️</div>
                 <p style="font-weight:700;font-size:14px;color:#334155;">No active live orders right now</p>
                 <p style="font-size:11.5px;margin-top:4px;">Delivered orders are moved to Order History. New WhatsApp orders will arrive here automatically.</p>
-                <a href="/dashboard/${RESTAURANT_ID}/history" style="display:inline-block;margin-top:10px;color:#6366f1;font-weight:700;font-size:11.5px;text-decoration:none;">Open Order History →</a>
+                <a href="/dashboard/${RESTAURANT_ID}/history" style="display:inline-block;margin-top:10px;color:#064e3b;font-weight:700;font-size:11.5px;text-decoration:none;">Open Order History →</a>
             </div>`;
         }
     }
@@ -1625,7 +1625,7 @@
                 Active orders have been delivered and archived into Order History. The kitchen is all caught up!
             </p>
             <div style="margin-top:18px;display:flex;gap:10px;justify-content:center;">
-                <a href="/dashboard/${RESTAURANT_ID}/history" style="padding:9px 18px;background:#4f46e5;color:#ffffff;border-radius:10px;font-size:12.5px;font-weight:700;text-decoration:none;">
+                <a href="/dashboard/${RESTAURANT_ID}/history" style="padding:9px 18px;background:#064e3b;color:#ffffff;border-radius:9999px;font-size:12.5px;font-weight:700;text-decoration:none;">
                     View Order History →
                 </a>
             </div>
@@ -1761,7 +1761,7 @@
                 <div class="order-bill-divider"></div>
                 <div class="order-total-row">
                     <span>Total Bill</span>
-                    <span style="color: #4f46e5; font-size: 17px;">PKR ${Number(o.total).toLocaleString()}</span>
+                    <span style="color: #064e3b; font-size: 17px;">PKR ${Number(o.total).toLocaleString()}</span>
                 </div>
             </div>
 
@@ -1951,9 +1951,9 @@
         if (kitchenSoundEnabled) {
             icon.textContent = '🔔';
             label.textContent = 'Chime: ON';
-            btn.style.borderColor = '#818cf8';
-            btn.style.color = '#4f46e5';
-            btn.style.background = '#f5f3ff';
+            btn.style.borderColor = '#a7f3d0';
+            btn.style.color = '#064e3b';
+            btn.style.background = '#ecfdf5';
         } else {
             icon.textContent = '🔕';
             label.textContent = 'Chime: OFF';

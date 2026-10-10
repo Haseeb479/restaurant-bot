@@ -549,7 +549,7 @@
     flex-shrink: 0;
 }
 .cat-pill:hover { border-color: #cbd5e1; color: #0f172a; }
-.active-pill { background: #0f172a !important; color: #ffffff !important; border-color: #0f172a !important; }
+.active-pill { background: #064e3b !important; color: #ffffff !important; border-color: #064e3b !important; }
 .pill-count { opacity: 0.7; font-size: 11px; margin-left: 2px; }
 
 /* Categories Container & Blocks */
@@ -650,8 +650,8 @@
     border-color: rgba(255, 255, 255, 0.2);
 }
 [data-theme="dark"] .active-pill {
-    background: #4f46e5 !important;
-    border-color: #4f46e5 !important;
+    background: #064e3b !important;
+    border-color: #064e3b !important;
     color: #ffffff !important;
 }
 [data-theme="dark"] .sizes-toggle-container {

@@ -331,7 +331,7 @@
         letter-spacing: 0.03em;
     }
     .ticket-status-pill.pending   { background: #fef3c7; color: #b45309; }
-    .ticket-status-pill.confirmed { background: #e0e7ff; color: #4338ca; }
+    .ticket-status-pill.confirmed { background: #ecfdf5; color: #064e3b; }
     .ticket-status-pill.preparing { background: #ffedd5; color: #c2410c; }
     .ticket-status-pill.served    { background: #ede9fe; color: #6d28d9; }
     .ticket-status-pill.delivered { background: #dcfce7; color: #15803d; }

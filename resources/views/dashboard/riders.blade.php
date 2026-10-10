@@ -45,7 +45,7 @@
                             <strong style="font-size: 13px; color: #0f172a;">🛵 {{ $rider->name }}</strong>
                         </td>
                         <td>
-                            <a href="tel:{{ $rider->phone }}" style="color: #4f46e5; text-decoration: none; font-weight: 600;">
+                            <a href="tel:{{ $rider->phone }}" style="color: #064e3b; text-decoration: none; font-weight: 600;">
                                 {{ $rider->phone }}
                             </a>
                         </td>

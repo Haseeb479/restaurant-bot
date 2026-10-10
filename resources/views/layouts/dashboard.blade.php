@@ -22,50 +22,60 @@
 
     <style>
         :root {
-            --bg-canvas: #f8fafc;
+            --bg-canvas: #fbf8f4;
             --bg-card: #ffffff;
-            --border-subtle: #f1f5f9;
-            --border-card: #e2e8f0;
-            --text-heading: #0f172a;
-            --text-body: #334155;
-            --text-muted: #64748b;
-            --text-light: #94a3b8;
-            --sidebar-bg: #ffffff;
-            --sidebar-border: #f1f5f9;
-            --header-bg: #f8fafc;
-            --brand-primary: #4f46e5;
-            --brand-primary-light: #eef2ff;
-            --brand-accent: #0f172a;
+            --border-subtle: #f2ede4;
+            --border-card: #ede7df;
+            --text-heading: #0b251e;
+            --text-body: #2d3748;
+            --text-muted: #6b7a74;
+            --text-light: #9ba8a2;
+            --sidebar-bg: #063b2c;
+            --sidebar-border: #042e22;
+            --sidebar-text: #a3c4b8;
+            --sidebar-text-hover: #ffffff;
+            --sidebar-active-bg: rgba(255, 255, 255, 0.14);
+            --sidebar-active-text: #ffffff;
+            --header-bg: #fbf8f4;
+            --brand-primary: #064e3b;
+            --brand-primary-hover: #043b2c;
+            --brand-primary-light: #e6f3ee;
+            --brand-accent: #ea580c;
             --success-bg: #ecfdf5;
             --success-border: #a7f3d0;
             --success-text: #059669;
-            --warning-bg: #fffbeb;
-            --warning-border: #fde68a;
-            --warning-text: #b45309;
+            --warning-bg: #fff7ed;
+            --warning-border: #ffedd5;
+            --warning-text: #c2410c;
             --danger-bg: #fef2f2;
             --danger-border: #fecaca;
             --danger-text: #dc2626;
-            --radius-card: 16px;
+            --radius-card: 18px;
             --radius-badge: 9999px;
-            --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02);
-            --shadow-elevated: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+            --shadow-card: 0 4px 20px rgba(6, 59, 44, 0.03);
+            --shadow-elevated: 0 10px 30px rgba(6, 59, 44, 0.07);
         }
 
         [data-theme="dark"] {
-            --bg-canvas: #0b0f19;
-            --bg-card: #131b2e;
-            --border-subtle: rgba(255, 255, 255, 0.06);
+            --bg-canvas: #091310;
+            --bg-card: #0f1e1a;
+            --border-subtle: rgba(255, 255, 255, 0.05);
             --border-card: rgba(255, 255, 255, 0.08);
-            --text-heading: #f8fafc;
-            --text-body: #cbd5e1;
-            --text-muted: #94a3b8;
-            --text-light: #64748b;
-            --sidebar-bg: #0e1424;
-            --sidebar-border: rgba(255, 255, 255, 0.06);
-            --header-bg: #0b0f19;
-            --brand-primary: #6366f1;
-            --brand-primary-light: rgba(99, 102, 241, 0.15);
-            --brand-accent: #f8fafc;
+            --text-heading: #f4fbf7;
+            --text-body: #c5d8d0;
+            --text-muted: #869f95;
+            --text-light: #5e746b;
+            --sidebar-bg: #052119;
+            --sidebar-border: rgba(255, 255, 255, 0.05);
+            --sidebar-text: #7e9f93;
+            --sidebar-text-hover: #ffffff;
+            --sidebar-active-bg: rgba(255, 255, 255, 0.14);
+            --sidebar-active-text: #ffffff;
+            --header-bg: #091310;
+            --brand-primary: #10b981;
+            --brand-primary-hover: #059669;
+            --brand-primary-light: rgba(16, 185, 129, 0.15);
+            --brand-accent: #f97316;
             --success-bg: rgba(16, 185, 129, 0.12);
             --success-border: rgba(16, 185, 129, 0.25);
             --success-text: #34d399;
@@ -75,8 +85,8 @@
             --danger-bg: rgba(239, 68, 68, 0.12);
             --danger-border: rgba(239, 68, 68, 0.25);
             --danger-text: #f87171;
-            --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.25);
-            --shadow-elevated: 0 12px 30px rgba(0, 0, 0, 0.4);
+            --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.35);
+            --shadow-elevated: 0 12px 30px rgba(0, 0, 0, 0.45);
         }
 
         *, *::before, *::after {
@@ -125,12 +135,12 @@
         }
 
         /* ═══════════════════════════════════════════════════
-           SLIM ICON SIDEBAR (CONCEPT UI MATCH)
+           EMERALD FOREST SIDEBAR (FOODIO UI MATCH)
            ═══════════════════════════════════════════════════ */
         aside#ownerSidebar {
-            width: 76px;
-            background: var(--sidebar-bg);
-            border-right: 1px solid var(--sidebar-border);
+            width: 240px;
+            background: linear-gradient(180deg, #074232 0%, #053326 100%);
+            border-right: 1px solid rgba(255, 255, 255, 0.06);
             height: 100vh;
             position: fixed;
             top: 0;
@@ -139,120 +149,171 @@
             z-index: 100;
             display: flex;
             flex-direction: column;
-            align-items: center;
+            align-items: stretch;
             justify-content: space-between;
-            padding: 20px 0 24px;
+            padding: 24px 16px 20px;
             transition: transform 0.25s ease, background 0.2s ease;
+            box-shadow: 4px 0 24px rgba(6, 59, 44, 0.08);
+            box-sizing: border-box;
         }
 
         .sidebar-brand-badge {
-            width: 44px;
-            height: 44px;
-            border-radius: 14px;
-            background: #18181b;
-            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            padding: 0 8px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 14px;
+        }
+        .sidebar-brand-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.12);
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            transition: transform 0.2s ease;
-            text-decoration: none;
-            margin-bottom: 28px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            flex-shrink: 0;
         }
-        .sidebar-brand-badge:hover {
-            transform: scale(1.05);
-        }
-        [data-theme="dark"] .sidebar-brand-badge {
-            background: #27272a;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        .sidebar-brand-name {
+            font-size: 20px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: -0.03em;
         }
 
         .sidebar-nav-stack {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            gap: 16px;
+            gap: 4px;
             flex: 1;
             width: 100%;
+            overflow-y: auto;
+            scrollbar-width: none;
+            padding-right: 2px;
+        }
+        .sidebar-nav-stack::-webkit-scrollbar {
+            display: none;
         }
 
-        .sidebar-icon-btn {
-            width: 44px;
-            height: 44px;
+        .sidebar-nav-item {
+            width: 100%;
+            height: 42px;
             border-radius: 12px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            color: var(--text-muted);
+            padding: 0 14px;
+            gap: 12px;
+            color: #a3c4b8;
             text-decoration: none;
+            font-size: 13.5px;
+            font-weight: 600;
             transition: all 0.18s ease;
             position: relative;
+            box-sizing: border-box;
         }
-        .sidebar-icon-btn:hover {
-            background: var(--border-subtle);
-            color: var(--text-heading);
-            transform: translateY(-1px);
-        }
-        .sidebar-icon-btn.active {
-            background: var(--brand-primary-light);
-            color: var(--brand-primary);
-        }
-        [data-theme="dark"] .sidebar-icon-btn.active {
-            background: rgba(99, 102, 241, 0.18);
-            color: #818cf8;
-        }
-
-        /* Tooltip on icon hover */
-        .sidebar-icon-btn::after {
-            content: attr(data-tooltip);
-            position: absolute;
-            left: 82px;
-            background: #0f172a;
+        .sidebar-nav-item:hover {
             color: #ffffff;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: 600;
+            background: rgba(255, 255, 255, 0.07);
+            transform: translateX(2px);
+        }
+        .sidebar-nav-item.active {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.14);
+            font-weight: 700;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16), 0 4px 14px rgba(0, 0, 0, 0.18);
+        }
+        .sidebar-nav-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+        .sidebar-nav-label {
+            flex: 1;
             white-space: nowrap;
-            pointer-events: none;
-            opacity: 0;
-            transform: translateX(-4px);
-            transition: opacity 0.15s ease, transform 0.15s ease;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            z-index: 200;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
-        .sidebar-icon-btn:hover::after {
-            opacity: 1;
-            transform: translateX(0);
+        .sidebar-nav-badge {
+            background: #ea580c;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 2px 7px;
+            border-radius: 9999px;
+            line-height: 1;
         }
-
-        .sidebar-icon-badge {
-            position: absolute;
-            top: 6px;
-            right: 6px;
+        .sidebar-nav-dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
             background: #ef4444;
-            border: 2px solid var(--sidebar-bg);
         }
 
-        .sidebar-footer-status {
+        /* Bottom Branch Card in Sidebar */
+        .sidebar-branch-card {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            margin-top: 10px;
+            box-sizing: border-box;
+        }
+        .sidebar-branch-card:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-1px);
+        }
+        .sidebar-branch-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .sidebar-branch-details {
+            min-width: 0;
+            flex: 1;
+        }
+        .sidebar-branch-title {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #ffffff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .sidebar-branch-sub {
+            font-size: 11px;
+            color: #88a89b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 1px;
+        }
+        .sidebar-branch-status {
             display: flex;
             align-items: center;
             gap: 6px;
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--text-muted);
-            cursor: pointer;
-            padding: 6px 10px;
-            border-radius: 20px;
-            transition: background 0.15s ease;
-            text-decoration: none;
+            margin-top: 3px;
+            font-size: 10.5px;
+            font-weight: 700;
         }
-        .sidebar-footer-status:hover {
-            background: var(--border-subtle);
-        }
+
         .sidebar-online-dot {
             width: 7px;
             height: 7px;
@@ -269,41 +330,43 @@
            MAIN WRAPPER & TOP HEADER
            ═══════════════════════════════════════════════════ */
         .main-wrapper {
-            margin-left: 76px;
-            padding-top: 84px;
+            margin-left: 240px;
+            padding-top: 80px;
             flex: 1;
             min-height: 100vh;
             min-width: 0;
-            max-width: calc(100vw - 76px);
-            width: calc(100% - 76px);
+            max-width: calc(100vw - 240px);
+            width: calc(100% - 240px);
             display: flex;
             flex-direction: column;
             background: var(--bg-canvas);
             transition: margin-left 0.25s ease;
             overflow-x: hidden;
+            box-sizing: border-box;
         }
 
         header.topbar {
-            height: 84px;
-            background: rgba(248, 250, 252, 0.78);
+            height: 80px;
+            background: rgba(251, 248, 244, 0.94);
             backdrop-filter: blur(16px) saturate(180%);
             -webkit-backdrop-filter: blur(16px) saturate(180%);
-            border-bottom: 1px solid rgba(226, 232, 240, 0.75);
-            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+            border-bottom: 1px solid rgba(237, 231, 223, 0.85);
+            box-shadow: 0 4px 20px -2px rgba(6, 59, 44, 0.03);
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 0 36px;
             position: fixed;
             top: 0;
-            left: 76px;
+            left: 240px;
             right: 0;
             z-index: 90;
             transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+            box-sizing: border-box;
         }
 
         [data-theme="dark"] header.topbar {
-            background: rgba(11, 15, 25, 0.78);
+            background: rgba(9, 19, 16, 0.94);
             backdrop-filter: blur(16px) saturate(180%);
             -webkit-backdrop-filter: blur(16px) saturate(180%);
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -317,7 +380,7 @@
         }
 
         .header-greeting-title {
-            font-size: 22px;
+            font-size: 24px;
             font-weight: 800;
             color: var(--text-heading);
             letter-spacing: -0.025em;
@@ -337,7 +400,7 @@
         .header-right-actions {
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: 12px;
         }
 
         /* Status Toggle Pill Button */
@@ -453,10 +516,60 @@
             border: 2px solid var(--bg-card);
         }
 
-        /* Avatar Circle */
-        .user-avatar-badge {
-            width: 38px;
-            height: 38px;
+        /* User Profile Pill (Mockup Match) */
+        .user-profile-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 4px 12px 4px 5px;
+            border-radius: 9999px;
+            background: #ffffff;
+            border: 1px solid var(--border-card);
+            text-decoration: none;
+            color: inherit;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+            transition: all 0.15s ease;
+        }
+        .user-profile-pill:hover {
+            border-color: #cbd5e1;
+            transform: translateY(-1px);
+        }
+        [data-theme="dark"] .user-profile-pill {
+            background: #131b2e;
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+        .user-avatar-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #064e3b;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 800;
+        }
+        .user-profile-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.15;
+            text-align: left;
+        }
+        .user-profile-name {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-heading);
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .user-profile-role {
+            font-size: 10.5px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
             border-radius: 50%;
             background: #18181b;
             color: #ffffff;
@@ -1034,135 +1147,182 @@
     <!-- Mobile Drawer Header -->
     <div class="sidebar-drawer-header">
         <a href="{{ route('dashboard.orders', $restId) }}" class="sidebar-drawer-brand">
-            <span style="font-size: 18px;">🍽️</span>
-            <span>{{ $currentRest->name ?? 'Foodio' }}</span>
+            <span style="font-size: 20px;">🌿</span>
+            <span style="color: #ffffff; font-weight: 800; font-size: 18px;">foodio</span>
         </a>
         <button type="button" class="sidebar-drawer-close" onclick="toggleOwnerSidebar()" aria-label="Close menu">✕</button>
     </div>
 
-    <!-- Top Cutlery Brand Badge -->
+    <!-- Top Brand Logo -->
     <a href="{{ route('dashboard.orders', $restId) }}" class="sidebar-brand-badge" title="Foodio Restaurant POS">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 2v20"/>
-            <path d="M6 2v6a3 3 0 0 0 3 3h0a3 3 0 0 0 3-3V2"/>
-            <path d="M9 11v11"/>
-            <path d="M18 7a3 3 0 0 1-3-3V2h6v2a3 3 0 0 1-3 3Z"/>
-        </svg>
+        <div class="sidebar-brand-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 2v20"/>
+                <path d="M6 2v6a3 3 0 0 0 3 3h0a3 3 0 0 0 3-3V2"/>
+                <path d="M9 11v11"/>
+                <path d="M18 7a3 3 0 0 1-3-3V2h6v2a3 3 0 0 1-3 3Z"/>
+            </svg>
+        </div>
+        <span class="sidebar-brand-name">foodio</span>
     </a>
 
-    <!-- Center Icon Stack -->
+    <!-- Center Navigation Stack -->
     <div class="sidebar-nav-stack">
-        <!-- 1. Dashboard (Home) -->
+        <!-- 1. Dashboard -->
         <a href="{{ route('dashboard.orders', $restId) }}" 
-           class="sidebar-icon-btn {{ request()->routeIs('dashboard.orders') && !request('view') ? 'active' : '' }}" 
-           data-tooltip="Dashboard">
-            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                <polyline points="9 22 9 12 15 12 15 22"/>
-            </svg>
-            <span class="sidebar-btn-label">Dashboard</span>
+           class="sidebar-nav-item {{ request()->routeIs('dashboard.orders') && !request('view') ? 'active' : '' }}">
+            <span class="sidebar-nav-icon">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+            </span>
+            <span class="sidebar-nav-label">Dashboard</span>
         </a>
 
-        <!-- 2. Orders (Checklist / Live) -->
-        <a href="{{ route('dashboard.live-orders', $restId) }}" 
-           class="sidebar-icon-btn {{ request()->routeIs('dashboard.live-orders*') || request('view') === 'live' ? 'active' : '' }}" 
-           data-tooltip="Live Orders">
-            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
-                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-                <path d="m9 14 2 2 4-4"/>
-            </svg>
-            <span class="sidebar-btn-label">Live Orders</span>
-            @if(isset($liveOrdersCount) && $liveOrdersCount > 0)
-                <span class="sidebar-icon-badge"></span>
-            @endif
-        </a>
-
-        <!-- 3. Dine In (Tables & Sessions) -->
-        <a href="{{ route('dashboard.dine-in', $restId) }}" 
-           class="sidebar-icon-btn {{ request()->routeIs('dashboard.dine-in*') ? 'active' : '' }}" 
-           data-tooltip="Dine-In Tables">
-            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 21h18"/>
-                <path d="M5 21v-7"/>
-                <path d="M19 21v-7"/>
-                <path d="M4 10h16"/>
-                <path d="M6 10V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5"/>
-                <circle cx="12" cy="14" r="1.5"/>
-            </svg>
-            <span class="sidebar-btn-label">Dine In</span>
-            @if($activeDineInCount > 0)
-                <span class="sidebar-icon-badge" id="dineInNavBadge"></span>
-            @endif
-        </a>
-
-        <!-- 3. Menu -->
+        <!-- 2. Menu -->
         <a href="{{ route('dashboard.menu', $restId) }}" 
-           class="sidebar-icon-btn {{ request()->routeIs('dashboard.menu*') ? 'active' : '' }}" 
-           data-tooltip="Menu & Items">
-            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/>
-                <path d="M7 2v20"/>
-                <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>
-            </svg>
-            <span class="sidebar-btn-label">Menu & Items</span>
+           class="sidebar-nav-item {{ request()->routeIs('dashboard.menu*') ? 'active' : '' }}">
+            <span class="sidebar-nav-icon">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/>
+                    <path d="M7 2v20"/>
+                    <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>
+                </svg>
+            </span>
+            <span class="sidebar-nav-label">Menu</span>
         </a>
 
-        <!-- 4. Customers -->
-        <a href="{{ route('dashboard.customers', $restId) }}" 
-           class="sidebar-icon-btn {{ request()->routeIs('dashboard.customers*') ? 'active' : '' }}" 
-           data-tooltip="Customers">
-            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-            <span class="sidebar-btn-label">Customers</span>
+        <!-- 3. POS / Dine In -->
+        <a href="{{ route('dashboard.dine-in', $restId) }}" 
+           class="sidebar-nav-item {{ request()->routeIs('dashboard.dine-in*') ? 'active' : '' }}">
+            <span class="sidebar-nav-icon">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="20" height="14" x="2" y="5" rx="2"/>
+                    <line x1="2" x2="22" y1="10" y2="10"/>
+                </svg>
+            </span>
+            <span class="sidebar-nav-label">POS</span>
+            @if($activeDineInCount > 0)
+                <span class="sidebar-nav-dot" id="dineInNavBadge"></span>
+            @endif
         </a>
 
-        <!-- 5. Riders / Fleet -->
-        <a href="{{ route('dashboard.riders', $restId) }}" 
-           class="sidebar-icon-btn {{ request()->routeIs('dashboard.riders*') ? 'active' : '' }}" 
-           data-tooltip="Riders & Fleet">
-            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/>
-                <path d="M15 18H9"/>
-                <path d="M19 18h2a1 1 0 0 0 1-1v-5l-3-4h-5v10h1"/>
-                <circle cx="7" cy="18" r="2"/>
-                <circle cx="17" cy="18" r="2"/>
-            </svg>
-            <span class="sidebar-btn-label">Riders & Fleet</span>
+        <!-- 4. Orders -->
+        <a href="{{ route('dashboard.orders', $restId) }}" 
+           class="sidebar-nav-item {{ request()->routeIs('dashboard.orders*') && !request()->routeIs('dashboard.live-orders*') && !request()->routeIs('dashboard.dine-in*') ? 'active' : '' }}">
+            <span class="sidebar-nav-icon">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" x2="8" y1="13" y2="13"/>
+                    <line x1="16" x2="8" y1="17" y2="17"/>
+                    <polyline points="10 9 9 9 8 9"/>
+                </svg>
+            </span>
+            <span class="sidebar-nav-label">Orders</span>
+            @if(isset($pendingCount) && $pendingCount > 0)
+                <span class="sidebar-nav-badge">{{ $pendingCount }}</span>
+            @endif
+        </a>
+
+        <!-- 5. Live Orders -->
+        <a href="{{ route('dashboard.live-orders', $restId) }}" 
+           class="sidebar-nav-item {{ request()->routeIs('dashboard.live-orders*') ? 'active' : '' }}">
+            <span class="sidebar-nav-icon">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/>
+                    <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/>
+                    <circle cx="12" cy="12" r="2"/>
+                    <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/>
+                    <path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/>
+                </svg>
+            </span>
+            <span class="sidebar-nav-label">Live Orders</span>
+            @if(isset($liveOrdersCount) && $liveOrdersCount > 0)
+                <span class="sidebar-nav-badge">{{ $liveOrdersCount }}</span>
+            @endif
         </a>
 
         <!-- 6. Reports -->
         <a href="{{ route('dashboard.reports', $restId) }}" 
-           class="sidebar-icon-btn {{ request()->routeIs('dashboard.reports*') ? 'active' : '' }}" 
-           data-tooltip="Reports & Analytics">
-            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 3v18h18"/>
-                <path d="m19 9-5 5-4-4-3 3"/>
-            </svg>
-            <span class="sidebar-btn-label">Reports & Analytics</span>
+           class="sidebar-nav-item {{ request()->routeIs('dashboard.reports*') ? 'active' : '' }}">
+            <span class="sidebar-nav-icon">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 3v18h18"/>
+                    <path d="m19 9-5 5-4-4-3 3"/>
+                </svg>
+            </span>
+            <span class="sidebar-nav-label">Reports</span>
         </a>
 
-        <!-- 7. Settings -->
+        <!-- 7. Restaurant -->
         <a href="{{ route('dashboard.settings', $restId) }}" 
-           class="sidebar-icon-btn {{ request()->routeIs('dashboard.settings*') ? 'active' : '' }}" 
-           data-tooltip="Settings">
-            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-                <circle cx="12" cy="12" r="3"/>
-            </svg>
-            <span class="sidebar-btn-label">Settings</span>
+           class="sidebar-nav-item {{ request()->routeIs('dashboard.settings*') ? 'active' : '' }}">
+            <span class="sidebar-nav-icon">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+            </span>
+            <span class="sidebar-nav-label">Restaurant</span>
+        </a>
+
+        <!-- 8. Staff / Riders -->
+        <a href="{{ route('dashboard.riders', $restId) }}" 
+           class="sidebar-nav-item {{ request()->routeIs('dashboard.riders*') ? 'active' : '' }}">
+            <span class="sidebar-nav-icon">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+            </span>
+            <span class="sidebar-nav-label">Staff</span>
+        </a>
+
+        <!-- 9. Customers -->
+        <a href="{{ route('dashboard.customers', $restId) }}" 
+           class="sidebar-nav-item {{ request()->routeIs('dashboard.customers*') ? 'active' : '' }}">
+            <span class="sidebar-nav-icon">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                    <circle cx="19" cy="11" r="3"/>
+                    <path d="M23 21v-2a3 3 0 0 0-3-3"/>
+                </svg>
+            </span>
+            <span class="sidebar-nav-label">Customers</span>
+        </a>
+
+        <!-- 10. Settings -->
+        <a href="{{ route('dashboard.settings', $restId) }}" 
+           class="sidebar-nav-item">
+            <span class="sidebar-nav-icon">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+            </span>
+            <span class="sidebar-nav-label">Settings</span>
         </a>
     </div>
 
-    <!-- Bottom Status Dot + Online -->
-    <a href="javascript:void(0)" onclick="quickToggleRestaurantStatus()" class="sidebar-footer-status" title="Click to toggle Online/Paused">
-        <span class="sidebar-online-dot {{ $isOpen ? '' : 'paused' }}" id="sidebarStatusDot"></span>
-        <span id="sidebarStatusText">{{ $isOpen ? 'Online' : 'Paused' }}</span>
-    </a>
+    <!-- Bottom Branch Profile Card -->
+    <div class="sidebar-branch-card" onclick="quickToggleRestaurantStatus()" title="Click to toggle Online/Paused">
+        <div class="sidebar-branch-avatar">
+            <span>👨‍🍳</span>
+        </div>
+        <div class="sidebar-branch-details">
+            <div class="sidebar-branch-title">{{ $currentRest->name ?? 'Foodio Restaurant' }}</div>
+            <div class="sidebar-branch-sub">{{ $currentRest->city ? 'Main Branch • ' . $currentRest->city : 'Main Branch' }}</div>
+            <div class="sidebar-branch-status">
+                <span class="sidebar-online-dot {{ $isOpen ? '' : 'paused' }}" id="sidebarStatusDot"></span>
+                <span id="sidebarStatusText" style="color: {{ $isOpen ? '#34d399' : '#fbbf24' }};">{{ $isOpen ? 'Online' : 'Paused' }}</span>
+            </div>
+        </div>
+    </div>
 </aside>
 
 <!-- MAIN CONTENT WRAPPER -->
@@ -1182,7 +1342,7 @@
                     @endif
                 </h1>
                 <p class="header-greeting-sub">
-                    @yield('header_subtitle', "Here's what's happening at your restaurant today.")
+                    @yield('header_subtitle', "View, accept and manage all incoming orders with real-time status updates.")
                 </p>
             </div>
         </div>
@@ -1203,7 +1363,7 @@
                     <line x1="8" x2="8" y1="2" y2="6"/>
                     <line x1="3" x2="21" y1="10" y2="10"/>
                 </svg>
-                <span>{{ now()->format('D, M j, Y') }}</span>
+                <span>{{ now()->format('D, M j') }}</span>
             </div>
 
             <!-- Dark / Light Theme Toggle -->
@@ -1220,9 +1380,16 @@
                 <span class="notif-dot-badge" id="notif-badge" style="display: {{ isset($pendingCount) && $pendingCount > 0 ? 'block' : 'none' }};"></span>
             </a>
 
-            <!-- User Initials Avatar -->
-            <a href="{{ route('dashboard.settings', $restId) }}" class="user-avatar-badge" title="{{ $currentRest->name ?? 'Profile' }}">
-                {{ strtoupper(substr($ownerFirstName, 0, 1)) }}{{ strtoupper(substr($currentRest->name ?? 'T', 0, 1)) }}
+            <!-- User Profile Pill (Mockup Match: Avatar + Name + Owner + Chevron) -->
+            <a href="{{ route('dashboard.settings', $restId) }}" class="user-profile-pill" title="Owner Profile & Settings">
+                <div class="user-avatar-circle">
+                    {{ strtoupper(substr($ownerFirstName, 0, 1)) }}
+                </div>
+                <div class="user-profile-text">
+                    <div class="user-profile-name">{{ $ownerName }}</div>
+                    <div class="user-profile-role">Owner</div>
+                </div>
+                <span style="font-size: 10px; color: var(--text-muted); opacity: 0.7;">▾</span>
             </a>
         </div>
     </header>

@@ -68,9 +68,9 @@
         transition: all 0.15s ease;
     }
     .form-control:focus {
-        border-color: #4f46e5;
+        border-color: #064e3b;
         background: #ffffff;
-        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+        box-shadow: 0 0 0 3px rgba(6, 78, 59, 0.12);
     }
 
     .form-hint {
@@ -405,7 +405,7 @@
                     </tr>
                     <tr>
                         <td class="lbl">Total Revenue</td>
-                        <td class="val" style="color: #4f46e5;">PKR {{ number_format($activeRevenue, 0) }}</td>
+                        <td class="val" style="color: #064e3b;">PKR {{ number_format($activeRevenue, 0) }}</td>
                     </tr>
                     <tr>
                         <td class="lbl">Menu Food Items</td>

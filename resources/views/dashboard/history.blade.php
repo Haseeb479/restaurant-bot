@@ -26,7 +26,7 @@
             transition: border-color 0.15s ease;
         }
         .history-filter-input:focus {
-            border-color: #4f46e5;
+            border-color: var(--brand-primary, #064e3b);
         }
         .history-filter-select {
             height: 38px;
@@ -46,7 +46,7 @@
             transition: border-color 0.15s ease;
         }
         .history-filter-select:focus {
-            border-color: #4f46e5;
+            border-color: var(--brand-primary, #064e3b);
         }
         [data-theme="dark"] .history-filter-input,
         [data-theme="dark"] .history-filter-select {
