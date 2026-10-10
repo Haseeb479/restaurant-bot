@@ -2172,7 +2172,10 @@ async function fetchLiveOrdersFeed() {
         const attHeader = document.getElementById('attentionHeaderGroup');
         if (attBadge && attList) {
             const pendingOrders = (data.orders || []).filter(o => o.status === 'pending');
-            const waitingRiders = (data.orders || []).filter(o => (o.status === 'confirmed' || o.status === 'preparing') && !o.rider_name);
+            const waitingRiders = (data.orders || []).filter(o => {
+                const isDine = o.order_type === 'dine_in' || (o.table_number && o.table_number !== '') || (o.delivery_address || '').toLowerCase().includes('table') || (o.customer_phone || '').toLowerCase().includes('dine-in');
+                return !isDine && (o.status === 'confirmed' || o.status === 'preparing') && !o.rider_name;
+            });
             const unavailableCount = data.attention ? (data.attention.unavailable_count || 0) : 0;
             const botOffline = data.attention ? (data.attention.bot_offline || false) : false;
 
@@ -2361,6 +2364,13 @@ function openOrderDrawer(orderId) {
     document.getElementById('drawerWhatsAppLink').href = o.customer_phone ? `https://wa.me/${o.customer_phone.replace(/[^0-9]/g, '')}` : '#';
     document.getElementById('drawerPrintLink').href = `/dashboard/{{ $restaurant->id }}/orders/${o.id}/print-bill`;
 
+    const isDine = o.order_type === 'dine_in' || (o.table_number && o.table_number !== '') || (o.delivery_address || '').toLowerCase().includes('table') || (o.customer_phone || '').toLowerCase().includes('dine-in');
+
+    const riderBox = document.getElementById('drawerRiderBox');
+    if (riderBox) {
+        riderBox.style.display = isDine ? 'none' : 'block';
+    }
+
     // Advance button label
     const advBtn = document.getElementById('drawerAdvanceBtn');
     if (o.status === 'pending') {
@@ -2370,7 +2380,10 @@ function openOrderDrawer(orderId) {
         advBtn.textContent = 'Start Preparing ➔';
         advBtn.style.display = 'flex';
     } else if (o.status === 'preparing') {
-        advBtn.textContent = 'Dispatch for Delivery ➔';
+        advBtn.textContent = isDine ? 'Serve to Table 🍽️ ➔' : 'Dispatch for Delivery ➔';
+        advBtn.style.display = 'flex';
+    } else if (o.status === 'served') {
+        advBtn.textContent = 'Mark Paid & Complete ✓';
         advBtn.style.display = 'flex';
     } else if (o.status === 'out_for_delivery') {
         advBtn.textContent = 'Mark Delivered ✓';
@@ -2483,6 +2496,18 @@ async function submitConfirmOrder() {
 // ── Advance Order Status ──
 async function advanceCurrentOrderStatus() {
     if (!currentDrawerOrderId) return;
+    const o = allOrdersMap[currentDrawerOrderId];
+    const isDine = o && (o.order_type === 'dine_in' || (o.table_number && o.table_number !== '') || (o.delivery_address || '').toLowerCase().includes('table') || (o.customer_phone || '').toLowerCase().includes('dine-in'));
+
+    if (currentDrawerOrderStatus === 'preparing' && isDine) {
+        await postStatusUpdate(currentDrawerOrderId, 'served');
+        return;
+    }
+    if (currentDrawerOrderStatus === 'served' && isDine) {
+        await postStatusUpdate(currentDrawerOrderId, 'delivered');
+        return;
+    }
+
     const nextStatusMap = {
         'pending': 'confirmed',
         'confirmed': 'preparing',
@@ -2557,9 +2582,12 @@ async function postStatusUpdate(orderId, status, extra = {}) {
 
 // ── Dispatch Modal ──
 function openDispatchModalDirect() {
-    const firstPendingOrder = @json($orders->firstWhere('status', 'confirmed')?->id ?? $orders->first()?->id);
-    if (firstPendingOrder) {
-        document.getElementById('dispatchOrderId').value = firstPendingOrder;
+    const deliveryOrder = Object.values(allOrdersMap).find(o => {
+        const isDine = o.order_type === 'dine_in' || (o.table_number && o.table_number !== '') || (o.delivery_address || '').toLowerCase().includes('table') || (o.customer_phone || '').toLowerCase().includes('dine-in');
+        return !isDine && (o.status === 'confirmed' || o.status === 'preparing') && !o.rider_name;
+    });
+    if (deliveryOrder) {
+        document.getElementById('dispatchOrderId').value = deliveryOrder.id;
         document.getElementById('dispatchRiderModal').classList.add('open');
     }
 }

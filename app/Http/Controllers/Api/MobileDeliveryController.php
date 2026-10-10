@@ -19,10 +19,19 @@ class MobileDeliveryController extends Controller
 
         $activeDeliveries = $restaurant->orders()
             ->whereIn('status', ['confirmed', 'preparing', 'ready', 'out_for_delivery'])
+            ->where(function ($q) {
+                $q->whereNull('order_type')->orWhere('order_type', 'delivery');
+            })
+            ->whereNull('table_number')
             ->where('delivery_address', '!=', 'Dine-In / Counter')
+            ->where('delivery_address', 'NOT LIKE', 'Table %')
+            ->where('delivery_address', 'NOT LIKE', 'table %')
+            ->where('customer_phone', 'NOT LIKE', 'Dine-In%')
             ->with(['items'])
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->get()
+            ->filter(fn($o) => !$o->isDineIn())
+            ->values();
 
         $riders = $restaurant->riders()->get();
 
@@ -43,6 +52,13 @@ class MobileDeliveryController extends Controller
 
         if (!$order) {
             return response()->json(['success' => false, 'message' => 'Order not found.'], 404);
+        }
+
+        if ($order->isDineIn()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This is a Dine-In table order and cannot be assigned to a delivery rider.'
+            ], 422);
         }
 
         $validated = $request->validate([

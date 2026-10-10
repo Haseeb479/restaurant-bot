@@ -457,8 +457,8 @@ export default function OrdersScreen() {
                     <TouchableOpacity
                       onPress={() => {
                         if (isDineIn) {
-                          updateStatusMutation.mutate({ orderId: item.id, status: 'ready' });
-                          Alert.alert('Food Ready', `Food ready to serve for ${item.delivery_address}! 🍽️`);
+                          updateStatusMutation.mutate({ orderId: item.id, status: 'served' });
+                          Alert.alert('Food Served', `Food served to table ${item.delivery_address}! 🍽️`);
                         } else {
                           setAssigningOrder(item);
                         }
@@ -467,26 +467,26 @@ export default function OrdersScreen() {
                     >
                       <Ionicons name={isDineIn ? 'restaurant' : 'bicycle'} size={16} color="#FFFFFF" />
                       <Text style={styles.statusTransitionText}>
-                        {isDineIn ? 'Food Ready / Serve Table 🍽️' : 'Ready / Assign Rider'}
+                        {isDineIn ? 'Food Ready / Mark Served 🍽️' : 'Ready / Assign Rider'}
                       </Text>
                     </TouchableOpacity>
                   )}
 
-                  {isReady && (
+                  {(isReady || item.status === 'served') && (
                     <TouchableOpacity
                       onPress={() => {
                         if (isDineIn) {
                           updateStatusMutation.mutate({ orderId: item.id, status: 'delivered' });
-                          Alert.alert('Table Completed', `${item.delivery_address} order marked served & billed!`);
+                          Alert.alert('Table Completed', `${item.delivery_address} order marked paid & table cleared!`);
                         } else {
                           updateStatusMutation.mutate({ orderId: item.id, status: 'out_for_delivery' });
                         }
                       }}
-                      style={[styles.statusTransitionBtn, { backgroundColor: isDineIn ? theme.deepEmerald : theme.darkForest }]}
+                      style={[styles.statusTransitionBtn, { backgroundColor: isDineIn ? '#1E8E3E' : theme.darkForest }]}
                     >
                       <Ionicons name={isDineIn ? 'checkmark-circle' : 'paper-plane'} size={16} color="#FFFFFF" />
                       <Text style={styles.statusTransitionText}>
-                        {isDineIn ? 'Mark Served & Settle Bill ✅' : 'Out for Delivery'}
+                        {isDineIn ? 'Mark Paid & Clear Table ✅' : 'Out for Delivery'}
                       </Text>
                     </TouchableOpacity>
                   )}

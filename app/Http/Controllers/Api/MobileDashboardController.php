@@ -26,7 +26,9 @@ class MobileDashboardController extends Controller
         $averageOrderValue = $totalOrdersToday > 0 ? round($todayRevenue / $totalOrdersToday) : 0;
 
         $unavailableItems    = $menuItems->where('is_available', false);
-        $waitingRidersOrders = $todayOrders->whereIn('status', ['confirmed', 'preparing', 'ready'])->whereNull('rider_name');
+        $waitingRidersOrders = $todayOrders->whereIn('status', ['confirmed', 'preparing', 'ready'])
+            ->filter(fn($o) => !$o->isDineIn())
+            ->whereNull('rider_name');
 
         // Top selling items today
         $topSelling = OrderItem::whereHas('order', fn($q) => $q->where('restaurant_id', $restaurant->id)->whereDate('created_at', today()))

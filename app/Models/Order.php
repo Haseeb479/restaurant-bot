@@ -165,6 +165,7 @@ class Order extends Model
         'confirmed',
         'preparing',
         'ready',
+        'served',
         'out_for_delivery',
         'delivered',
         'cancelled',
@@ -175,10 +176,11 @@ class Order extends Model
      * Prevents invalid backwards transitions (e.g. delivered -> pending) (C3).
      */
     public const ALLOWED_TRANSITIONS = [
-        'pending'          => ['confirmed', 'preparing', 'ready', 'cancelled'],
-        'confirmed'        => ['preparing', 'ready', 'out_for_delivery', 'delivered', 'cancelled'],
-        'preparing'        => ['ready', 'out_for_delivery', 'delivered', 'cancelled'],
-        'ready'            => ['out_for_delivery', 'delivered', 'cancelled'],
+        'pending'          => ['confirmed', 'preparing', 'ready', 'served', 'cancelled'],
+        'confirmed'        => ['preparing', 'ready', 'served', 'out_for_delivery', 'delivered', 'cancelled'],
+        'preparing'        => ['ready', 'served', 'out_for_delivery', 'delivered', 'cancelled'],
+        'ready'            => ['served', 'out_for_delivery', 'delivered', 'cancelled'],
+        'served'           => ['delivered', 'cancelled'],
         'out_for_delivery' => ['delivered', 'cancelled'],
         'delivered'        => [],
         'cancelled'        => [],
@@ -193,6 +195,7 @@ class Order extends Model
         $allowed = self::ALLOWED_TRANSITIONS[$this->status] ?? [];
         return in_array($targetStatus, $allowed, true);
     }
+
 
     /**
      * Crockford Base32 — omits I, L, O and U so a code can't be misread (1/I,
@@ -451,10 +454,11 @@ class Order extends Model
         if (($this->order_type ?? '') === 'dine_in') {
             return true;
         }
-        if (!empty($this->table_number)) {
+        if (!empty($this->table_number) || !empty($this->table_id)) {
             return true;
         }
-        return str_starts_with(strtolower(trim((string)$this->delivery_address)), 'table ')
+        return str_contains(strtolower(trim((string)$this->delivery_address)), 'table')
+            || str_contains(strtolower(trim((string)$this->customer_phone)), 'dine-in')
             || str_contains(strtolower(trim((string)$this->notes)), 'dine-in');
     }
 

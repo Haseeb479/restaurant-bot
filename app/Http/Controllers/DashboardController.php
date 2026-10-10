@@ -210,7 +210,9 @@ class DashboardController extends Controller
 
         // Needs attention items
         $unavailableItems = $r->menuItems()->where('is_available', false)->take(5)->get();
-        $waitingRidersOrders = $todayOrders->whereIn('status', ['confirmed', 'preparing'])->whereNull('rider_name');
+        $waitingRidersOrders = $todayOrders->whereIn('status', ['confirmed', 'preparing'])
+            ->filter(fn($o) => !$o->isDineIn())
+            ->whereNull('rider_name');
 
         // Real Sales Trends Data: Today (hourly), 7D (daily sales), and 30D (daily sales)
         // 1. Today hourly sales distribution (10 AM to 10 PM)
@@ -684,7 +686,7 @@ class DashboardController extends Controller
         }
 
         $validated = $request->validate([
-            'status' => 'required|string|in:confirmed,preparing,served,delivered,cancelled',
+            'status' => 'required|string|in:confirmed,preparing,ready,served,delivered,cancelled',
         ]);
 
         $order->status = $validated['status'];
