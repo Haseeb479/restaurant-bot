@@ -76,10 +76,16 @@ export default function AppTabsLayout() {
       <Tabs.Screen
         name="menu"
         options={{
-          title: 'Menu',
+          href: null, // Accessible from More & settings
+        }}
+      />
+      <Tabs.Screen
+        name="delivery"
+        options={{
+          title: 'Delivery',
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
-              name={focused ? 'restaurant' : 'restaurant-outline'}
+              name={focused ? 'bicycle' : 'bicycle-outline'}
               size={size - 1}
               color={color}
             />
@@ -102,13 +108,7 @@ export default function AppTabsLayout() {
       <Tabs.Screen
         name="kitchen"
         options={{
-          href: null, // Accessible from Home and Orders
-        }}
-      />
-      <Tabs.Screen
-        name="delivery"
-        options={{
-          href: null, // Accessible from Orders dispatch & More
+          href: null,
         }}
       />
     </Tabs>

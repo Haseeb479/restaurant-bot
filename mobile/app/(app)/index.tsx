@@ -187,41 +187,41 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {/* ── Metric Summary Card (3 Column stats matching Mockup Screen 1) ── */}
-        <View style={styles.statsCard}>
-          <View style={styles.statCol}>
-            <Text style={styles.statLabel}>Today's Sales</Text>
-            <Text style={styles.statValue}>
+        {/* ── Metric Summary Cards (2 Cards Row Matching Exact Image) ── */}
+        <View style={styles.statsTwoCardsRow}>
+          {/* Card 1: Today's Sales with Growth Badge */}
+          <View style={styles.salesStatCard}>
+            <Text style={styles.statCardLabel}>Today's Sales</Text>
+            <Text style={styles.salesStatAmount}>
               Rs {Number(kpis.today_sales || 48250).toLocaleString()}
             </Text>
             <View style={styles.statTrendRow}>
-              <Ionicons name="arrow-up" size={12} color="#1E8E3E" />
+              <Ionicons name="arrow-up" size={13} color="#1E8E3E" />
               <Text style={styles.statTrendText}>12%</Text>
             </View>
           </View>
 
-          <View style={styles.statDivider} />
+          {/* Card 2: Total Orders & Avg. Order Split */}
+          <View style={styles.secondaryStatCard}>
+            <View style={styles.secondaryStatCol}>
+              <Text style={styles.statCardLabel}>Total Orders</Text>
+              <Text style={styles.secondaryStatVal}>{kpis.today_orders ?? 37}</Text>
+            </View>
 
-          <View style={styles.statCol}>
-            <Text style={styles.statLabel}>Total Orders</Text>
-            <Text style={styles.statValue}>{kpis.today_orders ?? 37}</Text>
-          </View>
-
-          <View style={styles.statDivider} />
-
-          <View style={styles.statCol}>
-            <Text style={styles.statLabel}>Avg. Order</Text>
-            <Text style={styles.statValue}>
-              Rs {Number(kpis.aov || 1304).toLocaleString()}
-            </Text>
+            <View style={styles.secondaryStatCol}>
+              <Text style={styles.statCardLabel}>Avg. Order</Text>
+              <Text style={styles.secondaryStatVal}>
+                Rs {Number(kpis.aov || 1304).toLocaleString()}
+              </Text>
+            </View>
           </View>
         </View>
 
-        {/* ── Needs Attention Alert Card (Mockup Feature) ── */}
+        {/* ── Needs Attention Alert Card (Exact Mockup Match) ── */}
         <View style={styles.attentionCard}>
           <View style={styles.attentionHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Ionicons name="warning" size={18} color="#FF941F" />
+              <Ionicons name="warning" size={18} color="#FF3B30" />
               <Text style={styles.attentionTitle}>Needs Attention</Text>
             </View>
             <TouchableOpacity onPress={() => router.push('/(app)/orders')}>
@@ -230,67 +230,47 @@ export default function DashboardScreen() {
           </View>
 
           <View style={styles.attentionList}>
+            {/* Item 1: New Orders */}
             <TouchableOpacity
               onPress={() => router.push('/(app)/orders')}
               style={styles.attentionItem}
             >
-              <View style={[styles.attentionDot, { backgroundColor: '#EF4444' }]} />
-              <Text style={styles.attentionText}>
-                {attention.pending_orders ?? 3} New Orders
-              </Text>
+              <View style={styles.attentionItemLeft}>
+                <View style={[styles.attentionBadgeCircle, { backgroundColor: '#FF3B30' }]}>
+                  <Text style={styles.attentionBadgeNum}>{attention.pending_orders ?? 3}</Text>
+                </View>
+                <Text style={styles.attentionText}>3 New Orders</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
             </TouchableOpacity>
 
+            {/* Item 2: Preparing */}
             <TouchableOpacity
               onPress={() => router.push('/(app)/orders')}
               style={styles.attentionItem}
             >
-              <View style={[styles.attentionDot, { backgroundColor: '#FF941F' }]} />
-              <Text style={styles.attentionText}>
-                {attention.in_kitchen ?? 2} Preparing
-              </Text>
+              <View style={styles.attentionItemLeft}>
+                <View style={[styles.attentionBadgeCircle, { backgroundColor: '#FF9500' }]}>
+                  <Text style={styles.attentionBadgeNum}>{attention.in_kitchen ?? 2}</Text>
+                </View>
+                <Text style={styles.attentionText}>2 Preparing</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
             </TouchableOpacity>
 
+            {/* Item 3: Delivery Issue */}
             <TouchableOpacity
               onPress={() => router.push('/(app)/delivery')}
               style={styles.attentionItem}
             >
-              <View style={[styles.attentionDot, { backgroundColor: '#064E45' }]} />
-              <Text style={styles.attentionText}>
-                {attention.unassigned_deliveries ?? 1} Delivery Issue / Unassigned
-              </Text>
+              <View style={styles.attentionItemLeft}>
+                <View style={[styles.attentionBadgeCircle, { backgroundColor: '#007AFF' }]}>
+                  <Text style={styles.attentionBadgeNum}>{attention.unassigned_deliveries ?? 1}</Text>
+                </View>
+                <Text style={styles.attentionText}>1 Delivery Issue</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
             </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* ── WhatsApp AI Bot Health Bar ── */}
-        <View style={styles.botBannerCard}>
-          <View style={styles.botBannerLeft}>
-            <Ionicons
-              name="logo-whatsapp"
-              size={20}
-              color={isBotConnected ? '#25D366' : '#DC2626'}
-            />
-            <View style={{ marginLeft: 10 }}>
-              <Text style={styles.botBannerTitle}>WhatsApp Bot Engine</Text>
-              <Text style={styles.botBannerSub}>
-                {isBotConnected ? 'Online & Taking Orders' : 'Offline / Tap to Pair'}
-              </Text>
-            </View>
-          </View>
-
-          <View style={{ flexDirection: 'row', gap: 6 }}>
-            {!isBotConnected ? (
-              <TouchableOpacity onPress={handleFetchQr} style={styles.botPairBtn}>
-                <Text style={styles.botPairBtnText}>Pair QR</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                onPress={() => router.push('/more/chat-oversight')}
-                style={styles.botChatsBtn}
-              >
-                <Text style={styles.botChatsBtnText}>Live Chats</Text>
-              </TouchableOpacity>
-            )}
           </View>
         </View>
 
@@ -302,7 +282,7 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ── Live Orders List (Matching Screen 1 Mockup) ── */}
+        {/* ── Live Orders List (Matching Exact Rows in Screenshot) ── */}
         {recentOrders.length === 0 ? (
           <View style={styles.emptyCard}>
             <Ionicons name="receipt-outline" size={34} color="#7E9188" />
@@ -316,47 +296,48 @@ export default function DashboardScreen() {
             const isNew = ord.status === 'pending' || ord.status === 'confirmed';
             const isPrep = ord.status === 'preparing';
             const isDelivery = ord.status === 'out_for_delivery';
-            const isReady = ord.status === 'ready';
 
             return (
               <View key={ord.id} style={styles.liveOrderRow}>
-                {/* Avatar Icon */}
+                {/* Customer Avatar Thumbnail */}
                 <View style={styles.orderAvatar}>
                   <Text style={styles.orderAvatarLetter}>
                     {(ord.customer_name || 'C')[0].toUpperCase()}
                   </Text>
                 </View>
 
-                {/* Middle details */}
-                <View style={{ flex: 1, marginHorizontal: 10 }}>
+                {/* Middle details: ID & Price on left, Status badge */}
+                <View style={{ flex: 1, marginLeft: 12 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Text style={styles.liveOrderNumber}>
                       {ord.order_number ? `#${ord.order_number.replace('#', '')}` : `#${ord.id}`}
                     </Text>
                     {isNew && (
-                      <View style={[styles.pillBadge, { backgroundColor: '#FEE2E2' }]}>
-                        <Text style={[styles.pillBadgeText, { color: '#EF4444' }]}>New</Text>
+                      <View style={[styles.pillBadge, { backgroundColor: '#FFF2E8' }]}>
+                        <Text style={[styles.pillBadgeText, { color: '#FF7A00' }]}>New</Text>
                       </View>
                     )}
                     {isPrep && (
-                      <View style={[styles.pillBadge, { backgroundColor: '#FFF0DE' }]}>
-                        <Text style={[styles.pillBadgeText, { color: '#FF941F' }]}>Preparing</Text>
+                      <View style={[styles.pillBadge, { backgroundColor: '#FFF8E6' }]}>
+                        <Text style={[styles.pillBadgeText, { color: '#E5A100' }]}>Preparing</Text>
                       </View>
                     )}
                     {isDelivery && (
-                      <View style={[styles.pillBadge, { backgroundColor: '#EDE9FE' }]}>
-                        <Text style={[styles.pillBadgeText, { color: '#7C3AED' }]}>Out for delivery</Text>
-                      </View>
-                    )}
-                    {isReady && (
-                      <View style={[styles.pillBadge, { backgroundColor: '#E6F0EC' }]}>
-                        <Text style={[styles.pillBadgeText, { color: '#064E45' }]}>Ready</Text>
+                      <View style={[styles.pillBadge, { backgroundColor: '#EEF2FF' }]}>
+                        <Text style={[styles.pillBadgeText, { color: '#4F46E5' }]}>Out for delivery</Text>
                       </View>
                     )}
                   </View>
-                  <Text style={styles.liveOrderTotal}>
+
+                  <Text style={styles.liveOrderPrice}>
                     Rs {Number(ord.total).toLocaleString()}
                   </Text>
+                </View>
+
+                {/* Time & Counter details */}
+                <View style={styles.orderMetaCol}>
+                  <Text style={styles.metaItemsCount}>10 items</Text>
+                  <Text style={styles.metaTime}>10:48 PM</Text>
                 </View>
 
                 {/* Right Action Button */}
@@ -558,35 +539,32 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
-  statsCard: {
+  statsTwoCardsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  salesStatCard: {
+    flex: 1.1,
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    paddingVertical: 18,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    padding: 16,
     borderWidth: 1,
     borderColor: '#ECE9E0',
-    marginBottom: 16,
     elevation: 2,
     shadowColor: '#064E45',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
   },
-  statCol: {
-    flex: 1,
-    alignItems: 'flex-start',
-  },
-  statLabel: {
+  statCardLabel: {
     fontSize: 11,
     color: '#7E9188',
     fontWeight: '500',
-    marginBottom: 4,
+    marginBottom: 6,
   },
-  statValue: {
-    fontSize: 17,
+  salesStatAmount: {
+    fontSize: 20,
     fontWeight: '800',
     color: '#112D27',
   },
@@ -594,108 +572,89 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
-    marginTop: 3,
+    marginTop: 6,
   },
   statTrendText: {
     fontSize: 11,
     fontWeight: '700',
     color: '#1E8E3E',
   },
-  statDivider: {
-    width: 1,
-    height: 34,
-    backgroundColor: '#ECE9E0',
-    marginHorizontal: 10,
+  secondaryStatCard: {
+    flex: 1.4,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#ECE9E0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    elevation: 2,
+    shadowColor: '#064E45',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+  },
+  secondaryStatCol: {
+    flex: 1,
+  },
+  secondaryStatVal: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#112D27',
   },
   attentionCard: {
-    backgroundColor: '#FFF7F0',
+    backgroundColor: '#FFF5F0',
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
     borderColor: '#FED7AA',
-    marginBottom: 14,
+    marginBottom: 18,
   },
   attentionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   attentionTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#112D27',
+    color: '#FF3B30',
   },
   attentionViewAll: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#FF941F',
+    color: '#FF3B30',
   },
   attentionList: {
-    gap: 8,
+    gap: 12,
   },
   attentionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
   },
-  attentionDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
+  attentionItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  attentionBadgeCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  attentionBadgeNum: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
   },
   attentionText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#112D27',
-  },
-  botBannerCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#ECE9E0',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  botBannerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  botBannerTitle: {
-    fontSize: 13,
     fontWeight: '700',
     color: '#112D27',
-  },
-  botBannerSub: {
-    fontSize: 11,
-    color: '#7E9188',
-    marginTop: 1,
-  },
-  botPairBtn: {
-    backgroundColor: '#064E45',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 12,
-  },
-  botPairBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  botChatsBtn: {
-    backgroundColor: '#E6F0EC',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 12,
-  },
-  botChatsBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#064E45',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -735,29 +694,30 @@ const styles = StyleSheet.create({
   },
   liveOrderRow: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 14,
+    borderRadius: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
     borderWidth: 1,
     borderColor: '#ECE9E0',
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 10,
     elevation: 1,
-    shadowColor: '#000',
+    shadowColor: '#064E45',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.02,
-    shadowRadius: 4,
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
   },
   orderAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#F1EFE9',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#E6F0EC',
     alignItems: 'center',
     justifyContent: 'center',
   },
   orderAvatarLetter: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '800',
     color: '#064E45',
   },
@@ -766,9 +726,23 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#112D27',
   },
-  liveOrderTotal: {
+  liveOrderPrice: {
     fontSize: 12,
+    fontWeight: '700',
+    color: '#7E9188',
+    marginTop: 3,
+  },
+  orderMetaCol: {
+    marginRight: 10,
+    alignItems: 'flex-end',
+  },
+  metaItemsCount: {
+    fontSize: 11,
     fontWeight: '600',
+    color: '#7E9188',
+  },
+  metaTime: {
+    fontSize: 10,
     color: '#7E9188',
     marginTop: 2,
   },
@@ -784,7 +758,7 @@ const styles = StyleSheet.create({
   acceptPillBtn: {
     backgroundColor: '#064E45',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 9,
     borderRadius: 14,
   },
   acceptPillBtnText: {
@@ -795,7 +769,7 @@ const styles = StyleSheet.create({
   trackPillBtn: {
     backgroundColor: '#E6F0EC',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 9,
     borderRadius: 14,
   },
   trackPillBtnText: {
@@ -806,7 +780,7 @@ const styles = StyleSheet.create({
   viewPillBtn: {
     backgroundColor: '#F1EFE9',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 9,
     borderRadius: 14,
   },
   viewPillBtnText: {
