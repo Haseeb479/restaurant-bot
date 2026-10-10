@@ -1,6 +1,6 @@
 import { StorageService } from '../storage';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.100.4:8000/api/v1';
+const API_BASE_URL = 'https://restaurant-bot-production-ba02.up.railway.app/api/v1';
 
 export interface ApiResponse<T = any> {
   success: boolean;

@@ -119,9 +119,11 @@ $ownerLoginHandler = function (\Illuminate\Http\Request $req) {
     // 1. Exact or partial restaurant name
     // 2. Exact email
     // 3. Exact or partial WhatsApp / phone number
-    $r = \App\Models\Restaurant::where(function($q) use ($input, $digits) {
+    $normalizedInput = str_replace(' ', '', strtolower($input));
+    $r = \App\Models\Restaurant::where(function($q) use ($input, $normalizedInput, $digits) {
             $q->whereRaw('LOWER(name) = ?', [strtolower($input)])
               ->orWhereRaw('LOWER(name) LIKE ?', ['%' . strtolower($input) . '%'])
+              ->orWhereRaw("REPLACE(LOWER(name), ' ', '') = ?", [$normalizedInput])
               ->orWhere('email', $input);
             if (strlen($digits) >= 7) {
                 $q->orWhere('whatsapp_number', 'LIKE', "%{$digits}%")

@@ -39,9 +39,11 @@ class MobileAuthController extends Controller
         }
 
         // Search restaurant
-        $restaurant = Restaurant::where(function ($q) use ($input, $digits) {
+        $normalizedInput = str_replace(' ', '', strtolower($input));
+        $restaurant = Restaurant::where(function ($q) use ($input, $normalizedInput, $digits) {
             $q->whereRaw('LOWER(name) = ?', [strtolower($input)])
               ->orWhereRaw('LOWER(name) LIKE ?', ['%' . strtolower($input) . '%'])
+              ->orWhereRaw("REPLACE(LOWER(name), ' ', '') = ?", [$normalizedInput])
               ->orWhere('email', $input);
             if (strlen($digits) >= 7) {
                 $q->orWhere('whatsapp_number', 'LIKE', "%{$digits}%")
