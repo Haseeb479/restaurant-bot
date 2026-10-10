@@ -18,6 +18,7 @@ import { apiClient } from '../../services/api/client';
 import { LoadingState, ErrorState } from '../../components/FeedbackStates';
 import { AppButton } from '../../components/AppButton';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 interface BillItem {
   item_id?: number;
@@ -30,6 +31,7 @@ interface BillItem {
 
 export default function PosBillingTerminalScreen() {
   const { theme } = useAppTheme();
+  const router = useRouter();
   const queryClient = useQueryClient();
 
   // Top Mode Segment: 'billing' | 'today_bills' | 'keypad'
@@ -319,52 +321,46 @@ export default function PosBillingTerminalScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
-      {/* ── Top Owner Shift Register Bar (Today's Register Context) ── */}
-      <View style={[styles.registerBar, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
-        <View style={styles.registerRow}>
-          <View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Ionicons name="cash" size={18} color="#16A34A" />
-              <Text style={[styles.registerTitle, { color: theme.text }]}>Counter Billing Terminal</Text>
-            </View>
-            <Text style={[styles.registerSub, { color: theme.textMuted }]}>
-              Today: {summaryData?.today_bills_count || 0} Bills • Rs. {Number(summaryData?.today_sales || 0).toLocaleString()} (Cash: Rs. {Number(summaryData?.cash_sales || 0).toLocaleString()})
-            </Text>
-          </View>
-
-          <TouchableOpacity onPress={() => refetchSummary()} style={[styles.syncBtn, { backgroundColor: theme.surfaceSubtle }]}>
-            <Ionicons name="refresh" size={15} color={theme.text} />
+      {/* ── Top POS Header (Screen 3 Mockup) ── */}
+      <View style={[styles.registerBar, { backgroundColor: theme.background }]}>
+        <View style={styles.topTitleBar}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={22} color="#112D27" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>POS</Text>
+          <TouchableOpacity onPress={() => setIsCustomItemOpen(true)} style={styles.addCustomBtn}>
+            <Ionicons name="add" size={22} color="#064E45" />
           </TouchableOpacity>
         </View>
 
         {/* ── 3-Tab Terminal Mode Selector ── */}
-        <View style={[styles.terminalTabsRow, { backgroundColor: theme.surfaceSubtle }]}>
+        <View style={[styles.terminalTabsRow, { backgroundColor: '#ECE9E0' }]}>
           <TouchableOpacity
             onPress={() => setTerminalMode('billing')}
-            style={[styles.terminalTab, terminalMode === 'billing' && [styles.terminalTabActive, { backgroundColor: theme.surface }]]}
+            style={[styles.terminalTab, terminalMode === 'billing' && [styles.terminalTabActive, { backgroundColor: '#FFFFFF' }]]}
           >
-            <Ionicons name="flash" size={15} color={terminalMode === 'billing' ? theme.primary : theme.textMuted} />
-            <Text style={[styles.terminalTabText, { color: terminalMode === 'billing' ? theme.primary : theme.textMuted }]}>
+            <Ionicons name="flash" size={14} color={terminalMode === 'billing' ? '#064E45' : '#7E9188'} />
+            <Text style={[styles.terminalTabText, { color: terminalMode === 'billing' ? '#064E45' : '#7E9188' }]}>
               Quick Billing
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => setTerminalMode('today_bills')}
-            style={[styles.terminalTab, terminalMode === 'today_bills' && [styles.terminalTabActive, { backgroundColor: theme.surface }]]}
+            style={[styles.terminalTab, terminalMode === 'today_bills' && [styles.terminalTabActive, { backgroundColor: '#FFFFFF' }]]}
           >
-            <Ionicons name="receipt" size={15} color={terminalMode === 'today_bills' ? theme.primary : theme.textMuted} />
-            <Text style={[styles.terminalTabText, { color: terminalMode === 'today_bills' ? theme.primary : theme.textMuted }]}>
-              Today's Bills ({summaryData?.today_bills_count || 0})
+            <Ionicons name="receipt" size={14} color={terminalMode === 'today_bills' ? '#064E45' : '#7E9188'} />
+            <Text style={[styles.terminalTabText, { color: terminalMode === 'today_bills' ? '#064E45' : '#7E9188' }]}>
+              Bills ({summaryData?.today_bills_count || 0})
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => setTerminalMode('keypad')}
-            style={[styles.terminalTab, terminalMode === 'keypad' && [styles.terminalTabActive, { backgroundColor: theme.surface }]]}
+            style={[styles.terminalTab, terminalMode === 'keypad' && [styles.terminalTabActive, { backgroundColor: '#FFFFFF' }]]}
           >
-            <Ionicons name="keypad" size={15} color={terminalMode === 'keypad' ? theme.primary : theme.textMuted} />
-            <Text style={[styles.terminalTabText, { color: terminalMode === 'keypad' ? theme.primary : theme.textMuted }]}>
+            <Ionicons name="keypad" size={14} color={terminalMode === 'keypad' ? '#064E45' : '#7E9188'} />
+            <Text style={[styles.terminalTabText, { color: terminalMode === 'keypad' ? '#064E45' : '#7E9188' }]}>
               Custom Amount
             </Text>
           </TouchableOpacity>
@@ -1070,43 +1066,93 @@ export default function PosBillingTerminalScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  registerBar: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8, borderBottomWidth: 1 },
+  registerBar: { paddingHorizontal: 20, paddingTop: 6, paddingBottom: 10 },
+  topTitleBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  backButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#ECE9E0',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#112D27',
+    letterSpacing: -0.4,
+  },
+  addCustomBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E6F0EC',
+  },
   registerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   registerTitle: { fontSize: 16, fontWeight: '800' },
   registerSub: { fontSize: 11, marginTop: 2 },
   syncBtn: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
-  terminalTabsRow: { flexDirection: 'row', borderRadius: 12, padding: 3 },
-  terminalTab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 7, borderRadius: 10, gap: 5 },
+  terminalTabsRow: { flexDirection: 'row', borderRadius: 16, padding: 4, marginBottom: 4 },
+  terminalTab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 7, borderRadius: 12, gap: 5 },
   terminalTabActive: { elevation: 1 },
   terminalTabText: { fontSize: 11, fontWeight: '700' },
-  orderSetupBar: { paddingHorizontal: 14, paddingVertical: 8, borderBottomWidth: 1 },
+  orderSetupBar: { paddingHorizontal: 20, paddingVertical: 8, borderBottomWidth: 1 },
   orderTypePillGroup: { flexDirection: 'row', gap: 6, marginBottom: 6 },
-  orderTypePill: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8, borderRadius: 10, gap: 5 },
+  orderTypePill: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8, borderRadius: 14, gap: 5 },
   orderTypeText: { fontSize: 12, fontWeight: '700' },
   tableChipsRow: { gap: 6, paddingVertical: 2 },
-  tableChip: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 10 },
+  tableChip: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 12 },
   tableChipText: { fontSize: 11, fontWeight: '700' },
-  menuPunchSection: { padding: 12 },
-  catChipsRow: { gap: 6, marginBottom: 10 },
-  catChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14 },
-  catChipText: { fontSize: 11, fontWeight: '600' },
-  dishesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  menuPunchSection: { paddingHorizontal: 20, paddingVertical: 12 },
+  catChipsRow: { gap: 8, marginBottom: 14 },
+  catChip: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: 18 },
+  catChipText: { fontSize: 12, fontWeight: '700' },
+  dishesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   dishPunchTile: {
     width: '31%',
-    borderRadius: 12,
-    padding: 8,
+    borderRadius: 16,
+    padding: 10,
     borderWidth: 1,
-    minHeight: 64,
+    minHeight: 74,
     justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#ECE9E0',
+    elevation: 1,
+    shadowColor: '#064E45',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
   },
   tileHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  tilePrice: { fontSize: 11, fontWeight: '800' },
-  tileQtyBadge: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 6 },
+  tilePrice: { fontSize: 12, fontWeight: '800' },
+  tileQtyBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 },
   tileQtyText: { color: '#FFFFFF', fontSize: 10, fontWeight: '800' },
-  tileName: { fontSize: 11, fontWeight: '600', marginTop: 4 },
+  tileName: { fontSize: 12, fontWeight: '700', marginTop: 4 },
   customTile: { borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', gap: 4 },
   customTileText: { fontSize: 11, fontWeight: '700' },
-  runningBillCard: { margin: 12, borderRadius: 18, borderWidth: 1, padding: 14, elevation: 2 },
+  runningBillCard: {
+    marginHorizontal: 20,
+    marginVertical: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#ECE9E0',
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    elevation: 2,
+    shadowColor: '#064E45',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+  },
   billSlipHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   billSlipTitle: { fontSize: 15, fontWeight: '800' },
   billCountBadge: { fontSize: 11, fontWeight: '700', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },

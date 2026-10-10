@@ -1,30 +1,30 @@
 export const Colors = {
   light: {
     // ── Foodio Signature Brand Palette ──
-    deepEmerald: '#064E45',   // Primary brand color · Logo, main buttons & active elements
-    warmCream: '#FFF8EF',     // Main background · Clean, premium restaurant feel
+    deepEmerald: '#064E45',   // Primary brand color · Logo, active tabs, main pill buttons (#064E45)
+    warmCream: '#F8F6F0',     // Screen canvas background · Warm bone cream
     foodOrange: '#FF941F',    // Accent highlight · Badges, alerts & highlights
-    sageGray: '#81958C',      // Secondary text · Subtle UI & borders
-    darkForest: '#003C35',    // Button gradients, dark headers, card borders & contrast
+    sageGray: '#7E9188',      // Secondary text · Subtle UI & borders
+    darkForest: '#04342E',    // Dark emerald headers, contrast elements
 
     // ── Semantic Aliases ──
     primary: '#064E45',
-    primaryDark: '#003C35',
-    primaryLight: '#E8F5F2',  // Emerald tint for badges & selected chips
+    primaryDark: '#04342E',
+    primaryLight: '#E6F0EC',  // Emerald tint for badges & selected chips
     purple: '#7C3AED',
     orange: '#FF941F',
     green: '#064E45',
     teal: '#0D9488',
-    background: '#FFF8EF',    // Warm cream background
+    background: '#F8F6F0',    // Clean warm cream canvas
     surface: '#FFFFFF',       // Clean white cards
-    surfaceSubtle: '#F9F1E6', // Soft cream card tint
-    border: '#E8DEC9',        // Warm beige-gray borders
-    text: '#0C2621',          // High-contrast deep slate-emerald
-    textMuted: '#81958C',     // Sage gray
+    surfaceSubtle: '#F1EFE9', // Soft warm cream pill tint
+    border: '#E8E5DD',        // Crisp subtle borders
+    text: '#112D27',          // Deep luxury emerald slate text
+    textMuted: '#7E9188',     // Sage gray text
     success: '#059669',
     warning: '#FF941F',       // Food orange
     danger: '#EF4444',
-    dockBackground: '#003C35',// Dark forest green dock
+    dockBackground: '#04342E',// Dark dock
     dockText: '#FFFFFF',
   },
   dark: {

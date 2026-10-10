@@ -22,9 +22,11 @@ import { AppButton } from '../../components/AppButton';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
 
 export default function LiveMenuScreen() {
   const { theme } = useAppTheme();
+  const router = useRouter();
   const queryClient = useQueryClient();
 
   // Selected Category Filter
@@ -256,88 +258,51 @@ export default function LiveMenuScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
-      {/* ── Top Header ── */}
-      <View style={[styles.headerArea, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
-        <View style={styles.titleRow}>
-          <View>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>Menu Management & 86ing</Text>
-            <Text style={[styles.headerSub, { color: theme.textMuted }]}>
-              {inStockCount} Available • {soldOutCount} Sold Out (Instant WhatsApp Sync)
-            </Text>
-          </View>
-          <TouchableOpacity onPress={() => setIsAddItemOpen(true)} style={[styles.addBtn, { backgroundColor: theme.primary }]}>
-            <Ionicons name="add" size={18} color="#FFFFFF" />
-            <Text style={styles.addBtnText}>Add Item</Text>
+      {/* ── Top Header (Screen 4 Mockup) ── */}
+      <View style={[styles.headerArea, { backgroundColor: theme.background }]}>
+        <View style={styles.topTitleBar}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={22} color="#112D27" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Menu Management</Text>
+          <TouchableOpacity onPress={() => setIsAddItemOpen(true)} style={styles.addCircleBtn}>
+            <Ionicons name="add" size={22} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
 
-        {/* ── Search Bar ── */}
-        <View style={styles.searchRow}>
-          <View style={[styles.searchBox, { backgroundColor: theme.surfaceSubtle }]}>
-            <Ionicons name="search" size={16} color={theme.textMuted} />
-            <TextInput
-              placeholder="Search dishes to toggle or edit..."
-              placeholderTextColor={theme.textMuted}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              style={[styles.searchInput, { color: theme.text }]}
-            />
-            {searchQuery ? (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={16} color={theme.textMuted} />
-              </TouchableOpacity>
-            ) : null}
-          </View>
+        {/* ── Search Bar Capsule ── */}
+        <View style={styles.searchBar}>
+          <Ionicons name="search-outline" size={18} color="#7E9188" />
+          <TextInput
+            placeholder="Search menu items..."
+            placeholderTextColor="#7E9188"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            style={styles.searchInput}
+          />
+          {searchQuery ? (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={16} color="#7E9188" />
+            </TouchableOpacity>
+          ) : null}
         </View>
 
-        {/* ── Quick Upload Action Row (CSV / Image Upload) ── */}
-        <View style={styles.uploadRow}>
-          <TouchableOpacity
-            onPress={handleUploadCsv}
-            disabled={isUploading}
-            style={[styles.uploadPill, { backgroundColor: theme.primaryLight }]}
-          >
-            <Ionicons name="document-text" size={15} color={theme.primary} />
-            <Text style={[styles.uploadPillText, { color: theme.primary }]}>Upload Menu CSV</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={handleUploadMenuImage}
-            disabled={isUploading}
-            style={[styles.uploadPill, { backgroundColor: '#F0FDF4' }]}
-          >
-            <Ionicons name="camera" size={15} color="#16A34A" />
-            <Text style={[styles.uploadPillText, { color: '#16A34A' }]}>Upload Menu Photo</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => setIsAddCatOpen(true)}
-            style={[styles.uploadPill, { backgroundColor: theme.surfaceSubtle }]}
-          >
-            <Ionicons name="folder-outline" size={15} color={theme.text} />
-            <Text style={[styles.uploadPillText, { color: theme.text }]}>+ Category</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* ── Category Chips ── */}
+        {/* ── Category Chips Row (Screen 4) ── */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryChipsRow}>
           <TouchableOpacity
             onPress={() => setSelectedCategory('all')}
             style={[
               styles.catChip,
-              selectedCategory === 'all'
-                ? { backgroundColor: theme.primary }
-                : { backgroundColor: theme.surfaceSubtle },
+              selectedCategory === 'all' ? styles.catChipActive : styles.catChipInactive,
             ]}
           >
             <Text
               style={[
                 styles.catChipText,
-                { color: selectedCategory === 'all' ? '#FFFFFF' : theme.textMuted },
-                selectedCategory === 'all' && { fontWeight: '700' },
+                selectedCategory === 'all' ? styles.catChipTextActive : styles.catChipTextInactive,
               ]}
             >
-              All Items ({allItems.length})
+              All
             </Text>
           </TouchableOpacity>
 
@@ -349,17 +314,16 @@ export default function LiveMenuScreen() {
                 onPress={() => setSelectedCategory(c.id)}
                 style={[
                   styles.catChip,
-                  active ? { backgroundColor: theme.primary } : { backgroundColor: theme.surfaceSubtle },
+                  active ? styles.catChipActive : styles.catChipInactive,
                 ]}
               >
                 <Text
                   style={[
                     styles.catChipText,
-                    { color: active ? '#FFFFFF' : theme.textMuted },
-                    active && { fontWeight: '700' },
+                    active ? styles.catChipTextActive : styles.catChipTextInactive,
                   ]}
                 >
-                  {c.name} ({c.menu_items?.length || 0})
+                  {c.name}
                 </Text>
               </TouchableOpacity>
             );
@@ -668,25 +632,98 @@ export default function LiveMenuScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  headerArea: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 10, borderBottomWidth: 1 },
-  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  headerTitle: { fontSize: 18, fontWeight: '800' },
-  headerSub: { fontSize: 12, marginTop: 2 },
-  addBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, gap: 4 },
-  addBtnText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
-  searchRow: { marginBottom: 10 },
-  searchBox: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, height: 38, borderRadius: 12, gap: 6 },
-  searchInput: { flex: 1, fontSize: 13 },
-  uploadRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
-  uploadPill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, gap: 5 },
-  uploadPillText: { fontSize: 11, fontWeight: '700' },
-  categoryChipsRow: { gap: 8, paddingBottom: 2 },
-  catChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
-  catChipText: { fontSize: 12, fontWeight: '600' },
-  scrollList: { padding: 14, paddingBottom: 90 },
+  headerArea: { paddingHorizontal: 20, paddingTop: 6, paddingBottom: 10 },
+  topTitleBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  backButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#ECE9E0',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#112D27',
+    letterSpacing: -0.4,
+  },
+  addCircleBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#064E45',
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#ECE9E0',
+    paddingHorizontal: 14,
+    height: 44,
+    marginBottom: 14,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 13,
+    color: '#112D27',
+  },
+  categoryChipsRow: {
+    gap: 8,
+    paddingBottom: 4,
+  },
+  catChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderRadius: 18,
+  },
+  catChipActive: {
+    backgroundColor: '#064E45',
+  },
+  catChipInactive: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#ECE9E0',
+  },
+  catChipText: {
+    fontSize: 12,
+  },
+  catChipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  catChipTextInactive: {
+    color: '#7E9188',
+    fontWeight: '600',
+  },
+  scrollList: { paddingHorizontal: 20, paddingBottom: 100 },
   uploadingBox: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 12, marginBottom: 12, gap: 8 },
   uploadingText: { fontSize: 12, fontWeight: '600' },
-  menuItemCard: { flexDirection: 'row', padding: 14, borderRadius: 16, borderWidth: 1, marginBottom: 10, elevation: 1 },
+  menuItemCard: {
+    flexDirection: 'row',
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#ECE9E0',
+    marginBottom: 10,
+    elevation: 1,
+    shadowColor: '#064E45',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+  },
   soldOutCard: { opacity: 0.75, backgroundColor: '#FFF5F5' },
   itemInfo: { flex: 1, paddingRight: 10 },
   nameHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },

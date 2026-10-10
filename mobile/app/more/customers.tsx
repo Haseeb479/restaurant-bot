@@ -21,11 +21,14 @@ import { LoadingState, ErrorState, EmptyState } from '../../components/FeedbackS
 import { AppButton } from '../../components/AppButton';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
 
 export default function CustomersScreen() {
   const { theme } = useAppTheme();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  const [activeSegment, setActiveSegment] = useState<'all' | 'regular' | 'vip'>('all');
   const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
 
   // Broadcast Studio Modal State
@@ -97,43 +100,75 @@ export default function CustomersScreen() {
   if (isLoading && !isRefetching) return <LoadingState message="Loading customers..." />;
   if (error) return <ErrorState message={error.message} onRetry={() => refetch()} />;
 
-  const customers = data?.customers ?? [];
+  const rawCustomers: any[] = data?.customers ?? [];
+  const customers = rawCustomers.filter((c) => {
+    if (activeSegment === 'vip') return (c.total_orders && c.total_orders >= 5) || (c.tag || '').toLowerCase() === 'vip';
+    if (activeSegment === 'regular') return !c.total_orders || c.total_orders < 5;
+    return true;
+  });
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
-      {/* Header */}
-      <View style={[styles.headerArea, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+      {/* ── Screen 6 Customers Header ── */}
+      <View style={[styles.headerArea, { backgroundColor: theme.background }]}>
         <View style={styles.topTitleRow}>
-          <View>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>Customers Directory</Text>
-            <Text style={[styles.headerSub, { color: theme.textMuted }]}>
-              {customers.length} customer records & lifetime spend
-            </Text>
-          </View>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={22} color="#112D27" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Customers</Text>
           <TouchableOpacity
             onPress={() => setIsBroadcastOpen(true)}
-            style={[styles.broadcastTriggerBtn, { backgroundColor: theme.primary }]}
+            style={styles.broadcastTriggerBtn}
           >
-            <Ionicons name="megaphone" size={16} color="#FFFFFF" />
-            <Text style={styles.broadcastTriggerText}>Broadcast</Text>
+            <Ionicons name="megaphone-outline" size={20} color="#064E45" />
           </TouchableOpacity>
         </View>
 
-        {/* Search Bar */}
-        <View style={[styles.searchBox, { backgroundColor: theme.surfaceSubtle }]}>
-          <Ionicons name="search" size={18} color="#9CA3AF" />
+        {/* Search Bar Capsule */}
+        <View style={styles.searchBox}>
+          <Ionicons name="search-outline" size={18} color="#7E9188" />
           <TextInput
-            placeholder="Search by customer name, phone, or address..."
-            placeholderTextColor="#9CA3AF"
+            placeholder="Search customers..."
+            placeholderTextColor="#7E9188"
             value={search}
             onChangeText={setSearch}
-            style={[styles.searchInput, { color: theme.text }]}
+            style={styles.searchInput}
           />
           {search ? (
             <TouchableOpacity onPress={() => setSearch('')}>
-              <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+              <Ionicons name="close-circle" size={16} color="#7E9188" />
             </TouchableOpacity>
           ) : null}
+        </View>
+
+        {/* Category Pills (All, Regular, VIP) */}
+        <View style={styles.filterPillsRow}>
+          {[
+            { key: 'all', label: 'All' },
+            { key: 'regular', label: 'Regular' },
+            { key: 'vip', label: 'VIP' },
+          ].map((f) => {
+            const active = activeSegment === f.key;
+            return (
+              <TouchableOpacity
+                key={f.key}
+                onPress={() => setActiveSegment(f.key as any)}
+                style={[
+                  styles.filterPill,
+                  active ? styles.filterPillActive : styles.filterPillInactive,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.filterPillText,
+                    active ? styles.filterPillTextActive : styles.filterPillTextInactive,
+                  ]}
+                >
+                  {f.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
 
@@ -332,34 +367,73 @@ export default function CustomersScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  headerArea: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 16, borderBottomWidth: 1 },
-  topTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  headerTitle: { fontSize: 22, fontWeight: '800' },
-  headerSub: { fontSize: 12, marginTop: 2 },
+  headerArea: { paddingHorizontal: 20, paddingTop: 6, paddingBottom: 10 },
+  topTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  backButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#ECE9E0',
+  },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: '#112D27', letterSpacing: -0.4 },
   broadcastTriggerBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E6F0EC',
+  },
+  broadcastTriggerText: { color: '#064E45', fontSize: 12, fontWeight: '700' },
+  searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#ECE9E0',
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 14,
+    height: 44,
+    marginBottom: 12,
+    gap: 8,
   },
-  broadcastTriggerText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
-  searchBox: { flexDirection: 'row', alignItems: 'center', height: 44, borderRadius: 12, paddingHorizontal: 12 },
-  searchInput: { flex: 1, marginLeft: 8, fontSize: 14 },
-  listPadding: { padding: 16, paddingBottom: 90 },
-  customerCard: { padding: 14, borderRadius: 16, borderWidth: 1, marginBottom: 12 },
+  searchInput: { flex: 1, fontSize: 13, color: '#112D27' },
+  filterPillsRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
+  filterPill: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: 18 },
+  filterPillActive: { backgroundColor: '#064E45' },
+  filterPillInactive: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#ECE9E0' },
+  filterPillText: { fontSize: 12 },
+  filterPillTextActive: { color: '#FFFFFF', fontWeight: '700' },
+  filterPillTextInactive: { color: '#7E9188', fontWeight: '600' },
+  listPadding: { paddingHorizontal: 20, paddingBottom: 100 },
+  customerCard: {
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#ECE9E0',
+    backgroundColor: '#FFFFFF',
+    marginBottom: 10,
+    elevation: 1,
+    shadowColor: '#064E45',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+  },
   cardTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  customerAvatar: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  avatarLetter: { color: '#FFFFFF', fontSize: 18, fontWeight: '800' },
-  custName: { fontSize: 15, fontWeight: '700' },
-  custPhone: { fontSize: 12, marginTop: 1 },
-  tagBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  tagText: { fontSize: 11, fontWeight: '700' },
-  custAddress: { fontSize: 12, marginBottom: 10 },
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, paddingTop: 8 },
-  metaText: { fontSize: 12 },
-  metaSpent: { fontSize: 14, fontWeight: '800' },
+  customerAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#E6F0EC', alignItems: 'center', justifyContent: 'center' },
+  avatarLetter: { color: '#064E45', fontSize: 16, fontWeight: '800' },
+  custName: { fontSize: 15, fontWeight: '700', color: '#112D27' },
+  custPhone: { fontSize: 12, marginTop: 1, color: '#7E9188' },
+  tagBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: '#E6F0EC' },
+  tagText: { fontSize: 11, fontWeight: '700', color: '#064E45' },
+  custAddress: { fontSize: 12, marginBottom: 10, color: '#7E9188' },
+  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: '#F5F3ED', paddingTop: 8 },
+  metaText: { fontSize: 12, color: '#7E9188' },
+  metaSpent: { fontSize: 14, fontWeight: '800', color: '#064E45' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   broadcastCard: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, maxHeight: '88%' },
   modalCard: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, maxHeight: '80%' },

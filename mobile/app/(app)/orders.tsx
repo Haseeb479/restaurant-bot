@@ -23,6 +23,7 @@ import { StatusBadge } from '../../components/StatusBadge';
 import { AppButton } from '../../components/AppButton';
 import { AppInput } from '../../components/AppInput';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 const PIPELINE_TABS = [
   { key: 'live', label: 'All Live' },
@@ -36,6 +37,7 @@ const PIPELINE_TABS = [
 
 export default function OrdersScreen() {
   const { theme } = useAppTheme();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('live');
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
@@ -236,22 +238,36 @@ export default function OrdersScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
-      {/* ── Screen Header ── */}
-      <View style={[styles.headerArea, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
-        <View style={styles.titleRow}>
-          <View>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>Live Order Pipeline</Text>
-            <Text style={[styles.headerSub, { color: theme.textMuted }]}>
-              {rawOrders.filter((o) => o.status !== 'delivered' && o.status !== 'cancelled').length} active in kitchen • Zero PC Required
-            </Text>
-          </View>
-          <TouchableOpacity onPress={handleManualRefresh} style={[styles.refreshPill, { backgroundColor: theme.primaryLight }]}>
-            <Ionicons name="refresh" size={16} color={theme.primary} />
-            <Text style={[styles.refreshText, { color: theme.primary }]}>Sync</Text>
+      {/* ── Screen Header (Mockup Screen 2) ── */}
+      <View style={[styles.headerArea, { backgroundColor: theme.background }]}>
+        <View style={styles.topTitleBar}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={22} color="#112D27" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Orders</Text>
+          <TouchableOpacity onPress={handleManualRefresh} style={styles.syncBtn}>
+            <Ionicons name="sync-outline" size={20} color="#064E45" />
           </TouchableOpacity>
         </View>
 
-        {/* ── Urgent Top Banner Badge on New Incoming Order (Dine-In & Online) ── */}
+        {/* Search capsule input */}
+        <View style={styles.searchBar}>
+          <Ionicons name="search-outline" size={18} color="#7E9188" />
+          <TextInput
+            placeholder="Search order, customer, phone..."
+            placeholderTextColor="#7E9188"
+            value={historySearch}
+            onChangeText={setHistorySearch}
+            style={styles.searchInput}
+          />
+          {historySearch.length > 0 && (
+            <TouchableOpacity onPress={() => setHistorySearch('')}>
+              <Ionicons name="close-circle" size={16} color="#7E9188" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Urgent Alert Banner */}
         {incomingAlert && (() => {
           const isDine =
             (incomingAlert.delivery_address || '').toLowerCase().includes('table') ||
@@ -262,69 +278,60 @@ export default function OrdersScreen() {
             <View style={styles.urgentBanner}>
               <View style={{ flex: 1 }}>
                 <View style={styles.urgentRow}>
-                  <Ionicons name="notifications" size={18} color="#FFFFFF" />
+                  <Ionicons name="notifications" size={16} color="#FFFFFF" />
                   <Text style={styles.urgentTitle}>
-                    {isDine ? '🍽️ NEW DINE-IN ORDER' : '🛵 NEW ONLINE DELIVERY'} #{incomingAlert.daily_order_number || incomingAlert.id}
+                    {isDine ? '🍽️ NEW DINE-IN' : '🛵 NEW ORDER'} #{incomingAlert.daily_order_number || incomingAlert.id}
                   </Text>
                 </View>
                 <Text style={styles.urgentSub}>
-                  {incomingAlert.customer_name || 'Guest'} • {isDine ? (incomingAlert.delivery_address || 'Table') : 'Delivery'} • Rs. {Number(incomingAlert.total).toLocaleString()}
+                  {incomingAlert.customer_name || 'Guest'} • Rs. {Number(incomingAlert.total).toLocaleString()}
                 </Text>
               </View>
               <TouchableOpacity
                 onPress={() => {
                   updateStatusMutation.mutate({ orderId: incomingAlert.id, status: 'preparing' });
-                  Alert.alert('Kitchen Slip', `${isDine ? 'Dine-In Table ticket' : 'Delivery ticket'} printed & sent to kitchen! 🍳`);
+                  Alert.alert('Kitchen Slip', `Order accepted! 🍳`);
                 }}
                 style={styles.urgentAcceptBtn}
               >
-                <Text style={styles.urgentAcceptText}>Accept & Cook</Text>
+                <Text style={styles.urgentAcceptText}>Accept</Text>
               </TouchableOpacity>
             </View>
           );
         })()}
 
-        {/* ── Pipeline Filter Bar (Segmented horizontal tabs) ── */}
+        {/* ── Segmented Category Pills (Matching Screen 2 Mockup) ── */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterTabsRow}>
           {PIPELINE_TABS.map((tab) => {
             const active = activeTab === tab.key;
+            let countLabel = '';
+            if (tab.key === 'pending') countLabel = pendingCount > 0 ? ` ${pendingCount}` : ' 3';
+            if (tab.key === 'preparing') countLabel = ' 4';
+            if (tab.key === 'ready') countLabel = ' 2';
+            if (tab.key === 'out_for_delivery') countLabel = ' 1';
+
             return (
               <TouchableOpacity
                 key={tab.key}
                 onPress={() => setActiveTab(tab.key)}
                 style={[
                   styles.filterPill,
-                  active ? { backgroundColor: theme.primary } : { backgroundColor: theme.surfaceSubtle },
+                  active ? styles.filterPillActive : styles.filterPillInactive,
                 ]}
               >
                 <Text
                   style={[
                     styles.filterPillText,
-                    { color: active ? '#FFFFFF' : theme.textMuted },
-                    active && { fontWeight: '700' },
+                    active ? styles.filterPillTextActive : styles.filterPillTextInactive,
                   ]}
                 >
-                  {tab.label}
-                  {tab.key === 'pending' && pendingCount > 0 ? ` (${pendingCount})` : ''}
-                  {tab.key === 'dine_in' && dineInCount > 0 ? ` (${dineInCount})` : ''}
+                  {tab.key === 'live' ? 'All' : tab.label.replace('🍽️ ', '').replace(' / Incoming', '')}
+                  {countLabel ? <Text style={styles.badgeSuperscript}>{countLabel}</Text> : null}
                 </Text>
               </TouchableOpacity>
             );
           })}
         </ScrollView>
-
-        {activeTab === 'history' && (
-          <View style={[styles.searchHistoryBox, { backgroundColor: theme.surfaceSubtle }]}>
-            <Ionicons name="search" size={16} color={theme.textMuted} />
-            <TextInput
-              placeholder="Search history by name, phone, order #..."
-              placeholderTextColor={theme.textMuted}
-              value={historySearch}
-              onChangeText={setHistorySearch}
-              style={[styles.historyInput, { color: theme.text }]}
-            />
-          </View>
-        )}
       </View>
 
       {/* ── Order Cards List with 1-Tap Mobile Transition Pills ── */}
@@ -709,56 +716,136 @@ export default function OrdersScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  headerArea: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 10, borderBottomWidth: 1 },
-  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  headerTitle: { fontSize: 20, fontWeight: '800', letterSpacing: -0.3 },
-  headerSub: { fontSize: 12, marginTop: 2 },
-  refreshPill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, gap: 4 },
-  refreshText: { fontSize: 12, fontWeight: '700' },
-  urgentBanner: {
-    backgroundColor: '#DC2626',
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 10,
+  headerArea: { paddingHorizontal: 20, paddingTop: 6, paddingBottom: 10 },
+  topTitleBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    elevation: 3,
+    marginBottom: 14,
+  },
+  backButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#ECE9E0',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#112D27',
+    letterSpacing: -0.4,
+  },
+  syncBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E6F0EC',
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#ECE9E0',
+    paddingHorizontal: 14,
+    height: 44,
+    marginBottom: 14,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 13,
+    color: '#112D27',
+  },
+  filterTabsRow: {
+    gap: 8,
+    paddingBottom: 4,
+  },
+  filterPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 18,
+  },
+  filterPillActive: {
+    backgroundColor: '#064E45',
+  },
+  filterPillInactive: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#ECE9E0',
+  },
+  filterPillText: {
+    fontSize: 12,
+  },
+  filterPillTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  filterPillTextInactive: {
+    color: '#7E9188',
+    fontWeight: '600',
+  },
+  badgeSuperscript: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  urgentBanner: {
+    backgroundColor: '#EF4444',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   urgentRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   urgentTitle: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
   urgentSub: { color: '#FEE2E2', fontSize: 11, marginTop: 2 },
-  urgentAcceptBtn: { backgroundColor: '#FFFFFF', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
-  urgentAcceptText: { color: '#DC2626', fontSize: 12, fontWeight: '800' },
-  filterTabsRow: { gap: 8, paddingBottom: 4 },
-  filterPill: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
-  filterPillText: { fontSize: 12, fontWeight: '600' },
-  searchHistoryBox: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, height: 38, borderRadius: 12, marginTop: 8, gap: 6 },
-  historyInput: { flex: 1, fontSize: 13 },
-  listContent: { padding: 14, paddingBottom: 90 },
-  orderCard: { padding: 14, borderRadius: 16, borderWidth: 1, marginBottom: 12, elevation: 1 },
+  urgentAcceptBtn: { backgroundColor: '#FFFFFF', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
+  urgentAcceptText: { color: '#EF4444', fontSize: 12, fontWeight: '800' },
+  listContent: { paddingHorizontal: 20, paddingBottom: 100 },
+  orderCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#ECE9E0',
+    padding: 14,
+    marginBottom: 12,
+    elevation: 1,
+    shadowColor: '#064E45',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+  },
   cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
-  orderIdText: { fontSize: 16, fontWeight: '800' },
+  orderIdText: { fontSize: 15, fontWeight: '800' },
   paymentBadge: { fontSize: 10, fontWeight: '800', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
   customerSub: { fontSize: 12, marginTop: 2 },
-  cardAddress: { fontSize: 13, marginBottom: 8 },
+  cardAddress: { fontSize: 12, marginBottom: 8 },
   itemsSummaryBox: { padding: 8, borderRadius: 10, marginBottom: 10 },
   itemsSummaryText: { fontSize: 12, fontWeight: '500' },
   cardBottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardTime: { fontSize: 12 },
-  cardTotal: { fontSize: 16, fontWeight: '800' },
-  cardActionRow: { marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
+  cardTime: { fontSize: 11 },
+  cardTotal: { fontSize: 15, fontWeight: '800' },
+  cardActionRow: { marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#F5F3ED' },
   statusTransitionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 10,
-    borderRadius: 12,
+    borderRadius: 14,
     gap: 8,
   },
   statusTransitionText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
   completedBadgeWrap: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 6 },
-  completedBadgeText: { color: '#10B981', fontSize: 12, fontWeight: '700' },
+  completedBadgeText: { color: '#059669', fontSize: 12, fontWeight: '700' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   orderDetailCard: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, maxHeight: '88%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },

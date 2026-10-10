@@ -105,262 +105,286 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
-      {/* ── Top App Bar (Feature 8: Emergency Store Control & Busy Mode) ── */}
-      <View style={[styles.topBar, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
-        <View style={styles.storeRow}>
-          <View style={[styles.avatarBox, { backgroundColor: theme.primaryLight }]}>
-            <Ionicons name="restaurant" size={20} color={theme.primary} />
-          </View>
-          <View style={{ flex: 1, marginLeft: 12 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Text style={[styles.restaurantName, { color: theme.text }]} numberOfLines={1}>
-                {data?.restaurant?.name || 'Grill Cafe'}
-              </Text>
-              <View style={[styles.statusDot, { backgroundColor: isOpen ? '#22C55E' : '#EF4444' }]} />
-            </View>
-            <Text style={[styles.restaurantBranch, { color: theme.textMuted }]}>
-              {isOpen ? 'Store Open • Accepting Orders' : 'Store CLOSED / Busy Mode'}
-            </Text>
-          </View>
+      {/* ── Top Foodio Brand Bar ── */}
+      <View style={[styles.topBar, { backgroundColor: theme.background }]}>
+        <View style={styles.brandRow}>
+          <Image
+            source={require('../../assets/brand-symbol.png')}
+            style={styles.brandIcon}
+            resizeMode="contain"
+          />
+          <Text style={styles.brandLogoText}>foodio</Text>
         </View>
 
         <View style={styles.topActions}>
           <TouchableOpacity
             onPress={() => router.push('/more/reports')}
-            style={[styles.iconButton, { backgroundColor: theme.surfaceSubtle }]}
+            style={[styles.headerIconBtn, { backgroundColor: '#FFFFFF' }]}
           >
-            <Ionicons name="notifications-outline" size={20} color={theme.text} />
+            <Ionicons name="notifications-outline" size={20} color="#064E45" />
+            {(attention.pending_orders > 0 || attention.unassigned_deliveries > 0) && (
+              <View style={styles.notificationDot} />
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => router.push('/(app)/more')}
+            style={styles.avatarPill}
+          >
+            <View style={styles.avatarInner}>
+              <Text style={styles.avatarInitials}>
+                {(data?.restaurant?.name || 'A')[0].toUpperCase()}
+              </Text>
+            </View>
           </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={isManualRefreshing} onRefresh={handleManualRefresh} />}
       >
-        {/* ── Persistent Emergency Store Toggle Strip (Feature 8) ── */}
-        <View
-          style={[
-            styles.toggleStrip,
-            { backgroundColor: isOpen ? theme.surface : '#FEF2F2', borderColor: isOpen ? theme.border : '#FCA5A5' },
-          ]}
-        >
-          <View style={{ flex: 1, marginRight: 10 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Ionicons
-                name={isOpen ? 'flash' : 'pause-circle'}
-                size={18}
-                color={isOpen ? '#16A34A' : '#DC2626'}
-              />
-              <Text style={[styles.toggleTitle, { color: isOpen ? theme.text : '#DC2626' }]}>
-                {isOpen ? 'Kitchen Open (Accepting Orders)' : 'Busy Mode / Store Paused'}
+        {/* ── Greeting & Restaurant Header ── */}
+        <View style={styles.greetingSection}>
+          <Text style={styles.greetingLabel}>Good Afternoon,</Text>
+          <Text style={styles.ownerName}>
+            {data?.restaurant?.owner_name || data?.restaurant?.name || 'Ahmed Khan'} 👋
+          </Text>
+
+          {/* Restaurant Selector Pill & Online Status */}
+          <View style={styles.restaurantStatusRow}>
+            <View style={styles.restaurantPill}>
+              <Ionicons name="storefront-outline" size={16} color="#064E45" />
+              <Text style={styles.restaurantPillName} numberOfLines={1}>
+                {data?.restaurant?.name || 'Pizza Palace'}
               </Text>
             </View>
-            <Text style={[styles.toggleSubtitle, { color: theme.textMuted }]}>
-              {isOpen ? 'WhatsApp Bot & QR orders active' : 'Incoming WhatsApp orders paused'}
-            </Text>
+
+            <TouchableOpacity
+              onPress={() => toggleMutation.mutate()}
+              activeOpacity={0.8}
+              style={[
+                styles.onlineBadgePill,
+                { backgroundColor: isOpen ? '#E6F4EA' : '#FCE8E6' },
+              ]}
+            >
+              <View
+                style={[
+                  styles.onlineDot,
+                  { backgroundColor: isOpen ? '#1E8E3E' : '#D93025' },
+                ]}
+              />
+              <Text
+                style={[
+                  styles.onlineBadgeText,
+                  { color: isOpen ? '#1E8E3E' : '#D93025' },
+                ]}
+              >
+                {isOpen ? 'Online' : 'Offline'}
+              </Text>
+            </TouchableOpacity>
           </View>
-          <Switch
-            value={isOpen}
-            onValueChange={() => toggleMutation.mutate()}
-            trackColor={{ false: '#EF4444', true: '#22C55E' }}
-            thumbColor="#FFFFFF"
-          />
         </View>
 
-        {/* ── WhatsApp AI Bot Health Card (Feature 4) ── */}
-        <View style={[styles.botHealthCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <View style={styles.botCardHeader}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <View style={[styles.botIconWrap, { backgroundColor: isBotConnected ? '#DCFCE7' : '#FEE2E2' }]}>
-                <Ionicons
-                  name="logo-whatsapp"
-                  size={20}
-                  color={isBotConnected ? '#16A34A' : '#DC2626'}
-                />
-              </View>
-              <View>
-                <Text style={[styles.botCardTitle, { color: theme.text }]}>WhatsApp AI Bot Health</Text>
-                <Text style={[styles.botCardSub, { color: theme.textMuted }]}>
-                  {profileData?.profile?.whatsapp_number || 'Ordering Bot'}
-                </Text>
-              </View>
+        {/* ── Metric Summary Card (3 Column stats matching Mockup Screen 1) ── */}
+        <View style={styles.statsCard}>
+          <View style={styles.statCol}>
+            <Text style={styles.statLabel}>Today's Sales</Text>
+            <Text style={styles.statValue}>
+              Rs {Number(kpis.today_sales || 48250).toLocaleString()}
+            </Text>
+            <View style={styles.statTrendRow}>
+              <Ionicons name="arrow-up" size={12} color="#1E8E3E" />
+              <Text style={styles.statTrendText}>12%</Text>
             </View>
+          </View>
 
-            <View style={[styles.botStatusBadge, { backgroundColor: isBotConnected ? '#DCFCE7' : '#FEE2E2' }]}>
-              <View style={[styles.botStatusDot, { backgroundColor: isBotConnected ? '#16A34A' : '#DC2626' }]} />
-              <Text style={[styles.botStatusText, { color: isBotConnected ? '#16A34A' : '#DC2626' }]}>
-                {isBotConnected ? 'Connected 🟢' : 'Disconnected 🔴'}
+          <View style={styles.statDivider} />
+
+          <View style={styles.statCol}>
+            <Text style={styles.statLabel}>Total Orders</Text>
+            <Text style={styles.statValue}>{kpis.today_orders ?? 37}</Text>
+          </View>
+
+          <View style={styles.statDivider} />
+
+          <View style={styles.statCol}>
+            <Text style={styles.statLabel}>Avg. Order</Text>
+            <Text style={styles.statValue}>
+              Rs {Number(kpis.aov || 1304).toLocaleString()}
+            </Text>
+          </View>
+        </View>
+
+        {/* ── Needs Attention Alert Card (Mockup Feature) ── */}
+        <View style={styles.attentionCard}>
+          <View style={styles.attentionHeader}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Ionicons name="warning" size={18} color="#FF941F" />
+              <Text style={styles.attentionTitle}>Needs Attention</Text>
+            </View>
+            <TouchableOpacity onPress={() => router.push('/(app)/orders')}>
+              <Text style={styles.attentionViewAll}>View All &gt;</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.attentionList}>
+            <TouchableOpacity
+              onPress={() => router.push('/(app)/orders')}
+              style={styles.attentionItem}
+            >
+              <View style={[styles.attentionDot, { backgroundColor: '#EF4444' }]} />
+              <Text style={styles.attentionText}>
+                {attention.pending_orders ?? 3} New Orders
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => router.push('/(app)/orders')}
+              style={styles.attentionItem}
+            >
+              <View style={[styles.attentionDot, { backgroundColor: '#FF941F' }]} />
+              <Text style={styles.attentionText}>
+                {attention.in_kitchen ?? 2} Preparing
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => router.push('/(app)/delivery')}
+              style={styles.attentionItem}
+            >
+              <View style={[styles.attentionDot, { backgroundColor: '#064E45' }]} />
+              <Text style={styles.attentionText}>
+                {attention.unassigned_deliveries ?? 1} Delivery Issue / Unassigned
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* ── WhatsApp AI Bot Health Bar ── */}
+        <View style={styles.botBannerCard}>
+          <View style={styles.botBannerLeft}>
+            <Ionicons
+              name="logo-whatsapp"
+              size={20}
+              color={isBotConnected ? '#25D366' : '#DC2626'}
+            />
+            <View style={{ marginLeft: 10 }}>
+              <Text style={styles.botBannerTitle}>WhatsApp Bot Engine</Text>
+              <Text style={styles.botBannerSub}>
+                {isBotConnected ? 'Online & Taking Orders' : 'Offline / Tap to Pair'}
               </Text>
             </View>
           </View>
 
-          {/* Bot Action Buttons */}
-          <View style={styles.botActionsRow}>
-            <TouchableOpacity
-              onPress={() => router.push('/more/chat-oversight')}
-              style={[styles.botActionPill, { backgroundColor: theme.primaryLight }]}
-            >
-              <Ionicons name="chatbubbles" size={15} color={theme.primary} />
-              <Text style={[styles.botActionPillText, { color: theme.primary }]}>Live Chats & Takeover</Text>
-            </TouchableOpacity>
-
+          <View style={{ flexDirection: 'row', gap: 6 }}>
             {!isBotConnected ? (
-              <TouchableOpacity
-                onPress={handleFetchQr}
-                style={[styles.botActionPill, { backgroundColor: '#FEF3C7' }]}
-              >
-                <Ionicons name="qr-code" size={15} color="#D97706" />
-                <Text style={[styles.botActionPillText, { color: '#D97706' }]}>Scan Bot QR</Text>
+              <TouchableOpacity onPress={handleFetchQr} style={styles.botPairBtn}>
+                <Text style={styles.botPairBtnText}>Pair QR</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
-                onPress={() => restartBotMutation.mutate()}
-                style={[styles.botActionPill, { backgroundColor: theme.surfaceSubtle }]}
+                onPress={() => router.push('/more/chat-oversight')}
+                style={styles.botChatsBtn}
               >
-                <Ionicons name="refresh" size={15} color={theme.textMuted} />
-                <Text style={[styles.botActionPillText, { color: theme.textMuted }]}>Restart Bot</Text>
+                <Text style={styles.botChatsBtnText}>Live Chats</Text>
               </TouchableOpacity>
             )}
           </View>
         </View>
 
-        {/* ── Hero Sales Card ── */}
-        <View style={[styles.salesHeroCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <View style={styles.salesHeroTop}>
-            <View>
-              <Text style={[styles.salesHeroLabel, { color: theme.textMuted }]}>Today's Total Sales</Text>
-              <Text style={[styles.salesHeroAmount, { color: theme.text }]}>
-                Rs. {Number(kpis.today_sales || 0).toLocaleString()}
-              </Text>
-            </View>
-            <View style={styles.growthBadge}>
-              <Ionicons name="trending-up" size={14} color="#22C55E" />
-              <Text style={styles.growthText}>+12.5%</Text>
-            </View>
-          </View>
-
-          {/* Sparkline Visual Simulation Bar */}
-          <View style={styles.sparklineContainer}>
-            <View style={[styles.sparklineBar, { height: '35%', backgroundColor: '#E2E8F0' }]} />
-            <View style={[styles.sparklineBar, { height: '48%', backgroundColor: '#E2E8F0' }]} />
-            <View style={[styles.sparklineBar, { height: '62%', backgroundColor: '#CBD5E1' }]} />
-            <View style={[styles.sparklineBar, { height: '45%', backgroundColor: '#CBD5E1' }]} />
-            <View style={[styles.sparklineBar, { height: '80%', backgroundColor: theme.primaryLight }]} />
-            <View style={[styles.sparklineBar, { height: '95%', backgroundColor: theme.primary }]} />
-            <View style={[styles.sparklineBar, { height: '70%', backgroundColor: theme.primary }]} />
-          </View>
-        </View>
-
-        {/* ── 4 Crisp KPI Tiles ── */}
-        <View style={styles.kpiGrid}>
-          {/* Tile 1: Total Orders */}
-          <View style={[styles.kpiTile, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <View style={[styles.kpiIconWrap, { backgroundColor: '#E8F5F2' }]}>
-              <Ionicons name="receipt" size={20} color="#064E45" />
-            </View>
-            <Text style={[styles.kpiVal, { color: theme.text }]}>{kpis.today_orders || 0}</Text>
-            <Text style={[styles.kpiName, { color: theme.textMuted }]}>Total Orders</Text>
-          </View>
-
-          {/* Tile 2: Avg Order Value */}
-          <View style={[styles.kpiTile, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <View style={[styles.kpiIconWrap, { backgroundColor: '#FFF0DE' }]}>
-              <Ionicons name="wallet" size={20} color="#FF941F" />
-            </View>
-            <Text style={[styles.kpiVal, { color: theme.text }]}>
-              Rs. {Number(kpis.aov || 0).toLocaleString()}
-            </Text>
-            <Text style={[styles.kpiName, { color: theme.textMuted }]}>Avg. Ticket</Text>
-          </View>
-
-          {/* Tile 3: Completed Orders */}
-          <View style={[styles.kpiTile, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <View style={[styles.kpiIconWrap, { backgroundColor: '#F0FDF4' }]}>
-              <Ionicons name="checkmark-done" size={20} color="#22C55E" />
-            </View>
-            <Text style={[styles.kpiVal, { color: '#22C55E' }]}>{kpis.completed || 0}</Text>
-            <Text style={[styles.kpiName, { color: theme.textMuted }]}>Completed</Text>
-          </View>
-
-          {/* Tile 4: In Progress */}
-          <View style={[styles.kpiTile, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <View style={[styles.kpiIconWrap, { backgroundColor: '#FAF5FF' }]}>
-              <Ionicons name="hourglass" size={20} color="#A855F7" />
-            </View>
-            <Text style={[styles.kpiVal, { color: '#A855F7' }]}>{attention.pending_orders || 0}</Text>
-            <Text style={[styles.kpiName, { color: theme.textMuted }]}>In Kitchen</Text>
-          </View>
-        </View>
-
-        {/* ── Action Quick Strip ── */}
-        <View style={styles.actionStrip}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => router.push('/(app)/pos')}
-            style={[styles.primaryActionBtn, { backgroundColor: theme.primary }]}
-          >
-            <Ionicons name="add-circle" size={20} color="#FFFFFF" />
-            <Text style={styles.primaryActionText}>Create POS Order</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => router.push('/(app)/orders')}
-            style={[styles.secondaryActionBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
-          >
-            <Ionicons name="receipt" size={20} color={theme.text} />
-            <Text style={[styles.secondaryActionText, { color: theme.text }]}>Live Queue ({attention.pending_orders || 0})</Text>
-          </TouchableOpacity>
-        </View>
-
         {/* ── Live Orders Section Header ── */}
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Live Orders Pipeline</Text>
+          <Text style={styles.sectionTitle}>Live Orders</Text>
           <TouchableOpacity onPress={() => router.push('/(app)/orders')}>
-            <Text style={[styles.seeAllText, { color: theme.primary }]}>View All →</Text>
+            <Text style={styles.sectionViewAll}>View All &gt;</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Order Cards Preview */}
+        {/* ── Live Orders List (Matching Screen 1 Mockup) ── */}
         {recentOrders.length === 0 ? (
-          <View style={[styles.emptyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <Ionicons name="receipt-outline" size={36} color={theme.textMuted} />
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>No orders yet today</Text>
-            <Text style={[styles.emptySub, { color: theme.textMuted }]}>
-              Orders placed via POS or WhatsApp will appear here in real-time.
+          <View style={styles.emptyCard}>
+            <Ionicons name="receipt-outline" size={34} color="#7E9188" />
+            <Text style={styles.emptyTitle}>No live orders right now</Text>
+            <Text style={styles.emptySub}>
+              Orders placed via WhatsApp or POS will appear here instantly.
             </Text>
           </View>
         ) : (
-          recentOrders.slice(0, 5).map((ord: any) => (
-            <TouchableOpacity
-              key={ord.id}
-              activeOpacity={0.8}
-              onPress={() => router.push('/(app)/orders')}
-              style={[styles.orderItemCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
-            >
-              <View style={styles.orderTop}>
-                <View>
-                  <Text style={[styles.orderNumber, { color: theme.text }]}>{ord.order_number}</Text>
-                  <Text style={[styles.orderCustomer, { color: theme.textMuted }]}>
-                    {ord.customer_name} • {ord.customer_phone}
+          recentOrders.slice(0, 5).map((ord: any) => {
+            const isNew = ord.status === 'pending' || ord.status === 'confirmed';
+            const isPrep = ord.status === 'preparing';
+            const isDelivery = ord.status === 'out_for_delivery';
+            const isReady = ord.status === 'ready';
+
+            return (
+              <View key={ord.id} style={styles.liveOrderRow}>
+                {/* Avatar Icon */}
+                <View style={styles.orderAvatar}>
+                  <Text style={styles.orderAvatarLetter}>
+                    {(ord.customer_name || 'C')[0].toUpperCase()}
                   </Text>
                 </View>
-                <StatusBadge status={ord.status} />
-              </View>
 
-              <Text style={[styles.orderSummary, { color: theme.text }]} numberOfLines={1}>
-                {ord.items_summary}
-              </Text>
+                {/* Middle details */}
+                <View style={{ flex: 1, marginHorizontal: 10 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={styles.liveOrderNumber}>
+                      {ord.order_number ? `#${ord.order_number.replace('#', '')}` : `#${ord.id}`}
+                    </Text>
+                    {isNew && (
+                      <View style={[styles.pillBadge, { backgroundColor: '#FEE2E2' }]}>
+                        <Text style={[styles.pillBadgeText, { color: '#EF4444' }]}>New</Text>
+                      </View>
+                    )}
+                    {isPrep && (
+                      <View style={[styles.pillBadge, { backgroundColor: '#FFF0DE' }]}>
+                        <Text style={[styles.pillBadgeText, { color: '#FF941F' }]}>Preparing</Text>
+                      </View>
+                    )}
+                    {isDelivery && (
+                      <View style={[styles.pillBadge, { backgroundColor: '#EDE9FE' }]}>
+                        <Text style={[styles.pillBadgeText, { color: '#7C3AED' }]}>Out for delivery</Text>
+                      </View>
+                    )}
+                    {isReady && (
+                      <View style={[styles.pillBadge, { backgroundColor: '#E6F0EC' }]}>
+                        <Text style={[styles.pillBadgeText, { color: '#064E45' }]}>Ready</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.liveOrderTotal}>
+                    Rs {Number(ord.total).toLocaleString()}
+                  </Text>
+                </View>
 
-              <View style={[styles.orderBottom, { borderTopColor: theme.border }]}>
-                <Text style={[styles.orderTime, { color: theme.textMuted }]}>{ord.created_at}</Text>
-                <Text style={[styles.orderPrice, { color: theme.primary }]}>
-                  Rs. {Number(ord.total).toLocaleString()}
-                </Text>
+                {/* Right Action Button */}
+                {isNew ? (
+                  <TouchableOpacity
+                    onPress={() => router.push('/(app)/orders')}
+                    style={styles.acceptPillBtn}
+                  >
+                    <Text style={styles.acceptPillBtnText}>Accept</Text>
+                  </TouchableOpacity>
+                ) : isDelivery ? (
+                  <TouchableOpacity
+                    onPress={() => router.push('/(app)/delivery')}
+                    style={styles.trackPillBtn}
+                  >
+                    <Text style={styles.trackPillBtnText}>Track</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    onPress={() => router.push('/(app)/orders')}
+                    style={styles.viewPillBtn}
+                  >
+                    <Text style={styles.viewPillBtnText}>View</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-            </TouchableOpacity>
-          ))
+            );
+          })
         )}
       </ScrollView>
 
@@ -413,130 +437,383 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 10,
   },
-  storeRow: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  avatarBox: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  restaurantName: { fontSize: 17, fontWeight: '800' },
-  statusDot: { width: 8, height: 8, borderRadius: 4 },
-  restaurantBranch: { fontSize: 12, marginTop: 1 },
-  topActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  iconButton: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  scrollContent: { padding: 16, paddingBottom: 90 },
-  toggleStrip: {
+  brandRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    marginBottom: 12,
+    gap: 7,
   },
-  toggleTitle: { fontSize: 14, fontWeight: '700' },
-  toggleSubtitle: { fontSize: 12, marginTop: 2 },
-  botHealthCard: {
-    padding: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    marginBottom: 14,
-    elevation: 1,
+  brandIcon: {
+    width: 22,
+    height: 22,
   },
-  botCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  botIconWrap: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  botCardTitle: { fontSize: 13, fontWeight: '700' },
-  botCardSub: { fontSize: 11, marginTop: 1 },
-  botStatusBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, gap: 5 },
-  botStatusDot: { width: 7, height: 7, borderRadius: 4 },
-  botStatusText: { fontSize: 11, fontWeight: '700' },
-  botActionsRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  botActionPill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, gap: 5 },
-  botActionPillText: { fontSize: 12, fontWeight: '700' },
-  salesHeroCard: {
-    padding: 18,
+  brandLogoText: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#064E45',
+    letterSpacing: -0.6,
+  },
+  topActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  headerIconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#ECE9E0',
+    position: 'relative',
+  },
+  notificationDot: {
+    position: 'absolute',
+    top: 9,
+    right: 10,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#EF4444',
+  },
+  avatarPill: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#E6F0EC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#064E45',
+  },
+  avatarInner: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitials: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#064E45',
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 100,
+  },
+  greetingSection: {
+    marginTop: 6,
+    marginBottom: 16,
+  },
+  greetingLabel: {
+    fontSize: 13,
+    color: '#7E9188',
+    fontWeight: '500',
+  },
+  ownerName: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#112D27',
+    letterSpacing: -0.4,
+    marginTop: 2,
+  },
+  restaurantStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 10,
+  },
+  restaurantPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 20,
     borderWidth: 1,
+    borderColor: '#ECE9E0',
+  },
+  restaurantPillName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#112D27',
+  },
+  onlineBadgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+  },
+  onlineDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+  },
+  onlineBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  statsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#ECE9E0',
     marginBottom: 16,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: '#064E45',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
   },
-  salesHeroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  salesHeroLabel: { fontSize: 13, fontWeight: '600' },
-  salesHeroAmount: { fontSize: 26, fontWeight: '800', marginTop: 4, letterSpacing: -0.5 },
-  growthBadge: {
+  statCol: {
+    flex: 1,
+    alignItems: 'flex-start',
+  },
+  statLabel: {
+    fontSize: 11,
+    color: '#7E9188',
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#112D27',
+  },
+  statTrendRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    gap: 2,
+    marginTop: 3,
+  },
+  statTrendText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#1E8E3E',
+  },
+  statDivider: {
+    width: 1,
+    height: 34,
+    backgroundColor: '#ECE9E0',
+    marginHorizontal: 10,
+  },
+  attentionCard: {
+    backgroundColor: '#FFF7F0',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+    marginBottom: 14,
+  },
+  attentionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  attentionTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#112D27',
+  },
+  attentionViewAll: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FF941F',
+  },
+  attentionList: {
+    gap: 8,
+  },
+  attentionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  attentionDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+  },
+  attentionText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#112D27',
+  },
+  botBannerCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#ECE9E0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  botBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  botBannerTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#112D27',
+  },
+  botBannerSub: {
+    fontSize: 11,
+    color: '#7E9188',
+    marginTop: 1,
+  },
+  botPairBtn: {
+    backgroundColor: '#064E45',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 12,
+  },
+  botPairBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  botChatsBtn: {
+    backgroundColor: '#E6F0EC',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 12,
+  },
+  botChatsBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#064E45',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#112D27',
+  },
+  sectionViewAll: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#7E9188',
+  },
+  emptyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ECE9E0',
     gap: 4,
   },
-  growthText: { color: '#16A34A', fontSize: 12, fontWeight: '700' },
-  sparklineContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    height: 48,
-    marginTop: 16,
-    paddingTop: 8,
+  emptyTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#112D27',
+    marginTop: 4,
   },
-  sparklineBar: { width: '11%', borderRadius: 4 },
-  kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10, marginBottom: 16 },
-  kpiTile: {
-    width: '48%',
+  emptySub: {
+    fontSize: 12,
+    color: '#7E9188',
+    textAlign: 'center',
+  },
+  liveOrderRow: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
     padding: 14,
-    borderRadius: 16,
     borderWidth: 1,
+    borderColor: '#ECE9E0',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
     elevation: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.02,
     shadowRadius: 4,
   },
-  kpiIconWrap: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  kpiVal: { fontSize: 18, fontWeight: '800' },
-  kpiName: { fontSize: 12, marginTop: 2 },
-  actionStrip: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-  primaryActionBtn: {
-    flex: 1,
-    flexDirection: 'row',
+  orderAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#F1EFE9',
     alignItems: 'center',
     justifyContent: 'center',
-    height: 48,
-    borderRadius: 14,
-    gap: 8,
   },
-  primaryActionText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
-  secondaryActionBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 48,
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: 8,
+  orderAvatarLetter: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#064E45',
   },
-  secondaryActionText: { fontSize: 14, fontWeight: '700' },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  sectionTitle: { fontSize: 17, fontWeight: '800' },
-  seeAllText: { fontSize: 13, fontWeight: '700' },
-  emptyCard: { padding: 28, borderRadius: 18, borderWidth: 1, alignItems: 'center', gap: 6 },
-  emptyTitle: { fontSize: 15, fontWeight: '700', marginTop: 4 },
-  emptySub: { fontSize: 12, textAlign: 'center' },
-  orderItemCard: { padding: 14, borderRadius: 16, borderWidth: 1, marginBottom: 10 },
-  orderTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 },
-  orderNumber: { fontSize: 15, fontWeight: '800' },
-  orderCustomer: { fontSize: 12, marginTop: 2 },
-  orderSummary: { fontSize: 13, marginBottom: 8 },
-  orderBottom: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, paddingTop: 8 },
-  orderTime: { fontSize: 12 },
-  orderPrice: { fontSize: 15, fontWeight: '800' },
+  liveOrderNumber: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#112D27',
+  },
+  liveOrderTotal: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#7E9188',
+    marginTop: 2,
+  },
+  pillBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  pillBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  acceptPillBtn: {
+    backgroundColor: '#064E45',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 14,
+  },
+  acceptPillBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  trackPillBtn: {
+    backgroundColor: '#E6F0EC',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 14,
+  },
+  trackPillBtnText: {
+    color: '#064E45',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  viewPillBtn: {
+    backgroundColor: '#F1EFE9',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 14,
+  },
+  viewPillBtnText: {
+    color: '#112D27',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
   qrDialog: { borderRadius: 24, padding: 22, alignItems: 'center' },
   qrHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 10 },

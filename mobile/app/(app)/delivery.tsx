@@ -153,24 +153,20 @@ export default function DeliveryScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+      {/* Header (Screen 5 Mockup) */}
+      <View style={[styles.header, { backgroundColor: theme.background }]}>
         <View style={styles.topRow}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={20} color={theme.text} />
+            <Ionicons name="arrow-back" size={22} color="#112D27" />
           </TouchableOpacity>
-          <Text style={[styles.title, { color: theme.text }]}>Delivery Dispatch & Fleet</Text>
+          <Text style={styles.title}>Delivery Tracking</Text>
           <TouchableOpacity
             onPress={() => setIsAddingRider(true)}
-            style={[styles.addRiderHeaderBtn, { backgroundColor: theme.primary }]}
+            style={styles.addRiderHeaderBtn}
           >
-            <Ionicons name="person-add" size={16} color="#FFFFFF" />
-            <Text style={styles.addRiderBtnText}>+ Rider</Text>
+            <Ionicons name="swap-horizontal-outline" size={20} color="#064E45" />
           </TouchableOpacity>
         </View>
-        <Text style={[styles.sub, { color: theme.textMuted }]}>
-          Fleet size: {riders.length} rider(s) • {activeDeliveries.length} active delivery order(s)
-        </Text>
       </View>
 
       {/* Fleet Roster Quick Carousel / Pills if riders exist */}
@@ -440,37 +436,60 @@ export default function DeliveryScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 14, borderBottomWidth: 1 },
+  header: { paddingHorizontal: 20, paddingTop: 6, paddingBottom: 10 },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  backBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 18, fontWeight: '800' },
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#ECE9E0',
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#112D27',
+    letterSpacing: -0.4,
+  },
   sub: { fontSize: 12, marginTop: 4 },
   addRiderHeaderBtn: {
-    flexDirection: 'row',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
+    justifyContent: 'center',
+    backgroundColor: '#E6F0EC',
   },
-  addRiderBtnText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
+  addRiderBtnText: { color: '#064E45', fontSize: 12, fontWeight: '700' },
   fleetStrip: { paddingVertical: 8 },
   fleetRiderPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 14,
     borderWidth: 1,
+    borderColor: '#ECE9E0',
+    backgroundColor: '#FFFFFF',
   },
   fleetRiderName: { fontSize: 12, fontWeight: '700' },
-  listPadding: { padding: 16, paddingBottom: 90 },
+  listPadding: { paddingHorizontal: 20, paddingBottom: 100 },
   deliveryCard: {
-    padding: 14,
-    borderRadius: 16,
+    padding: 16,
+    borderRadius: 18,
     borderWidth: 1,
+    borderColor: '#ECE9E0',
+    backgroundColor: '#FFFFFF',
     marginBottom: 12,
+    elevation: 1,
+    shadowColor: '#064E45',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
   },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   orderNumber: { fontSize: 16, fontWeight: '800' },
