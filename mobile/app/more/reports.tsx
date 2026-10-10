@@ -84,16 +84,16 @@ export default function ReportsScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />}
       >
-        {/* ── 3-Column Metrics Card (Mockup Screen 7) ── */}
+        {/* ── 3-Column Metrics Card (Live Data) ── */}
         <View style={styles.statsCard}>
           <View style={styles.statCol}>
             <Text style={styles.statLabel}>Total Sales</Text>
             <Text style={styles.statValue}>
-              Rs {Number(summary.total_revenue || 48250).toLocaleString()}
+              Rs {Number(summary.total_revenue || 0).toLocaleString()}
             </Text>
             <View style={styles.statTrendRow}>
-              <Ionicons name="arrow-up" size={12} color="#1E8E3E" />
-              <Text style={styles.statTrendText}>12%</Text>
+              <Ionicons name="stats-chart" size={12} color="#064E45" />
+              <Text style={styles.statTrendText}>Live</Text>
             </View>
           </View>
 
@@ -101,10 +101,10 @@ export default function ReportsScreen() {
 
           <View style={styles.statCol}>
             <Text style={styles.statLabel}>Total Orders</Text>
-            <Text style={styles.statValue}>{summary.total_orders ?? 37}</Text>
+            <Text style={styles.statValue}>{summary.total_orders ?? 0}</Text>
             <View style={styles.statTrendRow}>
-              <Ionicons name="arrow-up" size={12} color="#1E8E3E" />
-              <Text style={styles.statTrendText}>8%</Text>
+              <Ionicons name="stats-chart" size={12} color="#064E45" />
+              <Text style={styles.statTrendText}>Live</Text>
             </View>
           </View>
 
@@ -113,11 +113,11 @@ export default function ReportsScreen() {
           <View style={styles.statCol}>
             <Text style={styles.statLabel}>Avg. Order</Text>
             <Text style={styles.statValue}>
-              Rs {Number(summary.aov || 1304).toLocaleString()}
+              Rs {Number(summary.aov || 0).toLocaleString()}
             </Text>
             <View style={styles.statTrendRow}>
-              <Ionicons name="arrow-up" size={12} color="#1E8E3E" />
-              <Text style={styles.statTrendText}>5%</Text>
+              <Ionicons name="stats-chart" size={12} color="#064E45" />
+              <Text style={styles.statTrendText}>Live</Text>
             </View>
           </View>
         </View>
@@ -126,42 +126,50 @@ export default function ReportsScreen() {
         <View style={styles.chartCard}>
           <Text style={styles.chartCardTitle}>Sales Overview</Text>
           <View style={styles.chartArea}>
-            {[
-              { day: 'Mon', height: 40 },
-              { day: 'Tue', height: 55 },
-              { day: 'Wed', height: 35 },
-              { day: 'Thu', height: 70 },
-              { day: 'Fri', height: 85 },
-              { day: 'Sat', height: 100 },
-              { day: 'Sun', height: 80 },
-            ].map((bar, i) => (
-              <View key={bar.day} style={styles.barCol}>
-                <View style={styles.barTrack}>
-                  <View style={[styles.barFill, { height: `${bar.height}%` }]} />
-                </View>
-                <Text style={styles.barLabel}>{bar.day}</Text>
+            {chartData.length === 0 ? (
+              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontSize: 13, color: '#7E9188' }}>No sales data for this period</Text>
               </View>
-            ))}
+            ) : (() => {
+              const maxAmount = Math.max(...chartData.map((c: any) => Number(c.amount) || 0), 1);
+              return chartData.map((bar: any, i: number) => {
+                const amt = Number(bar.amount) || 0;
+                const pct = maxAmount > 0 && amt > 0
+                  ? Math.min(100, Math.max(10, Math.round((amt / maxAmount) * 100)))
+                  : 4;
+                return (
+                  <View key={bar.date || i} style={styles.barCol}>
+                    <View style={styles.barTrack}>
+                      <View style={[styles.barFill, { height: `${pct}%` }]} />
+                    </View>
+                    <Text style={styles.barLabel} numberOfLines={1}>{bar.label || bar.date}</Text>
+                  </View>
+                );
+              });
+            })()}
           </View>
         </View>
 
-        {/* ── Top Selling Items (Mockup Screen 7) ── */}
+        {/* ── Top Selling Items (Live DB Query) ── */}
         <View style={styles.topItemsCard}>
           <Text style={styles.topItemsTitle}>Top Selling Items</Text>
-          {(topItems.length > 0 ? topItems : [
-            { name: 'Chicken Burger', total_qty: 42 },
-            { name: 'Shahi Pizza', total_qty: 28 },
-            { name: 'Behari Wrap', total_qty: 18 },
-            { name: 'Lemon Soda', total_qty: 16 },
-          ]).map((it: any, idx: number) => (
-            <View key={it.name || idx} style={styles.topItemRow}>
-              <View style={styles.topItemLeft}>
-                <Text style={styles.topItemNumber}>{idx + 1}.</Text>
-                <Text style={styles.topItemName}>{it.name}</Text>
-              </View>
-              <Text style={styles.topItemQty}>{it.total_qty || 0}</Text>
+          {topItems.length === 0 ? (
+            <View style={{ paddingVertical: 14, alignItems: 'center' }}>
+              <Text style={{ fontSize: 13, color: '#7E9188', fontWeight: '500' }}>
+                No dishes sold in this period yet.
+              </Text>
             </View>
-          ))}
+          ) : (
+            topItems.map((it: any, idx: number) => (
+              <View key={it.name || idx} style={styles.topItemRow}>
+                <View style={styles.topItemLeft}>
+                  <Text style={styles.topItemNumber}>{idx + 1}.</Text>
+                  <Text style={styles.topItemName}>{it.name}</Text>
+                </View>
+                <Text style={styles.topItemQty}>{it.total_qty || 0}</Text>
+              </View>
+            ))
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>

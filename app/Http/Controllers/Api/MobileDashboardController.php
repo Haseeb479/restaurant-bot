@@ -26,7 +26,7 @@ class MobileDashboardController extends Controller
         $averageOrderValue = $totalOrdersToday > 0 ? round($todayRevenue / $totalOrdersToday) : 0;
 
         $unavailableItems    = $menuItems->where('is_available', false);
-        $waitingRidersOrders = $todayOrders->whereIn('status', ['confirmed', 'preparing'])->whereNull('rider_name');
+        $waitingRidersOrders = $todayOrders->whereIn('status', ['confirmed', 'preparing', 'ready'])->whereNull('rider_name');
 
         // Top selling items today
         $topSelling = OrderItem::whereHas('order', fn($q) => $q->where('restaurant_id', $restaurant->id)->whereDate('created_at', today()))
@@ -39,6 +39,8 @@ class MobileDashboardController extends Controller
         // Recent orders
         $recentOrders = $restaurant->orders()->with('items')->orderBy('created_at', 'desc')->take(10)->get()
             ->map(function ($o) {
+                $qty = (int) $o->items->sum('quantity');
+                $count = $qty > 0 ? $qty : ($o->items->count() ?: 1);
                 return [
                     'id'               => $o->id,
                     'order_number'     => $o->daily_order_number ? "#{$o->daily_order_number}" : "#{$o->id}",
@@ -48,6 +50,8 @@ class MobileDashboardController extends Controller
                     'status'           => $o->status,
                     'payment_method'   => $o->payment_method ?? 'cash_on_delivery',
                     'created_at'       => $o->created_at->diffForHumans(),
+                    'time'             => $o->created_at->format('h:i A'),
+                    'items_count'      => $count,
                     'items_summary'    => $o->items->pluck('name')->implode(', '),
                 ];
             });
@@ -70,8 +74,11 @@ class MobileDashboardController extends Controller
                 'active_riders'   => $riders->where('is_active', true)->count(),
             ],
             'needs_attention' => [
-                'pending_orders'       => $todayOrders->where('status', 'pending')->count(),
+                'pending_orders'       => $todayOrders->whereIn('status', ['pending', 'confirmed'])->count(),
+                'in_kitchen'           => $todayOrders->where('status', 'preparing')->count(),
                 'waiting_for_rider'    => $waitingRidersOrders->count(),
+                'unassigned_deliveries'=> $waitingRidersOrders->count(),
+                'delivery_issues'      => $waitingRidersOrders->count(),
                 'unavailable_items'    => $unavailableItems->count(),
                 'bot_disconnected'     => ! $restaurant->isBotConnected(),
             ],

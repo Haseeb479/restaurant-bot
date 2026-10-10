@@ -103,6 +103,16 @@ export default function DashboardScreen() {
     data?.restaurant?.bot_status === 'connected' ||
     profileData?.profile?.bot_status === 'connected';
 
+  const pendingCount = Number(attention.pending_orders ?? 0);
+  const inKitchenCount = Number(attention.in_kitchen ?? 0);
+  const deliveryIssuesCount = Number(
+    attention.unassigned_deliveries ?? attention.delivery_issues ?? attention.waiting_for_rider ?? 0
+  );
+  const unavailableCount = Number(attention.unavailable_items ?? 0);
+  const isBotDisconnected = attention.bot_disconnected === true || !isBotConnected;
+  const totalIssues =
+    pendingCount + inKitchenCount + deliveryIssuesCount + (isBotDisconnected ? 1 : 0) + unavailableCount;
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
       {/* ── Top Foodio Brand Bar ── */}
@@ -122,9 +132,7 @@ export default function DashboardScreen() {
             style={[styles.headerIconBtn, { backgroundColor: '#FFFFFF' }]}
           >
             <Ionicons name="notifications-outline" size={20} color="#064E45" />
-            {(attention.pending_orders > 0 || attention.unassigned_deliveries > 0) && (
-              <View style={styles.notificationDot} />
-            )}
+            {totalIssues > 0 && <View style={styles.notificationDot} />}
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -133,7 +141,7 @@ export default function DashboardScreen() {
           >
             <View style={styles.avatarInner}>
               <Text style={styles.avatarInitials}>
-                {(data?.restaurant?.name || 'A')[0].toUpperCase()}
+                {(data?.restaurant?.name || profileData?.restaurant?.name || 'R')[0].toUpperCase()}
               </Text>
             </View>
           </TouchableOpacity>
@@ -147,9 +155,9 @@ export default function DashboardScreen() {
       >
         {/* ── Greeting & Restaurant Header ── */}
         <View style={styles.greetingSection}>
-          <Text style={styles.greetingLabel}>Good Afternoon,</Text>
+          <Text style={styles.greetingLabel}>Welcome back,</Text>
           <Text style={styles.ownerName}>
-            {data?.restaurant?.owner_name || data?.restaurant?.name || 'Ahmed Khan'} 👋
+            {data?.restaurant?.owner_name || profileData?.profile?.name || data?.restaurant?.name || 'Restaurant Owner'} 👋
           </Text>
 
           {/* Restaurant Selector Pill & Online Status */}
@@ -157,7 +165,7 @@ export default function DashboardScreen() {
             <View style={styles.restaurantPill}>
               <Ionicons name="storefront-outline" size={16} color="#064E45" />
               <Text style={styles.restaurantPillName} numberOfLines={1}>
-                {data?.restaurant?.name || 'Pizza Palace'}
+                {data?.restaurant?.name || profileData?.restaurant?.name || 'My Restaurant'}
               </Text>
             </View>
 
@@ -193,11 +201,11 @@ export default function DashboardScreen() {
           <View style={styles.salesStatCard}>
             <Text style={styles.statCardLabel}>Today's Sales</Text>
             <Text style={styles.salesStatAmount}>
-              Rs {Number(kpis.today_sales || 48250).toLocaleString()}
+              Rs {Number(kpis.today_sales || 0).toLocaleString()}
             </Text>
             <View style={styles.statTrendRow}>
-              <Ionicons name="arrow-up" size={13} color="#1E8E3E" />
-              <Text style={styles.statTrendText}>12%</Text>
+              <Ionicons name="stats-chart" size={13} color="#064E45" />
+              <Text style={styles.statTrendText}>Live</Text>
             </View>
           </View>
 
@@ -205,23 +213,27 @@ export default function DashboardScreen() {
           <View style={styles.secondaryStatCard}>
             <View style={styles.secondaryStatCol}>
               <Text style={styles.statCardLabel}>Total Orders</Text>
-              <Text style={styles.secondaryStatVal}>{kpis.today_orders ?? 37}</Text>
+              <Text style={styles.secondaryStatVal}>{kpis.today_orders ?? 0}</Text>
             </View>
 
             <View style={styles.secondaryStatCol}>
               <Text style={styles.statCardLabel}>Avg. Order</Text>
               <Text style={styles.secondaryStatVal}>
-                Rs {Number(kpis.aov || 1304).toLocaleString()}
+                Rs {Number(kpis.aov || 0).toLocaleString()}
               </Text>
             </View>
           </View>
         </View>
 
-        {/* ── Needs Attention Alert Card (Exact Mockup Match) ── */}
+        {/* ── Needs Attention Alert Card (Live Data Only) ── */}
         <View style={styles.attentionCard}>
           <View style={styles.attentionHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Ionicons name="warning" size={18} color="#FF3B30" />
+              <Ionicons
+                name={totalIssues > 0 ? 'warning' : 'checkmark-circle'}
+                size={18}
+                color={totalIssues > 0 ? '#FF3B30' : '#1E8E3E'}
+              />
               <Text style={styles.attentionTitle}>Needs Attention</Text>
             </View>
             <TouchableOpacity onPress={() => router.push('/(app)/orders')}>
@@ -229,49 +241,104 @@ export default function DashboardScreen() {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.attentionList}>
-            {/* Item 1: New Orders */}
-            <TouchableOpacity
-              onPress={() => router.push('/(app)/orders')}
-              style={styles.attentionItem}
-            >
-              <View style={styles.attentionItemLeft}>
-                <View style={[styles.attentionBadgeCircle, { backgroundColor: '#FF3B30' }]}>
-                  <Text style={styles.attentionBadgeNum}>{attention.pending_orders ?? 3}</Text>
-                </View>
-                <Text style={styles.attentionText}>3 New Orders</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
-            </TouchableOpacity>
+          {totalIssues === 0 ? (
+            <View style={{ paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Ionicons name="shield-checkmark" size={20} color="#1E8E3E" />
+              <Text style={{ fontSize: 13, color: '#112D27', fontWeight: '600' }}>
+                All caught up! 0 issues requiring attention.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.attentionList}>
+              {/* Item 1: New Orders */}
+              {pendingCount > 0 && (
+                <TouchableOpacity
+                  onPress={() => router.push('/(app)/orders')}
+                  style={styles.attentionItem}
+                >
+                  <View style={styles.attentionItemLeft}>
+                    <View style={[styles.attentionBadgeCircle, { backgroundColor: '#FF3B30' }]}>
+                      <Text style={styles.attentionBadgeNum}>{pendingCount}</Text>
+                    </View>
+                    <Text style={styles.attentionText}>
+                      {pendingCount} New Order{pendingCount > 1 ? 's' : ''}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
+                </TouchableOpacity>
+              )}
 
-            {/* Item 2: Preparing */}
-            <TouchableOpacity
-              onPress={() => router.push('/(app)/orders')}
-              style={styles.attentionItem}
-            >
-              <View style={styles.attentionItemLeft}>
-                <View style={[styles.attentionBadgeCircle, { backgroundColor: '#FF9500' }]}>
-                  <Text style={styles.attentionBadgeNum}>{attention.in_kitchen ?? 2}</Text>
-                </View>
-                <Text style={styles.attentionText}>2 Preparing</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
-            </TouchableOpacity>
+              {/* Item 2: Preparing */}
+              {inKitchenCount > 0 && (
+                <TouchableOpacity
+                  onPress={() => router.push('/(app)/orders')}
+                  style={styles.attentionItem}
+                >
+                  <View style={styles.attentionItemLeft}>
+                    <View style={[styles.attentionBadgeCircle, { backgroundColor: '#FF9500' }]}>
+                      <Text style={styles.attentionBadgeNum}>{inKitchenCount}</Text>
+                    </View>
+                    <Text style={styles.attentionText}>
+                      {inKitchenCount} In Kitchen / Preparing
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
+                </TouchableOpacity>
+              )}
 
-            {/* Item 3: Delivery Issue */}
-            <TouchableOpacity
-              onPress={() => router.push('/(app)/delivery')}
-              style={styles.attentionItem}
-            >
-              <View style={styles.attentionItemLeft}>
-                <View style={[styles.attentionBadgeCircle, { backgroundColor: '#007AFF' }]}>
-                  <Text style={styles.attentionBadgeNum}>{attention.unassigned_deliveries ?? 1}</Text>
-                </View>
-                <Text style={styles.attentionText}>1 Delivery Issue</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
-            </TouchableOpacity>
-          </View>
+              {/* Item 3: Delivery Issue */}
+              {deliveryIssuesCount > 0 && (
+                <TouchableOpacity
+                  onPress={() => router.push('/(app)/delivery')}
+                  style={styles.attentionItem}
+                >
+                  <View style={styles.attentionItemLeft}>
+                    <View style={[styles.attentionBadgeCircle, { backgroundColor: '#007AFF' }]}>
+                      <Text style={styles.attentionBadgeNum}>{deliveryIssuesCount}</Text>
+                    </View>
+                    <Text style={styles.attentionText}>
+                      {deliveryIssuesCount} Unassigned Delivery{deliveryIssuesCount > 1 ? 's' : ''}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
+                </TouchableOpacity>
+              )}
+
+              {/* Item 4: WhatsApp Bot Disconnected */}
+              {isBotDisconnected && (
+                <TouchableOpacity
+                  onPress={handleFetchQr}
+                  style={styles.attentionItem}
+                >
+                  <View style={styles.attentionItemLeft}>
+                    <View style={[styles.attentionBadgeCircle, { backgroundColor: '#FF3B30' }]}>
+                      <Ionicons name="logo-whatsapp" size={11} color="#FFFFFF" />
+                    </View>
+                    <Text style={styles.attentionText}>WhatsApp Bot Disconnected</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
+                </TouchableOpacity>
+              )}
+
+              {/* Item 5: Unavailable Items */}
+              {unavailableCount > 0 && (
+                <TouchableOpacity
+                  onPress={() => router.push('/(app)/menu')}
+                  style={styles.attentionItem}
+                >
+                  <View style={styles.attentionItemLeft}>
+                    <View style={[styles.attentionBadgeCircle, { backgroundColor: '#8E8E93' }]}>
+                      <Text style={styles.attentionBadgeNum}>{unavailableCount}</Text>
+                    </View>
+                    <Text style={styles.attentionText}>
+                      {unavailableCount} Sold Out / 86'd Item{unavailableCount > 1 ? 's' : ''}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
         </View>
 
         {/* ── Live Orders Section Header ── */}
@@ -282,7 +349,7 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ── Live Orders List (Matching Exact Rows in Screenshot) ── */}
+        {/* ── Live Orders List ── */}
         {recentOrders.length === 0 ? (
           <View style={styles.emptyCard}>
             <Ionicons name="receipt-outline" size={34} color="#7E9188" />
@@ -334,10 +401,16 @@ export default function DashboardScreen() {
                   </Text>
                 </View>
 
-                {/* Time & Counter details */}
+                {/* Time & Counter details (Live from database) */}
                 <View style={styles.orderMetaCol}>
-                  <Text style={styles.metaItemsCount}>10 items</Text>
-                  <Text style={styles.metaTime}>10:48 PM</Text>
+                  <Text style={styles.metaItemsCount}>
+                    {ord.items_count
+                      ? `${ord.items_count} item${ord.items_count > 1 ? 's' : ''}`
+                      : ord.items_summary
+                      ? `${ord.items_summary.split(',').length} item${ord.items_summary.split(',').length > 1 ? 's' : ''}`
+                      : '1 item'}
+                  </Text>
+                  <Text style={styles.metaTime}>{ord.time || ord.created_at || ''}</Text>
                 </View>
 
                 {/* Right Action Button */}

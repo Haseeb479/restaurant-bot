@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { apiClient, apiUpload } from '../../services/api/client';
-import { LoadingState, ErrorState } from '../../components/FeedbackStates';
+import { LoadingState, ErrorState, EmptyState } from '../../components/FeedbackStates';
 import { AppButton } from '../../components/AppButton';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
@@ -345,105 +345,118 @@ export default function LiveMenuScreen() {
           </View>
         )}
 
-        {filteredItems.map((item) => {
-          const isAvail = Boolean(item.is_available);
-          return (
-            <View
-              key={item.id}
-              style={[
-                styles.menuItemCard,
-                { backgroundColor: theme.surface, borderColor: theme.border },
-                !isAvail && styles.soldOutCard,
-              ]}
-            >
-              <View style={styles.itemInfo}>
-                <View style={styles.nameHeaderRow}>
-                  <Text style={[styles.itemName, { color: theme.text }, !isAvail && styles.soldOutText]}>
-                    {item.name}
-                  </Text>
-                  <View
-                    style={[
-                      styles.stockStatusBadge,
-                      { backgroundColor: isAvail ? '#DCFCE7' : '#FEE2E2' },
-                    ]}
-                  >
+        {filteredItems.length === 0 ? (
+          <EmptyState
+            title="No menu items found"
+            description={
+              searchQuery
+                ? `No items match "${searchQuery}".`
+                : 'No items in this category yet. Tap "+" above to create your first dish.'
+            }
+            actionTitle="Add Menu Item"
+            onAction={() => setIsAddItemOpen(true)}
+          />
+        ) : (
+          filteredItems.map((item) => {
+            const isAvail = Boolean(item.is_available);
+            return (
+              <View
+                key={item.id}
+                style={[
+                  styles.menuItemCard,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                  !isAvail && styles.soldOutCard,
+                ]}
+              >
+                <View style={styles.itemInfo}>
+                  <View style={styles.nameHeaderRow}>
+                    <Text style={[styles.itemName, { color: theme.text }, !isAvail && styles.soldOutText]}>
+                      {item.name}
+                    </Text>
                     <View
                       style={[
-                        styles.stockDot,
-                        { backgroundColor: isAvail ? '#16A34A' : '#DC2626' },
-                      ]}
-                    />
-                    <Text
-                      style={[
-                        styles.stockStatusText,
-                        { color: isAvail ? '#16A34A' : '#DC2626' },
+                        styles.stockStatusBadge,
+                        { backgroundColor: isAvail ? '#DCFCE7' : '#FEE2E2' },
                       ]}
                     >
-                      {isAvail ? 'Available' : 'Sold Out (86)'}
+                      <View
+                        style={[
+                          styles.stockDot,
+                          { backgroundColor: isAvail ? '#16A34A' : '#DC2626' },
+                        ]}
+                      />
+                      <Text
+                        style={[
+                          styles.stockStatusText,
+                          { color: isAvail ? '#16A34A' : '#DC2626' },
+                        ]}
+                      >
+                        {isAvail ? 'Available' : 'Sold Out (86)'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Text style={[styles.itemSub, { color: theme.textMuted }]}>
+                    {item.category_name} • Rs. {Number(item.price).toLocaleString()}
+                  </Text>
+                  {item.description ? (
+                    <Text style={[styles.itemDesc, { color: theme.textMuted }]} numberOfLines={2}>
+                      {item.description}
                     </Text>
+                  ) : null}
+                </View>
+
+                {/* Action Buttons: 1-Tap 86 Toggle & Edit */}
+                <View style={styles.itemActions}>
+                  <View style={styles.switchWrapper}>
+                    <Text style={[styles.switchLabel, { color: isAvail ? '#16A34A' : '#DC2626' }]}>
+                      {isAvail ? 'Live 🟢' : '86ed 🔴'}
+                    </Text>
+                    <Switch
+                      value={isAvail}
+                      onValueChange={() => toggleMutation.mutate(item.id)}
+                      trackColor={{ false: '#EF4444', true: '#22C55E' }}
+                      thumbColor="#FFFFFF"
+                    />
+                  </View>
+
+                  <View style={styles.editBtnGroup}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setEditingItem(item);
+                        setEditName(item.name);
+                        setEditPrice(String(item.price));
+                      }}
+                      style={[styles.smallActionBtn, { backgroundColor: theme.surfaceSubtle }]}
+                    >
+                      <Ionicons name="create-outline" size={16} color={theme.text} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={() => {
+                        Alert.alert(
+                          'Delete Item?',
+                          `Are you sure you want to remove "${item.name}" from your menu?`,
+                          [
+                            { text: 'Cancel', style: 'cancel' },
+                            {
+                              text: 'Delete',
+                              style: 'destructive',
+                              onPress: () => deleteItemMutation.mutate(item.id),
+                            },
+                          ]
+                        );
+                      }}
+                      style={[styles.smallActionBtn, { backgroundColor: '#FEE2E2' }]}
+                    >
+                      <Ionicons name="trash-outline" size={16} color="#DC2626" />
+                    </TouchableOpacity>
                   </View>
                 </View>
-
-                <Text style={[styles.itemSub, { color: theme.textMuted }]}>
-                  {item.category_name} • Rs. {Number(item.price).toLocaleString()}
-                </Text>
-                {item.description ? (
-                  <Text style={[styles.itemDesc, { color: theme.textMuted }]} numberOfLines={2}>
-                    {item.description}
-                  </Text>
-                ) : null}
               </View>
-
-              {/* Action Buttons: 1-Tap 86 Toggle & Edit */}
-              <View style={styles.itemActions}>
-                <View style={styles.switchWrapper}>
-                  <Text style={[styles.switchLabel, { color: isAvail ? '#16A34A' : '#DC2626' }]}>
-                    {isAvail ? 'Live 🟢' : '86ed 🔴'}
-                  </Text>
-                  <Switch
-                    value={isAvail}
-                    onValueChange={() => toggleMutation.mutate(item.id)}
-                    trackColor={{ false: '#EF4444', true: '#22C55E' }}
-                    thumbColor="#FFFFFF"
-                  />
-                </View>
-
-                <View style={styles.editBtnGroup}>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setEditingItem(item);
-                      setEditName(item.name);
-                      setEditPrice(String(item.price));
-                    }}
-                    style={[styles.smallActionBtn, { backgroundColor: theme.surfaceSubtle }]}
-                  >
-                    <Ionicons name="create-outline" size={16} color={theme.text} />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={() => {
-                      Alert.alert(
-                        'Delete Item?',
-                        `Are you sure you want to remove "${item.name}" from your menu?`,
-                        [
-                          { text: 'Cancel', style: 'cancel' },
-                          {
-                            text: 'Delete',
-                            style: 'destructive',
-                            onPress: () => deleteItemMutation.mutate(item.id),
-                          },
-                        ]
-                      );
-                    }}
-                    style={[styles.smallActionBtn, { backgroundColor: '#FEE2E2' }]}
-                  >
-                    <Ionicons name="trash-outline" size={16} color="#DC2626" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          );
-        })}
+            );
+          })
+        )}
       </ScrollView>
 
       {/* ── Edit Item Modal ── */}

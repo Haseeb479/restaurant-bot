@@ -226,7 +226,11 @@ export default function OrdersScreen() {
     displayedOrders = rawOrders.filter((o) => o.status === activeTab);
   }
 
+  const liveCount = rawOrders.filter((o) => o.status !== 'delivered' && o.status !== 'cancelled').length;
   const pendingCount = rawOrders.filter((o) => o.status === 'pending' || o.status === 'confirmed').length;
+  const preparingCount = rawOrders.filter((o) => o.status === 'preparing').length;
+  const readyCount = rawOrders.filter((o) => o.status === 'ready').length;
+  const deliveryCount = rawOrders.filter((o) => o.status === 'out_for_delivery').length;
   const dineInCount = rawOrders.filter(
     (o) =>
       o.status !== 'delivered' &&
@@ -304,11 +308,15 @@ export default function OrdersScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterTabsRow}>
           {PIPELINE_TABS.map((tab) => {
             const active = activeTab === tab.key;
-            let countLabel = '';
-            if (tab.key === 'pending') countLabel = pendingCount > 0 ? ` ${pendingCount}` : ' 3';
-            if (tab.key === 'preparing') countLabel = ' 4';
-            if (tab.key === 'ready') countLabel = ' 2';
-            if (tab.key === 'out_for_delivery') countLabel = ' 1';
+            let count = 0;
+            if (tab.key === 'live') count = liveCount;
+            else if (tab.key === 'pending') count = pendingCount;
+            else if (tab.key === 'preparing') count = preparingCount;
+            else if (tab.key === 'ready') count = readyCount;
+            else if (tab.key === 'out_for_delivery') count = deliveryCount;
+            else if (tab.key === 'dine_in') count = dineInCount;
+
+            const countLabel = count > 0 ? ` ${count}` : '';
 
             return (
               <TouchableOpacity

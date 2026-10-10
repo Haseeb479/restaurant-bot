@@ -103,10 +103,10 @@ export default function StoreSettingsScreen() {
             </View>
             <View style={{ marginLeft: 12 }}>
               <Text style={styles.restaurantHeroName}>
-                {settings.restaurant_name || 'Pizza Palace'}
+                {settings.restaurant_name || data?.restaurant?.name || 'Restaurant Settings'}
               </Text>
               <Text style={styles.restaurantHeroHours}>
-                Open • 10:00 AM - 11:00 PM
+                {isOpen ? 'Store is Currently Open' : 'Store is Currently Closed'}
               </Text>
             </View>
           </View>
