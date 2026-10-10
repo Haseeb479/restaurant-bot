@@ -11,6 +11,8 @@ class Order extends Model
     protected $fillable = [
         'restaurant_id',
         'daily_order_number',
+        'order_type',
+        'table_number',
         'customer_phone',
         'customer_name',
         'delivery_address',
@@ -435,5 +437,50 @@ class Order extends Model
                ! is_null($this->rider_lng) &&
                ! is_null($this->rider_location_updated_at) &&
                $this->rider_location_updated_at->gt(now()->subMinutes(30));
+    }
+
+    /**
+     * Check if this is a dine-in order.
+     */
+    public function isDineIn(): bool
+    {
+        if (($this->order_type ?? '') === 'dine_in') {
+            return true;
+        }
+        if (!empty($this->table_number)) {
+            return true;
+        }
+        return str_starts_with(strtolower(trim((string)$this->delivery_address)), 'table ')
+            || str_contains(strtolower(trim((string)$this->notes)), 'dine-in');
+    }
+
+    /**
+     * Get resolved table number (e.g. "4", "Table 4").
+     */
+    public function getResolvedTableNumber(): ?string
+    {
+        if (!empty($this->table_number)) {
+            return (string) $this->table_number;
+        }
+        if (preg_match('/table\s*#?\s*([a-z0-9\-]+)/i', (string) $this->delivery_address, $m)) {
+            return $m[1];
+        }
+        if (preg_match('/table\s*#?\s*([a-z0-9\-]+)/i', (string) $this->notes, $m)) {
+            return $m[1];
+        }
+        return null;
+    }
+
+    /**
+     * Scope for Dine-In orders.
+     */
+    public function scopeDineIn($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('order_type', 'dine_in')
+              ->orWhereNotNull('table_number')
+              ->orWhere('delivery_address', 'LIKE', 'Table %')
+              ->orWhere('notes', 'LIKE', '%DINE-IN%');
+        });
     }
 }

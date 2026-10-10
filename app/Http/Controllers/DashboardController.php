@@ -424,6 +424,191 @@ class DashboardController extends Controller
         ]);
     }
 
+    // ── Dedicated Dine-In Session & Table Control Center ───
+    public function dineInOrders(string $id)
+    {
+        $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
+
+        // Dine-In orders for today
+        $dineInOrders = $r->orders()
+            ->with('items')
+            ->where(function ($q) {
+                $q->where('order_type', 'dine_in')
+                  ->orWhereNotNull('table_number')
+                  ->orWhere('delivery_address', 'LIKE', 'Table %')
+                  ->orWhere('notes', 'LIKE', '%DINE-IN%');
+            })
+            ->whereDate('created_at', now()->today())
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Active Dine-in orders (occupied tables)
+        $activeDineIn = $dineInOrders->whereIn('status', ['pending', 'confirmed', 'preparing', 'served']);
+        $completedDineIn = $dineInOrders->whereIn('status', ['delivered', 'paid']);
+
+        // Group active orders by table number
+        $tableSessions = [];
+        foreach ($activeDineIn as $order) {
+            $tableNum = $order->getResolvedTableNumber() ?: 'Counter';
+            if (!isset($tableSessions[$tableNum])) {
+                $tableSessions[$tableNum] = [
+                    'table'             => $tableNum,
+                    'orders'            => collect(),
+                    'total'             => 0.0,
+                    'status'            => $order->status,
+                    'latest_order_time' => $order->created_at,
+                    'customer_name'     => $order->customer_name,
+                    'items_count'       => 0,
+                ];
+            }
+            $tableSessions[$tableNum]['orders']->push($order);
+            $tableSessions[$tableNum]['total'] += (float) $order->total;
+            $tableSessions[$tableNum]['items_count'] += $order->items->sum('quantity');
+            if ($order->status === 'pending') {
+                $tableSessions[$tableNum]['status'] = 'pending';
+            } elseif ($order->status === 'preparing' && $tableSessions[$tableNum]['status'] !== 'pending') {
+                $tableSessions[$tableNum]['status'] = 'preparing';
+            }
+        }
+
+        // Metrics
+        $occupiedTablesCount = count($tableSessions);
+        $totalDineInRevenueToday = (float) $dineInOrders->where('status', '!=', 'cancelled')->sum('total');
+        $servedCountToday = $dineInOrders->whereIn('status', ['served', 'delivered'])->count();
+        $pendingDineInCount = $activeDineIn->where('status', 'pending')->count();
+
+        // Selected table or order if provided
+        $selectedTable = request('table');
+        $selectedOrderId = request('order_id');
+        $selectedOrder = $selectedOrderId
+            ? $dineInOrders->firstWhere('id', $selectedOrderId)
+            : ($activeDineIn->first() ?? null);
+
+        return view('dashboard.dine-in', [
+            'restaurant'               => $r,
+            'dineInOrders'             => $dineInOrders,
+            'activeDineIn'             => $activeDineIn,
+            'completedDineIn'          => $completedDineIn,
+            'tableSessions'            => $tableSessions,
+            'occupiedTablesCount'      => $occupiedTablesCount,
+            'totalDineInRevenueToday'  => $totalDineInRevenueToday,
+            'servedCountToday'         => $servedCountToday,
+            'pendingDineInCount'       => $pendingDineInCount,
+            'selectedTable'            => $selectedTable,
+            'selectedOrder'            => $selectedOrder,
+        ]);
+    }
+
+    // ── Live JSON Feed for Real-Time Dine-In Screen ────────
+    public function dineInFeed(string $id)
+    {
+        $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
+
+        $dineInOrders = $r->orders()
+            ->with(['items'])
+            ->where(function ($q) {
+                $q->where('order_type', 'dine_in')
+                  ->orWhereNotNull('table_number')
+                  ->orWhere('delivery_address', 'LIKE', 'Table %')
+                  ->orWhere('notes', 'LIKE', '%DINE-IN%');
+            })
+            ->whereDate('created_at', now()->today())
+            ->orderBy('created_at', 'desc')
+            ->take(60)
+            ->get();
+
+        $activeDineIn = $dineInOrders->whereIn('status', ['pending', 'confirmed', 'preparing', 'served']);
+
+        $tableSessions = [];
+        foreach ($activeDineIn as $order) {
+            $tableNum = $order->getResolvedTableNumber() ?: 'Counter';
+            if (!isset($tableSessions[$tableNum])) {
+                $tableSessions[$tableNum] = [
+                    'table'             => $tableNum,
+                    'status'            => $order->status,
+                    'total'             => 0.0,
+                    'items_count'       => 0,
+                    'latest_order_time' => $order->created_at ? $order->created_at->format('g:i A') : '',
+                    'orders_count'      => 0,
+                ];
+            }
+            $tableSessions[$tableNum]['total'] += (float) $order->total;
+            $tableSessions[$tableNum]['items_count'] += $order->items->sum('quantity');
+            $tableSessions[$tableNum]['orders_count']++;
+            if ($order->status === 'pending') {
+                $tableSessions[$tableNum]['status'] = 'pending';
+            }
+        }
+
+        $ordersData = $dineInOrders->map(function ($o) {
+            return [
+                'id'                 => $o->id,
+                'daily_order_number' => $o->daily_order_number ?: $o->id,
+                'display_number'     => '#' . ($o->daily_order_number ?: $o->id),
+                'table_number'       => $o->getResolvedTableNumber() ?: 'Dine-In',
+                'status'             => $o->status,
+                'status_label'       => ucfirst(str_replace('_', ' ', $o->status)),
+                'customer_name'      => $o->customer_name ?: 'Table Guest',
+                'customer_phone'     => $o->customer_phone ?: '',
+                'total'              => (float) $o->total,
+                'notes'              => $o->notes,
+                'created_at_time'    => $o->created_at ? $o->created_at->format('g:i A') : '',
+                'created_at_humans'  => $o->created_at ? $o->created_at->diffForHumans(null, true, true) : '',
+                'items'              => $o->items->map(fn($it) => [
+                    'name'     => $it->name,
+                    'size'     => $it->size,
+                    'quantity' => (int) $it->quantity,
+                    'subtotal' => (float) $it->subtotal,
+                ]),
+            ];
+        });
+
+        return response()->json([
+            'success'               => true,
+            'occupied_tables_count' => count($tableSessions),
+            'pending_count'         => $activeDineIn->where('status', 'pending')->count(),
+            'total_revenue_today'   => (float) $dineInOrders->where('status', '!=', 'cancelled')->sum('total'),
+            'table_sessions'        => array_values($tableSessions),
+            'orders'                => $ordersData,
+        ]);
+    }
+
+    // ── Update Dine-In Status ──────────────────────────────
+    public function updateDineInStatus(Request $request, string $id, Order $order)
+    {
+        $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
+
+        if ($order->restaurant_id !== $r->id) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'status' => 'required|string|in:confirmed,preparing,served,delivered,cancelled',
+        ]);
+
+        $order->status = $validated['status'];
+        if ($validated['status'] === 'delivered') {
+            $order->is_paid = true;
+        }
+        $order->save();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Order #{$order->daily_order_number} updated to " . ucfirst($order->status),
+                'order'   => [
+                    'id'     => $order->id,
+                    'status' => $order->status,
+                ],
+            ]);
+        }
+
+        return back()->with('success', "Order #{$order->daily_order_number} status updated to " . ucfirst($order->status));
+    }
+
     // ── Update order status & assign rider (Automated WhatsApp Notification) ──
     public function updateStatus(Request $request, string $id, Order $order)
     {

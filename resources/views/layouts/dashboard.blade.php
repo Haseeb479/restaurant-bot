@@ -1013,6 +1013,17 @@
     $hour = now()->hour;
     $timeGreeting = $hour < 12 ? 'Good morning' : ($hour < 18 ? 'Good afternoon' : 'Good evening');
     $isOpen = (bool) ($currentRest->is_open ?? true);
+
+    $activeDineInCount = $currentRest ? $currentRest->orders()
+        ->where(function ($q) {
+            $q->where('order_type', 'dine_in')
+              ->orWhereNotNull('table_number')
+              ->orWhere('delivery_address', 'LIKE', 'Table %')
+              ->orWhere('notes', 'LIKE', '%DINE-IN%');
+        })
+        ->whereIn('status', ['pending', 'confirmed', 'preparing', 'served'])
+        ->whereDate('created_at', now()->today())
+        ->count() : 0;
 @endphp
 
 <!-- Mobile Backdrop -->
@@ -1064,6 +1075,24 @@
             <span class="sidebar-btn-label">Live Orders</span>
             @if(isset($liveOrdersCount) && $liveOrdersCount > 0)
                 <span class="sidebar-icon-badge"></span>
+            @endif
+        </a>
+
+        <!-- 3. Dine In (Tables & Sessions) -->
+        <a href="{{ route('dashboard.dine-in', $restId) }}" 
+           class="sidebar-icon-btn {{ request()->routeIs('dashboard.dine-in*') ? 'active' : '' }}" 
+           data-tooltip="Dine-In Tables">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 21h18"/>
+                <path d="M5 21v-7"/>
+                <path d="M19 21v-7"/>
+                <path d="M4 10h16"/>
+                <path d="M6 10V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5"/>
+                <circle cx="12" cy="14" r="1.5"/>
+            </svg>
+            <span class="sidebar-btn-label">Dine In</span>
+            @if($activeDineInCount > 0)
+                <span class="sidebar-icon-badge" id="dineInNavBadge"></span>
             @endif
         </a>
 
@@ -1235,6 +1264,20 @@
                 <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
             </svg>
             <span>Live</span>
+        </a>
+
+        <a href="{{ route('dashboard.dine-in', $restId) }}" class="mob-nav-item {{ request()->routeIs('dashboard.dine-in*') ? 'active' : '' }}" style="position: relative;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 21h18"/>
+                <path d="M5 21v-7"/>
+                <path d="M19 21v-7"/>
+                <path d="M4 10h16"/>
+                <path d="M6 10V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5"/>
+            </svg>
+            <span>Dine In</span>
+            @if($activeDineInCount > 0)
+                <span style="position: absolute; top: 2px; right: calc(50% - 16px); width: 8px; height: 8px; background: #ea580c; border-radius: 50%; border: 1.5px solid #fff;"></span>
+            @endif
         </a>
 
         <a href="{{ route('dashboard.menu', $restId) }}" class="mob-nav-item {{ request()->routeIs('dashboard.menu*') ? 'active' : '' }}">
