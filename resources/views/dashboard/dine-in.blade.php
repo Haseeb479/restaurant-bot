@@ -599,22 +599,24 @@
                     $hasPending = $status === 'pending';
                 @endphp
                 <a href="{{ route('dashboard.dine-in', [$restaurant->id, 'table' => $selectedTable === $tNum ? null : $tNum]) }}" 
+                   id="tableTile_{{ $tNum }}"
+                   data-table="{{ $tNum }}"
                    class="table-tile {{ $isOccupied ? 'occupied' : '' }} {{ $hasPending ? 'has-pending' : '' }} {{ $selectedTable === $tNum ? 'filter-active' : '' }}">
                     <div class="table-tile-number">
                         Table {{ $tNum }}
                     </div>
                     @if($isOccupied)
-                        <span class="table-tile-status {{ $status }}">
+                        <span class="table-tile-status {{ $status }}" id="tableTileStatus_{{ $tNum }}">
                             {{ $status === 'pending' ? '⚡ New' : ($status === 'preparing' ? '🔥 Cook' : ($status === 'served' ? '✓ Served' : 'Active')) }}
                         </span>
-                        <div class="table-tile-amount">
+                        <div class="table-tile-amount" id="tableTileAmount_{{ $tNum }}">
                             Rs. {{ number_format($session['total'], 0) }}
                         </div>
                     @else
-                        <span class="table-tile-status free">
+                        <span class="table-tile-status free" id="tableTileStatus_{{ $tNum }}">
                             Available
                         </span>
-                        <div class="table-tile-amount" style="opacity: 0.5;">
+                        <div class="table-tile-amount" id="tableTileAmount_{{ $tNum }}" style="opacity: 0.5;">
                             Free
                         </div>
                     @endif
@@ -628,23 +630,23 @@
         <div class="filter-pills-bar">
             <a href="{{ route('dashboard.dine-in', $restaurant->id) }}" 
                class="filter-pill {{ !request('status') && !$selectedTable ? 'active' : '' }}">
-                All Active ({{ $activeDineIn->count() }})
+                All Active (<span id="pillCountAll">{{ $activeDineIn->count() }}</span>)
             </a>
             <a href="{{ route('dashboard.dine-in', [$restaurant->id, 'status' => 'pending']) }}" 
                class="filter-pill {{ request('status') === 'pending' ? 'active' : '' }}">
-                ⚡ Pending Orders ({{ $activeDineIn->where('status', 'pending')->count() }})
+                ⚡ Pending Orders (<span id="pillCountPending">{{ $activeDineIn->where('status', 'pending')->count() }}</span>)
             </a>
             <a href="{{ route('dashboard.dine-in', [$restaurant->id, 'status' => 'preparing']) }}" 
                class="filter-pill {{ request('status') === 'preparing' ? 'active' : '' }}">
-                🔥 In Kitchen / Preparing ({{ $activeDineIn->where('status', 'preparing')->count() }})
+                🔥 In Kitchen / Preparing (<span id="pillCountPreparing">{{ $activeDineIn->where('status', 'preparing')->count() }}</span>)
             </a>
             <a href="{{ route('dashboard.dine-in', [$restaurant->id, 'status' => 'served']) }}" 
                class="filter-pill {{ request('status') === 'served' ? 'active' : '' }}">
-                🍽️ Served to Table ({{ $activeDineIn->where('status', 'served')->count() }})
+                🍽️ Served to Table (<span id="pillCountServed">{{ $activeDineIn->where('status', 'served')->count() }}</span>)
             </a>
             <a href="{{ route('dashboard.dine-in', [$restaurant->id, 'status' => 'completed']) }}" 
                class="filter-pill {{ request('status') === 'completed' ? 'active' : '' }}">
-                ✓ Paid & Cleared Today ({{ $completedDineIn->count() }})
+                ✓ Paid & Cleared Today (<span id="pillCountCompleted">{{ $completedDineIn->count() }}</span>)
             </a>
         </div>
 
@@ -662,19 +664,20 @@
 
     <!-- 5. Active Dine-In Tickets Grid -->
     @php
-        $filteredOrders = $dineInOrders;
         if (request('status') === 'completed') {
-            $filteredOrders = $completedDineIn;
+            $baseOrders = $completedDineIn;
         } elseif (request('status')) {
-            $filteredOrders = $dineInOrders->where('status', request('status'));
-        } elseif (!$selectedTable) {
-            $filteredOrders = $activeDineIn;
+            $baseOrders = $dineInOrders->where('status', request('status'));
+        } else {
+            $baseOrders = $activeDineIn;
         }
 
         if ($selectedTable) {
-            $filteredOrders = $filteredOrders->filter(function($ord) use ($selectedTable) {
+            $filteredOrders = $baseOrders->filter(function($ord) use ($selectedTable) {
                 return $ord->getResolvedTableNumber() == $selectedTable;
             });
+        } else {
+            $filteredOrders = $baseOrders;
         }
     @endphp
 
@@ -696,7 +699,7 @@
                 @php
                     $tNum = $order->getResolvedTableNumber() ?: 'Counter';
                 @endphp
-                <div class="order-ticket-card" id="ticketCard_{{ $order->id }}">
+                <div class="order-ticket-card" id="ticketCard_{{ $order->id }}" data-order-id="{{ $order->id }}" data-table="{{ $tNum }}" data-status="{{ $order->status }}">
                     <!-- Header -->
                     <div class="ticket-header">
                         <div>
@@ -745,25 +748,25 @@
                             <div class="ticket-total-title">Total Bill (Dine-In)</div>
                             <div class="ticket-total-num">Rs. {{ number_format($order->total, 0) }}</div>
                         </div>
-                        <div style="font-size: 11.5px; font-weight: 700; color: {{ $order->is_paid ? '#059669' : '#ea580c' }};">
+                        <div style="font-size: 11.5px; font-weight: 700; color: {{ $order->is_paid ? '#059669' : '#ea580c' }};" id="paymentStatus_{{ $order->id }}">
                             {{ $order->is_paid ? '✓ Paid' : 'Cash at Counter' }}
                         </div>
                     </div>
 
                     <!-- Fast Action Buttons -->
-                    <div class="ticket-actions-bar">
+                    <div class="ticket-actions-bar" id="ticketActions_{{ $order->id }}">
                         @if($order->status === 'pending')
-                            <button type="button" class="t-btn t-btn-cook" onclick="changeDineStatus({{ $order->id }}, 'preparing')">
+                            <button type="button" class="t-btn t-btn-cook" onclick="changeDineStatus({{ $order->id }}, 'preparing', '{{ $tNum }}')">
                                 🔥 Start Cooking
                             </button>
                         @elseif($order->status === 'confirmed' || $order->status === 'preparing')
-                            <button type="button" class="t-btn t-btn-served" onclick="changeDineStatus({{ $order->id }}, 'served')">
+                            <button type="button" class="t-btn t-btn-served" onclick="changeDineStatus({{ $order->id }}, 'served', '{{ $tNum }}')">
                                 🍽️ Mark Served
                             </button>
                         @endif
 
                         @if($order->status !== 'delivered' && $order->status !== 'cancelled')
-                            <button type="button" class="t-btn t-btn-pay" onclick="changeDineStatus({{ $order->id }}, 'delivered')">
+                            <button type="button" class="t-btn t-btn-pay" onclick="changeDineStatus({{ $order->id }}, 'delivered', '{{ $tNum }}')">
                                 💳 Paid & Clear Table
                             </button>
                         @endif
@@ -773,7 +776,7 @@
                         </a>
 
                         @if($order->status !== 'delivered' && $order->status !== 'cancelled')
-                            <button type="button" class="t-btn t-btn-cancel" onclick="changeDineStatus({{ $order->id }}, 'cancelled')" title="Cancel Order">
+                            <button type="button" class="t-btn t-btn-cancel" onclick="changeDineStatus({{ $order->id }}, 'cancelled', '{{ $tNum }}')" title="Cancel Order">
                                 ✕
                             </button>
                         @endif
@@ -823,18 +826,129 @@
         }
     }
 
-    // Change order status with instant optimistic UI
-    function changeDineStatus(orderId, newStatus) {
+    // Change order status with instant optimistic UI (0ms lag)
+    function changeDineStatus(orderId, newStatus, tableNum) {
         const csrf = "{{ csrf_token() }}";
         const url = "{{ url('dashboard/' . $restaurant->id . '/dine-in/orders') }}/" + orderId + "/status";
+        const printUrl = "{{ url('dashboard/' . $restaurant->id . '/bill') }}/" + orderId;
+        const currentTabStatus = new URLSearchParams(window.location.search).get('status') || '';
 
-        // Optimistic UI state
+        const card = document.getElementById('ticketCard_' + orderId);
+        const oldStatus = card ? (card.getAttribute('data-status') || '') : '';
+
+        // 1. Instant Status Badge update
         const badge = document.getElementById('statusBadge_' + orderId);
         if (badge) {
             badge.className = 'ticket-status-pill ' + newStatus;
-            badge.innerText = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+            badge.innerText = newStatus === 'preparing' ? 'Preparing' : (newStatus === 'served' ? 'Served' : (newStatus === 'delivered' ? 'Delivered' : (newStatus === 'cancelled' ? 'Cancelled' : newStatus.charAt(0).toUpperCase() + newStatus.slice(1))));
         }
 
+        if (card) {
+            card.setAttribute('data-status', newStatus);
+        }
+
+        // 2. Instant Action Button Bar swap (e.g. Start Cooking -> Mark Served)
+        const actionsBar = document.getElementById('ticketActions_' + orderId);
+        if (actionsBar) {
+            let btnsHtml = '';
+            if (newStatus === 'pending') {
+                btnsHtml += `<button type="button" class="t-btn t-btn-cook" onclick="changeDineStatus(${orderId}, 'preparing', '${tableNum}')">🔥 Start Cooking</button>`;
+            } else if (newStatus === 'preparing' || newStatus === 'confirmed') {
+                btnsHtml += `<button type="button" class="t-btn t-btn-served" onclick="changeDineStatus(${orderId}, 'served', '${tableNum}')">🍽️ Mark Served</button>`;
+            }
+
+            if (newStatus !== 'delivered' && newStatus !== 'cancelled') {
+                btnsHtml += `<button type="button" class="t-btn t-btn-pay" onclick="changeDineStatus(${orderId}, 'delivered', '${tableNum}')">💳 Paid & Clear Table</button>`;
+            }
+
+            btnsHtml += `<a href="${printUrl}" target="_blank" class="t-btn t-btn-print" title="Print Kitchen / Guest Receipt">🖨️ Bill</a>`;
+
+            if (newStatus !== 'delivered' && newStatus !== 'cancelled') {
+                btnsHtml += `<button type="button" class="t-btn t-btn-cancel" onclick="changeDineStatus(${orderId}, 'cancelled', '${tableNum}')" title="Cancel Order">✕</button>`;
+            }
+            actionsBar.innerHTML = btnsHtml;
+        }
+
+        // 3. Instant Filter Pill Counts update
+        const decPill = (id) => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = Math.max(0, parseInt(el.innerText || '0') - 1);
+        };
+        const incPill = (id) => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = parseInt(el.innerText || '0') + 1;
+        };
+
+        if (oldStatus === 'pending') decPill('pillCountPending');
+        else if (oldStatus === 'preparing') decPill('pillCountPreparing');
+        else if (oldStatus === 'served') decPill('pillCountServed');
+
+        if (newStatus === 'pending') incPill('pillCountPending');
+        else if (newStatus === 'preparing') incPill('pillCountPreparing');
+        else if (newStatus === 'served') incPill('pillCountServed');
+        else if (newStatus === 'delivered' || newStatus === 'cancelled') {
+            decPill('pillCountAll');
+            if (newStatus === 'delivered') incPill('pillCountCompleted');
+        }
+
+        // 4. Instant Floor Map Table Marker update
+        if (newStatus === 'delivered' || newStatus === 'cancelled') {
+            if (card && currentTabStatus !== 'completed') {
+                card.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.96)';
+                setTimeout(() => card.remove(), 250);
+            }
+
+            // Check if any other active orders exist on this table
+            const remainingOrders = Array.from(document.querySelectorAll(`.order-ticket-card[data-table="${tableNum}"]`))
+                .filter(el => el.id !== `ticketCard_${orderId}`);
+
+            const tile = document.getElementById('tableTile_' + tableNum);
+            const tileStatus = document.getElementById('tableTileStatus_' + tableNum);
+            const tileAmount = document.getElementById('tableTileAmount_' + tableNum);
+
+            if (remainingOrders.length === 0 && tile) {
+                tile.classList.remove('occupied', 'has-pending');
+                if (tileStatus) {
+                    tileStatus.className = 'table-tile-status free';
+                    tileStatus.innerText = 'Available';
+                }
+                if (tileAmount) {
+                    tileAmount.innerText = 'Free';
+                    tileAmount.style.opacity = '0.5';
+                }
+            }
+        } else if (tableNum) {
+            const tile = document.getElementById('tableTile_' + tableNum);
+            const tileStatus = document.getElementById('tableTileStatus_' + tableNum);
+            if (tile && tileStatus) {
+                tile.classList.add('occupied');
+                if (newStatus === 'pending') {
+                    tile.classList.add('has-pending');
+                    tileStatus.className = 'table-tile-status pending';
+                    tileStatus.innerText = '⚡ New';
+                } else if (newStatus === 'preparing') {
+                    tile.classList.remove('has-pending');
+                    tileStatus.className = 'table-tile-status occupied';
+                    tileStatus.innerText = '🔥 Cook';
+                } else if (newStatus === 'served') {
+                    tile.classList.remove('has-pending');
+                    tileStatus.className = 'table-tile-status served';
+                    tileStatus.innerText = '✓ Served';
+                }
+            }
+
+            // If user is currently on a specific status tab (e.g. pending tab and now it's preparing)
+            if (currentTabStatus && currentTabStatus !== newStatus && card) {
+                card.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.96)';
+                setTimeout(() => card.remove(), 250);
+            }
+        }
+
+        // 5. Asynchronous Background Request
         fetch(url, {
             method: 'POST',
             headers: {
@@ -846,24 +960,9 @@
         })
         .then(res => res.json())
         .then(data => {
-            if (data.success) {
-                // If delivered or cancelled, smoothly fade card if on active view
-                if (newStatus === 'delivered' || newStatus === 'cancelled') {
-                    const card = document.getElementById('ticketCard_' + orderId);
-                    if (card && !window.location.search.includes('status=completed')) {
-                        card.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
-                        card.style.opacity = '0';
-                        card.style.transform = 'scale(0.95)';
-                        setTimeout(() => {
-                            card.remove();
-                            pollDineInFeed(false);
-                        }, 400);
-                    }
-                } else {
-                    pollDineInFeed(false);
-                }
-            } else {
+            if (!data.success) {
                 alert(data.message || 'Error updating status');
+                window.location.reload();
             }
         })
         .catch(err => {
@@ -890,7 +989,6 @@
             if (data.success) {
                 const elTot = document.getElementById('currentTablesCount');
                 if (elTot) elTot.innerText = data.total_tables;
-                // Reload to refresh the table grid smoothly
                 window.location.reload();
             } else {
                 alert(data.message || 'Could not update table capacity');
@@ -901,7 +999,7 @@
         });
     }
 
-    // Live Polling Feed
+    // Live Polling Feed (Smooth updates without disruptive reloads)
     function pollDineInFeed(manual = false) {
         const feedUrl = "{{ route('dashboard.dine-in.feed', $restaurant->id) }}";
 
@@ -911,18 +1009,30 @@
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                // Update metrics
-                const elOcc = document.getElementById('metricOccupiedTables');
-                if (elOcc) elOcc.innerText = data.occupied_tables_count;
-
-                const elPend = document.getElementById('metricPendingTickets');
-                if (elPend) elPend.innerText = data.pending_count;
-
-                const elRev = document.getElementById('metricDineRevenue');
-                if (elRev) elRev.innerText = 'Rs. ' + Number(data.total_revenue_today).toLocaleString();
-
                 const elTotTables = document.getElementById('currentTablesCount');
                 if (elTotTables && data.total_tables) elTotTables.innerText = data.total_tables;
+
+                // Update filter pill counts dynamically
+                if (data.active_count !== undefined) {
+                    const elAll = document.getElementById('pillCountAll');
+                    if (elAll) elAll.innerText = data.active_count;
+                }
+                if (data.pending_count !== undefined) {
+                    const elPend = document.getElementById('pillCountPending');
+                    if (elPend) elPend.innerText = data.pending_count;
+                }
+                if (data.preparing_count !== undefined) {
+                    const elPrep = document.getElementById('pillCountPreparing');
+                    if (elPrep) elPrep.innerText = data.preparing_count;
+                }
+                if (data.served_count !== undefined) {
+                    const elServ = document.getElementById('pillCountServed');
+                    if (elServ) elServ.innerText = data.served_count;
+                }
+                if (data.completed_count !== undefined) {
+                    const elComp = document.getElementById('pillCountCompleted');
+                    if (elComp) elComp.innerText = data.completed_count;
+                }
 
                 // Update sidebar badge if exists
                 const navBadge = document.getElementById('dineInNavBadge');
@@ -934,14 +1044,69 @@
                     }
                 }
 
-                // Check for new incoming orders
-                const currentIds = (data.orders || []).map(o => o.id);
-                const hasNewOrder = currentIds.some(id => !knownOrderIds.includes(id));
+                // Smoothly update Floor Map table tiles based on table_sessions
+                const activeSessionsMap = {};
+                (data.table_sessions || []).forEach(s => {
+                    activeSessionsMap[String(s.table)] = s;
+                });
 
-                if (hasNewOrder) {
+                document.querySelectorAll('.table-tile[data-table]').forEach(tile => {
+                    const tNum = tile.getAttribute('data-table');
+                    const tileStatus = document.getElementById('tableTileStatus_' + tNum);
+                    const tileAmount = document.getElementById('tableTileAmount_' + tNum);
+                    const session = activeSessionsMap[tNum];
+
+                    if (session) {
+                        tile.classList.add('occupied');
+                        if (session.status === 'pending') {
+                            tile.classList.add('has-pending');
+                            if (tileStatus) {
+                                tileStatus.className = 'table-tile-status pending';
+                                tileStatus.innerText = '⚡ New';
+                            }
+                        } else if (session.status === 'preparing') {
+                            tile.classList.remove('has-pending');
+                            if (tileStatus) {
+                                tileStatus.className = 'table-tile-status occupied';
+                                tileStatus.innerText = '🔥 Cook';
+                            }
+                        } else if (session.status === 'served') {
+                            tile.classList.remove('has-pending');
+                            if (tileStatus) {
+                                tileStatus.className = 'table-tile-status served';
+                                tileStatus.innerText = '✓ Served';
+                            }
+                        } else {
+                            tile.classList.remove('has-pending');
+                            if (tileStatus) {
+                                tileStatus.className = 'table-tile-status occupied';
+                                tileStatus.innerText = 'Active';
+                            }
+                        }
+                        if (tileAmount) {
+                            tileAmount.innerText = 'Rs. ' + Number(session.total).toLocaleString();
+                            tileAmount.style.opacity = '1';
+                        }
+                    } else {
+                        tile.classList.remove('occupied', 'has-pending');
+                        if (tileStatus) {
+                            tileStatus.className = 'table-tile-status free';
+                            tileStatus.innerText = 'Available';
+                        }
+                        if (tileAmount) {
+                            tileAmount.innerText = 'Free';
+                            tileAmount.style.opacity = '0.5';
+                        }
+                    }
+                });
+
+                // Check for genuinely brand NEW incoming orders
+                const currentIds = (data.orders || []).map(o => o.id);
+                const hasNewIncoming = currentIds.some(id => !knownOrderIds.includes(id));
+
+                if (hasNewIncoming) {
                     playChimeSound();
                     knownOrderIds = currentIds;
-                    // Reload page to smoothly render new cards and tables
                     setTimeout(() => {
                         window.location.reload();
                     }, 500);

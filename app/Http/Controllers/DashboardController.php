@@ -493,7 +493,7 @@ class DashboardController extends Controller
         $activeDineIn = $dineInOrders->whereIn('status', ['pending', 'confirmed', 'preparing', 'served']);
         $completedDineIn = $dineInOrders->whereIn('status', ['delivered', 'paid']);
 
-        // Group active orders by table number
+        // Group active orders by table number (most urgent active status)
         $tableSessions = [];
         foreach ($activeDineIn as $order) {
             $tableNum = $order->getResolvedTableNumber() ?: 'Counter';
@@ -511,10 +511,15 @@ class DashboardController extends Controller
             $tableSessions[$tableNum]['orders']->push($order);
             $tableSessions[$tableNum]['total'] += (float) $order->total;
             $tableSessions[$tableNum]['items_count'] += $order->items->sum('quantity');
+
+            // Table marker status hierarchy: pending (urgent) > preparing > served > other
+            $currentTableStatus = $tableSessions[$tableNum]['status'];
             if ($order->status === 'pending') {
                 $tableSessions[$tableNum]['status'] = 'pending';
-            } elseif ($order->status === 'preparing' && $tableSessions[$tableNum]['status'] !== 'pending') {
+            } elseif ($order->status === 'preparing' && $currentTableStatus !== 'pending') {
                 $tableSessions[$tableNum]['status'] = 'preparing';
+            } elseif ($order->status === 'served' && !in_array($currentTableStatus, ['pending', 'preparing'])) {
+                $tableSessions[$tableNum]['status'] = 'served';
             }
         }
 
@@ -583,8 +588,14 @@ class DashboardController extends Controller
             $tableSessions[$tableNum]['total'] += (float) $order->total;
             $tableSessions[$tableNum]['items_count'] += $order->items->sum('quantity');
             $tableSessions[$tableNum]['orders_count']++;
+
+            $currentTableStatus = $tableSessions[$tableNum]['status'];
             if ($order->status === 'pending') {
                 $tableSessions[$tableNum]['status'] = 'pending';
+            } elseif ($order->status === 'preparing' && $currentTableStatus !== 'pending') {
+                $tableSessions[$tableNum]['status'] = 'preparing';
+            } elseif ($order->status === 'served' && !in_array($currentTableStatus, ['pending', 'preparing'])) {
+                $tableSessions[$tableNum]['status'] = 'served';
             }
         }
 
@@ -611,10 +622,16 @@ class DashboardController extends Controller
             ];
         });
 
+        $completedDineIn = $dineInOrders->whereIn('status', ['delivered', 'paid']);
+
         return response()->json([
             'success'               => true,
             'occupied_tables_count' => count($tableSessions),
             'pending_count'         => $activeDineIn->where('status', 'pending')->count(),
+            'preparing_count'       => $activeDineIn->where('status', 'preparing')->count(),
+            'served_count'          => $activeDineIn->where('status', 'served')->count(),
+            'active_count'          => $activeDineIn->count(),
+            'completed_count'       => $completedDineIn->count(),
             'total_revenue_today'   => (float) $dineInOrders->where('status', '!=', 'cancelled')->sum('total'),
             'total_tables'          => max(1, (int) ($r->total_tables ?: 12)),
             'table_sessions'        => array_values($tableSessions),
