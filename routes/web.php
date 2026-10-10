@@ -298,6 +298,7 @@ Route::prefix('dashboard/{id}')->group(function () {
     Route::get('orders/live-feed',             [DashboardController::class, 'liveOrdersFeed'])->name('dashboard.orders.live-feed');
     Route::get('dine-in',                      [DashboardController::class, 'dineInOrders'])->name('dashboard.dine-in');
     Route::get('dine-in/feed',                 [DashboardController::class, 'dineInFeed'])->name('dashboard.dine-in.feed');
+    Route::post('dine-in/tables',              [DashboardController::class, 'updateDineInTables'])->name('dashboard.dine-in.update-tables');
     Route::post('dine-in/orders/{order}/status',[DashboardController::class, 'updateDineInStatus'])->name('dashboard.dine-in.update-status');
     Route::get('orders/{order}/print-bill',     [DashboardController::class, 'printBill'])->name('dashboard.print-bill');
     Route::post('orders/{order}/status',       [DashboardController::class, 'updateStatus'])->name('dashboard.update-status');

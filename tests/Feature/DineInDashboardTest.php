@@ -108,4 +108,34 @@ class DineInDashboardTest extends TestCase
         $response->assertStatus(200);
         $this->assertEquals('served', $order->fresh()->status);
     }
+
+    public function test_owner_can_increase_and_decrease_table_capacity(): void
+    {
+        $r = $this->createRestaurant();
+        $this->assertEquals(12, $r->total_tables ?: 12);
+
+        // Increment table
+        $responseInc = $this->withSession([
+            "restaurant_{$r->id}" => true,
+            "restaurant_{$r->id}_login_time" => now()->toIso8601String(),
+        ])->postJson("/dashboard/{$r->id}/dine-in/tables", [
+            'action' => 'increment',
+        ]);
+
+        $responseInc->assertStatus(200);
+        $responseInc->assertJson(['success' => true, 'total_tables' => 13]);
+        $this->assertEquals(13, $r->fresh()->total_tables);
+
+        // Decrement table
+        $responseDec = $this->withSession([
+            "restaurant_{$r->id}" => true,
+            "restaurant_{$r->id}_login_time" => now()->toIso8601String(),
+        ])->postJson("/dashboard/{$r->id}/dine-in/tables", [
+            'action' => 'decrement',
+        ]);
+
+        $responseDec->assertStatus(200);
+        $responseDec->assertJson(['success' => true, 'total_tables' => 12]);
+        $this->assertEquals(12, $r->fresh()->total_tables);
+    }
 }

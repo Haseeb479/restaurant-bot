@@ -550,74 +550,47 @@
         </div>
     </div>
 
-    <!-- 2. Live Metrics Strip -->
-    <div class="dine-stats-strip">
-        <div class="dine-stat-box">
-            <div class="dine-stat-info">
-                <div class="stat-num" id="metricOccupiedTables">{{ $occupiedTablesCount }}</div>
-                <div class="stat-title">Occupied Tables</div>
-            </div>
-            <div class="dine-stat-icon" style="background: #fff7ed; color: #ea580c;">
-                🪑
-            </div>
-        </div>
+    @php
+        $totalConfiguredTables = max(1, (int) ($restaurant->total_tables ?: 12));
+        $standardTables = array_map(fn($n) => (string)$n, range(1, $totalConfiguredTables));
+        $customActiveTables = array_keys($tableSessions);
+        $allTableNames = array_values(array_unique(array_merge($standardTables, $customActiveTables)));
+        natsort($allTableNames);
+    @endphp
 
-        <div class="dine-stat-box">
-            <div class="dine-stat-info">
-                <div class="stat-num" id="metricPendingTickets">{{ $pendingDineInCount }}</div>
-                <div class="stat-title">New Table Orders</div>
-            </div>
-            <div class="dine-stat-icon" style="background: #fef2f2; color: #ef4444;">
-                ⚡
-            </div>
-        </div>
-
-        <div class="dine-stat-box">
-            <div class="dine-stat-info">
-                <div class="stat-num" id="metricServedToday">{{ $servedCountToday }}</div>
-                <div class="stat-title">Orders Served</div>
-            </div>
-            <div class="dine-stat-icon" style="background: #ede9fe; color: #8b5cf6;">
-                🍽️
-            </div>
-        </div>
-
-        <div class="dine-stat-box">
-            <div class="dine-stat-info">
-                <div class="stat-num" id="metricDineRevenue">Rs. {{ number_format($totalDineInRevenueToday, 0) }}</div>
-                <div class="stat-title">Today's Dine Revenue</div>
-            </div>
-            <div class="dine-stat-icon" style="background: #ecfdf5; color: #059669;">
-                💵
-            </div>
-        </div>
-    </div>
-
-    <!-- 3. Visual Table Status Map -->
+    <!-- Visual Table Status Map & Table Management Section -->
     <div class="tables-section">
         <div class="section-title-wrap">
             <div class="section-title">
-                <span>🪑 Table Floor Map & Occupancy</span>
+                <span>🪑 Table Floor Map ({{ count($allTableNames) }} Tables)</span>
                 <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); padding: 2px 8px; background: var(--border-subtle); border-radius: 6px;">
                     Tap any table to filter tickets
                 </span>
             </div>
-            <div style="display: flex; gap: 12px; font-size: 11.5px; font-weight: 600; color: var(--text-muted);">
-                <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span> Free Table</span>
-                <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #ea580c;"></span> Active Order</span>
-                <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #ef4444;"></span> New Order</span>
+
+            <!-- Table Capacity Increase / Decrease Controls -->
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <div style="display: inline-flex; align-items: center; background: var(--bg-card); border: 1px solid var(--border-card); border-radius: 10px; padding: 3px 6px; gap: 6px;">
+                    <span style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); margin-left: 4px;">
+                        Tables: <strong id="currentTablesCount" style="color: var(--text-heading);">{{ $totalConfiguredTables }}</strong>
+                    </span>
+                    <button type="button" onclick="adjustTableCapacity('decrement')" class="btn" style="padding: 2px 8px; font-size: 12px; font-weight: 800; min-width: 26px; height: 26px; border-radius: 6px; background: #f1f5f9; color: #475569;" title="Remove Last Table">
+                        −
+                    </button>
+                    <button type="button" onclick="adjustTableCapacity('increment')" class="btn btn-primary" style="padding: 2px 10px; font-size: 12px; font-weight: 800; height: 26px; border-radius: 6px;" title="Add Table to Floor">
+                        + Add Table
+                    </button>
+                </div>
+
+                <div style="display: flex; gap: 12px; font-size: 11.5px; font-weight: 600; color: var(--text-muted);">
+                    <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span> Free Table</span>
+                    <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #ea580c;"></span> Active Order</span>
+                    <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #ef4444;"></span> New Order</span>
+                </div>
             </div>
         </div>
 
-        @php
-            // Generate standard restaurant tables 1 to 12 plus any active custom table numbers
-            $standardTables = array_map(fn($n) => (string)$n, range(1, 12));
-            $customActiveTables = array_keys($tableSessions);
-            $allTableNames = array_values(array_unique(array_merge($standardTables, $customActiveTables)));
-            natsort($allTableNames);
-        @endphp
-
-        <div class="table-cards-grid">
+        <div class="table-cards-grid" id="tableCardsGrid">
             @foreach($allTableNames as $tNum)
                 @php
                     $isOccupied = isset($tableSessions[$tNum]);
@@ -898,6 +871,36 @@
         });
     }
 
+    // Adjust Table Capacity (Add / Remove Table)
+    function adjustTableCapacity(action) {
+        const updateUrl = "{{ route('dashboard.dine-in.update-tables', $restaurant->id) }}";
+        const csrf = "{{ csrf_token() }}";
+
+        fetch(updateUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrf,
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({ action: action }),
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const elTot = document.getElementById('currentTablesCount');
+                if (elTot) elTot.innerText = data.total_tables;
+                // Reload to refresh the table grid smoothly
+                window.location.reload();
+            } else {
+                alert(data.message || 'Could not update table capacity');
+            }
+        })
+        .catch(err => {
+            console.error('Error updating tables count:', err);
+        });
+    }
+
     // Live Polling Feed
     function pollDineInFeed(manual = false) {
         const feedUrl = "{{ route('dashboard.dine-in.feed', $restaurant->id) }}";
@@ -917,6 +920,9 @@
 
                 const elRev = document.getElementById('metricDineRevenue');
                 if (elRev) elRev.innerText = 'Rs. ' + Number(data.total_revenue_today).toLocaleString();
+
+                const elTotTables = document.getElementById('currentTablesCount');
+                if (elTotTables && data.total_tables) elTotTables.innerText = data.total_tables;
 
                 // Update sidebar badge if exists
                 const navBadge = document.getElementById('dineInNavBadge');

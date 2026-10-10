@@ -570,9 +570,44 @@ class DashboardController extends Controller
             'occupied_tables_count' => count($tableSessions),
             'pending_count'         => $activeDineIn->where('status', 'pending')->count(),
             'total_revenue_today'   => (float) $dineInOrders->where('status', '!=', 'cancelled')->sum('total'),
+            'total_tables'          => max(1, (int) ($r->total_tables ?: 12)),
             'table_sessions'        => array_values($tableSessions),
             'orders'                => $ordersData,
         ]);
+    }
+
+    // ── Update / Increase Dine-In Tables Count ─────────────
+    public function updateDineInTables(Request $request, string $id)
+    {
+        $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
+
+        $action = $request->input('action');
+        $current = max(1, (int) ($r->total_tables ?: 12));
+
+        if ($action === 'increment') {
+            $newTotal = $current + 1;
+        } elseif ($action === 'decrement') {
+            $newTotal = max(1, $current - 1);
+        } else {
+            $validated = $request->validate([
+                'total_tables' => 'required|integer|min:1|max:100',
+            ]);
+            $newTotal = (int) $validated['total_tables'];
+        }
+
+        $r->total_tables = $newTotal;
+        $r->save();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success'      => true,
+                'total_tables' => $newTotal,
+                'message'      => "Tables updated to {$newTotal}.",
+            ]);
+        }
+
+        return back()->with('success', "Table capacity updated to {$newTotal} tables.");
     }
 
     // ── Update Dine-In Status ──────────────────────────────

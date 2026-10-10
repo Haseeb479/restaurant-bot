@@ -64,10 +64,11 @@ class DineInPublicController extends Controller
         return response()->json([
             'success'       => true,
             'restaurant'    => [
-                'id'       => $restaurant->id,
-                'name'     => $restaurant->name,
-                'is_open'  => (bool) $restaurant->is_open,
-                'currency' => 'Rs.',
+                'id'           => $restaurant->id,
+                'name'         => $restaurant->name,
+                'is_open'      => (bool) $restaurant->is_open,
+                'currency'     => 'Rs.',
+                'total_tables' => max(1, (int) ($restaurant->total_tables ?: 12)),
             ],
             'categories'    => $categories,
             'uncategorized' => $uncategorized,

@@ -218,7 +218,7 @@ export default function CustomerDineInScreen() {
         <View style={styles.tablePickerSection}>
           <Text style={styles.tablePickerLabel}>Select Your Table:</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tableChipsRow}>
-            {['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'].map((tbl) => {
+            {Array.from({ length: Number(data?.restaurant?.total_tables || 12) }, (_, i) => String(i + 1)).map((tbl) => {
               const active = selectedTable === tbl && !customTableInput;
               return (
                 <TouchableOpacity

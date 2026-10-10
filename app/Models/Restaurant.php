@@ -40,11 +40,13 @@ class Restaurant extends Model
         'restaurant_lat',
         'restaurant_lng',
         'delivery_radius_km',
+        'total_tables',
     ];
 
     protected $casts = [
         'is_active'            => 'boolean',
         'is_open'              => 'boolean',
+        'total_tables'         => 'integer',
         'delivery_charge'      => 'decimal:2',
         'minimum_order'        => 'decimal:2',
         'delivery_radius_km'   => 'decimal:1',
