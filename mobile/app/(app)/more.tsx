@@ -71,7 +71,7 @@ export default function MoreScreen() {
   if (error) return <ErrorState message={error.message} onRetry={() => refetch()} />;
 
   const profile = data?.profile ?? {};
-  const isBotConnected = profile.bot_status === 'connected';
+  const isBotConnected = profile.bot_status === 'connected' || profile.bot_status === 'open';
 
   const handleLogout = () => {
     Alert.alert('Sign Out', 'Are you sure you want to log out of Grillcafe POS?', [

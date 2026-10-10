@@ -38,12 +38,19 @@ export default function KitchenScreen() {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<'all' | 'preparing' | 'ready'>('all');
   const [completedItemIds, setCompletedItemIds] = useState<Record<number, boolean>>({});
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
 
   const { data, isLoading, error, refetch, isRefetching } = useQuery({
     queryKey: ['kitchen-tickets'],
     queryFn: () => apiClient<any>('/orders?status=live'),
     refetchInterval: 8000,
   });
+
+  const handleManualRefresh = async () => {
+    setIsManualRefreshing(true);
+    await refetch();
+    setIsManualRefreshing(false);
+  };
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ orderId, status }: { orderId: number; status: string }) =>
@@ -142,7 +149,7 @@ export default function KitchenScreen() {
       {/* ── Tickets List ── */}
       <ScrollView
         contentContainerStyle={styles.scrollList}
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />}
+        refreshControl={<RefreshControl refreshing={isManualRefreshing} onRefresh={handleManualRefresh} />}
       >
         {kitchenTickets.length === 0 ? (
           <EmptyState

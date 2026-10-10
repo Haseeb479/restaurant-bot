@@ -27,7 +27,7 @@ class MobileSettingsController extends Controller
                 'delivery_charge'    => (float) $restaurant->delivery_charge,
                 'minimum_order'      => (float) $restaurant->minimum_order,
                 'delivery_radius_km' => (float) ($restaurant->delivery_radius_km ?? 5.0),
-                'bot_status'         => $restaurant->bot_status ?? 'disconnected',
+                'bot_status'         => $restaurant->getResolvedBotStatus(),
             ],
         ]);
     }
@@ -64,7 +64,7 @@ class MobileSettingsController extends Controller
                 'delivery_charge'    => (float) $restaurant->delivery_charge,
                 'minimum_order'      => (float) $restaurant->minimum_order,
                 'delivery_radius_km' => (float) ($restaurant->delivery_radius_km ?? 5.0),
-                'bot_status'         => $restaurant->bot_status ?? 'disconnected',
+                'bot_status'         => $restaurant->getResolvedBotStatus(),
             ],
         ]);
     }

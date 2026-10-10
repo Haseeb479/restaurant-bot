@@ -221,6 +221,45 @@ class Restaurant extends Model
     }
 
     /**
+     * Resolve reliable live bot status across Baileys, EvolutionAPI, and database flags.
+     */
+    public function getResolvedBotStatus(): string
+    {
+        // 1. Direct active status flags
+        if ($this->bot_status === 'connected' || $this->evolution_status === 'connected') {
+            return 'connected';
+        }
+
+        // 2. EvolutionAPI live instance state check
+        try {
+            $evoState = \App\Support\BotEvolutionClient::getConnectionState($this);
+            if ($evoState !== null) {
+                if (in_array($evoState['state'] ?? '', ['open', 'connected'])) {
+                    return 'connected';
+                }
+                if (($evoState['state'] ?? '') === 'connecting') {
+                    return 'qr_pending';
+                }
+            }
+        } catch (\Throwable $e) {}
+
+        // 3. Local single-bot client check
+        try {
+            $local = \App\Support\BotControlClient::status();
+            if ($local && ($local['status'] ?? '') === 'connected') {
+                return 'connected';
+            }
+        } catch (\Throwable $e) {}
+
+        return $this->bot_status ?: 'disconnected';
+    }
+
+    public function isBotConnected(): bool
+    {
+        return $this->getResolvedBotStatus() === 'connected';
+    }
+
+    /**
      * Maximum allowed orders per calendar month for this restaurant's tier (C5).
      */
     public function maxMonthlyOrders(): int

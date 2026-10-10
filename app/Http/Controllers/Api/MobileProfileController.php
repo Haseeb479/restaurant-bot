@@ -19,10 +19,7 @@ class MobileProfileController extends Controller
         $restaurant = $request->attributes->get('restaurant');
 
         // Fetch live bot status
-        $botStatus = 'disconnected';
-        if ($restaurant->evolution_instance_name) {
-            $botStatus = BotEvolutionClient::getConnectionState($restaurant) ?: ($restaurant->bot_status ?? 'disconnected');
-        }
+        $botStatus = $restaurant->getResolvedBotStatus();
 
         return response()->json([
             'success'  => true,

@@ -28,6 +28,7 @@ export default function DashboardScreen() {
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
 
   const { data, isLoading, error, refetch, isRefetching } = useQuery({
     queryKey: ['command-center'],
@@ -35,11 +36,17 @@ export default function DashboardScreen() {
     refetchInterval: 12000,
   });
 
-  const { data: profileData } = useQuery({
+  const { data: profileData, refetch: refetchProfile } = useQuery({
     queryKey: ['owner-profile'],
     queryFn: () => apiClient<any>('/profile'),
     refetchInterval: 15000,
   });
+
+  const handleManualRefresh = async () => {
+    setIsManualRefreshing(true);
+    await Promise.all([refetch(), refetchProfile()]);
+    setIsManualRefreshing(false);
+  };
 
   const toggleMutation = useMutation({
     mutationFn: () => apiClient<any>('/dashboard/toggle-open', { method: 'POST' }),
@@ -89,8 +96,12 @@ export default function DashboardScreen() {
   const attention = data?.needs_attention ?? {};
   const recentOrders = data?.recent_orders ?? [];
   const isOpen = data?.restaurant?.is_open ?? false;
-  const botStatus = profileData?.profile?.bot_status || 'connected';
-  const isBotConnected = botStatus === 'connected' || botStatus === 'open';
+  const botStatus = profileData?.profile?.bot_status || data?.restaurant?.bot_status || 'connected';
+  const isBotConnected =
+    botStatus === 'connected' ||
+    botStatus === 'open' ||
+    data?.restaurant?.bot_status === 'connected' ||
+    profileData?.profile?.bot_status === 'connected';
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
@@ -125,7 +136,7 @@ export default function DashboardScreen() {
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />}
+        refreshControl={<RefreshControl refreshing={isManualRefreshing} onRefresh={handleManualRefresh} />}
       >
         {/* ── Persistent Emergency Store Toggle Strip (Feature 8) ── */}
         <View

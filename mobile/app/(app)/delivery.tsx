@@ -38,11 +38,19 @@ export default function DeliveryScreen() {
   const [customRiderName, setCustomRiderName] = useState('');
   const [customRiderPhone, setCustomRiderPhone] = useState('');
 
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+
   const { data, isLoading, error, refetch, isRefetching } = useQuery({
     queryKey: ['active-deliveries'],
     queryFn: () => apiClient<any>('/delivery'),
     refetchInterval: 10000,
   });
+
+  const handleManualRefresh = async () => {
+    setIsManualRefreshing(true);
+    await refetch();
+    setIsManualRefreshing(false);
+  };
 
   const assignRiderMutation = useMutation({
     mutationFn: ({
@@ -197,7 +205,7 @@ export default function DeliveryScreen() {
           data={activeDeliveries}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.listPadding}
-          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />}
+          refreshControl={<RefreshControl refreshing={isManualRefreshing} onRefresh={handleManualRefresh} />}
           renderItem={({ item }) => (
             <View
               style={[styles.deliveryCard, { backgroundColor: theme.surface, borderColor: theme.border }]}

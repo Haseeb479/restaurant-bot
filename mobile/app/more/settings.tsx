@@ -112,11 +112,11 @@ export default function StoreSettingsScreen() {
                 styles.statusPillText,
                 {
                   color:
-                    settings.bot_status === 'connected' ? '#16A34A' : '#DC2626',
+                    settings.bot_status === 'connected' || settings.bot_status === 'open' ? '#16A34A' : '#DC2626',
                 },
               ]}
             >
-              {settings.bot_status === 'connected' ? 'ONLINE' : 'OFFLINE'}
+              {settings.bot_status === 'connected' || settings.bot_status === 'open' ? 'ONLINE' : 'OFFLINE'}
             </Text>
           </View>
         </View>

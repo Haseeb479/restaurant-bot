@@ -59,7 +59,7 @@ class MobileDashboardController extends Controller
                 'name'       => $restaurant->name,
                 'is_open'    => (bool) $restaurant->is_open,
                 'is_active'  => (bool) $restaurant->is_active,
-                'bot_status' => $restaurant->bot_status ?? 'disconnected',
+                'bot_status' => $restaurant->getResolvedBotStatus(),
             ],
             'kpis' => [
                 'today_sales'     => $todayRevenue,
@@ -73,7 +73,7 @@ class MobileDashboardController extends Controller
                 'pending_orders'       => $todayOrders->where('status', 'pending')->count(),
                 'waiting_for_rider'    => $waitingRidersOrders->count(),
                 'unavailable_items'    => $unavailableItems->count(),
-                'bot_disconnected'     => ($restaurant->bot_status ?? 'disconnected') !== 'connected',
+                'bot_disconnected'     => ! $restaurant->isBotConnected(),
             ],
             'top_selling'   => $topSelling,
             'recent_orders' => $recentOrders,

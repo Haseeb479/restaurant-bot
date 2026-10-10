@@ -52,18 +52,25 @@ export default function OrdersScreen() {
   const knownOrderIds = useRef<Set<number>>(new Set());
   const initialLoadDone = useRef(false);
 
-  // Orders Query (polls every 7 seconds)
+  // Orders Query (polls silently in background)
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
   const { data, isLoading, error, refetch, isRefetching } = useQuery({
     queryKey: ['orders-pipeline'],
     queryFn: () => apiClient<any>('/orders?status=all'),
-    refetchInterval: 7000,
+    refetchInterval: 8000,
   });
 
   // Riders Query for Rider Assign Sheet
-  const { data: ridersData } = useQuery({
+  const { data: ridersData, refetch: refetchRiders } = useQuery({
     queryKey: ['delivery-riders'],
     queryFn: () => apiClient<any>('/delivery'),
   });
+
+  const handleManualRefresh = async () => {
+    setIsManualRefreshing(true);
+    await Promise.all([refetch(), refetchRiders()]);
+    setIsManualRefreshing(false);
+  };
 
   // Watch for new incoming orders to fire sound chime / vibration alert
   useEffect(() => {
@@ -238,35 +245,44 @@ export default function OrdersScreen() {
               {rawOrders.filter((o) => o.status !== 'delivered' && o.status !== 'cancelled').length} active in kitchen • Zero PC Required
             </Text>
           </View>
-          <TouchableOpacity onPress={() => refetch()} style={[styles.refreshPill, { backgroundColor: theme.primaryLight }]}>
+          <TouchableOpacity onPress={handleManualRefresh} style={[styles.refreshPill, { backgroundColor: theme.primaryLight }]}>
             <Ionicons name="refresh" size={16} color={theme.primary} />
             <Text style={[styles.refreshText, { color: theme.primary }]}>Sync</Text>
           </TouchableOpacity>
         </View>
 
-        {/* ── Urgent Pulsing Top Banner Badge on New Incoming Order ── */}
-        {incomingAlert && (
-          <View style={styles.urgentBanner}>
-            <View style={{ flex: 1 }}>
-              <View style={styles.urgentRow}>
-                <Ionicons name="notifications" size={18} color="#FFFFFF" />
-                <Text style={styles.urgentTitle}>NEW INCOMING ORDER #{incomingAlert.daily_order_number || incomingAlert.id}</Text>
+        {/* ── Urgent Top Banner Badge on New Incoming Order (Dine-In & Online) ── */}
+        {incomingAlert && (() => {
+          const isDine =
+            (incomingAlert.delivery_address || '').toLowerCase().includes('table') ||
+            (incomingAlert.customer_phone || '').toLowerCase().includes('dine-in') ||
+            (incomingAlert.notes || '').toLowerCase().includes('dine-in');
+
+          return (
+            <View style={styles.urgentBanner}>
+              <View style={{ flex: 1 }}>
+                <View style={styles.urgentRow}>
+                  <Ionicons name="notifications" size={18} color="#FFFFFF" />
+                  <Text style={styles.urgentTitle}>
+                    {isDine ? '🍽️ NEW DINE-IN ORDER' : '🛵 NEW ONLINE DELIVERY'} #{incomingAlert.daily_order_number || incomingAlert.id}
+                  </Text>
+                </View>
+                <Text style={styles.urgentSub}>
+                  {incomingAlert.customer_name || 'Guest'} • {isDine ? (incomingAlert.delivery_address || 'Table') : 'Delivery'} • Rs. {Number(incomingAlert.total).toLocaleString()}
+                </Text>
               </View>
-              <Text style={styles.urgentSub}>
-                {incomingAlert.customer_name || 'Guest'} • Rs. {Number(incomingAlert.total).toLocaleString()}
-              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  updateStatusMutation.mutate({ orderId: incomingAlert.id, status: 'preparing' });
+                  Alert.alert('Kitchen Slip', `${isDine ? 'Dine-In Table ticket' : 'Delivery ticket'} printed & sent to kitchen! 🍳`);
+                }}
+                style={styles.urgentAcceptBtn}
+              >
+                <Text style={styles.urgentAcceptText}>Accept & Cook</Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              onPress={() => {
-                updateStatusMutation.mutate({ orderId: incomingAlert.id, status: 'preparing' });
-                Alert.alert('Kitchen Slip', 'Kitchen ticket printed & order sent to cooking queue! 🍳');
-              }}
-              style={styles.urgentAcceptBtn}
-            >
-              <Text style={styles.urgentAcceptText}>Accept & Cook</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+          );
+        })()}
 
         {/* ── Pipeline Filter Bar (Segmented horizontal tabs) ── */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterTabsRow}>
@@ -336,7 +352,7 @@ export default function OrdersScreen() {
           data={displayedOrders}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.listContent}
-          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />}
+          refreshControl={<RefreshControl refreshing={isManualRefreshing} onRefresh={handleManualRefresh} />}
           renderItem={({ item }) => {
             const isPending = item.status === 'pending' || item.status === 'confirmed';
             const isPreparing = item.status === 'preparing';

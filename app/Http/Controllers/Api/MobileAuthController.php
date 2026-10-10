@@ -116,7 +116,7 @@ class MobileAuthController extends Controller
                 'is_active'       => (bool) $restaurant->is_active,
                 'delivery_charge' => (float) $restaurant->delivery_charge,
                 'minimum_order'   => (float) $restaurant->minimum_order,
-                'bot_status'      => $restaurant->bot_status ?? 'disconnected',
+                'bot_status'      => $restaurant->getResolvedBotStatus(),
             ],
         ]);
     }
@@ -143,7 +143,7 @@ class MobileAuthController extends Controller
                 'is_active'       => (bool) $restaurant->is_active,
                 'delivery_charge' => (float) $restaurant->delivery_charge,
                 'minimum_order'   => (float) $restaurant->minimum_order,
-                'bot_status'      => $restaurant->bot_status ?? 'disconnected',
+                'bot_status'      => $restaurant->getResolvedBotStatus(),
             ],
         ]);
     }
