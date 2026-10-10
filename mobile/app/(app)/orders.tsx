@@ -21,6 +21,7 @@ import { apiClient } from '../../services/api/client';
 import { LoadingState, ErrorState, EmptyState } from '../../components/FeedbackStates';
 import { StatusBadge } from '../../components/StatusBadge';
 import { AppButton } from '../../components/AppButton';
+import { AppInput } from '../../components/AppInput';
 import { Ionicons } from '@expo/vector-icons';
 
 const PIPELINE_TABS = [
@@ -42,6 +43,9 @@ export default function OrdersScreen() {
 
   // Rider Picker Modal State
   const [assigningOrder, setAssigningOrder] = useState<any | null>(null);
+  const [customRiderName, setCustomRiderName] = useState('');
+  const [customRiderPhone, setCustomRiderPhone] = useState('');
+  const [showManualRider, setShowManualRider] = useState(false);
 
   // New order alert banner & chime state
   const [incomingAlert, setIncomingAlert] = useState<any | null>(null);
@@ -136,18 +140,34 @@ export default function OrdersScreen() {
 
   // Assign Rider Mutation
   const assignRiderMutation = useMutation({
-    mutationFn: ({ orderId, riderId }: { orderId: number; riderId: number }) =>
+    mutationFn: ({
+      orderId,
+      riderId,
+      riderName,
+      riderPhone,
+    }: {
+      orderId: number;
+      riderId?: number;
+      riderName?: string;
+      riderPhone?: string;
+    }) =>
       apiClient(`/delivery/orders/${orderId}/assign`, {
         method: 'POST',
-        body: JSON.stringify({ rider_id: riderId }),
+        body: JSON.stringify({
+          rider_id: riderId,
+          rider_name: riderName,
+          rider_phone: riderPhone,
+        }),
       }),
     onSuccess: (res: any) => {
       setAssigningOrder(null);
+      setCustomRiderName('');
+      setCustomRiderPhone('');
       queryClient.invalidateQueries({ queryKey: ['orders-pipeline'] });
       queryClient.invalidateQueries({ queryKey: ['delivery-riders'] });
-      Alert.alert('Rider Assigned', res.message || 'Rider assigned successfully.');
+      Alert.alert('Rider Dispatched 🛵', res.message || 'Rider assigned successfully.');
     },
-    onError: (err: any) => Alert.alert('Error', err.message || 'Failed to assign rider.'),
+    onError: (err: any) => Alert.alert('Assignment Error', err.message || 'Failed to assign rider.'),
   });
 
   if (isLoading && !isRefetching) {
@@ -485,11 +505,17 @@ export default function OrdersScreen() {
                 </TouchableOpacity>
               </View>
 
-              <ScrollView style={{ maxHeight: 340 }}>
+              <ScrollView style={{ maxHeight: 380 }}>
+                {/* 1. Fleet Riders List */}
+                <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text, marginBottom: 8 }}>
+                  Select Fleet Rider
+                </Text>
                 {(ridersData?.riders || []).length === 0 ? (
-                  <Text style={{ textAlign: 'center', padding: 20, color: theme.textMuted }}>
-                    No delivery riders registered. Mark order ready directly.
-                  </Text>
+                  <View style={{ padding: 12, borderRadius: 10, backgroundColor: theme.surfaceSubtle, marginBottom: 12 }}>
+                    <Text style={{ textAlign: 'center', fontSize: 12, color: theme.textMuted }}>
+                      No riders registered in fleet yet. Enter rider details below or mark self-pickup.
+                    </Text>
+                  </View>
                 ) : (
                   (ridersData?.riders || []).map((rider: any) => (
                     <TouchableOpacity
@@ -512,6 +538,49 @@ export default function OrdersScreen() {
                     </TouchableOpacity>
                   ))
                 )}
+
+                {/* 2. Quick Manual Rider Entry */}
+                <TouchableOpacity
+                  onPress={() => setShowManualRider(!showManualRider)}
+                  style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10 }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: theme.primary }}>
+                    {showManualRider ? '▲ Hide Quick Rider Entry' : '▼ + Dispatch by Name & Phone'}
+                  </Text>
+                </TouchableOpacity>
+
+                {showManualRider && (
+                  <View style={{ backgroundColor: theme.surfaceSubtle, padding: 12, borderRadius: 12, marginBottom: 10, gap: 8 }}>
+                    <AppInput
+                      label="Rider Name"
+                      placeholder="e.g. Ali Raza"
+                      value={customRiderName}
+                      onChangeText={setCustomRiderName}
+                    />
+                    <AppInput
+                      label="Rider WhatsApp / Phone"
+                      placeholder="e.g. 03001234567"
+                      value={customRiderPhone}
+                      onChangeText={setCustomRiderPhone}
+                      keyboardType="phone-pad"
+                    />
+                    <AppButton
+                      title="Dispatch This Rider 🛵"
+                      loading={assignRiderMutation.isPending}
+                      onPress={() => {
+                        if (!customRiderName.trim()) {
+                          Alert.alert('Required', 'Please enter rider name.');
+                          return;
+                        }
+                        assignRiderMutation.mutate({
+                          orderId: assigningOrder.id,
+                          riderName: customRiderName.trim(),
+                          riderPhone: customRiderPhone.trim(),
+                        });
+                      }}
+                    />
+                  </View>
+                )}
               </ScrollView>
 
               <TouchableOpacity
@@ -522,7 +591,7 @@ export default function OrdersScreen() {
                 style={[styles.selfPickupBtn, { backgroundColor: theme.surfaceSubtle }]}
               >
                 <Text style={[styles.selfPickupText, { color: theme.text }]}>
-                  Mark Ready (Self-Pickup / Takeaway)
+                  Mark Ready (Self-Pickup / Takeaway 🛍️)
                 </Text>
               </TouchableOpacity>
             </View>

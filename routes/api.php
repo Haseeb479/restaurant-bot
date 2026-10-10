@@ -45,9 +45,11 @@ Route::prefix('v1')->group(function () {
         Route::get('/customers/{customer}',          [\App\Http\Controllers\Api\MobileCustomerController::class, 'show']);
         Route::post('/customers/broadcast',         [\App\Http\Controllers\Api\MobileCustomerController::class, 'broadcast']);
 
-        // Delivery
-        Route::get('/delivery',                     [\App\Http\Controllers\Api\MobileDeliveryController::class, 'index']);
+        // Delivery & Rider Fleet
+        Route::get('/delivery',                        [\App\Http\Controllers\Api\MobileDeliveryController::class, 'index']);
         Route::post('/delivery/orders/{order}/assign', [\App\Http\Controllers\Api\MobileDeliveryController::class, 'assignRider']);
+        Route::post('/delivery/riders',                [\App\Http\Controllers\Api\MobileDeliveryController::class, 'storeRider']);
+        Route::delete('/delivery/riders/{rider}',      [\App\Http\Controllers\Api\MobileDeliveryController::class, 'deleteRider']);
 
         // Reports
         Route::get('/reports',                      [\App\Http\Controllers\Api\MobileReportsController::class, 'index']);

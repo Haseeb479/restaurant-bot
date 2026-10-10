@@ -164,6 +164,7 @@ class Order extends Model
         'pending',
         'confirmed',
         'preparing',
+        'ready',
         'out_for_delivery',
         'delivered',
         'cancelled',
@@ -174,9 +175,10 @@ class Order extends Model
      * Prevents invalid backwards transitions (e.g. delivered -> pending) (C3).
      */
     public const ALLOWED_TRANSITIONS = [
-        'pending'          => ['confirmed', 'preparing', 'cancelled'],
-        'confirmed'        => ['preparing', 'out_for_delivery', 'cancelled'],
-        'preparing'        => ['out_for_delivery', 'cancelled'],
+        'pending'          => ['confirmed', 'preparing', 'ready', 'cancelled'],
+        'confirmed'        => ['preparing', 'ready', 'out_for_delivery', 'delivered', 'cancelled'],
+        'preparing'        => ['ready', 'out_for_delivery', 'delivered', 'cancelled'],
+        'ready'            => ['out_for_delivery', 'delivered', 'cancelled'],
         'out_for_delivery' => ['delivered', 'cancelled'],
         'delivered'        => [],
         'cancelled'        => [],
@@ -273,6 +275,7 @@ class Order extends Model
             'pending'          => '🕐 Pending Confirmation',
             'confirmed',
             'preparing'        => '👨‍🍳 Preparing in Kitchen',
+            'ready'            => '🍽️ Ready / Prepared',
             'out_for_delivery' => '🛵 Dispatched & On the Way',
             'delivered'        => '🎉 Delivered',
             'cancelled'        => '❌ Cancelled',
@@ -286,6 +289,7 @@ class Order extends Model
             'pending'          => 'Your order has been received and is waiting for confirmation from our team.',
             'confirmed',
             'preparing'        => 'Our kitchen is preparing your order fresh! 👨‍🍳',
+            'ready'            => 'Your order is ready and prepared! 🍽️',
             'out_for_delivery' => 'Your order has been dispatched and is on its way with our rider! 🛵',
             'delivered'        => 'Your order has been delivered. Enjoy your meal! 🎉',
             'cancelled'        => 'Your order was cancelled. Please contact us directly for assistance.',

@@ -86,8 +86,11 @@ class MobileOrderController extends Controller
         if (!empty($validated['rider_id'])) {
             $rider = $restaurant->riders()->find($validated['rider_id']);
             if ($rider) {
-                $order->rider_id = $rider->id;
-                $order->rider_name = $rider->name;
+                if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'rider_id')) {
+                    $order->rider_id = $rider->id;
+                }
+                $order->rider_name  = $rider->name;
+                $order->rider_phone = $rider->phone;
             }
         }
 
