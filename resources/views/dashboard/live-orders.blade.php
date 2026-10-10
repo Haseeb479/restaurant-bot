@@ -723,50 +723,7 @@
         </div>
     </div>
 
-    <!-- 2. LIVE METRICS STRIP -->
-    <div class="live-stats-strip">
-        <div class="live-stat-box">
-            <div class="live-stat-info">
-                <div class="stat-num" id="kpi-live-orders" style="color: #6366f1;">{{ $liveOrdersCount }}</div>
-                <div class="stat-title">Active Live Orders</div>
-            </div>
-            <div class="live-stat-icon" style="background: #e0e7ff; color: #4338ca;">🛍️</div>
-        </div>
-
-        <div class="live-stat-box">
-            <div class="live-stat-info">
-                <div class="stat-num" id="kpi-pending-orders" style="color: #d97706;">{{ $pendingCount }}</div>
-                <div class="stat-title">Awaiting Acceptance</div>
-            </div>
-            <div class="live-stat-icon" style="background: #fef3c7; color: #b45309;">⏳</div>
-        </div>
-
-        <div class="live-stat-box">
-            <div class="live-stat-info">
-                <div class="stat-num" id="kpi-preparing-orders" style="color: #7c3aed;">{{ $preparingCount }}</div>
-                <div class="stat-title">Cooking in Kitchen</div>
-            </div>
-            <div class="live-stat-icon" style="background: #f3e8ff; color: #7e22ce;">🍳</div>
-        </div>
-
-        <div class="live-stat-box">
-            <div class="live-stat-info">
-                <div class="stat-num" id="kpi-dispatched-orders" style="color: #0284c7;">{{ $dispatchedCount }}</div>
-                <div class="stat-title">On Road with Rider</div>
-            </div>
-            <div class="live-stat-icon" style="background: #e0f2fe; color: #0369a1;">🛵</div>
-        </div>
-
-        <div class="live-stat-box">
-            <div class="live-stat-info">
-                <div class="stat-num" id="kpi-revenue" style="color: #059669;">PKR {{ number_format($todayRevenue) }}</div>
-                <div class="stat-title">Today's Live Sales</div>
-            </div>
-            <div class="live-stat-icon" style="background: #dcfce7; color: #15803d;">💰</div>
-        </div>
-    </div>
-
-    <!-- 3. LIVE ORDER PIPELINE STRIP -->
+    <!-- 2. LIVE ORDER PIPELINE STRIP -->
     <div class="pipeline-card">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
             <div style="display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 800; color: #0f172a;">

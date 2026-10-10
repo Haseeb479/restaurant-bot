@@ -1122,8 +1122,10 @@
 
             <!-- Real-Time Live Order Arrival Notification Card -->
             @php
+                $activeStatuses = ['pending', 'confirmed', 'preparing', 'out_for_delivery'];
                 $latestPending = $todayOrders->where('status', 'pending')->first();
-                $latestOrder   = $latestPending ?? $todayOrders->first() ?? $orders->first();
+                $latestActive  = $todayOrders->whereIn('status', $activeStatuses)->first();
+                $latestOrder   = $latestPending ?? $latestActive;
             @endphp
             <div class="live-notif-card {{ $pendingCount > 0 ? 'has-alert' : '' }}" id="liveNotifCard">
                 <div class="live-notif-header">
@@ -1158,14 +1160,14 @@
                             @if($pendingCount > 0)
                                 Customer orders placed via WhatsApp are awaiting review & acceptance.
                             @else
-                                No pending orders. Incoming WhatsApp orders will trigger audio chime and alert here instantly.
+                                No active pending orders. As orders reach delivered, they clear out from live session.
                             @endif
                         </p>
                     </div>
                 </div>
 
-                <!-- Latest Arrived Order Preview -->
-                @if($latestOrder)
+                <!-- Latest Arrived Active Order Preview (Only active non-delivered orders shown) -->
+                @if($latestOrder && in_array($latestOrder->status, $activeStatuses))
                     @php
                         $latCustName = $latestOrder->customer_name ?: 'Customer';
                         $latItemsSummary = $latestOrder->items->map(function($i) {
@@ -1217,7 +1219,7 @@
                 </a>
             </div>
 
-            <!-- Sales Trend Area Chart (Expanded Width in Left Column) -->
+            <!-- Sales Trend Area Chart (Live Dynamic Chart with Real Sales Data) -->
             <div class="trend-card">
                 <div class="card-header-row">
                     <div class="card-title-group">
@@ -1225,6 +1227,7 @@
                             <path d="m19 9-5 5-4-4-3 3"/>
                         </svg>
                         <span>Sales Trend</span>
+                        <span id="trendSubtitle" style="font-size: 11px; font-weight: 600; color: #8b5cf6; margin-left: 4px;">Live</span>
                     </div>
                     <div class="trend-toggle-strip">
                         <button type="button" class="trend-toggle-btn active" onclick="switchTrendRange('today', this)">Today</button>
@@ -1233,45 +1236,38 @@
                     </div>
                 </div>
 
-                <!-- Smooth Purple Area Chart SVG -->
-                <div class="sales-trend-chart-area">
-                    <svg width="100%" height="150" viewBox="0 0 320 150" preserveAspectRatio="none" fill="none">
+                <!-- Dynamic Real-Time Sales Trend Chart Area -->
+                <div class="sales-trend-chart-area" id="salesTrendChartContainer">
+                    <svg id="salesTrendSvg" width="100%" height="150" viewBox="0 0 320 150" preserveAspectRatio="none" fill="none">
                         <defs>
                             <linearGradient id="purpleAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.35"/>
+                                <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.4"/>
                                 <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.0"/>
                             </linearGradient>
                         </defs>
                         <!-- Grid lines -->
-                        <line x1="30" y1="30" x2="310" y2="30" stroke="var(--border-subtle)" stroke-dasharray="3 3"/>
-                        <line x1="30" y1="70" x2="310" y2="70" stroke="var(--border-subtle)" stroke-dasharray="3 3"/>
-                        <line x1="30" y1="110" x2="310" y2="110" stroke="var(--border-subtle)" stroke-dasharray="3 3"/>
+                        <line x1="30" y1="25" x2="310" y2="25" stroke="var(--border-subtle)" stroke-dasharray="3 3"/>
+                        <line x1="30" y1="65" x2="310" y2="65" stroke="var(--border-subtle)" stroke-dasharray="3 3"/>
+                        <line x1="30" y1="105" x2="310" y2="105" stroke="var(--border-subtle)" stroke-dasharray="3 3"/>
 
                         <!-- Left Y Axis Labels -->
-                        <text x="5" y="34" font-size="9" font-weight="600" fill="var(--text-light)">60k</text>
-                        <text x="5" y="74" font-size="9" font-weight="600" fill="var(--text-light)">40k</text>
-                        <text x="5" y="114" font-size="9" font-weight="600" fill="var(--text-light)">20k</text>
+                        <text id="trendYMax" x="5" y="28" font-size="9" font-weight="600" fill="var(--text-light)">60k</text>
+                        <text id="trendYMid" x="5" y="68" font-size="9" font-weight="600" fill="var(--text-light)">30k</text>
+                        <text id="trendYLow" x="5" y="108" font-size="9" font-weight="600" fill="var(--text-light)">10k</text>
                         <text x="14" y="140" font-size="9" font-weight="600" fill="var(--text-light)">0</text>
 
-                        <!-- Area Fill -->
-                        <path d="M 35 110 Q 75 100, 110 80 T 170 85 T 230 65 T 280 40 L 310 45 L 310 135 L 35 135 Z" fill="url(#purpleAreaGrad)"/>
+                        <!-- Area Fill Path -->
+                        <path id="trendAreaPath" d="M 30 135 L 310 135 Z" fill="url(#purpleAreaGrad)"/>
 
-                        <!-- Top Line Curve -->
-                        <path d="M 35 110 Q 75 100, 110 80 T 170 85 T 230 65 T 280 40 L 310 45" stroke="#8b5cf6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <!-- Top Line Curve Path -->
+                        <path id="trendLinePath" d="M 30 135 L 310 135" stroke="#8b5cf6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
 
-                        <!-- Endpoint dot -->
-                        <circle cx="310" cy="45" r="3.5" fill="#8b5cf6"/>
+                        <!-- Data Points Group -->
+                        <g id="trendPointsGroup"></g>
                     </svg>
 
                     <!-- X-Axis Labels -->
-                    <div style="display: flex; justify-content: space-between; padding-left: 30px; font-size: 9px; font-weight: 600; color: var(--text-light); margin-top: 4px;">
-                        <span>10 AM</span>
-                        <span>12 PM</span>
-                        <span>2 PM</span>
-                        <span>4 PM</span>
-                        <span>6 PM</span>
-                        <span>8 PM</span>
-                        <span>10 PM</span>
+                    <div id="trendXAxisLabels" style="display: flex; justify-content: space-between; padding-left: 30px; font-size: 9.5px; font-weight: 600; color: var(--text-light); margin-top: 4px;">
                     </div>
                 </div>
             </div>
@@ -2091,10 +2087,11 @@ async function fetchLiveOrdersFeed() {
                 : `⚡ View Live Kitchen Stream (${activeCount} Active) →`;
         }
 
-        // Update Latest Order Preview in Notification Card
+        // Update Latest Order Preview in Notification Card (Active non-delivered only)
         if (notifPreview) {
+            const activeStatuses = ['pending', 'confirmed', 'preparing', 'out_for_delivery'];
             const latestPending = (data.orders || []).find(o => o.status === 'pending');
-            const targetLatest  = latestPending || (data.orders && data.orders[0]);
+            const targetLatest  = latestPending || (data.orders || []).find(o => activeStatuses.includes(o.status));
 
             if (targetLatest) {
                 notifPreview.style.display = 'flex';
@@ -2599,10 +2596,114 @@ function openCancelModalFromDrawer() {
     }
 }
 
+// ── Real-Time Dynamic Sales Trend Graph ──
+const trendDatasets = {
+    'today': @json($todayTrendData ?? []),
+    '7d':    @json($trend7DData ?? []),
+    '30d':   @json($trend30DData ?? [])
+};
+
+let currentTrendRange = 'today';
+
 function switchTrendRange(range, btn) {
     document.querySelectorAll('.trend-toggle-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+    if (btn) btn.classList.add('active');
+    currentTrendRange = range;
+    renderSalesTrendGraph(range);
 }
+
+function renderSalesTrendGraph(range) {
+    const data = trendDatasets[range] || [];
+    const areaPath = document.getElementById('trendAreaPath');
+    const linePath = document.getElementById('trendLinePath');
+    const pointsGroup = document.getElementById('trendPointsGroup');
+    const labelsContainer = document.getElementById('trendXAxisLabels');
+    const yMaxEl = document.getElementById('trendYMax');
+    const yMidEl = document.getElementById('trendYMid');
+    const yLowEl = document.getElementById('trendYLow');
+    const subtitleEl = document.getElementById('trendSubtitle');
+
+    if (!areaPath || !linePath || !data || data.length === 0) return;
+
+    if (subtitleEl) {
+        subtitleEl.textContent = range === 'today' ? 'Hourly Live' : (range === '7d' ? 'Last 7 Days' : 'Last 30 Days');
+    }
+
+    // Determine max value for Y axis
+    const maxVal = Math.max(...data.map(d => d.amount || 0));
+    const ceiling = maxVal > 0 ? (Math.ceil(maxVal / 1000) * 1000 || 5000) : 5000;
+
+    const formatK = (v) => v >= 1000 ? Math.round(v / 1000) + 'k' : v;
+    if (yMaxEl) yMaxEl.textContent = formatK(ceiling);
+    if (yMidEl) yMidEl.textContent = formatK(Math.round(ceiling / 2));
+    if (yLowEl) yLowEl.textContent = formatK(Math.round(ceiling / 4));
+
+    // Coordinates mapping: SVG viewBox is 320 x 150
+    // X range: 35 to 305
+    // Y range: 25 (top max) to 135 (bottom 0)
+    const startX = 35;
+    const endX = 305;
+    const topY = 25;
+    const bottomY = 135;
+    const heightSpan = bottomY - topY;
+
+    const n = data.length;
+    const stepX = n > 1 ? (endX - startX) / (n - 1) : 0;
+
+    const points = data.map((d, i) => {
+        const x = Math.round(startX + (i * stepX));
+        const ratio = ceiling > 0 ? Math.min(1, Math.max(0, (d.amount || 0) / ceiling)) : 0;
+        const y = Math.round(bottomY - (ratio * heightSpan));
+        return { x, y, amount: d.amount || 0, label: d.label };
+    });
+
+    if (points.length === 0) return;
+
+    // Build SVG path with smooth cubic beziers
+    let lineD = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 0; i < points.length - 1; i++) {
+        const p0 = points[i];
+        const p1 = points[i + 1];
+        const cpX = (p0.x + p1.x) / 2;
+        lineD += ` C ${cpX} ${p0.y}, ${cpX} ${p1.y}, ${p1.x} ${p1.y}`;
+    }
+
+    const lastP = points[points.length - 1];
+    const firstP = points[0];
+    const areaD = `${lineD} L ${lastP.x} ${bottomY} L ${firstP.x} ${bottomY} Z`;
+
+    areaPath.setAttribute('d', areaD);
+    linePath.setAttribute('d', lineD);
+
+    // Draw interactive points with title tooltips
+    if (pointsGroup) {
+        pointsGroup.innerHTML = '';
+        points.forEach((p, idx) => {
+            const isLast = (idx === points.length - 1);
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', p.x);
+            circle.setAttribute('cy', p.y);
+            circle.setAttribute('r', isLast ? '4' : '2.5');
+            circle.setAttribute('fill', '#8b5cf6');
+            circle.setAttribute('stroke', '#ffffff');
+            circle.setAttribute('stroke-width', '1.5');
+            const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+            title.textContent = `${p.label}: Rs ${p.amount.toLocaleString()}`;
+            circle.appendChild(title);
+            pointsGroup.appendChild(circle);
+        });
+    }
+
+    // Update X-axis labels
+    if (labelsContainer) {
+        labelsContainer.innerHTML = data.map(d => `<span>${d.label}</span>`).join('');
+    }
+}
+
+// Initial graph render on page load
+document.addEventListener('DOMContentLoaded', function() {
+    renderSalesTrendGraph('today');
+});
 
 // ── Start polling every 4 seconds ──
 setInterval(fetchLiveOrdersFeed, 4000);

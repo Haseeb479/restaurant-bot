@@ -212,17 +212,61 @@ class DashboardController extends Controller
         $unavailableItems = $r->menuItems()->where('is_available', false)->take(5)->get();
         $waitingRidersOrders = $todayOrders->whereIn('status', ['confirmed', 'preparing'])->whereNull('rider_name');
 
-        // Today hourly sales distribution (for Sales Trend Area Chart)
-        $hourlySales = [];
+        // Real Sales Trends Data: Today (hourly), 7D (daily sales), and 30D (daily sales)
+        // 1. Today hourly sales distribution (10 AM to 10 PM)
+        $todayTrendData = [];
         $checkHours = [10, 12, 14, 16, 18, 20, 22];
         foreach ($checkHours as $h) {
             $sum = (float) $todayOrders->filter(function($o) use ($h) {
+                if ($o->status === 'cancelled') return false;
                 $orderHour = (int) $o->created_at->format('H');
                 return $orderHour >= $h && $orderHour < ($h + 2);
             })->sum('total');
-            $hourlySales[] = [
-                'label' => date('g A', strtotime("{$h}:00")),
+            $todayTrendData[] = [
+                'label'  => date('g A', strtotime("{$h}:00")),
                 'amount' => $sum,
+            ];
+        }
+
+        // 2. 7 Days real daily sales
+        $sales7DaysAgo = now()->subDays(6)->startOfDay();
+        $revenueByDate7D = $r->orders()
+            ->reorder()
+            ->where('created_at', '>=', $sales7DaysAgo)
+            ->where('status', '!=', 'cancelled')
+            ->selectRaw('DATE(created_at) as order_date, SUM(total) as rev')
+            ->groupBy('order_date')
+            ->pluck('rev', 'order_date')
+            ->toArray();
+
+        $trend7DData = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $d = now()->subDays($i);
+            $dateKey = $d->toDateString();
+            $trend7DData[] = [
+                'label'  => $d->format('D'),
+                'amount' => (float) ($revenueByDate7D[$dateKey] ?? 0),
+            ];
+        }
+
+        // 3. 30 Days real daily sales
+        $sales30DaysAgo = now()->subDays(29)->startOfDay();
+        $revenueByDate30D = $r->orders()
+            ->reorder()
+            ->where('created_at', '>=', $sales30DaysAgo)
+            ->where('status', '!=', 'cancelled')
+            ->selectRaw('DATE(created_at) as order_date, SUM(total) as rev')
+            ->groupBy('order_date')
+            ->pluck('rev', 'order_date')
+            ->toArray();
+
+        $trend30DData = [];
+        for ($i = 29; $i >= 0; $i -= 3) {
+            $d = now()->subDays($i);
+            $dateKey = $d->toDateString();
+            $trend30DData[] = [
+                'label'  => $d->format('M d'),
+                'amount' => (float) ($revenueByDate30D[$dateKey] ?? 0),
             ];
         }
 
@@ -257,7 +301,9 @@ class DashboardController extends Controller
             'recentFeedbacks'     => $recentFeedbacks,
             'unavailableItems'    => $unavailableItems,
             'waitingRidersOrders' => $waitingRidersOrders,
-            'hourlySales'         => $hourlySales,
+            'todayTrendData'      => $todayTrendData,
+            'trend7DData'         => $trend7DData,
+            'trend30DData'        => $trend30DData,
         ]);
     }
 
