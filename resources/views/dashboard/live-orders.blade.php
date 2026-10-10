@@ -1,1022 +1,1047 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Live Orders • ' . ($restaurant->name ?? 'Dashboard'))
+@section('title', 'Order Management • ' . ($restaurant->name ?? 'TastyIgniter'))
 
 @section('content')
 <style>
-    .live-command-container {
+    /* ═══════════════════════════════════════════════════════════════
+       TASTYIGNITER DESIGN SYSTEM: ORDER MANAGEMENT & ACTIVE ORDERS
+       ═══════════════════════════════════════════════════════════════ */
+    .order-mgmt-container {
         display: flex;
         flex-direction: column;
-        gap: 20px;
+        gap: 24px;
+        width: 100%;
+        max-width: 1440px;
+        margin: 0 auto;
     }
 
-    /* Top Command Header */
-    .live-top-bar {
+    /* ── 1. Top Page Header Row ── */
+    .order-mgmt-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
         flex-wrap: wrap;
         gap: 16px;
-        background: #ffffff;
-        border-radius: 18px;
-        padding: 18px 24px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-        border: 1px solid #e2e8f0;
     }
-    [data-theme="dark"] .live-top-bar {
-        background: #1e293b;
-        border-color: #334155;
-    }
-
-    .live-pulse-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        background: #ecfdf5;
-        color: #059669;
-        font-size: 12px;
+    .order-mgmt-title {
+        font-size: 32px;
+        line-height: 1.2;
         font-weight: 700;
-        padding: 6px 14px;
-        border-radius: 50px;
-        border: 1px solid #a7f3d0;
+        color: var(--color-dark, #070A08);
+        letter-spacing: -0.02em;
+        margin: 0;
     }
-    [data-theme="dark"] .live-pulse-badge {
-        background: rgba(16, 185, 129, 0.15);
-        color: #34d399;
-        border-color: rgba(16, 185, 129, 0.3);
+    [data-theme="dark"] .order-mgmt-title {
+        color: #ffffff;
     }
-    .pulse-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #10b981;
-        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-        animation: pulseGreen 1.8s infinite;
-    }
-    @keyframes pulseGreen {
-        0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-        70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-    }
-
-    /* Live Stat Strips */
-    .live-stats-strip {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 14px;
-    }
-    .live-stat-box {
-        background: #ffffff;
-        border-radius: 16px;
-        padding: 16px 20px;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+    .order-mgmt-actions {
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        gap: 12px;
     }
-    [data-theme="dark"] .live-stat-box {
-        background: #1e293b;
-        border-color: #334155;
-    }
-    .live-stat-info .stat-num {
-        font-size: 24px;
-        font-weight: 800;
-        color: #0f172a;
-        line-height: 1.1;
-    }
-    [data-theme="dark"] .live-stat-info .stat-num {
-        color: #f8fafc;
-    }
-    .live-stat-info .stat-title {
-        font-size: 12px;
-        font-weight: 600;
-        color: #64748b;
-        margin-top: 4px;
-    }
-    .live-stat-icon {
+    .btn-tasty-export {
         width: 44px;
         height: 44px;
         border-radius: 12px;
+        background: #ffffff;
+        border: 1px solid var(--border-subtle, #ebeef2);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 20px;
+        color: var(--color-dark, #070A08);
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.15s ease;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    }
+    [data-theme="dark"] .btn-tasty-export {
+        background: #151a17;
+        border-color: rgba(255, 255, 255, 0.08);
+        color: #ffffff;
+    }
+    .btn-tasty-export:hover {
+        background: #f8fafc;
+        transform: translateY(-1px);
+        border-color: #cbd5e1;
     }
 
-    /* 3-Column Main Grid */
-    .live-main-grid {
+    .btn-tasty-sound {
+        height: 44px;
+        padding: 0 14px;
+        border-radius: 12px;
+        background: #ffffff;
+        border: 1px solid var(--border-subtle, #ebeef2);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--color-dark, #070A08);
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    [data-theme="dark"] .btn-tasty-sound {
+        background: #151a17;
+        border-color: rgba(255, 255, 255, 0.08);
+        color: #ffffff;
+    }
+
+    .btn-tasty-add-order {
+        height: 44px;
+        padding: 0 24px;
+        border-radius: 9999px;
+        background: var(--color-coral, #FD6941);
+        color: #ffffff;
+        font-size: 14px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 4px 14px rgba(253, 105, 65, 0.35);
+        transition: all 0.18s ease;
+        white-space: nowrap;
+    }
+    .btn-tasty-add-order:hover {
+        background: #e5532b;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(253, 105, 65, 0.45);
+        color: #ffffff;
+    }
+
+    /* ── 2. Top 4 Metric Cards Strip ── */
+    .metric-cards-strip {
         display: grid;
-        grid-template-columns: 360px 1fr 300px;
+        grid-template-columns: repeat(4, 1fr);
         gap: 20px;
-        align-items: start;
     }
-    @media (max-width: 1200px) {
-        .live-main-grid {
-            grid-template-columns: 340px 1fr;
-        }
-        .live-fleet-column {
-            grid-column: span 2;
-        }
-    }
-    @media (max-width: 860px) {
-        .live-main-grid {
-            grid-template-columns: 1fr;
-        }
-        .live-fleet-column {
-            grid-column: span 1;
+    @media (max-width: 1100px) {
+        .metric-cards-strip {
+            grid-template-columns: repeat(2, 1fr);
         }
     }
     @media (max-width: 640px) {
-        .live-stats-strip {
+        .metric-cards-strip {
             grid-template-columns: 1fr;
-            gap: 10px;
-        }
-        .live-stat-box {
-            padding: 12px 16px;
-        }
-        .panel-card {
-            padding: 16px 14px !important;
-            border-radius: 14px !important;
         }
     }
 
-    .panel-card {
+    .tasty-metric-card {
         background: #ffffff;
-        border-radius: 18px;
-        border: 1px solid #e2e8f0;
-        padding: 20px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-    }
-    [data-theme="dark"] .panel-card {
-        background: #1e293b;
-        border-color: #334155;
-    }
-
-    .panel-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 16px;
-        padding-bottom: 12px;
-        border-bottom: 1px solid #f1f5f9;
-    }
-    [data-theme="dark"] .panel-header {
-        border-bottom-color: #334155;
-    }
-    .panel-title {
-        font-size: 15px;
-        font-weight: 800;
-        color: #0f172a;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    [data-theme="dark"] .panel-title {
-        color: #f8fafc;
-    }
-
-    /* Live Orders List */
-    .live-orders-list {
+        border-radius: 24px;
+        padding: 24px 26px;
+        border: 1px solid var(--border-subtle, #ebeef2);
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.02);
         display: flex;
         flex-direction: column;
-        gap: 10px;
-        max-height: 680px;
-        overflow-y: auto;
-        padding-right: 4px;
+        justify-content: space-between;
+        min-height: 140px;
     }
-    .live-order-item {
-        display: flex;
-        align-items: flex-start;
-        gap: 12px;
-        padding: 14px;
-        border-radius: 14px;
-        background: #f8fafc;
-        border: 1.5px solid #e2e8f0;
-        text-decoration: none;
-        color: inherit;
-        transition: all 0.2s ease;
-        cursor: pointer;
-    }
-    [data-theme="dark"] .live-order-item {
-        background: #0f172a;
-        border-color: #334155;
-    }
-    .live-order-item:hover {
-        border-color: #064e3b;
-        background: #ffffff;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(6, 78, 59, 0.10);
-    }
-    [data-theme="dark"] .live-order-item:hover {
-        background: #1e293b;
-        border-color: #10b981;
-    }
-    .live-order-item.active {
-        border-color: #064e3b;
-        background: #ecfdf5;
-        box-shadow: 0 4px 16px rgba(6, 78, 59, 0.12);
-    }
-    [data-theme="dark"] .live-order-item.active {
-        background: rgba(6, 78, 59, 0.25);
-        border-color: #10b981;
+    [data-theme="dark"] .tasty-metric-card {
+        background: #111513;
+        border-color: rgba(255, 255, 255, 0.08);
     }
 
-    .wa-avatar-box {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
-        background: #dcfce7;
-        color: #15803d;
+    .metric-top-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .metric-icon-circle {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: #f8fafc;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 17px;
-        flex-shrink: 0;
+        color: var(--color-dark, #070A08);
     }
-    .order-meta-info {
-        flex: 1;
-        min-width: 0;
+    [data-theme="dark"] .metric-icon-circle {
+        background: #1a201c;
+        color: #ffffff;
     }
-    .order-meta-top {
+
+    .metric-big-num {
+        font-size: 32px;
+        line-height: 1.1;
+        font-weight: 700;
+        color: var(--color-dark, #070A08);
+        letter-spacing: -0.02em;
+        margin-top: 14px;
+    }
+    [data-theme="dark"] .metric-big-num {
+        color: #ffffff;
+    }
+
+    .metric-label {
+        font-size: 13.5px;
+        font-weight: 500;
+        color: var(--color-gray, #888E89);
+        margin-top: 4px;
+    }
+
+    /* Card 4: Today Order Complete Milestone Bar */
+    .today-complete-card {
+        position: relative;
+    }
+    .today-complete-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--color-dark, #070A08);
+    }
+    [data-theme="dark"] .today-complete-title {
+        color: #ffffff;
+    }
+    .today-complete-ratio {
+        font-size: 28px;
+        font-weight: 800;
+        color: var(--color-dark, #070A08);
+        letter-spacing: -0.02em;
+    }
+    [data-theme="dark"] .today-complete-ratio {
+        color: #ffffff;
+    }
+    .milestone-ticks-row {
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        margin-bottom: 3px;
-    }
-    .order-code-text {
-        font-size: 13px;
-        font-weight: 800;
-        color: #0f172a;
-    }
-    [data-theme="dark"] .order-code-text { color: #f8fafc; }
-    .order-time-text {
-        font-size: 11px;
-        color: #94a3b8;
-        font-weight: 600;
-    }
-    .order-customer-text {
-        font-size: 12px;
-        color: #475569;
+        margin-top: 18px;
         margin-bottom: 6px;
-        white-space: nowrap;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--color-gray, #888E89);
+    }
+    .milestone-bar-wrap {
+        position: relative;
+        height: 10px;
+        background: #f1f5f9;
+        border-radius: 9999px;
         overflow: hidden;
-        text-overflow: ellipsis;
     }
-    [data-theme="dark"] .order-customer-text { color: #cbd5e1; }
-    .order-item-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+    [data-theme="dark"] .milestone-bar-wrap {
+        background: #1a201c;
     }
-    .order-price-bold {
-        font-size: 12.5px;
-        font-weight: 800;
-        color: #0f172a;
+    .milestone-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #FDE68A 0%, #F2AC11 100%);
+        border-radius: 9999px;
+        transition: width 0.4s ease;
     }
-    [data-theme="dark"] .order-price-bold { color: #f8fafc; }
 
-    /* Status Pills */
-    .status-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 3px 8px;
-        border-radius: 6px;
-        font-size: 10.5px;
-        font-weight: 700;
-    }
-    .status-pill.pending { background: #fef3c7; color: #b45309; }
-    .status-pill.confirmed { background: #dbeafe; color: #1e40af; }
-    .status-pill.preparing { background: #f3e8ff; color: #7e22ce; }
-    .status-pill.out_for_delivery { background: #e0f2fe; color: #0369a1; }
-    .status-pill.delivered { background: #dcfce7; color: #15803d; }
-    .status-pill.cancelled { background: #fee2e2; color: #b91c1c; }
-
-    .deliv-charge-pill {
-        padding: 10px 8px;
-        border-radius: 10px;
-        border: 1.5px solid #cbd5e1;
+    /* ── 3. Active Order Container Card ── */
+    .active-orders-section {
         background: #ffffff;
-        color: #334155;
-        font-size: 12px;
+        border-radius: 28px;
+        padding: 28px;
+        border: 1px solid var(--border-subtle, #ebeef2);
+        box-shadow: 0 2px 14px rgba(0, 0, 0, 0.02);
+    }
+    [data-theme="dark"] .active-orders-section {
+        background: #111513;
+        border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .active-orders-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    .active-orders-title {
+        font-size: 22px;
+        line-height: 1.2;
         font-weight: 700;
-        cursor: pointer;
-        text-align: center;
+        color: var(--color-dark, #070A08);
+        margin: 0;
+    }
+    [data-theme="dark"] .active-orders-title {
+        color: #ffffff;
+    }
+
+    .active-orders-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .search-input-wrap {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+    .search-input-field {
+        height: 40px;
+        padding: 0 16px 0 38px;
+        border-radius: 9999px;
+        border: 1px solid var(--border-subtle, #ebeef2);
+        background: #f8fafc;
+        font-size: 13px;
+        color: var(--color-dark, #070A08);
+        outline: none;
+        width: 220px;
         transition: all 0.15s ease;
     }
-    .deliv-charge-pill:hover {
-        border-color: #2563eb;
+    [data-theme="dark"] .search-input-field {
+        background: #1a201c;
+        border-color: rgba(255, 255, 255, 0.08);
+        color: #ffffff;
     }
-    .deliv-charge-pill.active {
-        border-color: #2563eb;
-        background: #eff6ff;
-        color: #1d4ed8;
-    }
-
-    /* Order Details Workbench */
-    .order-detail-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 18px;
-        padding-bottom: 14px;
-        border-bottom: 1px solid #f1f5f9;
-    }
-    [data-theme="dark"] .order-detail-header { border-bottom-color: #334155; }
-    .order-detail-title h3 {
-        font-size: 18px;
-        font-weight: 800;
-        color: #0f172a;
-        margin: 0;
-    }
-    [data-theme="dark"] .order-detail-title h3 { color: #f8fafc; }
-    .order-detail-title p {
-        font-size: 12px;
-        color: #64748b;
-        margin: 2px 0 0 0;
-    }
-
-    .customer-info-box {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 14px;
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 14px;
-        padding: 14px 18px;
-        margin-bottom: 16px;
-    }
-    [data-theme="dark"] .customer-info-box {
-        background: #0f172a;
-        border-color: #334155;
-    }
-    .info-col-label {
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        color: #94a3b8;
-        letter-spacing: 0.5px;
-        margin-bottom: 4px;
-    }
-    .info-col-val {
-        font-size: 13.5px;
-        font-weight: 700;
-        color: #0f172a;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-    [data-theme="dark"] .info-col-val { color: #f8fafc; }
-    .info-col-sub {
-        font-size: 11.5px;
-        color: #64748b;
-        margin-top: 2px;
-    }
-
-    /* Order Items Table */
-    .order-items-list {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 14px;
-        padding: 14px 18px;
-        margin-bottom: 16px;
-    }
-    [data-theme="dark"] .order-items-list {
-        background: #0f172a;
-        border-color: #334155;
-    }
-    .order-item-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 0;
-        font-size: 13px;
-    }
-    .order-item-qty-badge {
-        background: #e2e8f0;
-        color: #334155;
-        font-weight: 800;
-        padding: 2px 7px;
-        border-radius: 6px;
-        font-size: 11px;
-        margin-right: 8px;
-    }
-    [data-theme="dark"] .order-item-qty-badge {
-        background: #334155;
-        color: #f1f5f9;
-    }
-    .order-bill-divider {
-        height: 1px;
-        background: #e2e8f0;
-        margin: 8px 0;
-    }
-    [data-theme="dark"] .order-bill-divider { background: #334155; }
-    .order-total-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-top: 6px;
-        font-size: 15px;
-        font-weight: 800;
-    }
-
-    /* Route Map Graphic */
-    .route-map-preview {
-        position: relative;
-        height: 100px;
-        background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
-        border: 1px solid #d1fae5;
-        border-radius: 14px;
-        margin-bottom: 16px;
-        overflow: hidden;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 40px;
-    }
-    [data-theme="dark"] .route-map-preview {
-        background: linear-gradient(135deg, #1e1b4b 0%, #064e3b 100%);
-        border-color: #312e81;
-    }
-    .map-distance-badge {
-        position: absolute;
-        top: 8px;
-        left: 12px;
+    .search-input-field:focus {
+        border-color: var(--color-coral, #FD6941);
         background: #ffffff;
-        color: #064e3b;
-        font-size: 10.5px;
-        font-weight: 700;
-        padding: 3px 8px;
-        border-radius: 20px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        width: 260px;
     }
-    [data-theme="dark"] .map-distance-badge {
-        background: #0f172a;
-        color: #a5b4fc;
+    .search-input-icon {
+        position: absolute;
+        left: 12px;
+        color: var(--color-gray, #888E89);
+        pointer-events: none;
     }
 
-    /* Assigned Rider Box */
-    .assigned-rider-box {
+    .filter-stage-pill {
+        height: 40px;
+        padding: 0 16px;
+        border-radius: 9999px;
+        background: #f8fafc;
+        border: 1px solid var(--border-subtle, #ebeef2);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    [data-theme="dark"] .filter-stage-pill {
+        background: #1a201c;
+        border-color: rgba(255, 255, 255, 0.08);
+        color: #9ca3af;
+    }
+    .filter-stage-pill.active {
+        background: var(--color-dark, #070A08);
+        color: #ffffff;
+        border-color: var(--color-dark, #070A08);
+    }
+    [data-theme="dark"] .filter-stage-pill.active {
+        background: #ffffff;
+        color: #070A08;
+    }
+
+    /* ── 4. The 3-Column Order Cards Grid ── */
+    .order-cards-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+    }
+    @media (max-width: 1200px) {
+        .order-cards-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    @media (max-width: 768px) {
+        .order-cards-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* ── 5. Individual Order Card (Mockup Exact Duplicate) ── */
+    .tasty-order-card {
+        background: #ffffff;
+        border: 1.5px solid #F0F2F5;
+        border-radius: 24px;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        position: relative;
+    }
+    [data-theme="dark"] .tasty-order-card {
+        background: #151a17;
+        border-color: rgba(255, 255, 255, 0.08);
+    }
+    .tasty-order-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 28px rgba(7, 10, 8, 0.06);
+        border-color: #cbd5e1;
+    }
+
+    /* Card Header: Order 002 + Status Pill */
+    .card-header-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 14px;
-        padding: 12px 18px;
-        margin-bottom: 18px;
+        margin-bottom: 16px;
     }
-    [data-theme="dark"] .assigned-rider-box {
-        background: #0f172a;
-        border-color: #334155;
-    }
-    .rider-avatar-info {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-    .rider-avatar {
-        width: 38px;
-        height: 38px;
-        border-radius: 10px;
-        background: #e0e7ff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    .card-order-code {
         font-size: 18px;
-    }
-    .rider-name-status h4 {
-        margin: 0;
-        font-size: 13px;
         font-weight: 700;
+        color: var(--color-dark, #070A08);
+    }
+    [data-theme="dark"] .card-order-code {
+        color: #ffffff;
+    }
+
+    .status-pill-tasty {
+        padding: 5px 14px;
+        border-radius: 9999px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        text-transform: capitalize;
+    }
+    .status-pill-tasty.preparing {
+        background: #FFF3EB;
+        color: var(--color-peach, #F08D45);
+    }
+    .status-pill-tasty.ready, .status-pill-tasty.confirmed {
+        background: #EBFBF0;
+        color: var(--color-green, #36D161);
+    }
+    .status-pill-tasty.pending {
+        background: #FFF8E7;
+        color: var(--color-yellow, #F2AC11);
+    }
+    .status-pill-tasty.out_for_delivery {
+        background: #F5F3FF;
+        color: #7C3AED;
+    }
+    .status-pill-tasty.delivered {
+        background: #EBFBF0;
+        color: #36D161;
+    }
+
+    /* Card Middle Row: Meta Grid (2x2) + Circular Work-Time Gauge */
+    .card-middle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding-bottom: 16px;
+        border-bottom: 1px dashed #E5E7EB;
+        margin-bottom: 16px;
+    }
+    [data-theme="dark"] .card-middle-row {
+        border-bottom-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .card-meta-grid {
+        display: grid;
+        grid-template-columns: auto auto;
+        gap: 8px 14px;
+        font-size: 13px;
+    }
+    .card-meta-item {
         display: flex;
         align-items: center;
         gap: 6px;
+        color: #4b5563;
+        font-weight: 500;
+        white-space: nowrap;
     }
-    .rider-phone-sub {
-        font-size: 11px;
-        color: #64748b;
-        margin-top: 2px;
+    [data-theme="dark"] .card-meta-item {
+        color: #9ca3af;
     }
-    .btn-call-rider {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
-        background: #dcfce7;
-        color: #15803d;
+    .card-meta-item strong {
+        font-weight: 700;
+        color: var(--color-dark, #070A08);
+    }
+    [data-theme="dark"] .card-meta-item strong {
+        color: #ffffff;
+    }
+
+    /* Circular Timer Gauge */
+    .circular-timer-wrap {
+        position: relative;
+        width: 68px;
+        height: 68px;
         display: flex;
         align-items: center;
         justify-content: center;
-        text-decoration: none;
-        font-size: 16px;
+        flex-shrink: 0;
+    }
+    .circular-timer-text {
+        position: absolute;
+        text-align: center;
+        line-height: 1.1;
+    }
+    .circular-timer-val {
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--color-dark, #070A08);
+        display: block;
+    }
+    [data-theme="dark"] .circular-timer-val {
+        color: #ffffff;
+    }
+    .circular-timer-lbl {
+        font-size: 9px;
+        font-weight: 500;
+        color: var(--color-gray, #888E89);
+        display: block;
+    }
+
+    /* Items Breakdown Table */
+    .card-items-table {
+        width: 100%;
+        margin-bottom: 16px;
+    }
+    .card-items-header {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--color-gray, #888E89);
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+    .card-item-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 6px 0;
+        font-size: 13.5px;
+        border-bottom: 1px solid #F3F4F6;
+    }
+    [data-theme="dark"] .card-item-row {
+        border-bottom-color: rgba(255, 255, 255, 0.05);
+    }
+    .card-item-row:last-child {
+        border-bottom: none;
+    }
+    .card-item-name {
+        font-weight: 600;
+        color: var(--color-dark, #070A08);
+        display: flex;
+        flex-direction: column;
+    }
+    [data-theme="dark"] .card-item-name {
+        color: #f3f4f6;
+    }
+    .card-item-qty {
+        font-size: 11.5px;
+        font-weight: 500;
+        color: var(--color-gray, #888E89);
+        margin-top: 1px;
+    }
+    .card-item-price {
+        font-weight: 700;
+        color: var(--color-dark, #070A08);
+        white-space: nowrap;
+    }
+    [data-theme="dark"] .card-item-price {
+        color: #ffffff;
+    }
+
+    /* Total Amount Row */
+    .card-total-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0 16px;
+        border-top: 1px solid #E5E7EB;
+        margin-top: auto;
+    }
+    [data-theme="dark"] .card-total-row {
+        border-top-color: rgba(255, 255, 255, 0.08);
+    }
+    .card-total-label {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--color-dark, #070A08);
+    }
+    [data-theme="dark"] .card-total-label {
+        color: #ffffff;
+    }
+    .card-total-amount {
+        font-size: 18px;
+        font-weight: 800;
+        color: var(--color-dark, #070A08);
+    }
+    [data-theme="dark"] .card-total-amount {
+        color: #ffffff;
     }
 
     /* Action Buttons Row */
-    .action-btn-row {
-        display: flex;
+    .card-actions-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
         gap: 10px;
-        align-items: center;
     }
-    .btn-action-primary {
-        flex: 1;
-        padding: 12px 18px;
+    .btn-tasty-primary {
+        padding: 11px 16px;
         border-radius: 12px;
-        border: none;
-        color: #ffffff;
         font-size: 13px;
         font-weight: 700;
+        border: none;
         cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        transition: all 0.2s;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+        text-align: center;
+        transition: all 0.15s ease;
+        white-space: nowrap;
     }
-    .btn-action-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+    .btn-tasty-primary:hover {
+        opacity: 0.92;
+        transform: translateY(-1px);
     }
-    .btn-action-secondary {
-        padding: 12px 14px;
-        border-radius: 12px;
-        border: 1px solid #cbd5e1;
+    .btn-tasty-primary.btn-accept {
+        background: var(--color-coral, #FD6941);
+        color: #ffffff;
+        box-shadow: 0 4px 12px rgba(253, 105, 65, 0.25);
+    }
+    .btn-tasty-primary.btn-ready {
+        background: var(--color-yellow, #F2AC11);
+        color: #ffffff;
+        box-shadow: 0 4px 12px rgba(242, 172, 17, 0.25);
+    }
+    .btn-tasty-primary.btn-complete {
+        background: var(--color-dark, #070A08);
+        color: #ffffff;
+        box-shadow: 0 4px 12px rgba(7, 10, 8, 0.25);
+    }
+    [data-theme="dark"] .btn-tasty-primary.btn-complete {
         background: #ffffff;
-        color: #334155;
-        font-size: 12.5px;
-        font-weight: 700;
-        text-decoration: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        transition: all 0.2s;
-    }
-    [data-theme="dark"] .btn-action-secondary {
-        background: #0f172a;
-        border-color: #475569;
-        color: #cbd5e1;
-    }
-    .btn-action-secondary:hover {
-        background: #f1f5f9;
+        color: #070A08;
     }
 
-    /* Fleet Column */
-    .rider-list {
+    .btn-tasty-secondary {
+        padding: 11px 16px;
+        border-radius: 12px;
+        font-size: 13px;
+        font-weight: 700;
+        background: #f8fafc;
+        border: 1px solid #E2E8F0;
+        color: var(--color-dark, #070A08);
+        cursor: pointer;
+        text-align: center;
+        transition: all 0.15s ease;
+        white-space: nowrap;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    [data-theme="dark"] .btn-tasty-secondary {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+    }
+    .btn-tasty-secondary:hover {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+    }
+
+    /* ── 6. Drawer Overlay for Full Order Workbench ── */
+    .tasty-drawer-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(7, 10, 8, 0.5);
+        backdrop-filter: blur(4px);
+        z-index: 1000;
+        display: none;
+        align-items: center;
+        justify-content: flex-end;
+    }
+    .tasty-drawer-backdrop.show {
+        display: flex;
+    }
+    .tasty-drawer-panel {
+        width: 480px;
+        max-width: 100vw;
+        height: 100vh;
+        background: #ffffff;
+        box-shadow: -10px 0 30px rgba(0, 0, 0, 0.15);
         display: flex;
         flex-direction: column;
-        gap: 8px;
-        max-height: 480px;
         overflow-y: auto;
+        padding: 28px;
+        box-sizing: border-box;
     }
-    .rider-item-card {
+    [data-theme="dark"] .tasty-drawer-panel {
+        background: #111513;
+        border-left: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .drawer-header {
         display: flex;
-        align-items: center;
         justify-content: space-between;
-        padding: 10px 12px;
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-    }
-    [data-theme="dark"] .rider-item-card {
-        background: #0f172a;
-        border-color: #334155;
-    }
-    .rider-tag {
-        font-size: 10px;
-        font-weight: 700;
-        padding: 2px 7px;
-        border-radius: 5px;
-    }
-    .rider-tag.delivery { background: #dcfce7; color: #166534; }
-    .rider-tag.offline { background: #f1f5f9; color: #64748b; }
-
-    /* ── Live Order Pipeline Strip ── */
-    .pipeline-card {
-        background: #ffffff;
-        border-radius: 18px;
-        border: 1px solid #e2e8f0;
-        padding: 18px 22px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-    }
-    [data-theme="dark"] .pipeline-card {
-        background: #1e293b;
-        border-color: #334155;
-    }
-    .pipeline-steps-strip {
-        display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 8px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #E5E7EB;
+        margin-bottom: 20px;
     }
-    .pipeline-step-box {
-        flex: 1;
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 14px;
-        padding: 12px 8px;
-        text-align: center;
+    .drawer-close-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #f1f5f9;
+        border: none;
+        font-size: 16px;
+        color: #64748b;
         cursor: pointer;
-        transition: all 0.18s ease;
-        text-decoration: none;
-        user-select: none;
     }
-    [data-theme="dark"] .pipeline-step-box {
-        background: #0f172a;
-        border-color: #334155;
+    [data-theme="dark"] .drawer-close-btn {
+        background: #1a201c;
+        color: #ffffff;
     }
-    .pipeline-step-box:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-    }
-    .pipeline-step-box.active {
-        box-shadow: 0 0 0 2.5px #064e3b;
-        border-color: #064e3b;
-    }
-    .pipeline-step-label {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 5px;
-        font-size: 11px;
-        font-weight: 700;
-        margin-bottom: 4px;
-    }
-    .pipeline-step-count {
-        font-size: 20px;
-        font-weight: 800;
-        color: #0f172a;
-        line-height: 1.1;
-    }
-    [data-theme="dark"] .pipeline-step-count {
-        color: #f8fafc;
-    }
-    .pipeline-arrow {
-        color: #94a3b8;
-        font-size: 14px;
-        opacity: 0.6;
-        user-select: none;
-    }
-    .step-new       { background: #fffbeb; border-color: #fef3c7; color: #b45309; }
-    .step-confirmed { background: #f0f9ff; border-color: #e0f2fe; color: #0284c7; }
-    .step-preparing { background: #faf5ff; border-color: #f3e8ff; color: #9333ea; }
-    .step-ready     { background: #ecfdf5; border-color: #d1fae5; color: #059669; }
-    .step-delivery  { background: #ecfeff; border-color: #cffafe; color: #0891b2; }
-    .step-delivered { background: #f8fafc; border-color: #f1f5f9; color: #64748b; }
-    [data-theme="dark"] .step-new       { background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.2); color: #fbbf24; }
-    [data-theme="dark"] .step-confirmed { background: rgba(14, 165, 233, 0.12); border-color: rgba(14, 165, 233, 0.2); color: #38bdf8; }
-    [data-theme="dark"] .step-preparing { background: rgba(147, 51, 234, 0.12); border-color: rgba(147, 51, 234, 0.2); color: #c084fc; }
-    [data-theme="dark"] .step-ready     { background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.2); color: #34d399; }
-    [data-theme="dark"] .step-delivery  { background: rgba(8, 145, 178, 0.12); border-color: rgba(8, 145, 178, 0.2); color: #22d3ee; }
-    [data-theme="dark"] .step-delivered { background: rgba(100, 116, 139, 0.12); border-color: rgba(100, 116, 139, 0.2); color: #94a3b8; }
 
-    @media (max-width: 768px) {
-        .pipeline-steps-strip {
-            overflow-x: auto !important;
-            -webkit-overflow-scrolling: touch !important;
-            padding-bottom: 6px !important;
-            scrollbar-width: thin;
-        }
-        .pipeline-step-box {
-            min-width: 105px !important;
-            flex-shrink: 0 !important;
-            padding: 10px 8px !important;
-        }
-        .pipeline-arrow {
-            display: none !important;
-        }
+    /* Empty state */
+    .empty-orders-view {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--color-gray, #888E89);
     }
 </style>
 
-<div class="live-command-container">
+<div class="order-mgmt-container">
 
-    <!-- 1. LIVE COMMAND HEADER -->
-    <div class="live-top-bar">
-        <div>
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <h2 style="font-size: 20px; font-weight: 800; color: #0f172a; margin: 0;">🛍️ Live Orders Command Center</h2>
-                <div class="live-pulse-badge">
-                    <div class="pulse-dot"></div>
-                    <span>Real-Time Kitchen Feed Active</span>
-                </div>
-            </div>
-            <p style="font-size: 12.5px; color: #64748b; margin: 4px 0 0 0;">
-                Incoming WhatsApp orders appear here instantly. Update status, manage kitchen preparation, and dispatch delivery riders without refreshing.
-            </p>
-        </div>
+    <!-- 1. TOP PAGE HEADER ROW -->
+    <div class="order-mgmt-header">
+        <h1 class="order-mgmt-title">Order Management</h1>
 
-        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-            <button id="btn-sound-toggle" onclick="toggleKitchenChime()" class="btn-action-secondary" title="Kitchen audio chime on new orders" style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 700; border-color: #a7f3d0; color: #064e3b; background: #ecfdf5;">
+        <div class="order-mgmt-actions">
+            <!-- Kitchen Audio Chime Toggle -->
+            <button id="btn-sound-toggle" onclick="toggleKitchenChime()" class="btn-tasty-sound" title="Toggle Kitchen Audio Chime">
                 <span id="sound-icon">🔔</span>
                 <span id="sound-label">Chime: ON</span>
             </button>
-            <a href="{{ route('dashboard.daily-closing', $restaurant->id) }}" class="btn-action-secondary" style="background: #ecfdf5; border-color: #a7f3d0; color: #047857; font-weight: 700;" title="View Today's Cash & Rider Settlement Summary">
-                💰 Daily Closing & Cash
-            </a>
-            <a href="{{ route('dashboard.orders', $restaurant->id) }}" class="btn-action-secondary" title="View Executive Dashboard Overview">
-                📊 Dashboard Overview
-            </a>
-            <a href="{{ route('dashboard.history', $restaurant->id) }}" class="btn-action-secondary" title="View Past Completed Orders">
-                📋 Orders History →
-            </a>
-        </div>
-    </div>
 
-    <!-- 2. LIVE ORDER PIPELINE STRIP -->
-    <div class="pipeline-card">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
-            <div style="display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 800; color: #0f172a;">
+            <!-- Download Archive CSV -->
+            <a href="{{ route('dashboard.download-daily-archive', [$restaurant->id, 'date' => now()->toDateString()]) }}" 
+               class="btn-tasty-export" 
+               title="Export Today's CSV Archive">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="6" x2="10" y1="12" y2="12"/>
-                    <line x1="8" x2="8" y1="9" y2="15"/>
-                    <circle cx="4" cy="4" r="2"/>
-                    <path d="M4 6v12a2 2 0 0 0 2 2h14"/>
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
                 </svg>
-                <span>Live Order Pipeline</span>
-                <span id="activeStageLabel" style="font-size: 11.5px; font-weight: 600; color: #064e3b; margin-left: 6px;"></span>
+            </a>
+
+            <!-- + Add new Order Button -->
+            <a href="{{ route('dashboard.menu', $restaurant->id) }}?pos=1" class="btn-tasty-add-order" title="Open POS / Add New Order">
+                <span style="font-size: 18px; line-height: 1; font-weight: 800;">+</span>
+                <span>Add new Order</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- 2. TOP 4 METRIC CARDS STRIP -->
+    <div class="metric-cards-strip">
+        <!-- Card 1: Total Pending Orders -->
+        <div class="tasty-metric-card" onclick="filterLiveStage('pending')" style="cursor: pointer;">
+            <div class="metric-top-row">
+                <div class="metric-icon-circle">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                </div>
             </div>
-            <a href="javascript:void(0)" onclick="filterLiveStage('all')" style="font-size: 12px; font-weight: 700; color: #064e3b; text-decoration: none;">Show All Orders →</a>
+            <div>
+                <div class="metric-big-num" id="pipe-pending">{{ $statusCounts['pending'] ?? $pendingCount }}</div>
+                <div class="metric-label">Total Pending Orders</div>
+            </div>
         </div>
 
-        <div class="pipeline-steps-strip">
-            <!-- Step 1: New -->
-            <div class="pipeline-step-box step-new" onclick="filterLiveStage('pending')" id="pipe-box-pending" title="Click to view New Orders">
-                <div class="pipeline-step-label">
-                    <span style="font-size: 8px;">🟡</span> New
+        <!-- Card 2: Preparing Orders -->
+        <div class="tasty-metric-card" onclick="filterLiveStage('preparing')" style="cursor: pointer;">
+            <div class="metric-top-row">
+                <div class="metric-icon-circle">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 13.8V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v9.8"/>
+                        <path d="M4 10h16"/>
+                        <path d="M12 22a7 7 0 0 0 7-7H5a7 7 0 0 0 7 7z"/>
+                    </svg>
                 </div>
-                <div class="pipeline-step-count" id="pipe-pending">{{ $statusCounts['pending'] ?? $pendingCount }}</div>
+            </div>
+            <div>
+                <div class="metric-big-num" id="pipe-preparing">{{ $statusCounts['preparing'] ?? $preparingCount }}</div>
+                <div class="metric-label">Preparing Orders</div>
+            </div>
+        </div>
+
+        <!-- Card 3: Ready to serve -->
+        <div class="tasty-metric-card" onclick="filterLiveStage('ready')" style="cursor: pointer;">
+            <div class="metric-top-row">
+                <div class="metric-icon-circle">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/>
+                        <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/>
+                        <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/>
+                        <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
+                    </svg>
+                </div>
+            </div>
+            <div>
+                <div class="metric-big-num" id="pipe-ready">{{ $statusCounts['ready'] ?? $statusCounts['confirmed'] ?? 0 }}</div>
+                <div class="metric-label">Ready to serve</div>
+            </div>
+        </div>
+
+        <!-- Card 4: Today Order Complete -->
+        @php
+            $todayTotalOrders = $todayOrders->count();
+            $todayDelivered   = $statusCounts['delivered'] ?? 0;
+            $fillPercent      = $todayTotalOrders > 0 ? min(100, round(($todayDelivered / $todayTotalOrders) * 100)) : ($todayDelivered > 0 ? 100 : 0);
+        @endphp
+        <div class="tasty-metric-card today-complete-card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div class="today-complete-title">Today Order Complete</div>
+                <div class="today-complete-ratio">
+                    <span id="metric-delivered-count">{{ $todayDelivered }}</span><span style="color:var(--color-gray, #888E89); font-weight:400; margin: 0 1px;">/</span><span id="metric-total-count">{{ $todayTotalOrders > 0 ? $todayTotalOrders : max(1, $todayDelivered) }}</span>
+                </div>
             </div>
 
-            <span class="pipeline-arrow">→</span>
-
-            <!-- Step 2: Confirmed -->
-            <div class="pipeline-step-box step-confirmed" onclick="filterLiveStage('confirmed')" id="pipe-box-confirmed" title="Click to view Confirmed Orders">
-                <div class="pipeline-step-label">
-                    <span style="font-size: 8px;">🔵</span> Confirmed
-                </div>
-                <div class="pipeline-step-count" id="pipe-confirmed">{{ $statusCounts['confirmed'] ?? 0 }}</div>
+            <div class="milestone-ticks-row">
+                <span>33%</span>
+                <span>60%</span>
+                <span>100%</span>
             </div>
 
-            <span class="pipeline-arrow">→</span>
-
-            <!-- Step 3: Preparing -->
-            <div class="pipeline-step-box step-preparing" onclick="filterLiveStage('preparing')" id="pipe-box-preparing" title="Click to view Kitchen Orders">
-                <div class="pipeline-step-label">
-                    <span style="font-size: 8px;">🟣</span> Preparing
-                </div>
-                <div class="pipeline-step-count" id="pipe-preparing">{{ $statusCounts['preparing'] ?? $preparingCount }}</div>
-            </div>
-
-            <span class="pipeline-arrow">→</span>
-
-            <!-- Step 4: Ready -->
-            <div class="pipeline-step-box step-ready" onclick="filterLiveStage('ready')" id="pipe-box-ready" title="Click to view Ready Orders">
-                <div class="pipeline-step-label">
-                    <span style="font-size: 8px;">🟢</span> Ready
-                </div>
-                <div class="pipeline-step-count" id="pipe-ready">{{ $statusCounts['ready'] ?? 0 }}</div>
-            </div>
-
-            <span class="pipeline-arrow">→</span>
-
-            <!-- Step 5: Out for Delivery -->
-            <div class="pipeline-step-box step-delivery" onclick="filterLiveStage('out_for_delivery')" id="pipe-box-delivery" title="Click to view On Road Orders">
-                <div class="pipeline-step-label">
-                    <span style="font-size: 8px;">🔷</span> Out for Delivery
-                </div>
-                <div class="pipeline-step-count" id="pipe-delivery">{{ $statusCounts['out_for_delivery'] ?? $dispatchedCount }}</div>
-            </div>
-
-            <span class="pipeline-arrow">→</span>
-
-            <!-- Step 6: Delivered -->
-            <div class="pipeline-step-box step-delivered" onclick="filterLiveStage('delivered')" id="pipe-box-delivered" title="Click to view Completed Orders">
-                <div class="pipeline-step-label">
-                    <span style="font-size: 8px;">⚪</span> Delivered
-                </div>
-                <div class="pipeline-step-count" id="pipe-delivered">{{ $statusCounts['delivered'] ?? 0 }}</div>
+            <div class="milestone-bar-wrap">
+                <div class="milestone-bar-fill" id="milestone-progress-fill" style="width: {{ $fillPercent }}%;"></div>
             </div>
         </div>
     </div>
 
-    <!-- 4. MAIN WORKBENCH 3-COLUMN GRID -->
-    <div class="live-main-grid">
-
-        <!-- Column 1: Live Incoming Orders Stream -->
-        <div class="panel-card">
-            <div class="panel-header">
-                <div class="panel-title">
-                    <span>Incoming Orders</span>
-                    <span class="status-pill pending" id="live-orders-badge">{{ $liveOrdersCount }}</span>
-                </div>
-                <span style="font-size: 11px; color: #94a3b8;">5s Auto-Sync</span>
+    <!-- 3. ACTIVE ORDER SECTION -->
+    <div class="active-orders-section">
+        <div class="active-orders-header">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <h2 class="active-orders-title">Active Order</h2>
+                <span id="activeStageLabel" style="font-size: 13px; font-weight: 700; color: var(--color-coral, #FD6941);"></span>
             </div>
 
-            <div class="live-orders-list" id="live-orders-list">
-                @forelse($orders as $o)
-                    <a href="javascript:void(0)" 
-                       onclick="selectOrder({{ $o->id }}); return false;"
-                       class="live-order-item {{ ($selectedOrder && $selectedOrder->id === $o->id) ? 'active' : '' }}"
-                       data-order-id="{{ $o->id }}">
-                        <div class="wa-avatar-box">💬</div>
-                        <div class="order-meta-info">
-                            <div class="order-meta-top">
-                                <span class="order-code-text">#{{ $o->daily_order_number ?: $o->id }}</span>
-                                <span class="order-time-text">{{ $o->created_at->diffForHumans(null, true, true) }}</span>
-                            </div>
-                            <div class="order-customer-text">
-                                👤 {{ $o->customer_name ?: 'Guest' }} ({{ substr($o->customer_phone ?? 'N/A', -6) }})
-                            </div>
-                            <div class="order-item-footer">
-                                <span class="status-pill {{ $o->status }}">{{ $o->status_label }}</span>
-                                <span class="order-price-bold">PKR {{ number_format($o->total) }}</span>
-                            </div>
-                        </div>
-                    </a>
-                @empty
-                    <div style="text-align: center; padding: 40px 10px; color: #94a3b8;" id="empty-orders-state">
-                        <div style="font-size: 36px; margin-bottom: 8px;">🍽️</div>
-                        <p style="font-weight: 700; font-size: 14px;">No active live orders right now</p>
-                        <p style="font-size: 11.5px; margin-top: 4px;">Orders placed on WhatsApp appear here instantly in real-time.</p>
-                    </div>
-                @endforelse
+            <div class="active-orders-controls">
+                <div class="search-input-wrap">
+                    <svg class="search-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input type="text" id="liveSearchInput" placeholder="Search orders..." oninput="handleLiveSearch(this.value)" class="search-input-field">
+                </div>
+
+                <button type="button" class="filter-stage-pill" onclick="filterLiveStage('all')" id="btn-filter-all" title="Show All">
+                    All
+                </button>
+                <button type="button" class="filter-stage-pill" onclick="filterLiveStage('pending')" id="btn-filter-pending" title="Show Pending">
+                    Pending
+                </button>
+                <button type="button" class="filter-stage-pill" onclick="filterLiveStage('preparing')" id="btn-filter-preparing" title="Show Preparing">
+                    Preparing
+                </button>
+                <button type="button" class="filter-stage-pill" onclick="filterLiveStage('ready')" id="btn-filter-ready" title="Show Ready">
+                    Ready
+                </button>
             </div>
         </div>
 
-        <!-- Column 2: Order Detail Workbench & Kitchen Ticket -->
-        <div class="panel-card" id="order-detail-panel">
-            @if($selectedOrder)
-                <div class="order-detail-header">
-                    <div class="order-detail-title">
-                        <h3 id="detail-tracking-code">Order #{{ $selectedOrder->daily_order_number ?: $selectedOrder->id }} <span style="font-size: 13px; font-weight: 500; color: #94a3b8;">(#{{ $selectedOrder->tracking_code }})</span></h3>
-                        <p id="detail-placed-time">Placed at {{ $selectedOrder->created_at->format('h:i A') }} • {{ $selectedOrder->created_at->diffForHumans() }}</p>
-                    </div>
-                    <span class="status-pill {{ $selectedOrder->status }}" id="selected-order-status-pill" style="font-size: 11px; padding: 4px 12px;">{{ $selectedOrder->status_label }}</span>
-                </div>
+        <!-- 3-Column Order Cards Grid -->
+        <div class="order-cards-grid" id="live-orders-grid">
+            @forelse($orders as $o)
+                @php
+                    $isPending   = ($o->status === 'pending');
+                    $isPreparing = ($o->status === 'preparing');
+                    $isReady     = ($o->status === 'confirmed' || $o->status === 'ready');
+                    $isDelivery  = ($o->status === 'out_for_delivery');
 
-                <!-- Customer info & Address -->
-                <div class="customer-info-box">
+                    $statusClass = $isPreparing ? 'preparing' : ($isReady ? 'ready' : ($isDelivery ? 'out_for_delivery' : 'pending'));
+                    $statusLabel = $o->status_label ?: ucfirst($o->status);
+                    $ringColor   = $isPreparing ? '#F2AC11' : ($isReady ? '#36D161' : ($isDelivery ? '#7C3AED' : '#FD6941'));
+                    $workTime    = $o->created_at ? $o->created_at->format('H:i') : '12:34';
+                    $orderCode   = 'Order ' . str_pad($o->daily_order_number ?: $o->id, 3, '0', STR_PAD_LEFT);
+                @endphp
+                <div class="tasty-order-card" id="order-card-{{ $o->id }}" data-order-id="{{ $o->id }}">
                     <div>
-                        <div class="info-col-label">👤 Customer</div>
-                        <div class="info-col-val">
-                            <span id="detail-customer-name">{{ $selectedOrder->customer_name ?: 'Guest Customer' }}</span>
-                            <a id="detail-wa-link" href="https://wa.me/{{ preg_replace('/\D/', '', $selectedOrder->customer_phone) }}" target="_blank" style="color: #16a34a; text-decoration: none;" title="Open WhatsApp Chat">💬</a>
+                        <!-- Top Row: Code + Pill -->
+                        <div class="card-header-row">
+                            <span class="card-order-code">{{ $orderCode }}</span>
+                            <span class="status-pill-tasty {{ $statusClass }}">{{ $statusLabel }}</span>
                         </div>
-                        <div class="info-col-sub" id="detail-customer-phone">{{ $selectedOrder->formatted_customer_phone }}</div>
+
+                        <!-- Middle Row: 2x2 Meta + Circular Gauge -->
+                        <div class="card-middle-row">
+                            <div class="card-meta-grid">
+                                <div class="card-meta-item">
+                                    <span>🏷️</span>
+                                    <span>{{ $o->delivery_address ? 'Delivery' : 'Dine in' }}</span>
+                                </div>
+                                <div class="card-meta-item">
+                                    <span>👥</span>
+                                    <span>Online Order</span>
+                                </div>
+                                <div class="card-meta-item">
+                                    <span>🕒</span>
+                                    <span>Time <strong>{{ $o->created_at ? $o->created_at->format('g:i') : '2:34' }}</strong></span>
+                                </div>
+                                <div class="card-meta-item">
+                                    <span>👤</span>
+                                    <span>{{ $o->customer_name ?: 'John doe' }}</span>
+                                </div>
+                            </div>
+
+                            <!-- Circular Timer Gauge -->
+                            <div class="circular-timer-wrap">
+                                <svg width="68" height="68" viewBox="0 0 68 68">
+                                    <circle cx="34" cy="34" r="28" stroke="#F1F5F9" stroke-width="4.5" fill="none"/>
+                                    <circle cx="34" cy="34" r="28" stroke="{{ $ringColor }}" stroke-width="4.5" stroke-dasharray="176" stroke-dashoffset="40" fill="none" stroke-linecap="round" transform="rotate(-90 34 34)"/>
+                                </svg>
+                                <div class="circular-timer-text">
+                                    <span class="circular-timer-val">{{ $workTime }}</span>
+                                    <span class="circular-timer-lbl">Work time</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Items Breakdown Table -->
+                        <div class="card-items-table">
+                            <div class="card-items-header">
+                                <span>Order Item</span>
+                                <span>Amount</span>
+                            </div>
+                            @foreach($o->items->take(3) as $it)
+                                <div class="card-item-row">
+                                    <div class="card-item-name">
+                                        <span>{{ $it->name ?: $it->item_name }}</span>
+                                        <span class="card-item-qty">Qty {{ $it->quantity }}</span>
+                                    </div>
+                                    <span class="card-item-price">PKR {{ number_format($it->subtotal) }}</span>
+                                </div>
+                            @endforeach
+                            @if($o->items->count() > 3)
+                                <div style="font-size: 11.5px; color: var(--color-gray, #888E89); padding-top: 4px;">
+                                    +{{ $o->items->count() - 3 }} more item(s)
+                                </div>
+                            @endif
+                        </div>
                     </div>
+
                     <div>
-                        <div class="info-col-label">📍 Delivery Address</div>
-                        <div class="info-col-val" id="detail-delivery-address">{{ $selectedOrder->delivery_address ?: 'Dine-in / Pickup' }}</div>
-                        <div class="info-col-sub">{{ $restaurant->city ?: 'Local Delivery' }}</div>
-                    </div>
-                </div>
-
-
-                <!-- Order Items List -->
-                <div class="order-items-list" id="detail-items-list">
-                    @foreach($selectedOrder->items as $item)
-                        <div class="order-item-row">
-                            <div>
-                                <span class="order-item-qty-badge">{{ $item->quantity }}x</span>
-                                <span>{{ $item->name ?: $item->item_name }}@if($item->size) <strong style="color: #064e3b;">({{ $item->size }})</strong>@endif</span>
-                                @if($item->unit_price > 0)
-                                     <span style="font-size: 11px; color: #64748b; margin-left: 4px;">@ Rs. {{ number_format($item->unit_price) }}</span>
-                                @endif
-                            </div>
-                            <span style="font-weight: 700;">PKR {{ number_format($item->subtotal) }}</span>
+                        <!-- Total Amount -->
+                        <div class="card-total-row">
+                            <span class="card-total-label">Total Amount</span>
+                            <span class="card-total-amount">PKR {{ number_format($o->total) }}</span>
                         </div>
-                    @endforeach
-                    <div class="order-item-row" style="color: #64748b;">
-                        <span>Delivery Fee</span>
-                        <span>PKR {{ number_format($restaurant->delivery_charge ?? 0) }}</span>
-                    </div>
-                    <div class="order-bill-divider"></div>
-                    <div class="order-total-row">
-                        <span>Total Bill</span>
-                        <span style="color: #064e3b; font-size: 17px;">PKR {{ number_format($selectedOrder->total) }}</span>
-                    </div>
-                </div>
 
-                <!-- Assigned Rider Box -->
-                <div class="assigned-rider-box">
-                    <div class="rider-avatar-info">
-                        <div class="rider-avatar">🚴</div>
-                        <div class="rider-name-status">
-                            <h4>
-                                <span>{{ $selectedOrder->rider_name ?: 'No Rider Assigned' }}</span>
-                                @if($selectedOrder->rider_name)
-                                    <span class="status-pill delivered" style="font-size: 9.5px; padding: 2px 6px;">Assigned</span>
-                                @endif
-                            </h4>
-                            <div class="rider-phone-sub">{{ $selectedOrder->rider_phone ?: 'Assign rider before dispatch' }}</div>
+                        <!-- Action Buttons -->
+                        <div class="card-actions-row">
+                            @if($isPending)
+                                <button type="button" class="btn-tasty-primary btn-accept" onclick="openConfirmOrderModal('{{ $o->id }}')">
+                                    Accept
+                                </button>
+                            @elseif($isPreparing)
+                                <button type="button" class="btn-tasty-primary btn-ready" onclick="ajaxUpdateStatus('{{ route('dashboard.update-status', [$restaurant->id, $o->id]) }}', 'confirmed', this)">
+                                    Mark Ready
+                                </button>
+                            @elseif($isReady)
+                                <button type="button" class="btn-tasty-primary btn-complete" onclick="openDispatchModal('{{ $o->id }}', '{{ $o->tracking_code }}', '{{ addslashes($o->customer_name) }}', '{{ addslashes($o->delivery_address ?: '') }}')">
+                                    Mark Complete
+                                </button>
+                            @elseif($isDelivery)
+                                <button type="button" class="btn-tasty-primary" style="background:#36D161; color:#fff;" onclick="ajaxUpdateStatus('{{ route('dashboard.update-status', [$restaurant->id, $o->id]) }}', 'delivered', this)">
+                                    Mark Delivered
+                                </button>
+                            @else
+                                <button type="button" class="btn-tasty-primary" style="background:#070A08; color:#fff;">
+                                    Completed
+                                </button>
+                            @endif
+
+                            <button type="button" class="btn-tasty-secondary" onclick="openOrderDetailDrawer('{{ $o->id }}')">
+                                View Details
+                            </button>
                         </div>
                     </div>
-                    @if($selectedOrder->rider_phone)
-                        <a href="tel:{{ $selectedOrder->rider_phone }}" class="btn-call-rider" title="Call Rider">📞</a>
-                    @endif
                 </div>
-
-                <!-- Action Buttons: Real-Time Status Transitions -->
-                <div class="action-btn-row" id="action-btn-row">
-                    @if($selectedOrder->status === 'pending')
-                        <button type="button" class="btn-action-primary" style="background: #2563eb;"
-                            onclick="openConfirmOrderModal('{{ $selectedOrder->id }}')">
-                            ✓ Mark as Confirmed
-                        </button>
-                    @elseif($selectedOrder->status === 'confirmed')
-                        <button type="button" class="btn-action-primary" style="background: #7c3aed;"
-                            onclick="ajaxUpdateStatus('{{ route('dashboard.update-status', [$restaurant->id, $selectedOrder->id]) }}', 'preparing', this)">
-                            🍳 Mark as Preparing
-                        </button>
-                    @elseif($selectedOrder->status === 'preparing')
-                        <button type="button" class="btn-action-primary" style="background: #0284c7;"
-                            onclick="openDispatchModal('{{ $selectedOrder->id }}', '{{ $selectedOrder->tracking_code }}', '{{ addslashes($selectedOrder->customer_name) }}', '{{ addslashes($selectedOrder->delivery_address ?: '') }}')">
-                            🚴 Dispatch to Rider
-                        </button>
-                    @elseif($selectedOrder->status === 'out_for_delivery')
-                        <button type="button" class="btn-action-primary" style="background: #16a34a;"
-                            onclick="ajaxUpdateStatus('{{ route('dashboard.update-status', [$restaurant->id, $selectedOrder->id]) }}', 'delivered', this)">
-                            ✅ Mark as Delivered
-                        </button>
-                    @else
-                        <div style="flex: 1; text-align: center; font-weight: 700; color: #64748b; padding: 10px; background: #f8fafc; border-radius: 10px;">
-                            Order is {{ ucfirst($selectedOrder->status) }}
-                        </div>
-                    @endif
-
-                    <a href="{{ route('dashboard.print-bill', [$restaurant->id, $selectedOrder->id]) }}" target="_blank" class="btn-action-secondary" title="Print Parcel Bill / Receipt">
-                        🖨️ Print Bill
-                    </a>
+            @empty
+                <div class="empty-orders-view" id="empty-orders-state">
+                    <div style="font-size: 40px; margin-bottom: 8px;">🍽️</div>
+                    <h3 style="font-size: 18px; font-weight: 700; color: var(--color-dark, #070A08);">No Active Orders Right Now</h3>
+                    <p style="font-size: 13.5px; margin-top: 4px;">Orders placed by customers will arrive here automatically in real-time.</p>
                 </div>
-            @else
-                <div style="text-align: center; padding: 80px 20px; color: #94a3b8;">
-                    <div style="font-size: 40px; margin-bottom: 12px;">🛍️</div>
-                    <h3 style="font-size: 16px; font-weight: 700; color: #334155;">Select an order</h3>
-                    <p style="font-size: 12px; margin-top: 4px;">Click any order on the left to view its items, delivery route and customer chat.</p>
-                </div>
-            @endif
+            @endforelse
         </div>
-
-        <!-- Column 3: Active Fleet & Riders -->
-        <div class="panel-card live-fleet-column">
-            <div class="panel-header">
-                <div class="panel-title">
-                    <span>Delivery Fleet</span>
-                    <span class="status-pill delivered">{{ $activeRidersCount }}</span>
-                </div>
-                <a href="{{ route('dashboard.riders', $restaurant->id) }}" style="font-size: 11px; font-weight: 700; color: #064e3b; text-decoration: none;">Manage</a>
-            </div>
-
-            <div class="rider-list">
-                @forelse($riders as $rider)
-                    <div class="rider-item-card">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div style="font-size: 20px;">🚴</div>
-                            <div>
-                                <div style="font-size: 12.5px; font-weight: 700; color: #0f172a;">{{ $rider->name }}</div>
-                                <div style="font-size: 11px; color: #64748b;">{{ $rider->phone }}</div>
-                            </div>
-                        </div>
-                        <span class="rider-tag {{ $rider->is_active ? 'delivery' : 'offline' }}">
-                            {{ $rider->is_active ? 'Available' : 'Offline' }}
-                        </span>
-                    </div>
-                @empty
-                    <div style="text-align: center; padding: 24px 10px; color: #94a3b8;">
-                        <p style="font-size: 12px;">No delivery riders registered yet.</p>
-                    </div>
-                @endforelse
-            </div>
-
-            <div style="margin-top: 16px; display: flex; gap: 8px;">
-                <a href="{{ route('dashboard.riders', $restaurant->id) }}" class="btn-action-secondary" style="flex:1; font-size: 12px;">
-                    ➕ Add Rider
-                </a>
-                <a href="{{ route('dashboard.customers', $restaurant->id) }}" class="btn-action-secondary" style="flex:1; font-size: 12px; color: #16a34a; border-color: #bbf7d0;">
-                    💬 Broadcast
-                </a>
-            </div>
-        </div>
-
     </div>
 </div>
 
-<!-- CONFIRM ORDER & SET DELIVERY FEE MODAL -->
-<div id="confirmOrderModal" style="display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(4px); align-items: center; justify-content: center;">
-    <div style="background: #ffffff; width: 460px; max-width: calc(100% - 32px); border-radius: 20px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25); overflow: hidden; padding: 24px;">
+<!-- 4. ORDER DETAILS WORKBENCH DRAWER -->
+<div id="orderDrawerModal" class="tasty-drawer-backdrop" onclick="closeOrderDetailDrawer(event)">
+    <div class="tasty-drawer-panel" onclick="event.stopPropagation()">
+        <div class="drawer-header">
+            <div>
+                <h3 id="drawerOrderTitle" style="font-size: 20px; font-weight: 800; color: var(--color-dark, #070A08); margin: 0;">Order #0</h3>
+                <p id="drawerOrderSub" style="font-size: 13px; color: var(--color-gray, #888E89); margin: 3px 0 0 0;">Placed at --</p>
+            </div>
+            <button type="button" class="drawer-close-btn" onclick="closeOrderDetailDrawer()">✕</button>
+        </div>
+
+        <!-- Customer & Contact Box -->
+        <div style="background: #f8fafc; border: 1px solid var(--border-subtle, #ebeef2); border-radius: 16px; padding: 16px; margin-bottom: 18px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 12px; font-weight: 700; color: #64748b;">CUSTOMER</span>
+                <a id="drawerWhatsAppLink" href="#" target="_blank" style="font-size: 13px; color: #16a34a; font-weight: 700; text-decoration: none;">
+                    💬 Open WhatsApp Chat
+                </a>
+            </div>
+            <div id="drawerCustomerName" style="font-size: 16px; font-weight: 800; color: var(--color-dark, #070A08);">Customer Name</div>
+            <div id="drawerCustomerPhone" style="font-size: 13px; color: #64748b; margin-top: 2px;">03001234567</div>
+
+            <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed #cbd5e1;">
+                <span style="font-size: 12px; font-weight: 700; color: #64748b;">DELIVERY ADDRESS</span>
+                <div id="drawerAddress" style="font-size: 13px; font-weight: 600; color: #070A08; margin-top: 2px;">Lahore, Pakistan</div>
+            </div>
+        </div>
+
+        <!-- Order Items Breakdown -->
+        <div style="margin-bottom: 20px;">
+            <div style="font-size: 13px; font-weight: 700; color: var(--color-gray, #888E89); margin-bottom: 10px; text-transform: uppercase;">
+                ORDER ITEMS
+            </div>
+            <div id="drawerItemsList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+
+            <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 16px; font-weight: 700; color: var(--color-dark, #070A08);">Total Bill:</span>
+                <span id="drawerTotalBill" style="font-size: 20px; font-weight: 800; color: var(--color-coral, #FD6941);">PKR 0</span>
+            </div>
+        </div>
+
+        <!-- Rider Info -->
+        <div style="background: #f8fafc; border: 1px solid var(--border-subtle, #ebeef2); border-radius: 16px; padding: 16px; margin-bottom: 20px;">
+            <div style="font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 6px;">ASSIGNED RIDER</div>
+            <div id="drawerRiderName" style="font-size: 14px; font-weight: 800; color: var(--color-dark, #070A08);">No Rider Assigned</div>
+            <div id="drawerRiderPhone" style="font-size: 12.5px; color: #64748b; margin-top: 2px;">Assign rider before dispatch</div>
+        </div>
+
+        <!-- Action Buttons in Drawer -->
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: auto;">
+            <a id="drawerPrintLink" href="#" target="_blank" class="btn-tasty-secondary" style="width: 100%; box-sizing: border-box;">
+                🖨️ Print Parcel Bill / Receipt
+            </a>
+            <div id="drawerDynamicActions" style="display: flex; gap: 10px;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 5. CONFIRM ORDER MODAL -->
+<div id="confirmOrderModal" style="display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(7, 10, 8, 0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center;">
+    <div style="background: #ffffff; width: 460px; max-width: calc(100% - 32px); border-radius: 24px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25); overflow: hidden; padding: 24px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <h3 style="font-size: 17px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
-                <span>✅ Confirm Order</span>
-                <span id="confirmModalCode" style="font-size: 13px; color: #2563eb; font-weight: 700;">#0</span>
+            <h3 style="font-size: 18px; font-weight: 800; color: var(--color-dark, #070A08); display: flex; align-items: center; gap: 8px; margin: 0;">
+                <span>✅ Accept Order</span>
+                <span id="confirmModalCode" style="font-size: 14px; color: var(--color-coral, #FD6941); font-weight: 700;">#0</span>
             </h3>
             <button type="button" onclick="closeConfirmOrderModal()" style="background: none; border: none; font-size: 18px; cursor: pointer; color: #64748b;">✕</button>
         </div>
 
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+        <div style="background: #f8fafc; border: 1px solid var(--border-subtle, #ebeef2); border-radius: 14px; padding: 14px; margin-bottom: 16px;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
                 <span style="font-size: 12px; color: #64748b; font-weight: 600;">Customer:</span>
-                <span id="confirmModalCustomer" style="font-size: 13px; font-weight: 700; color: #0f172a;">Customer Name</span>
+                <span id="confirmModalCustomer" style="font-size: 13px; font-weight: 700; color: var(--color-dark, #070A08);">Customer Name</span>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 6px;">
                 <span style="font-size: 12px; color: #64748b; font-weight: 600;">Delivery Address:</span>
@@ -1024,22 +1049,22 @@
             </div>
             <div style="display: flex; justify-content: space-between; border-top: 1px dashed #cbd5e1; padding-top: 6px; margin-top: 6px;">
                 <span style="font-size: 12px; color: #64748b; font-weight: 600;">Food Subtotal:</span>
-                <span id="confirmModalSubtotal" style="font-size: 13px; font-weight: 800; color: #0f172a;">Rs. 0</span>
+                <span id="confirmModalSubtotal" style="font-size: 13px; font-weight: 800; color: var(--color-dark, #070A08);">Rs. 0</span>
             </div>
         </div>
 
         <div style="margin-bottom: 18px;">
-            <label style="display: block; font-size: 12.5px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
+            <label style="display: block; font-size: 12.5px; font-weight: 700; color: var(--color-dark, #070A08); margin-bottom: 8px;">
                 Select Delivery Charges:
             </label>
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px;">
-                <button type="button" class="deliv-charge-pill active" id="btnDelivFree" onclick="selectDeliveryCharge(0)">
+                <button type="button" class="filter-stage-pill active" id="btnDelivFree" onclick="selectDeliveryCharge(0)" style="justify-content: center;">
                     🟢 Free (Rs. 0)
                 </button>
-                <button type="button" class="deliv-charge-pill" id="btnDelivStandard" onclick="selectDeliveryCharge(250)">
+                <button type="button" class="filter-stage-pill" id="btnDelivStandard" onclick="selectDeliveryCharge(250)" style="justify-content: center;">
                     🟡 Rs. 250
                 </button>
-                <button type="button" class="deliv-charge-pill" id="btnDelivCustom" onclick="enableCustomDeliveryCharge()">
+                <button type="button" class="filter-stage-pill" id="btnDelivCustom" onclick="enableCustomDeliveryCharge()" style="justify-content: center;">
                     ✏️ Custom
                 </button>
             </div>
@@ -1048,35 +1073,34 @@
                     <span style="font-size: 13px; font-weight: 700; color: #64748b;">Rs.</span>
                     <input type="number" id="inputCustomDeliveryCharge" min="0" max="50000" placeholder="e.g. 100"
                         oninput="onCustomDeliveryInput(this.value)"
-                        style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: #ffffff; color: #0f172a; font-size: 13px; font-weight: 700;">
+                        style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: #ffffff; color: #070A08; font-size: 13px; font-weight: 700;">
                 </div>
             </div>
         </div>
 
-        <!-- Total Payable Calculation Preview -->
-        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 12px 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-size: 13px; font-weight: 700; color: #1d4ed8;">Total Bill (to collect):</span>
-            <span id="confirmModalTotalPreview" style="font-size: 18px; font-weight: 800; color: #1d4ed8;">Rs. 0</span>
+        <div style="background: #fff8e7; border: 1px solid #fde68a; border-radius: 14px; padding: 12px 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 13px; font-weight: 700; color: #b45309;">Total Bill to Collect:</span>
+            <span id="confirmModalTotalPreview" style="font-size: 18px; font-weight: 800; color: var(--color-coral, #FD6941);">Rs. 0</span>
         </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 10px;">
-            <button type="button" onclick="closeConfirmOrderModal()" style="padding: 10px 18px; border-radius: 10px; border: 1px solid #cbd5e1; background: #ffffff; font-weight: 600; cursor: pointer; color: #475569;">Cancel</button>
-            <button type="button" id="btnSubmitConfirmOrder" onclick="submitConfirmOrder()" style="padding: 10px 20px; border-radius: 10px; border: none; background: #2563eb; color: #ffffff; font-weight: 700; cursor: pointer;">
-                ✓ Confirm & Send WhatsApp
+            <button type="button" onclick="closeConfirmOrderModal()" style="padding: 10px 18px; border-radius: 12px; border: 1px solid #cbd5e1; background: #ffffff; font-weight: 700; cursor: pointer; color: #475569;">Cancel</button>
+            <button type="button" id="btnSubmitConfirmOrder" onclick="submitConfirmOrder()" style="padding: 10px 22px; border-radius: 12px; border: none; background: var(--color-coral, #FD6941); color: #ffffff; font-weight: 700; cursor: pointer;">
+                ✓ Accept & Send WhatsApp
             </button>
         </div>
     </div>
 </div>
 
-<!-- DISPATCH MODAL -->
-<div id="dispatchModal" style="display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(4px); align-items: center; justify-content: center;">
-    <div style="background: #ffffff; width: 440px; max-width: calc(100% - 32px); border-radius: 20px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25); overflow: hidden;">
-        <div style="background: linear-gradient(135deg, #0284c7, #0369a1); padding: 18px 22px; color: #ffffff; display: flex; justify-content: space-between; align-items: center;">
+<!-- 6. DISPATCH MODAL -->
+<div id="dispatchModal" style="display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(7, 10, 8, 0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center;">
+    <div style="background: #ffffff; width: 440px; max-width: calc(100% - 32px); border-radius: 24px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25); overflow: hidden;">
+        <div style="background: var(--color-dark, #070A08); padding: 18px 22px; color: #ffffff; display: flex; justify-content: space-between; align-items: center;">
             <div style="display: flex; align-items: center; gap: 10px;">
                 <span style="font-size: 22px;">🛵</span>
                 <div>
-                    <h3 style="font-size: 16px; font-weight: 800; margin: 0;">Dispatch to Rider</h3>
-                    <p style="font-size: 11.5px; color: #e0f2fe; margin: 2px 0 0 0;">Order <strong id="dispatchOrderCode"></strong> • <span id="dispatchCustomerName"></span></p>
+                    <h3 style="font-size: 16px; font-weight: 800; margin: 0;">Dispatch to Delivery Rider</h3>
+                    <p style="font-size: 11.5px; color: #9ca3af; margin: 2px 0 0 0;">Order <strong id="dispatchOrderCode"></strong> • <span id="dispatchCustomerName"></span></p>
                 </div>
             </div>
             <button type="button" onclick="closeDispatchModal()" style="background: none; border: none; color: #ffffff; font-size: 20px; cursor: pointer;">✕</button>
@@ -1118,19 +1142,19 @@
                     <input type="number" name="estimated_minutes" value="25" min="5" max="180" style="padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; width: 100%; font-size: 12.5px;">
                 </div>
                 <div>
-                    <label style="display: block; font-size: 11.5px; font-weight: 700; color: #334155; margin-bottom: 4px;">Rider Notes (Optional)</label>
+                    <label style="display: block; font-size: 11.5px; font-weight: 700; color: #334155; margin-bottom: 4px;">Rider Notes</label>
                     <input type="text" name="rider_notes" placeholder="e.g. Call customer" style="padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; width: 100%; font-size: 12.5px;">
                 </div>
             </div>
 
             <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; font-size: 12px; color: #64748b;">
-                <span style="font-weight: 700; color: #0f172a;">📍 Deliver to:</span>
+                <span style="font-weight: 700; color: #070A08;">📍 Deliver to:</span>
                 <span id="dispatchAddress"></span>
             </div>
 
             <div style="display: flex; justify-content: flex-end; gap: 10px;">
-                <button type="button" onclick="closeDispatchModal()" style="padding: 9px 16px; border-radius: 9px; border: 1px solid #cbd5e1; background: #f8fafc; color: #334155; font-size: 12.5px; font-weight: 700; cursor: pointer;">Cancel</button>
-                <button type="submit" style="padding: 9px 20px; border-radius: 9px; border: none; background: #0284c7; color: #ffffff; font-size: 12.5px; font-weight: 700; cursor: pointer;">Confirm & Dispatch 🛵</button>
+                <button type="button" onclick="closeDispatchModal()" style="padding: 9px 16px; border-radius: 10px; border: 1px solid #cbd5e1; background: #f8fafc; color: #334155; font-size: 12.5px; font-weight: 700; cursor: pointer;">Cancel</button>
+                <button type="submit" style="padding: 9px 20px; border-radius: 10px; border: none; background: var(--color-coral, #FD6941); color: #ffffff; font-size: 12.5px; font-weight: 700; cursor: pointer;">Confirm & Dispatch 🛵</button>
             </div>
         </form>
     </div>
@@ -1138,87 +1162,14 @@
 
 <script>
     const RESTAURANT_ID     = '{{ $restaurant->id }}';
-    let SELECTED_ORDER_ID   = {{ $selectedOrder?->id ?? 'null' }};
     const LIVE_FEED_URL     = '/dashboard/' + RESTAURANT_ID + '/orders/live-feed';
     const CSRF_TOKEN        = document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}';
 
     let currentOrdersMap = {};
     let currentLiveStageFilter = 'all';
-
-    function filterLiveStage(stage) {
-        if (currentLiveStageFilter === stage && stage !== 'all') {
-            currentLiveStageFilter = 'all';
-        } else {
-            currentLiveStageFilter = stage;
-        }
-
-        // Highlight active stage box
-        document.querySelectorAll('.pipeline-step-box').forEach(box => {
-            box.classList.remove('active');
-            box.style.transform = 'none';
-        });
-
-        const activeBox = document.getElementById('pipe-box-' + currentLiveStageFilter);
-        const labelEl = document.getElementById('activeStageLabel');
-        if (activeBox) {
-            activeBox.classList.add('active');
-            activeBox.style.transform = 'translateY(-2px)';
-        }
-
-        if (labelEl) {
-            if (currentLiveStageFilter === 'all') {
-                labelEl.textContent = '';
-            } else {
-                const name = currentLiveStageFilter.replace(/_/g, ' ').toUpperCase();
-                labelEl.textContent = `• Filtering: ${name}`;
-            }
-        }
-
-        applyLiveOrdersFilter();
-    }
+    let searchQuery = '';
 
     const ACTIVE_LIVE_STATUSES = ['pending', 'confirmed', 'preparing', 'out_for_delivery'];
-
-    function applyLiveOrdersFilter() {
-        const list = document.getElementById('live-orders-list');
-        if (!list) return;
-
-        const orders = Object.values(currentOrdersMap).sort((a,b) => b.id - a.id);
-        let filtered = orders;
-        if (currentLiveStageFilter === 'pending') {
-            filtered = orders.filter(o => o.status === 'pending');
-        } else if (currentLiveStageFilter === 'confirmed') {
-            filtered = orders.filter(o => o.status === 'confirmed');
-        } else if (currentLiveStageFilter === 'preparing') {
-            filtered = orders.filter(o => o.status === 'preparing');
-        } else if (currentLiveStageFilter === 'ready') {
-            filtered = orders.filter(o => (o.status === 'confirmed' || o.status === 'preparing') && o.rider_name);
-        } else if (currentLiveStageFilter === 'out_for_delivery') {
-            filtered = orders.filter(o => o.status === 'out_for_delivery');
-        } else if (currentLiveStageFilter === 'delivered') {
-            list.innerHTML = `<div style="text-align:center;padding:35px 15px;color:#64748b;" id="empty-orders-state">
-                <div style="font-size:36px;margin-bottom:8px;">📦</div>
-                <p style="font-weight:800;font-size:14px;color:#0f172a;">Delivered orders are in Order History</p>
-                <p style="font-size:12px;color:#64748b;margin-top:4px;line-height:1.4;">
-                    Live Orders automatically wipes delivered orders to keep the kitchen focused. Completed orders are saved in Order History.
-                </p>
-                <a href="/dashboard/${RESTAURANT_ID}/history" style="display:inline-block;margin-top:12px;padding:8px 16px;background:#064e3b;color:#ffffff;border-radius:9999px;font-size:12px;font-weight:700;text-decoration:none;">
-                    Open Order History →
-                </a>
-            </div>`;
-            return;
-        }
-
-        if (filtered.length === 0) {
-            list.innerHTML = `<div style="text-align:center;padding:35px 10px;color:#94a3b8;" id="empty-orders-state">
-                <div style="font-size:32px;margin-bottom:6px;">🔍</div>
-                <p style="font-weight:700;font-size:13.5px;">No ${currentLiveStageFilter === 'all' ? 'active' : currentLiveStageFilter} orders</p>
-                <p style="font-size:11.5px;margin-top:4px;"><a href="javascript:void(0)" onclick="filterLiveStage('all')" style="color:#064e3b;font-weight:700;text-decoration:none;">Show all orders →</a></p>
-            </div>`;
-        } else {
-            list.innerHTML = filtered.map(o => renderOrderRow(o)).join('');
-        }
-    }
 
     @foreach($orders as $ord)
     currentOrdersMap[{{ $ord->id }}] = {
@@ -1228,17 +1179,14 @@
         status: '{{ $ord->status }}',
         status_label: '{{ $ord->status_label }}',
         total: {{ (float) $ord->total }},
-        customer_name: '{{ addslashes($ord->customer_name ?: 'Guest Customer') }}',
-        customer_phone: '{{ substr($ord->customer_phone ?? 'N/A', -6) }}',
-        full_customer_phone: '{{ $ord->customer_phone ?: '' }}',
-        created_at_humans: '{{ $ord->created_at ? $ord->created_at->diffForHumans(null, true, true) : '' }}',
-        created_at_time: '{{ $ord->created_at ? $ord->created_at->format('h:i A') : '' }}',
-        created_at_ago: '{{ $ord->created_at ? $ord->created_at->diffForHumans() : '' }}',
+        customer_name: '{{ addslashes($ord->customer_name ?: 'John doe') }}',
+        customer_phone: '{{ $ord->customer_phone ?: '' }}',
+        created_at_time: '{{ $ord->created_at ? $ord->created_at->format('H:i') : '12:34' }}',
+        created_at_humans: '{{ $ord->created_at ? $ord->created_at->diffForHumans() : '' }}',
         rider_name: '{{ addslashes($ord->rider_name ?? '') }}',
         rider_phone: '{{ addslashes($ord->rider_phone ?? '') }}',
         delivery_address: '{{ addslashes($ord->delivery_address ?: '') }}',
         estimated_minutes: {{ $ord->estimated_minutes ?? 25 }},
-        payment_method: '{{ $ord->payment_method ?: 'cash_on_delivery' }}',
         delivery_fee: {{ (float) ($restaurant->delivery_charge ?? 0) }},
         items: [
             @foreach($ord->items as $it)
@@ -1252,51 +1200,6 @@
     };
     @endforeach
 
-    const STATUS_FLOW = {
-        pending: {
-            label: 'Pending',
-            next: 'confirmed',
-            btnText: '✓ Mark as Confirmed',
-            btnColor: '#2563eb',
-            btnAction: (url, order) => `openConfirmOrderModal('${order.id}')`
-        },
-        confirmed: {
-            label: 'Confirmed',
-            next: 'preparing',
-            btnText: '🍳 Mark as Preparing',
-            btnColor: '#7c3aed',
-            btnAction: (url, order) => `ajaxUpdateStatus('${url}', 'preparing', this)`
-        },
-        preparing: {
-            label: 'Preparing',
-            next: 'out_for_delivery',
-            btnText: '🚴 Dispatch to Rider',
-            btnColor: '#0284c7',
-            btnAction: (url, order) => `openDispatchModal('${order.id}', '${order.tracking_code}', '${escJs(order.customer_name)}', '${escJs(order.delivery_address)}')`
-        },
-        out_for_delivery: {
-            label: 'Out for Delivery',
-            next: 'delivered',
-            btnText: '✅ Mark as Delivered',
-            btnColor: '#16a34a',
-            btnAction: (url, order) => `ajaxUpdateStatus('${url}', 'delivered', this)`
-        },
-        delivered: {
-            label: 'Delivered',
-            next: null,
-            btnText: null,
-            btnColor: '#16a34a',
-            btnAction: null
-        },
-        cancelled: {
-            label: 'Cancelled',
-            next: null,
-            btnText: null,
-            btnColor: '#ef4444',
-            btnAction: null
-        }
-    };
-
     function escJs(s) {
         return (s || '').replace(/'/g, "\\'").replace(/"/g, '\\"');
     }
@@ -1305,21 +1208,336 @@
         return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
+    /* ── Render Individual Order Card (Mockup Exact Match) ── */
+    function renderOrderCard(o) {
+        const isPending   = (o.status === 'pending');
+        const isPreparing = (o.status === 'preparing');
+        const isReady     = (o.status === 'confirmed' || o.status === 'ready');
+        const isDelivery  = (o.status === 'out_for_delivery');
+
+        const statusClass = isPreparing ? 'preparing' : (isReady ? 'ready' : (isDelivery ? 'out_for_delivery' : 'pending'));
+        const statusLabel = o.status_label || (isPreparing ? 'Preparing' : (isReady ? 'Ready' : (isDelivery ? 'Out for delivery' : 'Pending')));
+        const ringColor   = isPreparing ? '#F2AC11' : (isReady ? '#36D161' : (isDelivery ? '#7C3AED' : '#FD6941'));
+        const orderNum    = 'Order ' + String(o.daily_order_number || o.id).padStart(3, '0');
+        const workTime    = o.created_at_time || '12:34';
+
+        let primaryBtnHtml = '';
+        if (isPending) {
+            primaryBtnHtml = `<button type="button" class="btn-tasty-primary btn-accept" onclick="openConfirmOrderModal('${o.id}')">Accept</button>`;
+        } else if (isPreparing) {
+            primaryBtnHtml = `<button type="button" class="btn-tasty-primary btn-ready" onclick="ajaxUpdateStatus('/dashboard/${RESTAURANT_ID}/orders/${o.id}/status', 'confirmed', this)">Mark Ready</button>`;
+        } else if (isReady) {
+            primaryBtnHtml = `<button type="button" class="btn-tasty-primary btn-complete" onclick="openDispatchModal('${o.id}', '${o.tracking_code}', '${escJs(o.customer_name)}', '${escJs(o.delivery_address)}')">Mark Complete</button>`;
+        } else if (isDelivery) {
+            primaryBtnHtml = `<button type="button" class="btn-tasty-primary" style="background:#36D161; color:#fff;" onclick="ajaxUpdateStatus('/dashboard/${RESTAURANT_ID}/orders/${o.id}/status', 'delivered', this)">Mark Delivered</button>`;
+        } else {
+            primaryBtnHtml = `<button type="button" class="btn-tasty-primary" style="background:#070A08; color:#fff;">Completed</button>`;
+        }
+
+        const items = o.items || [];
+        const itemsHtml = items.slice(0, 3).map(it => `
+            <div class="card-item-row">
+                <div class="card-item-name">
+                    <span>${escHtml(it.name)}</span>
+                    <span class="card-item-qty">Qty ${it.quantity}</span>
+                </div>
+                <span class="card-item-price">PKR ${Number(it.subtotal).toLocaleString()}</span>
+            </div>
+        `).join('') + (items.length > 3 ? `<div style="font-size:11.5px;color:var(--color-gray,#888E89);padding-top:4px;">+${items.length - 3} more item(s)</div>` : '');
+
+        return `
+        <div class="tasty-order-card" id="order-card-${o.id}" data-order-id="${o.id}">
+            <div>
+                <div class="card-header-row">
+                    <span class="card-order-code">${orderNum}</span>
+                    <span class="status-pill-tasty ${statusClass}">${statusLabel}</span>
+                </div>
+
+                <div class="card-middle-row">
+                    <div class="card-meta-grid">
+                        <div class="card-meta-item">
+                            <span>🏷️</span>
+                            <span>${escHtml(o.delivery_address ? 'Delivery' : 'Dine in')}</span>
+                        </div>
+                        <div class="card-meta-item">
+                            <span>👥</span>
+                            <span>Online Order</span>
+                        </div>
+                        <div class="card-meta-item">
+                            <span>🕒</span>
+                            <span>Time <strong>${escHtml(workTime)}</strong></span>
+                        </div>
+                        <div class="card-meta-item">
+                            <span>👤</span>
+                            <span>${escHtml(o.customer_name || 'John doe')}</span>
+                        </div>
+                    </div>
+
+                    <div class="circular-timer-wrap">
+                        <svg width="68" height="68" viewBox="0 0 68 68">
+                            <circle cx="34" cy="34" r="28" stroke="#F1F5F9" stroke-width="4.5" fill="none"/>
+                            <circle cx="34" cy="34" r="28" stroke="${ringColor}" stroke-width="4.5" stroke-dasharray="176" stroke-dashoffset="40" fill="none" stroke-linecap="round" transform="rotate(-90 34 34)"/>
+                        </svg>
+                        <div class="circular-timer-text">
+                            <span class="circular-timer-val">${escHtml(workTime)}</span>
+                            <span class="circular-timer-lbl">Work time</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-items-table">
+                    <div class="card-items-header">
+                        <span>Order Item</span>
+                        <span>Amount</span>
+                    </div>
+                    ${itemsHtml}
+                </div>
+            </div>
+
+            <div>
+                <div class="card-total-row">
+                    <span class="card-total-label">Total Amount</span>
+                    <span class="card-total-amount">PKR ${Number(o.total).toLocaleString()}</span>
+                </div>
+
+                <div class="card-actions-row">
+                    ${primaryBtnHtml}
+                    <button type="button" class="btn-tasty-secondary" onclick="openOrderDetailDrawer('${o.id}')">
+                        View Details
+                    </button>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    function applyLiveOrdersFilter() {
+        const grid = document.getElementById('live-orders-grid');
+        if (!grid) return;
+
+        let orders = Object.values(currentOrdersMap).sort((a,b) => b.id - a.id);
+
+        // Stage filter
+        if (currentLiveStageFilter === 'pending') {
+            orders = orders.filter(o => o.status === 'pending');
+        } else if (currentLiveStageFilter === 'preparing') {
+            orders = orders.filter(o => o.status === 'preparing');
+        } else if (currentLiveStageFilter === 'ready') {
+            orders = orders.filter(o => o.status === 'confirmed' || o.status === 'ready');
+        }
+
+        // Search query
+        if (searchQuery.trim() !== '') {
+            const q = searchQuery.toLowerCase().trim();
+            orders = orders.filter(o => 
+                String(o.daily_order_number || o.id).includes(q) ||
+                (o.customer_name || '').toLowerCase().includes(q) ||
+                (o.customer_phone || '').includes(q)
+            );
+        }
+
+        // Highlight active filter pills
+        document.querySelectorAll('.filter-stage-pill').forEach(btn => btn.classList.remove('active'));
+        const activeBtn = document.getElementById('btn-filter-' + currentLiveStageFilter);
+        if (activeBtn) activeBtn.classList.add('active');
+
+        const lbl = document.getElementById('activeStageLabel');
+        if (lbl) {
+            lbl.textContent = currentLiveStageFilter !== 'all' ? `• Filtering: ${currentLiveStageFilter.toUpperCase()}` : '';
+        }
+
+        if (orders.length === 0) {
+            grid.innerHTML = `
+            <div class="empty-orders-view" id="empty-orders-state">
+                <div style="font-size: 38px; margin-bottom: 8px;">🔍</div>
+                <h3 style="font-size: 17px; font-weight: 700; color: var(--color-dark, #070A08);">No Orders Found</h3>
+                <p style="font-size: 13px; margin-top: 4px;">No active orders matching "${currentLiveStageFilter}" filter right now.</p>
+            </div>`;
+        } else {
+            grid.innerHTML = orders.map(o => renderOrderCard(o)).join('');
+        }
+    }
+
+    function filterLiveStage(stage) {
+        currentLiveStageFilter = (currentLiveStageFilter === stage && stage !== 'all') ? 'all' : stage;
+        applyLiveOrdersFilter();
+    }
+
+    function handleLiveSearch(val) {
+        searchQuery = val || '';
+        applyLiveOrdersFilter();
+    }
+
+    /* ── Details Drawer Controls ── */
+    function openOrderDetailDrawer(orderId) {
+        const o = currentOrdersMap[orderId];
+        if (!o) return;
+
+        document.getElementById('drawerOrderTitle').textContent = 'Order #' + (o.daily_order_number || o.id);
+        document.getElementById('drawerOrderSub').textContent   = 'Placed at ' + (o.created_at_time || '--') + ' • ' + (o.created_at_humans || '');
+        document.getElementById('drawerCustomerName').textContent  = o.customer_name || 'Guest';
+        document.getElementById('drawerCustomerPhone').textContent = o.customer_phone || '';
+        document.getElementById('drawerAddress').textContent       = o.delivery_address || 'Dine-in / Pickup';
+        document.getElementById('drawerTotalBill').textContent     = 'PKR ' + Number(o.total).toLocaleString();
+        document.getElementById('drawerPrintLink').href           = '/dashboard/' + RESTAURANT_ID + '/orders/' + o.id + '/print-bill';
+
+        const waLink = document.getElementById('drawerWhatsAppLink');
+        if (waLink) {
+            const cleanPhone = (o.customer_phone || '').replace(/\D/g, '');
+            waLink.href = cleanPhone ? 'https://wa.me/' + cleanPhone : '#';
+        }
+
+        const riderNameEl  = document.getElementById('drawerRiderName');
+        const riderPhoneEl = document.getElementById('drawerRiderPhone');
+        if (riderNameEl)  riderNameEl.textContent  = o.rider_name || 'No Rider Assigned';
+        if (riderPhoneEl) riderPhoneEl.textContent = o.rider_phone ? '📞 ' + o.rider_phone : 'Assign rider before dispatch';
+
+        // Render Items
+        const itemsBox = document.getElementById('drawerItemsList');
+        if (itemsBox) {
+            itemsBox.innerHTML = (o.items || []).map(it => `
+                <div style="display:flex; justify-content:space-between; font-size:13.5px; padding: 4px 0; border-bottom: 1px dashed #f1f5f9;">
+                    <span><strong>${it.quantity}x</strong> ${escHtml(it.name)}</span>
+                    <span style="font-weight:700;">PKR ${Number(it.subtotal).toLocaleString()}</span>
+                </div>
+            `).join('');
+        }
+
+        // Render Dynamic Action Buttons in Drawer
+        const actionsBox = document.getElementById('drawerDynamicActions');
+        if (actionsBox) {
+            if (o.status === 'pending') {
+                actionsBox.innerHTML = `<button type="button" class="btn-tasty-primary btn-accept" style="flex:1;" onclick="closeOrderDetailDrawer(); openConfirmOrderModal('${o.id}');">Accept Order</button>`;
+            } else if (o.status === 'preparing') {
+                actionsBox.innerHTML = `<button type="button" class="btn-tasty-primary btn-ready" style="flex:1;" onclick="ajaxUpdateStatus('/dashboard/${RESTAURANT_ID}/orders/${o.id}/status', 'confirmed', this)">Mark as Ready</button>`;
+            } else if (o.status === 'confirmed' || o.status === 'ready') {
+                actionsBox.innerHTML = `<button type="button" class="btn-tasty-primary btn-complete" style="flex:1;" onclick="closeOrderDetailDrawer(); openDispatchModal('${o.id}', '${o.tracking_code}', '${escJs(o.customer_name)}', '${escJs(o.delivery_address)}');">Dispatch to Rider</button>`;
+            } else if (o.status === 'out_for_delivery') {
+                actionsBox.innerHTML = `<button type="button" class="btn-tasty-primary" style="flex:1; background:#36D161; color:#fff;" onclick="ajaxUpdateStatus('/dashboard/${RESTAURANT_ID}/orders/${o.id}/status', 'delivered', this)">Mark as Delivered</button>`;
+            } else {
+                actionsBox.innerHTML = '';
+            }
+        }
+
+        document.getElementById('orderDrawerModal').classList.add('show');
+    }
+
+    function closeOrderDetailDrawer(e) {
+        if (!e || e.target === document.getElementById('orderDrawerModal') || e.currentTarget?.classList.contains('drawer-close-btn')) {
+            document.getElementById('orderDrawerModal').classList.remove('show');
+        }
+    }
+
+    /* ── Confirm Order Modal Logic ── */
+    let currentConfirmOrderId = null;
+    let confirmFoodSubtotal   = 0;
+    let selectedDeliveryFee   = 0;
+
+    function openConfirmOrderModal(orderId) {
+        currentConfirmOrderId = orderId;
+        const o = currentOrdersMap[orderId];
+        if (!o) return;
+
+        document.getElementById('confirmModalCode').textContent     = '#' + (o.daily_order_number || o.id);
+        document.getElementById('confirmModalCustomer').textContent = o.customer_name || 'Guest Customer';
+        document.getElementById('confirmModalAddress').textContent  = o.delivery_address || 'Address from WhatsApp';
+
+        confirmFoodSubtotal = (o.items || []).reduce((sum, it) => sum + (it.subtotal || 0), 0);
+        if (confirmFoodSubtotal <= 0) confirmFoodSubtotal = o.total;
+
+        document.getElementById('confirmModalSubtotal').textContent = 'Rs. ' + confirmFoodSubtotal.toLocaleString();
+
+        const restDefaultFee = o.delivery_fee || 0;
+        selectDeliveryCharge(restDefaultFee);
+
+        document.getElementById('confirmOrderModal').style.display = 'flex';
+    }
+
+    function closeConfirmOrderModal() {
+        document.getElementById('confirmOrderModal').style.display = 'none';
+        currentConfirmOrderId = null;
+    }
+
+    function selectDeliveryCharge(amount) {
+        selectedDeliveryFee = parseInt(amount, 10) || 0;
+        document.querySelectorAll('#confirmOrderModal .filter-stage-pill').forEach(b => b.classList.remove('active'));
+
+        const customRow = document.getElementById('customDeliveryChargeRow');
+        if (amount === 0) {
+            document.getElementById('btnDelivFree')?.classList.add('active');
+            if (customRow) customRow.style.display = 'none';
+        } else if (amount === 250) {
+            document.getElementById('btnDelivStandard')?.classList.add('active');
+            if (customRow) customRow.style.display = 'none';
+        }
+        updateConfirmTotalPreview();
+    }
+
+    function enableCustomDeliveryCharge() {
+        document.querySelectorAll('#confirmOrderModal .filter-stage-pill').forEach(b => b.classList.remove('active'));
+        document.getElementById('btnDelivCustom')?.classList.add('active');
+        const customRow = document.getElementById('customDeliveryChargeRow');
+        if (customRow) customRow.style.display = 'block';
+        const input = document.getElementById('inputCustomDeliveryCharge');
+        if (input) {
+            input.focus();
+            selectedDeliveryFee = parseInt(input.value, 10) || 0;
+        }
+        updateConfirmTotalPreview();
+    }
+
+    function onCustomDeliveryInput(val) {
+        selectedDeliveryFee = parseInt(val, 10) || 0;
+        updateConfirmTotalPreview();
+    }
+
+    function updateConfirmTotalPreview() {
+        const total = confirmFoodSubtotal + selectedDeliveryFee;
+        const preview = document.getElementById('confirmModalTotalPreview');
+        if (preview) preview.textContent = 'Rs. ' + total.toLocaleString();
+    }
+
+    async function submitConfirmOrder() {
+        if (!currentConfirmOrderId) return;
+        const btn = document.getElementById('btnSubmitConfirmOrder');
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Accepting...';
+        }
+
+        try {
+            await ajaxUpdateStatus(
+                '/dashboard/' + RESTAURANT_ID + '/orders/' + currentConfirmOrderId + '/status',
+                'confirmed',
+                btn,
+                { delivery_charge: selectedDeliveryFee }
+            );
+            closeConfirmOrderModal();
+        } catch (e) {
+            console.error(e);
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = '✓ Accept & Send WhatsApp';
+            }
+        }
+    }
+
+    /* ── Dispatch Modal Logic ── */
     function openDispatchModal(orderId, orderCode, customerName, address) {
-        document.getElementById('dispatchOrderCode').textContent = '#' + orderCode;
+        document.getElementById('dispatchOrderCode').textContent    = '#' + orderCode;
         document.getElementById('dispatchCustomerName').textContent = customerName;
-        document.getElementById('dispatchAddress').textContent = address || 'Address provided in WhatsApp chat';
-        document.getElementById('dispatchForm').action = '/dashboard/' + RESTAURANT_ID + '/orders/' + orderId + '/status';
-        
-        const riderSelect = document.getElementById('riderSelect');
+        document.getElementById('dispatchAddress').textContent      = address || 'Address provided in WhatsApp chat';
+        document.getElementById('dispatchForm').action              = '/dashboard/' + RESTAURANT_ID + '/orders/' + orderId + '/status';
+
+        const riderSelect  = document.getElementById('riderSelect');
         const customFields = document.getElementById('customRiderFields');
-        const nameInput = document.getElementById('inputRiderName');
-        const phoneInput = document.getElementById('inputRiderPhone');
+        const nameInput    = document.getElementById('inputRiderName');
+        const phoneInput   = document.getElementById('inputRiderPhone');
 
         if (riderSelect && riderSelect.options.length > 2) {
             riderSelect.selectedIndex = 1;
             const opt = riderSelect.options[1];
-            nameInput.value = opt.value;
+            nameInput.value  = opt.value;
             phoneInput.value = opt.getAttribute('data-phone') || '';
             customFields.style.display = 'none';
         } else {
@@ -1331,12 +1549,12 @@
 
     function handleRiderSelect(select) {
         const customFields = document.getElementById('customRiderFields');
-        const nameInput = document.getElementById('inputRiderName');
-        const phoneInput = document.getElementById('inputRiderPhone');
+        const nameInput    = document.getElementById('inputRiderName');
+        const phoneInput   = document.getElementById('inputRiderPhone');
 
         if (select.value === '__custom__' || !select.value) {
             customFields.style.display = 'block';
-            nameInput.value = '';
+            nameInput.value  = '';
             phoneInput.value = '';
             nameInput.focus();
         } else {
@@ -1352,469 +1570,82 @@
     }
 
     async function ajaxSubmitDispatch(event) {
-        if (event) event.preventDefault();
+        event.preventDefault();
         const form = document.getElementById('dispatchForm');
-        const submitBtn = form.querySelector('button[type="submit"]');
-        if (submitBtn) { submitBtn.disabled = true; submitBtn.style.opacity = '0.6'; }
+        const btn  = form.querySelector('button[type="submit"]');
+        const origText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = 'Dispatching...';
 
         const formData = new FormData(form);
-        const dataObj = {};
-        formData.forEach((value, key) => { dataObj[key] = value; });
 
         try {
             const res = await fetch(form.action, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Accept':       'application/json',
                     'X-CSRF-TOKEN': CSRF_TOKEN,
+                    'Accept': 'application/json'
                 },
-                body: JSON.stringify(dataObj),
+                body: formData
             });
 
             const data = await res.json();
-            if (!data.success) throw new Error(data.message || 'Dispatch failed');
-
-            closeDispatchModal();
-            showToast('🛵 ' + (data.message || 'Order dispatched to rider!'), 'success');
-
-            if (currentOrdersMap[SELECTED_ORDER_ID]) {
-                currentOrdersMap[SELECTED_ORDER_ID].status = 'out_for_delivery';
-                currentOrdersMap[SELECTED_ORDER_ID].status_label = data.status_label || '🛵 Out for Delivery';
-                currentOrdersMap[SELECTED_ORDER_ID].rider_name = dataObj.rider_name || '';
-                currentOrdersMap[SELECTED_ORDER_ID].rider_phone = dataObj.rider_phone || '';
-                renderOrderDetail(currentOrdersMap[SELECTED_ORDER_ID]);
+            if (data.success) {
+                closeDispatchModal();
+                pollLiveFeed();
+            } else {
+                alert(data.message || 'Error dispatching order');
             }
-
-            const listItem = document.querySelector(`[data-order-id="${SELECTED_ORDER_ID}"] .status-pill`);
-            if (listItem) {
-                listItem.textContent = data.status_label || 'Out for Delivery';
-                listItem.className   = 'status-pill out_for_delivery';
-            }
-
-        } catch (err) {
-            showToast('❌ Error: ' + err.message, 'error');
+        } catch (e) {
+            console.error(e);
+            alert('Failed to dispatch. Check connection.');
         } finally {
-            if (submitBtn) { submitBtn.disabled = false; submitBtn.style.opacity = '1'; }
+            btn.disabled = false;
+            btn.innerHTML = origText;
         }
         return false;
     }
 
-    // ── Confirm Order Modal Logic ──
-    let confirmModalOrderId = null;
-    let confirmModalSubtotalVal = 0;
-    let selectedDeliveryChargeVal = 0;
-
-    function openConfirmOrderModal(orderId) {
-        const o = currentOrdersMap[orderId];
-        if (!o) return;
-        confirmModalOrderId = orderId;
-        confirmModalSubtotalVal = parseFloat(o.subtotal || o.total || 0);
-
-        document.getElementById('confirmModalCode').textContent = '#' + (o.tracking_code || o.id);
-        document.getElementById('confirmModalCustomer').textContent = o.customer_name || 'Guest Customer';
-        document.getElementById('confirmModalAddress').textContent = o.delivery_address || 'Address provided in WhatsApp chat';
-        document.getElementById('confirmModalSubtotal').textContent = 'Rs. ' + confirmModalSubtotalVal.toLocaleString();
-
-        // Default to Free (Rs. 0)
-        selectDeliveryCharge(0);
-
-        document.getElementById('confirmOrderModal').style.display = 'flex';
-    }
-
-    function closeConfirmOrderModal() {
-        document.getElementById('confirmOrderModal').style.display = 'none';
-        confirmModalOrderId = null;
-    }
-
-    function selectDeliveryCharge(amount) {
-        selectedDeliveryChargeVal = parseFloat(amount) || 0;
-        const btnFree = document.getElementById('btnDelivFree');
-        const btnStd = document.getElementById('btnDelivStandard');
-        const btnCust = document.getElementById('btnDelivCustom');
-        const custRow = document.getElementById('customDeliveryChargeRow');
-
-        if (btnFree) btnFree.classList.toggle('active', amount === 0);
-        if (btnStd) btnStd.classList.toggle('active', amount === 250);
-        if (btnCust) btnCust.classList.remove('active');
-        if (custRow) custRow.style.display = 'none';
-
-        updateConfirmTotalPreview();
-    }
-
-    function enableCustomDeliveryCharge() {
-        const btnFree = document.getElementById('btnDelivFree');
-        const btnStd = document.getElementById('btnDelivStandard');
-        const btnCust = document.getElementById('btnDelivCustom');
-        const custRow = document.getElementById('customDeliveryChargeRow');
-        const input = document.getElementById('inputCustomDeliveryCharge');
-
-        if (btnFree) btnFree.classList.remove('active');
-        if (btnStd) btnStd.classList.remove('active');
-        if (btnCust) btnCust.classList.add('active');
-        if (custRow) custRow.style.display = 'block';
-
-        if (input) {
-            input.focus();
-            selectedDeliveryChargeVal = parseFloat(input.value) || 0;
-        }
-        updateConfirmTotalPreview();
-    }
-
-    function onCustomDeliveryInput(val) {
-        selectedDeliveryChargeVal = Math.max(0, parseFloat(val) || 0);
-        updateConfirmTotalPreview();
-    }
-
-    function updateConfirmTotalPreview() {
-        const total = confirmModalSubtotalVal + selectedDeliveryChargeVal;
-        const preview = document.getElementById('confirmModalTotalPreview');
-        if (preview) preview.textContent = 'Rs. ' + total.toLocaleString();
-    }
-
-    async function submitConfirmOrder() {
-        if (!confirmModalOrderId) return;
-        const btn = document.getElementById('btnSubmitConfirmOrder');
-        if (btn) { btn.disabled = true; btn.textContent = 'Confirming...'; }
-
-        try {
-            const updateUrl = `/dashboard/${RESTAURANT_ID}/orders/${confirmModalOrderId}/status`;
-            await ajaxUpdateStatus(updateUrl, 'confirmed', btn, {
-                delivery_charge: selectedDeliveryChargeVal
-            });
-            closeConfirmOrderModal();
-        } finally {
-            if (btn) { btn.disabled = false; btn.textContent = '✓ Confirm & Send WhatsApp'; }
-        }
-    }
-
+    /* ── Universal AJAX Status Transition ── */
     async function ajaxUpdateStatus(url, status, btn, extra = {}) {
-        if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
-
-        const urlMatches = (url || '').match(/\/orders\/(\d+)\/status/);
-        const orderId = urlMatches ? parseInt(urlMatches[1]) : SELECTED_ORDER_ID;
+        let origHtml = '';
+        if (btn) {
+            origHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = 'Updating...';
+        }
 
         try {
+            const bodyPayload = { status: status, ...extra };
             const res = await fetch(url, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Accept':       'application/json',
                     'X-CSRF-TOKEN': CSRF_TOKEN,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
-                body: JSON.stringify({ status, ...extra }),
+                body: JSON.stringify(bodyPayload)
             });
 
             const data = await res.json();
-            if (!data.success) throw new Error(data.message || 'Failed');
-
-            const orderNum = (currentOrdersMap[orderId] && currentOrdersMap[orderId].daily_order_number) 
-                ? ('#' + currentOrdersMap[orderId].daily_order_number) 
-                : ('#' + orderId);
-
-            if (status === 'delivered') {
-                showToast(`✅ Order ${orderNum} marked as Delivered! Saved to Order History.`, 'success');
-                wipeDeliveredOrderFromLive(orderId);
+            if (data.success) {
+                pollLiveFeed();
+                closeOrderDetailDrawer();
             } else {
-                showToast('✅ ' + (data.message || 'Status updated!'), 'success');
-
-                if (currentOrdersMap[orderId]) {
-                    currentOrdersMap[orderId].status = data.status;
-                    currentOrdersMap[orderId].status_label = data.status_label;
-                    if (data.delivery_charge !== undefined) currentOrdersMap[orderId].delivery_charge = data.delivery_charge;
-                    if (data.total !== undefined) currentOrdersMap[orderId].total = data.total;
-                    if (SELECTED_ORDER_ID === orderId) {
-                        renderOrderDetail(currentOrdersMap[orderId]);
-                    }
-                }
-
-                const listItem = document.querySelector(`[data-order-id="${orderId}"] .status-pill`);
-                if (listItem) {
-                    listItem.textContent = data.status_label;
-                    listItem.className   = 'status-pill ' + data.status;
-                }
+                alert(data.message || 'Could not update status');
             }
-
         } catch (e) {
-            showToast('❌ Error: ' + e.message, 'error');
+            console.error(e);
+            alert('Network error updating status.');
         } finally {
-            if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
-        }
-    }
-
-    function wipeDeliveredOrderFromLive(orderId) {
-        // 1. Smoothly animate wipe-out of DOM element in incoming orders list
-        const listItem = document.querySelector(`.live-order-item[data-order-id="${orderId}"]`);
-        if (listItem) {
-            listItem.style.transition = 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
-            listItem.style.opacity = '0';
-            listItem.style.transform = 'translateX(-30px) scale(0.95)';
-            listItem.style.maxHeight = listItem.offsetHeight + 'px';
-            setTimeout(() => {
-                listItem.style.maxHeight = '0';
-                listItem.style.paddingTop = '0';
-                listItem.style.paddingBottom = '0';
-                listItem.style.marginTop = '0';
-                listItem.style.marginBottom = '0';
-                listItem.style.border = 'none';
-                listItem.style.overflow = 'hidden';
-                setTimeout(() => {
-                    listItem.remove();
-                    checkEmptyLiveOrdersState();
-                }, 350);
-            }, 50);
-        }
-
-        // 2. Remove from active orders map
-        delete currentOrdersMap[orderId];
-
-        // 3. Update active badge and counters
-        const remainingCount = Object.keys(currentOrdersMap).length;
-        const kpiLive = document.getElementById('kpi-live-orders');
-        const kpiBadge = document.getElementById('live-orders-badge');
-        if (kpiLive)  kpiLive.textContent  = remainingCount;
-        if (kpiBadge) kpiBadge.textContent = remainingCount;
-
-        // Decrement dispatched / road count, increment delivered pipe count
-        const pDelivered = document.getElementById('pipe-delivered');
-        if (pDelivered) {
-            pDelivered.textContent = (parseInt(pDelivered.textContent) || 0) + 1;
-        }
-        const kpiDisp = document.getElementById('kpi-dispatched-orders');
-        if (kpiDisp) {
-            kpiDisp.textContent = Math.max(0, (parseInt(kpiDisp.textContent) || 1) - 1);
-        }
-        const pDel = document.getElementById('pipe-delivery');
-        if (pDel) {
-            pDel.textContent = Math.max(0, (parseInt(pDel.textContent) || 1) - 1);
-        }
-
-        // 4. If this was the selected order in the middle workbench, switch to next active order
-        if (SELECTED_ORDER_ID === orderId) {
-            const remainingKeys = Object.keys(currentOrdersMap).map(k => parseInt(k)).sort((a,b) => b - a);
-            if (remainingKeys.length > 0) {
-                selectOrder(remainingKeys[0]);
-            } else {
-                SELECTED_ORDER_ID = null;
-                renderEmptyWorkbenchState();
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
             }
         }
     }
 
-    function checkEmptyLiveOrdersState() {
-        const list = document.getElementById('live-orders-list');
-        if (!list) return;
-        const remainingItems = list.querySelectorAll('.live-order-item');
-        if (remainingItems.length === 0) {
-            list.innerHTML = `<div style="text-align:center;padding:40px 10px;color:#94a3b8;" id="empty-orders-state">
-                <div style="font-size:36px;margin-bottom:8px;">🍽️</div>
-                <p style="font-weight:700;font-size:14px;color:#334155;">No active live orders right now</p>
-                <p style="font-size:11.5px;margin-top:4px;">Delivered orders are moved to Order History. New WhatsApp orders will arrive here automatically.</p>
-                <a href="/dashboard/${RESTAURANT_ID}/history" style="display:inline-block;margin-top:10px;color:#064e3b;font-weight:700;font-size:11.5px;text-decoration:none;">Open Order History →</a>
-            </div>`;
-        }
-    }
-
-    function renderEmptyWorkbenchState() {
-        const panel = document.getElementById('order-detail-panel');
-        if (!panel) return;
-        panel.innerHTML = `<div style="text-align:center;padding:80px 20px;color:#94a3b8;" id="empty-workbench-state">
-            <div style="font-size:44px;margin-bottom:12px;">🎉</div>
-            <h3 style="font-size:17px;font-weight:800;color:#0f172a;">All Orders Delivered!</h3>
-            <p style="font-size:12.5px;color:#64748b;margin-top:6px;max-width:320px;margin-left:auto;margin-right:auto;line-height:1.5;">
-                Active orders have been delivered and archived into Order History. The kitchen is all caught up!
-            </p>
-            <div style="margin-top:18px;display:flex;gap:10px;justify-content:center;">
-                <a href="/dashboard/${RESTAURANT_ID}/history" style="padding:9px 18px;background:#064e3b;color:#ffffff;border-radius:9999px;font-size:12.5px;font-weight:700;text-decoration:none;">
-                    View Order History →
-                </a>
-            </div>
-        </div>`;
-    }
-
-    function selectOrder(orderId) {
-        SELECTED_ORDER_ID = orderId;
-
-        document.querySelectorAll('.live-order-item').forEach(el => {
-            if (parseInt(el.dataset.orderId) === orderId) {
-                el.classList.add('active');
-            } else {
-                el.classList.remove('active');
-            }
-        });
-
-        if (window.history && window.history.pushState) {
-            const newUrl = `/dashboard/${RESTAURANT_ID}/live-orders?order_id=${orderId}`;
-            window.history.pushState({ orderId }, '', newUrl);
-        }
-
-        const order = currentOrdersMap[orderId];
-        if (order) {
-            renderOrderDetail(order);
-        }
-    }
-
-    function renderOrderDetail(o) {
-        const panel = document.getElementById('order-detail-panel');
-        if (!panel || !o) return;
-
-        const updateUrl = `/dashboard/${RESTAURANT_ID}/orders/${o.id}/status`;
-        const flow = STATUS_FLOW[o.status] || { label: o.status_label, next: null, btnText: null };
-
-        let actionBtnHtml = '';
-        if (flow.next && flow.btnText) {
-            const actionCall = flow.btnAction(updateUrl, o);
-            actionBtnHtml = `
-                <button type="button" class="btn-action-primary" style="background: ${flow.btnColor};"
-                    onclick="${actionCall}">
-                    ${escHtml(flow.btnText)}
-                </button>
-            `;
-        } else {
-            actionBtnHtml = `
-                <div style="flex: 1; text-align: center; font-weight: 700; color: #64748b; padding: 10px; background: #f8fafc; border-radius: 10px;">
-                    Order is ${escHtml(o.status_label || o.status)}
-                </div>
-            `;
-        }
-
-        let riderHtml = '';
-        if (o.rider_name || o.rider_phone) {
-            const phoneLink = o.rider_phone ? `<a href="tel:${escHtml(o.rider_phone)}" class="btn-call-rider" title="Call Rider">📞</a>` : '';
-            riderHtml = `
-                <div class="assigned-rider-box">
-                    <div class="rider-avatar-info">
-                        <div class="rider-avatar">🚴</div>
-                        <div class="rider-name-status">
-                            <h4>
-                                <span>${escHtml(o.rider_name || 'Assigned Rider')}</span>
-                                <span class="status-pill delivered" style="font-size: 9.5px; padding: 2px 6px;">Assigned</span>
-                            </h4>
-                            <div class="rider-phone-sub">${escHtml(o.rider_phone || '')}</div>
-                        </div>
-                    </div>
-                    ${phoneLink}
-                </div>
-            `;
-        } else {
-            riderHtml = `
-                <div class="assigned-rider-box">
-                    <div class="rider-avatar-info">
-                        <div class="rider-avatar">🚴</div>
-                        <div class="rider-name-status">
-                            <h4><span>No Rider Assigned</span></h4>
-                            <div class="rider-phone-sub">Assign rider before dispatch</div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        const itemsHtml = (o.items || []).map(it => `
-            <div class="order-item-row">
-                <div>
-                    <span class="order-item-qty-badge">${it.quantity}x</span>
-                    <span>${escHtml(it.name)}</span>
-                </div>
-                <span style="font-weight: 700;">PKR ${Number(it.subtotal).toLocaleString()}</span>
-            </div>
-        `).join('');
-
-        const cleanPhoneDigits = (o.full_customer_phone || '').replace(/\D/g, '');
-
-        panel.innerHTML = `
-            <div class="order-detail-header">
-                <div class="order-detail-title">
-                    <h3 id="detail-tracking-code">Order #${escHtml(o.daily_order_number || o.id)} <span style="font-size: 13px; font-weight: 500; color: #94a3b8;">(#${escHtml(o.tracking_code)})</span></h3>
-                    <p id="detail-placed-time">Placed at ${escHtml(o.created_at_time || '')} • ${escHtml(o.created_at_ago || '')}</p>
-                </div>
-                <span class="status-pill ${escHtml(o.status)}" id="selected-order-status-pill" style="font-size: 11px; padding: 4px 12px;">
-                    ${escHtml(o.status_label)}
-                </span>
-            </div>
-
-            <!-- Customer info & Address -->
-            <div class="customer-info-box">
-                <div>
-                    <div class="info-col-label">👤 Customer</div>
-                    <div class="info-col-val">
-                        <span id="detail-customer-name">${escHtml(o.customer_name || 'Guest Customer')}</span>
-                        <a id="detail-wa-link" href="https://wa.me/${cleanPhoneDigits}" target="_blank" style="color: #16a34a; text-decoration: none;" title="Open WhatsApp Chat">💬</a>
-                    </div>
-                    <div class="info-col-sub" id="detail-customer-phone">${escHtml(o.full_customer_phone || o.customer_phone || '')}</div>
-                </div>
-                <div>
-                    <div class="info-col-label">📍 Delivery Address</div>
-                    <div class="info-col-val" id="detail-delivery-address">${escHtml(o.delivery_address || 'Dine-in / Pickup')}</div>
-                    <div class="info-col-sub">Local Delivery</div>
-                </div>
-            </div>
-
-
-            <!-- Order Items -->
-            <div class="order-items-list" id="detail-items-list">
-                ${itemsHtml}
-                <div class="order-item-row" style="color: #64748b;">
-                    <span>Delivery Fee</span>
-                    <span>PKR ${Number(o.delivery_fee || 0).toLocaleString()}</span>
-                </div>
-                <div class="order-bill-divider"></div>
-                <div class="order-total-row">
-                    <span>Total Bill</span>
-                    <span style="color: #064e3b; font-size: 17px;">PKR ${Number(o.total).toLocaleString()}</span>
-                </div>
-            </div>
-
-            <!-- Assigned Rider -->
-            ${riderHtml}
-
-            <!-- Action Buttons -->
-            <div class="action-btn-row" id="action-btn-row">
-                ${actionBtnHtml}
-                <a href="/dashboard/${RESTAURANT_ID}/orders/${o.id}/print-bill" target="_blank" class="btn-action-secondary" title="Print Parcel Bill / Receipt">
-                    🖨️ Print Bill
-                </a>
-            </div>
-        `;
-    }
-
-    function showToast(msg, type = 'success') {
-        let t = document.getElementById('live-toast');
-        if (!t) {
-            t = document.createElement('div');
-            t.id = 'live-toast';
-            t.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,0.15);transition:opacity 0.3s;max-width:320px;';
-            document.body.appendChild(t);
-        }
-        t.style.background = type === 'success' ? '#0f172a' : '#dc2626';
-        t.style.color       = '#fff';
-        t.textContent       = msg;
-        t.style.opacity     = '1';
-        clearTimeout(t._timer);
-        t._timer = setTimeout(() => { t.style.opacity = '0'; }, 3500);
-    }
-
-    function renderOrderRow(o) {
-        const statusClass = o.status || 'pending';
-        const isActive    = (o.id === SELECTED_ORDER_ID);
-        return `<a href="javascript:void(0)" onclick="selectOrder(${o.id}); return false;"
-                   class="live-order-item ${isActive ? 'active' : ''}"
-                   data-order-id="${o.id}">
-            <div class="wa-avatar-box">💬</div>
-            <div class="order-meta-info">
-                <div class="order-meta-top">
-                    <span class="order-code-text">#${escHtml(o.daily_order_number || o.id)}</span>
-                    <span class="order-time-text">${escHtml(o.created_at_humans)}</span>
-                </div>
-                <div class="order-customer-text">👤 ${escHtml(o.customer_name)} (${escHtml(o.customer_phone)})</div>
-                <div class="order-item-footer">
-                    <span class="status-pill ${statusClass}">${escHtml(o.status_label)}</span>
-                    <span class="order-price-bold">PKR ${Number(o.total).toLocaleString()}</span>
-                </div>
-            </div>
-        </a>`;
-    }
-
+    /* ── Live Real-Time Feed Poller ── */
     async function pollLiveFeed() {
         try {
             const res  = await fetch(LIVE_FEED_URL, {
@@ -1827,215 +1658,110 @@
             const allFeedOrders = data.orders ?? [];
             const activeOrders  = allFeedOrders.filter(o => ACTIVE_LIVE_STATUSES.includes(o.status));
 
-            const kpiLive = document.getElementById('kpi-live-orders');
-            const kpiBadge = document.getElementById('live-orders-badge');
-            const kpiRev  = document.getElementById('kpi-revenue');
-            const kpiPend = document.getElementById('kpi-pending-orders');
-            const kpiPrep = document.getElementById('kpi-preparing-orders');
-            const kpiDisp = document.getElementById('kpi-dispatched-orders');
+            // Update top KPIs
+            const pipePend = document.getElementById('pipe-pending');
+            const pipePrep = document.getElementById('pipe-preparing');
+            const pipeRdy  = document.getElementById('pipe-ready');
+            const delivEl  = document.getElementById('metric-delivered-count');
+            const totEl    = document.getElementById('metric-total-count');
+            const barFill  = document.getElementById('milestone-progress-fill');
 
-            if (kpiLive)  kpiLive.textContent  = data.active_count ?? activeOrders.length;
-            if (kpiBadge) kpiBadge.textContent = data.active_count ?? activeOrders.length;
-            if (kpiRev)   kpiRev.textContent   = 'PKR ' + Number(data.revenue ?? 0).toLocaleString();
-            if (kpiPend)  kpiPend.textContent  = data.pending_count ?? 0;
+            const pendingCount   = allFeedOrders.filter(o => o.status === 'pending').length;
+            const preparingCount = allFeedOrders.filter(o => o.status === 'preparing').length;
+            const readyCount     = allFeedOrders.filter(o => o.status === 'confirmed' || o.status === 'ready').length;
+            const deliveredCount = allFeedOrders.filter(o => o.status === 'delivered').length;
+            const totalCount     = allFeedOrders.length;
 
-            // Pipeline counters
-            const sc = data.status_counts || {};
-            const pPending = document.getElementById('pipe-pending');
-            if (pPending) pPending.textContent = sc.pending ?? (data.pending_count ?? 0);
+            if (pipePend) pipePend.textContent = pendingCount;
+            if (pipePrep) pipePrep.textContent = preparingCount;
+            if (pipeRdy)  pipeRdy.textContent  = readyCount;
+            if (delivEl)  delivEl.textContent  = deliveredCount;
+            if (totEl)    totEl.textContent    = totalCount > 0 ? totalCount : max(1, deliveredCount);
 
-            const pConfirmed = document.getElementById('pipe-confirmed');
-            if (pConfirmed) pConfirmed.textContent = sc.confirmed ?? 0;
-
-            let prepCount = 0;
-            let dispCount = 0;
-            activeOrders.forEach(o => {
-                if (o.status === 'preparing' || o.status === 'confirmed') prepCount++;
-                if (o.status === 'out_for_delivery') dispCount++;
-            });
-
-            const pPrep = document.getElementById('pipe-preparing');
-            if (pPrep) pPrep.textContent = sc.preparing ?? prepCount;
-
-            const pReady = document.getElementById('pipe-ready');
-            if (pReady) pReady.textContent = sc.ready ?? 0;
-
-            const pDel = document.getElementById('pipe-delivery');
-            if (pDel) pDel.textContent = sc.out_for_delivery ?? dispCount;
-
-            const pDelivered = document.getElementById('pipe-delivered');
-            if (pDelivered) pDelivered.textContent = sc.delivered ?? (data.delivered_count ?? 0);
-
-            if (kpiPrep) kpiPrep.textContent = sc.preparing ?? prepCount;
-            if (kpiDisp) kpiDisp.textContent = sc.out_for_delivery ?? dispCount;
-
-            // ── 1. AUTOMATICALLY WIPE OUT DELIVERED / CANCELLED ORDERS ──
-            const currentMappedIds = Object.keys(currentOrdersMap).map(k => parseInt(k));
-            currentMappedIds.forEach(mappedId => {
-                const feedOrder = allFeedOrders.find(o => o.id === mappedId);
-                // If it reached delivered or cancelled or is no longer in active orders
-                if (feedOrder && !ACTIVE_LIVE_STATUSES.includes(feedOrder.status)) {
-                    wipeDeliveredOrderFromLive(mappedId);
-                }
-            });
-
-            // ── 2. PROCESS ACTIVE ORDERS ──
-            const list = document.getElementById('live-orders-list');
-            if (list) {
-                if (activeOrders.length === 0) {
-                    currentOrdersMap = {};
-                    checkEmptyLiveOrdersState();
-                    if (SELECTED_ORDER_ID !== null) {
-                        SELECTED_ORDER_ID = null;
-                        renderEmptyWorkbenchState();
-                    }
-                } else {
-                    const existingIds = [...list.querySelectorAll('.live-order-item[data-order-id]')].map(el => parseInt(el.dataset.orderId));
-                    const newIds      = activeOrders.map(o => o.id);
-                    const hasNew      = newIds.some(id => !existingIds.includes(id));
-                    const hasGone     = existingIds.some(id => !newIds.includes(id));
-
-                    // Cache active orders in currentOrdersMap
-                    activeOrders.forEach(o => {
-                        currentOrdersMap[o.id] = o;
-                    });
-
-                    if (hasNew || hasGone || list.querySelector('#empty-orders-state') || currentLiveStageFilter !== 'all') {
-                        applyLiveOrdersFilter();
-                        if (hasNew && existingIds.length > 0) {
-                            showToast('🔔 New order arrived!', 'success');
-                            const bell = document.getElementById('notif-bell');
-                            if (bell) { bell.style.animation = 'bellShake 0.6s'; setTimeout(() => bell.style.animation = '', 700); }
-                            triggerKitchenNewOrderAlert();
-                        }
-                    } else {
-                        // In-place updates for existing active orders
-                        activeOrders.forEach(o => {
-                            const row  = list.querySelector(`[data-order-id="${o.id}"]`);
-                            if (!row) return;
-                            const pill = row.querySelector('.status-pill');
-                            if (pill && pill.textContent !== o.status_label) {
-                                pill.textContent = o.status_label;
-                                pill.className   = 'status-pill ' + o.status;
-                            }
-                            const time = row.querySelector('.order-time-text');
-                            if (time) time.textContent = o.created_at_humans;
-                        });
-                    }
-
-                    // Auto-select first active order if none is currently selected or if selected order was wiped
-                    if (SELECTED_ORDER_ID === null || !currentOrdersMap[SELECTED_ORDER_ID]) {
-                        if (activeOrders.length > 0) {
-                            selectOrder(activeOrders[0].id);
-                        }
-                    } else if (currentOrdersMap[SELECTED_ORDER_ID]) {
-                        renderOrderDetail(currentOrdersMap[SELECTED_ORDER_ID]);
-                    }
-                }
+            if (barFill && totalCount > 0) {
+                const pct = Math.min(100, Math.round((deliveredCount / totalCount) * 100));
+                barFill.style.width = pct + '%';
             }
 
-        } catch (_) { /* offline */ }
+            // Sync currentOrdersMap
+            currentOrdersMap = {};
+            activeOrders.forEach(o => {
+                currentOrdersMap[o.id] = {
+                    id: o.id,
+                    daily_order_number: o.daily_order_number || o.id,
+                    tracking_code: o.tracking_code,
+                    status: o.status,
+                    status_label: o.status_label,
+                    total: o.total,
+                    customer_name: o.customer_name || 'John doe',
+                    customer_phone: o.customer_phone || '',
+                    created_at_time: o.created_at_time || '12:34',
+                    created_at_humans: o.created_at_humans || '',
+                    rider_name: o.rider_name || '',
+                    rider_phone: o.rider_phone || '',
+                    delivery_address: o.delivery_address || '',
+                    items: o.items || []
+                };
+            });
+
+            applyLiveOrdersFilter();
+        } catch (e) {
+            console.error('Error polling live feed:', e);
+        }
     }
 
-    // ── KITCHEN CHIME & ATTENTION AUDIO SYSTEM ──────────────────────
-    let kitchenSoundEnabled = localStorage.getItem('kitchen_sound_enabled') !== 'false';
-    let titleBlinkInterval = null;
-    const ORIGINAL_TITLE = document.title;
+    /* ── Kitchen Audio Chime System ── */
+    let kitchenSoundEnabled = (localStorage.getItem('kitchen_sound_active') !== 'false');
 
     function updateSoundButtonUI() {
-        const icon  = document.getElementById('sound-icon');
-        const label = document.getElementById('sound-label');
-        const btn   = document.getElementById('btn-sound-toggle');
-        if (!icon || !label || !btn) return;
+        const btn = document.getElementById('btn-sound-toggle');
+        const icon = document.getElementById('sound-icon');
+        const lbl = document.getElementById('sound-label');
+        if (!btn || !icon || !lbl) return;
 
         if (kitchenSoundEnabled) {
             icon.textContent = '🔔';
-            label.textContent = 'Chime: ON';
-            btn.style.borderColor = '#a7f3d0';
-            btn.style.color = '#064e3b';
-            btn.style.background = '#ecfdf5';
+            lbl.textContent  = 'Chime: ON';
         } else {
             icon.textContent = '🔕';
-            label.textContent = 'Chime: OFF';
-            btn.style.borderColor = '#cbd5e1';
-            btn.style.color = '#64748b';
-            btn.style.background = '#f8fafc';
+            lbl.textContent  = 'Chime: OFF';
         }
     }
 
-    window.toggleKitchenChime = function() {
+    function toggleKitchenChime() {
         kitchenSoundEnabled = !kitchenSoundEnabled;
-        localStorage.setItem('kitchen_sound_enabled', kitchenSoundEnabled ? 'true' : 'false');
+        localStorage.setItem('kitchen_sound_active', kitchenSoundEnabled ? 'true' : 'false');
         updateSoundButtonUI();
-        if (kitchenSoundEnabled) {
-            playKitchenChime();
-            showToast('🔔 Kitchen sound alert enabled', 'info');
-        } else {
-            showToast('🔕 Kitchen sound alert muted', 'warning');
-        }
-    };
+        if (kitchenSoundEnabled) playKitchenChime();
+    }
 
+    let audioCtx = null;
     function playKitchenChime() {
         if (!kitchenSoundEnabled) return;
         try {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             if (!AudioContext) return;
-            const ctx = new AudioContext();
+            if (!audioCtx) audioCtx = new AudioContext();
 
-            // Dual-tone harmonic restaurant POS chime
-            const playTone = (freq, startTime, duration) => {
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(freq, startTime);
-                gain.gain.setValueAtTime(0.25, startTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+            const notes = [587.33, 880.00, 1174.66];
+            notes.forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime + (idx * 0.12));
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime + (idx * 0.12));
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (idx * 0.12) + 0.5);
                 osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start(startTime);
-                osc.stop(startTime + duration);
-            };
-
-            const now = ctx.currentTime;
-            playTone(659.25, now, 0.35);         // E5 note
-            playTone(987.77, now + 0.12, 0.65);  // B5 harmonic
-            playTone(1318.51, now + 0.28, 0.85); // E6 chime
-        } catch (e) {
-            console.debug('Audio chime error:', e);
-        }
+                gain.connect(audioCtx.destination);
+                osc.start(audioCtx.currentTime + (idx * 0.12));
+                osc.stop(audioCtx.currentTime + (idx * 0.12) + 0.5);
+            });
+        } catch (e) {}
     }
 
-    function triggerKitchenNewOrderAlert() {
-        playKitchenChime();
-
-        // Flash browser tab title to catch kitchen staff attention
-        if (titleBlinkInterval) clearInterval(titleBlinkInterval);
-        let flash = true;
-        titleBlinkInterval = setInterval(() => {
-            document.title = flash ? '🔔 (NEW ORDER!) ' + ORIGINAL_TITLE : '🛍️ (CHECK ORDER) ' + ORIGINAL_TITLE;
-            flash = !flash;
-        }, 800);
-    }
-
-    // Reset flashing title when user focuses/clicks on the page
-    window.addEventListener('focus', () => {
-        if (titleBlinkInterval) {
-            clearInterval(titleBlinkInterval);
-            titleBlinkInterval = null;
-            document.title = ORIGINAL_TITLE;
-        }
+    document.addEventListener('DOMContentLoaded', function() {
+        updateSoundButtonUI();
+        setInterval(pollLiveFeed, 6000);
     });
-    window.addEventListener('click', () => {
-        if (titleBlinkInterval) {
-            clearInterval(titleBlinkInterval);
-            titleBlinkInterval = null;
-            document.title = ORIGINAL_TITLE;
-        }
-    });
-
-    updateSoundButtonUI();
-    pollLiveFeed();
-    setInterval(pollLiveFeed, 5000);
 </script>
-
 @endsection

@@ -13,92 +13,127 @@
         })();
     </script>
 
-    <!-- Google Font: Plus Jakarta Sans with DNS Prefetch -->
+    <!-- Google Font: Urbanist (Typography Requirement) -->
     <link rel="dns-prefetch" href="//fonts.googleapis.com">
     <link rel="dns-prefetch" href="//fonts.gstatic.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            --bg-canvas: #fbf8f4;
+            --bg-canvas: #f4f5f7;
             --bg-card: #ffffff;
-            --border-subtle: #f2ede4;
-            --border-card: #ede7df;
-            --text-heading: #0b251e;
-            --text-body: #2d3748;
-            --text-muted: #6b7a74;
-            --text-light: #9ba8a2;
-            --sidebar-bg: #063b2c;
-            --sidebar-border: #042e22;
-            --sidebar-text: #a3c4b8;
+            --border-subtle: #ebeef2;
+            --border-card: #ebeef2;
+
+            /* Exact HEX Palette from Attached System */
+            --color-coral: #FD6941;
+            --color-green: #36D161;
+            --color-yellow: #F2AC11;
+            --color-dark: #070A08;
+            --color-gray: #888E89;
+            --color-peach: #F08D45;
+
+            --text-heading: #070A08;
+            --text-body: #374151;
+            --text-muted: #888E89;
+            --text-light: #9ca3af;
+
+            --brand-primary: #FD6941;
+            --brand-primary-hover: #e5532b;
+            --brand-primary-light: #fff2ed;
+            --brand-accent: #FD6941;
+
+            --sidebar-bg: #070A08;
+            --sidebar-border: rgba(255, 255, 255, 0.08);
+            --sidebar-text: #888E89;
             --sidebar-text-hover: #ffffff;
-            --sidebar-active-bg: rgba(255, 255, 255, 0.14);
+            --sidebar-active-bg: #FD6941;
             --sidebar-active-text: #ffffff;
-            --header-bg: #fbf8f4;
-            --brand-primary: #064e3b;
-            --brand-primary-hover: #043b2c;
-            --brand-primary-light: #e6f3ee;
-            --brand-accent: #ea580c;
-            --success-bg: #ecfdf5;
-            --success-border: #a7f3d0;
-            --success-text: #059669;
-            --warning-bg: #fff7ed;
-            --warning-border: #ffedd5;
-            --warning-text: #c2410c;
+            --header-bg: #ffffff;
+
+            --success-bg: #ebfbf0;
+            --success-border: #bbf7d0;
+            --success-text: #36D161;
+            --warning-bg: #fff8e7;
+            --warning-border: #fef08a;
+            --warning-text: #F2AC11;
             --danger-bg: #fef2f2;
             --danger-border: #fecaca;
             --danger-text: #dc2626;
-            --radius-card: 18px;
+
+            --radius-card: 24px;
             --radius-badge: 9999px;
-            --shadow-card: 0 4px 20px rgba(6, 59, 44, 0.03);
-            --shadow-elevated: 0 10px 30px rgba(6, 59, 44, 0.07);
+            --radius-pill: 9999px;
+            --shadow-card: 0 2px 14px rgba(0, 0, 0, 0.03);
+            --shadow-elevated: 0 10px 30px rgba(7, 10, 8, 0.07);
         }
 
         [data-theme="dark"] {
-            --bg-canvas: #091310;
-            --bg-card: #0f1e1a;
-            --border-subtle: rgba(255, 255, 255, 0.05);
-            --border-card: rgba(255, 255, 255, 0.08);
-            --text-heading: #f4fbf7;
-            --text-body: #c5d8d0;
-            --text-muted: #869f95;
-            --text-light: #5e746b;
-            --sidebar-bg: #052119;
-            --sidebar-border: rgba(255, 255, 255, 0.05);
-            --sidebar-text: #7e9f93;
+            --bg-canvas: #070A08;
+            --bg-card: #111513;
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --border-card: rgba(255, 255, 255, 0.1);
+            --text-heading: #ffffff;
+            --text-body: #d1d5db;
+            --text-muted: #888E89;
+            --text-light: #6b7280;
+            --sidebar-bg: #070A08;
+            --sidebar-border: rgba(255, 255, 255, 0.08);
+            --sidebar-text: #888E89;
             --sidebar-text-hover: #ffffff;
-            --sidebar-active-bg: rgba(255, 255, 255, 0.14);
+            --sidebar-active-bg: #FD6941;
             --sidebar-active-text: #ffffff;
-            --header-bg: #091310;
-            --brand-primary: #10b981;
-            --brand-primary-hover: #059669;
-            --brand-primary-light: rgba(16, 185, 129, 0.15);
-            --brand-accent: #f97316;
-            --success-bg: rgba(16, 185, 129, 0.12);
-            --success-border: rgba(16, 185, 129, 0.25);
-            --success-text: #34d399;
-            --warning-bg: rgba(245, 158, 11, 0.12);
-            --warning-border: rgba(245, 158, 11, 0.25);
-            --warning-text: #fbbf24;
-            --danger-bg: rgba(239, 68, 68, 0.12);
-            --danger-border: rgba(239, 68, 68, 0.25);
+            --header-bg: #111513;
+            --brand-primary: #FD6941;
+            --brand-primary-hover: #e5532b;
+            --brand-primary-light: rgba(253, 105, 65, 0.18);
+            --brand-accent: #FD6941;
+            --success-bg: rgba(54, 209, 97, 0.15);
+            --success-border: rgba(54, 209, 97, 0.3);
+            --success-text: #36D161;
+            --warning-bg: rgba(242, 172, 17, 0.15);
+            --warning-border: rgba(242, 172, 17, 0.3);
+            --warning-text: #F2AC11;
+            --danger-bg: rgba(239, 68, 68, 0.15);
+            --danger-border: rgba(239, 68, 68, 0.3);
             --danger-text: #f87171;
-            --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.35);
-            --shadow-elevated: 0 12px 30px rgba(0, 0, 0, 0.45);
+            --shadow-card: 0 2px 14px rgba(0, 0, 0, 0.4);
+            --shadow-elevated: 0 12px 30px rgba(0, 0, 0, 0.5);
         }
 
         *, *::before, *::after {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Urbanist', -apple-system, BlinkMacSystemFont, sans-serif;
             -webkit-font-smoothing: antialiased;
         }
 
         body, button, input, select, textarea, table, th, td, h1, h2, h3, h4, h5, h6, .btn, .badge {
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Urbanist', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        /* Attached Typography Specs */
+        h1, .heading-32 {
+            font-size: 32px !important;
+            line-height: 1.2 !important;
+            font-weight: 700 !important;
+            color: var(--text-heading);
+            letter-spacing: -0.02em;
+        }
+        h2, h3, .subheading-18 {
+            font-size: 18px !important;
+            line-height: 1.2 !important;
+            font-weight: 600 !important;
+            color: var(--text-heading);
+        }
+        p, .body-14 {
+            font-size: 14px;
+            line-height: 1.6;
+            font-weight: 400;
+            color: var(--text-body);
         }
 
         html {
@@ -327,56 +362,289 @@
         }
 
         /* ═══════════════════════════════════════════════════
-           MAIN WRAPPER & TOP HEADER
+           TASTYIGNITER TOPBAR & MAIN WRAPPER
            ═══════════════════════════════════════════════════ */
         .main-wrapper {
-            margin-left: 240px;
-            padding-top: 80px;
+            margin-left: 0;
+            padding-top: 0;
             flex: 1;
             min-height: 100vh;
             min-width: 0;
-            max-width: calc(100vw - 240px);
-            width: calc(100% - 240px);
+            max-width: 100%;
+            width: 100%;
             display: flex;
             flex-direction: column;
             background: var(--bg-canvas);
-            transition: margin-left 0.25s ease;
-            overflow-x: hidden;
             box-sizing: border-box;
         }
 
+        .main-wrapper main {
+            flex: 1;
+            width: 100%;
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 24px 32px 60px;
+            box-sizing: border-box;
+        }
+
+        @media (min-width: 1024px) {
+            aside#ownerSidebar {
+                display: none !important;
+            }
+        }
+
         header.topbar {
-            height: 80px;
-            background: rgba(251, 248, 244, 0.94);
-            backdrop-filter: blur(16px) saturate(180%);
-            -webkit-backdrop-filter: blur(16px) saturate(180%);
-            border-bottom: 1px solid rgba(237, 231, 223, 0.85);
-            box-shadow: 0 4px 20px -2px rgba(6, 59, 44, 0.03);
+            height: 76px;
+            background: #ffffff;
+            border-bottom: 1px solid var(--border-subtle);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 36px;
-            position: fixed;
+            padding: 0 32px;
+            position: sticky;
             top: 0;
-            left: 240px;
+            left: 0;
             right: 0;
-            z-index: 90;
-            transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+            z-index: 100;
             box-sizing: border-box;
         }
 
         [data-theme="dark"] header.topbar {
-            background: rgba(9, 19, 16, 0.94);
-            backdrop-filter: blur(16px) saturate(180%);
-            -webkit-backdrop-filter: blur(16px) saturate(180%);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.35);
+            background: #111513;
+            border-bottom-color: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
         }
 
-        .header-left {
+        /* ── 1. Brand Logo Left ── */
+        .tasty-brand-wrap {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 10px;
+            text-decoration: none;
+        }
+        .tasty-flame-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .tasty-brand-text {
+            font-size: 21px;
+            font-weight: 800;
+            color: var(--text-heading);
+            letter-spacing: -0.02em;
+            white-space: nowrap;
+        }
+
+        /* ── 2. Center Floating Pill Navigation Capsule ── */
+        .tasty-nav-capsule {
+            display: inline-flex;
+            align-items: center;
+            background: #f4f5f7;
+            border: 1px solid #ebeef2;
+            border-radius: 9999px;
+            padding: 4px;
+            gap: 2px;
+        }
+        [data-theme="dark"] .tasty-nav-capsule {
+            background: #1a201c;
+            border-color: rgba(255, 255, 255, 0.08);
+        }
+        .tasty-nav-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 18px;
+            border-radius: 9999px;
+            font-size: 13.5px;
+            font-weight: 600;
+            color: #64748b;
+            text-decoration: none;
+            transition: all 0.16s ease;
+            white-space: nowrap;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+        }
+        .tasty-nav-item:hover {
+            color: var(--color-dark);
+            background: rgba(255, 255, 255, 0.6);
+        }
+        [data-theme="dark"] .tasty-nav-item {
+            color: #9ca3af;
+        }
+        [data-theme="dark"] .tasty-nav-item:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.08);
+        }
+        /* Active Capsule Nav (Solid Black in Mockup) */
+        .tasty-nav-item.active {
+            background: var(--color-dark) !important;
+            color: #ffffff !important;
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(7, 10, 8, 0.2);
+        }
+        [data-theme="dark"] .tasty-nav-item.active {
+            background: #ffffff !important;
+            color: #070A08 !important;
+        }
+        .tasty-nav-badge {
+            background: var(--color-coral);
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 2px 7px;
+            border-radius: 9999px;
+            line-height: 1;
+        }
+
+        /* Dropdown within Capsule */
+        .tasty-nav-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .tasty-dropdown-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ffffff;
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            min-width: 190px;
+            padding: 8px;
+            z-index: 200;
+        }
+        [data-theme="dark"] .tasty-dropdown-menu {
+            background: #1a201c;
+            border-color: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        .tasty-dropdown-menu.show {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .tasty-dropdown-menu a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-heading);
+            text-decoration: none;
+            transition: background 0.15s ease;
+        }
+        .tasty-dropdown-menu a:hover {
+            background: #f4f5f7;
+            color: var(--color-coral);
+        }
+        [data-theme="dark"] .tasty-dropdown-menu a:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        /* ── 3. Right Action Controls ── */
+        .tasty-right-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .tasty-circle-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-dark);
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.15s ease;
+            position: relative;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+        }
+        [data-theme="dark"] .tasty-circle-btn {
+            background: #1a201c;
+            border-color: rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+        }
+        .tasty-circle-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
+            border-color: #cbd5e1;
+        }
+        .tasty-bell-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--color-coral);
+            position: absolute;
+            top: 9px;
+            right: 9px;
+            box-shadow: 0 0 0 2px #ffffff;
+        }
+        [data-theme="dark"] .tasty-bell-dot {
+            box-shadow: 0 0 0 2px #1a201c;
+        }
+
+        /* Admin Profile Pill */
+        .tasty-admin-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #ffffff;
+            border: 1px solid var(--border-subtle);
+            border-radius: 9999px;
+            padding: 4px 12px 4px 4px;
+            text-decoration: none;
+            color: var(--color-dark);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+            position: relative;
+        }
+        [data-theme="dark"] .tasty-admin-pill {
+            background: #1a201c;
+            border-color: rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+        }
+        .tasty-admin-pill:hover {
+            border-color: #cbd5e1;
+            transform: translateY(-1px);
+        }
+        .tasty-avatar-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #f4f5f7;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+        }
+        .tasty-avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .tasty-admin-name {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--color-dark);
+        }
+        [data-theme="dark"] .tasty-admin-name {
+            color: #ffffff;
         }
 
         .header-greeting-title {
@@ -1327,69 +1595,98 @@
 
 <!-- MAIN CONTENT WRAPPER -->
 <div class="main-wrapper">
-    <!-- TOPBAR (MATCHES SCREENSHOT) -->
+    <!-- TOPBAR (EXACT TASTYIGNITER MOCKUP MATCH) -->
     <header class="topbar">
-        <div class="header-left">
-            <button type="button" class="mobile-menu-toggle" onclick="toggleOwnerSidebar()" aria-label="Open menu">
+        <!-- 1. LEFT: Brand Flame Logo & Name -->
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <button type="button" class="mobile-menu-toggle" onclick="toggleOwnerSidebar()" aria-label="Open menu" style="display: none;">
                 ☰
             </button>
-            <div class="header-greeting-wrap">
-                <h1 class="header-greeting-title">
-                    @hasSection('header_title')
-                        @yield('header_title')
-                    @else
-                        {{ $timeGreeting }}, {{ $ownerFirstName }} 👋
-                    @endif
-                </h1>
-                <p class="header-greeting-sub">
-                    @yield('header_subtitle', "View, accept and manage all incoming orders with real-time status updates.")
-                </p>
-            </div>
+            <a href="{{ route('dashboard.live-orders', $restId) }}" class="tasty-brand-wrap" title="{{ $currentRest->name ?? 'TastyIgniter' }}">
+                <span class="tasty-flame-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 2C10.5 5 7.5 7.5 7.5 11.5C7.5 14.5 9.5 16 11 16.5C10.5 15.5 10.5 14 11.5 13C12.5 14 13 15 13 16C15 15.5 16.5 13.8 16.5 11.5C16.5 6.5 12 2 12 2Z" fill="#FD6941"/>
+                        <path d="M12 22C16.4183 22 20 18.4183 20 14C20 9.5 16 6 12 2C8 6 4 9.5 4 14C4 18.4183 7.58172 22 12 22Z" fill="#FD6941" fill-opacity="0.15" stroke="#FD6941" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </span>
+                <span class="tasty-brand-text">{{ $currentRest->name ?? 'TastyIgniter' }}</span>
+            </a>
         </div>
 
-        <div class="header-right-actions">
-            <!-- Restaurant Online / Paused Toggle Pill -->
-            <button type="button" class="status-pill-toggle {{ $isOpen ? '' : 'paused' }}" id="statusPillBtn" onclick="quickToggleRestaurantStatus()" title="Toggle Taking Orders">
-                <span class="sidebar-online-dot {{ $isOpen ? '' : 'paused' }}" id="pillStatusDot"></span>
-                <span id="pillStatusLabel">{{ $isOpen ? 'Restaurant Online' : 'Store Paused' }}</span>
-                <span class="pill-chevron" style="font-size: 10px; opacity: 0.6;">▾</span>
-            </button>
-
-            <!-- Live Date Pill -->
-            <div class="date-pill">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
-                    <line x1="16" x2="16" y1="2" y2="6"/>
-                    <line x1="8" x2="8" y1="2" y2="6"/>
-                    <line x1="3" x2="21" y1="10" y2="10"/>
-                </svg>
-                <span>{{ now()->format('D, M j') }}</span>
-            </div>
-
-            <!-- Dark / Light Theme Toggle -->
-            <button type="button" class="theme-icon-btn" id="themeToggleBtn" onclick="toggleOwnerTheme()" title="Toggle Dark/Light Mode">
-                <span id="themeToggleIcon">☀️</span>
-            </button>
-
-            <!-- Notifications Bell -->
-            <a href="{{ route('dashboard.orders', $restId) }}" class="notif-bell-btn" id="notif-bell-wrap" title="Pending orders & alerts">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
-                    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
-                </svg>
-                <span class="notif-dot-badge" id="notif-badge" style="display: {{ isset($pendingCount) && $pendingCount > 0 ? 'block' : 'none' }};"></span>
+        <!-- 2. CENTER: Floating Pill Navigation Capsule (Mockup Identical) -->
+        <nav class="tasty-nav-capsule">
+            <a href="{{ route('dashboard.orders', $restId) }}" class="tasty-nav-item {{ request()->routeIs('dashboard.orders') ? 'active' : '' }}">
+                Dashboard
+            </a>
+            <a href="{{ route('dashboard.menu', $restId) }}" class="tasty-nav-item {{ request()->routeIs('dashboard.menu*') ? 'active' : '' }}">
+                Menu
+            </a>
+            <a href="{{ route('dashboard.live-orders', $restId) }}" class="tasty-nav-item {{ request()->routeIs('dashboard.live-orders*') ? 'active' : '' }}">
+                Order
+                @if(isset($liveOrdersCount) && $liveOrdersCount > 0)
+                    <span class="tasty-nav-badge">{{ $liveOrdersCount }}</span>
+                @endif
+            </a>
+            <a href="{{ route('dashboard.dine-in', $restId) }}" class="tasty-nav-item {{ request()->routeIs('dashboard.dine-in*') ? 'active' : '' }}">
+                Tables
+            </a>
+            <a href="{{ route('dashboard.dine-in', $restId) }}" class="tasty-nav-item">
+                VIP Rooms
+            </a>
+            <a href="{{ route('dashboard.reports', $restId) }}" class="tasty-nav-item {{ request()->routeIs('dashboard.reports*') ? 'active' : '' }}">
+                Sales
             </a>
 
-            <!-- User Profile Pill (Mockup Match: Avatar + Name + Owner + Chevron) -->
-            <a href="{{ route('dashboard.settings', $restId) }}" class="user-profile-pill" title="Owner Profile & Settings">
-                <div class="user-avatar-circle">
-                    {{ strtoupper(substr($ownerFirstName, 0, 1)) }}
+            <!-- More Links Dropdown -->
+            <div class="tasty-nav-dropdown">
+                <button type="button" class="tasty-nav-item" onclick="toggleTastyDropdown(event)">
+                    More <span style="font-size: 10px; margin-left: 2px;">▾</span>
+                </button>
+                <div class="tasty-dropdown-menu" id="tastyMoreDropdown">
+                    <a href="{{ route('dashboard.connect-whatsapp', $restId) }}">🤖 WhatsApp Bot</a>
+                    <a href="{{ route('dashboard.customers', $restId) }}">👥 Customers</a>
+                    <a href="{{ route('dashboard.riders', $restId) }}">🚴 Fleet & Riders</a>
+                    <a href="{{ route('dashboard.daily-closing', $restId) }}">📁 Daily Closing</a>
+                    <a href="{{ route('dashboard.history', $restId) }}">📜 Order History</a>
+                    <a href="{{ route('dashboard.settings', $restId) }}">⚙️ Settings</a>
                 </div>
-                <div class="user-profile-text">
-                    <div class="user-profile-name">{{ $ownerName }}</div>
-                    <div class="user-profile-role">Owner</div>
+            </div>
+        </nav>
+
+        <!-- 3. RIGHT: Headset, Settings, Bell, Admin Pill -->
+        <div class="tasty-right-actions">
+            <!-- Headset Support Circle -->
+            <a href="https://wa.me/923000000000" target="_blank" class="tasty-circle-btn" title="Contact Support">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+                    <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+                </svg>
+            </a>
+
+            <!-- Settings Gear Circle -->
+            <a href="{{ route('dashboard.settings', $restId) }}" class="tasty-circle-btn" title="Settings">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+            </a>
+
+            <!-- Bell Circle with Coral Alert Dot -->
+            <a href="{{ route('dashboard.live-orders', $restId) }}" class="tasty-circle-btn" title="Live Orders">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                <span class="tasty-bell-dot" style="display: {{ (isset($pendingCount) && $pendingCount > 0) || (isset($liveOrdersCount) && $liveOrdersCount > 0) ? 'block' : 'none' }};"></span>
+            </a>
+
+            <!-- Admin Profile Pill (Mockup Match: Avatar + Name + Chevron) -->
+            <a href="{{ route('dashboard.settings', $restId) }}" class="tasty-admin-pill" title="Admin Account">
+                <div class="tasty-avatar-circle">
+                    <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80" alt="Admin" class="tasty-avatar-img" onerror="this.onerror=null;this.parentElement.innerHTML='👩‍💼';">
                 </div>
-                <span style="font-size: 10px; color: var(--text-muted); opacity: 0.7;">▾</span>
+                <span class="tasty-admin-name">Admin</span>
+                <span style="font-size: 10px; color: var(--color-gray); margin-left: 2px;">▾</span>
             </a>
         </div>
     </header>
@@ -1500,6 +1797,18 @@ function updateThemeIcon(t) {
 }
 
 // ── Mobile Sidebar Drawer ──────────────────────────────
+function toggleTastyDropdown(e) {
+    if (e) e.stopPropagation();
+    const m = document.getElementById('tastyMoreDropdown');
+    if (m) m.classList.toggle('show');
+}
+document.addEventListener('click', function(e) {
+    const m = document.getElementById('tastyMoreDropdown');
+    if (m && !e.target.closest('.tasty-nav-dropdown')) {
+        m.classList.remove('show');
+    }
+});
+
 function toggleOwnerSidebar() {
     const sb = document.getElementById('ownerSidebar');
     const bd = document.getElementById('sidebarBackdrop');
