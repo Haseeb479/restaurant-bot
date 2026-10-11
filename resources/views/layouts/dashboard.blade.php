@@ -1508,9 +1508,7 @@
                 </svg>
             </span>
             <span class="sidebar-nav-label">Live Orders</span>
-            @if(isset($liveDeliveryOrdersCount) && $liveDeliveryOrdersCount > 0)
-                <span class="sidebar-nav-badge">{{ $liveDeliveryOrdersCount }}</span>
-            @endif
+            <span class="sidebar-nav-badge" id="sidebarLiveBadge" style="display: {{ (isset($liveDeliveryOrdersCount) && $liveDeliveryOrdersCount > 0) ? 'inline-block' : 'none' }};">{{ $liveDeliveryOrdersCount ?? 0 }}</span>
         </a>
 
         <!-- 6. Reports -->
@@ -1624,15 +1622,11 @@
             </a>
             <a href="{{ route('dashboard.live-orders', $restId) }}" class="tasty-nav-item {{ request()->routeIs('dashboard.live-orders*') ? 'active' : '' }}">
                 Order
-                @if(isset($liveDeliveryOrdersCount) && $liveDeliveryOrdersCount > 0)
-                    <span class="tasty-nav-badge">{{ $liveDeliveryOrdersCount }}</span>
-                @endif
+                <span class="tasty-nav-badge" id="tastyOrderBadge" style="display: {{ (isset($liveDeliveryOrdersCount) && $liveDeliveryOrdersCount > 0) ? 'inline-block' : 'none' }};">{{ $liveDeliveryOrdersCount ?? 0 }}</span>
             </a>
             <a href="{{ route('dashboard.dine-in', $restId) }}" class="tasty-nav-item {{ request()->routeIs('dashboard.dine-in*') ? 'active' : '' }}">
                 Tables
-                @if(isset($activeDineInCount) && $activeDineInCount > 0)
-                    <span class="tasty-nav-badge" style="background: #059669;">{{ $activeDineInCount }}</span>
-                @endif
+                <span class="tasty-nav-badge" id="tastyTablesBadge" style="background: #059669; display: {{ (isset($activeDineInCount) && $activeDineInCount > 0) ? 'inline-block' : 'none' }};">{{ $activeDineInCount ?? 0 }}</span>
             </a>
             <a href="{{ route('dashboard.riders', $restId) }}" class="tasty-nav-item {{ request()->routeIs('dashboard.riders*') ? 'active' : '' }}">
                 Rider Fleet
@@ -1681,7 +1675,7 @@
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
-                <span class="tasty-bell-dot" style="display: {{ (isset($pendingCount) && $pendingCount > 0) || (isset($liveDeliveryOrdersCount) && $liveDeliveryOrdersCount > 0) ? 'block' : 'none' }};"></span>
+                <span class="tasty-bell-dot" id="tastyBellDot" style="display: {{ (isset($pendingCount) && $pendingCount > 0) || (isset($liveDeliveryOrdersCount) && $liveDeliveryOrdersCount > 0) ? 'block' : 'none' }};"></span>
             </a>
 
             <!-- Admin Profile Pill (Mockup Match: Avatar + Name + Chevron) -->
@@ -1854,31 +1848,67 @@ async function quickToggleRestaurantStatus() {
     }
 }
 
-// ── Notification Bell Poller ───────────────────────────
+// ── Global Real-Time Navigation Badges & Notification Poller ──
 (function() {
-    const badge = document.getElementById('notif-badge');
-    const bell  = document.getElementById('notif-bell-wrap');
-    if (!badge || !bell) return;
+    const orderBadge   = document.getElementById('tastyOrderBadge');
+    const tablesBadge  = document.getElementById('tastyTablesBadge');
+    const bellDot      = document.getElementById('tastyBellDot');
+    const sideBadge    = document.getElementById('sidebarLiveBadge');
+    const sideDineDot  = document.getElementById('dineInNavBadge');
+    const badge        = document.getElementById('notif-badge');
 
-    let lastPending = null;
-
-    async function pollPending() {
+    async function pollLiveCounters() {
         try {
             const res = await fetch("{{ route('dashboard.orders.live-feed', $restId) }}", {
                 headers: { 'Accept': 'application/json' }
             });
             if (!res.ok) return;
             const data = await res.json();
-            if (data.success && typeof data.pending_count !== 'undefined') {
+            if (!data || !data.success) return;
+
+            // 1. Live WhatsApp Delivery / Takeaway count
+            if (typeof data.live_delivery_count !== 'undefined') {
+                const delCount = parseInt(data.live_delivery_count, 10);
+                if (orderBadge) {
+                    orderBadge.textContent = delCount;
+                    orderBadge.style.display = delCount > 0 ? 'inline-block' : 'none';
+                }
+                if (sideBadge) {
+                    sideBadge.textContent = delCount;
+                    sideBadge.style.display = delCount > 0 ? 'inline-block' : 'none';
+                }
+            }
+
+            // 2. Active Dine-In Table Sessions count
+            if (typeof data.active_dine_in_count !== 'undefined') {
+                const dineCount = parseInt(data.active_dine_in_count, 10);
+                if (tablesBadge) {
+                    tablesBadge.textContent = dineCount;
+                    tablesBadge.style.display = dineCount > 0 ? 'inline-block' : 'none';
+                }
+                if (sideDineDot) {
+                    sideDineDot.style.display = dineCount > 0 ? 'inline-block' : 'none';
+                }
+            }
+
+            // 3. Bell Dot (Coral dot alert for incoming delivery orders)
+            if (bellDot) {
+                const pend = parseInt(data.pending_count || 0, 10);
+                const deliv = parseInt(data.live_delivery_count || 0, 10);
+                bellDot.style.display = (pend > 0 || deliv > 0) ? 'block' : 'none';
+            }
+
+            // 4. Mobile / Drawer notification badge
+            if (badge && typeof data.pending_count !== 'undefined') {
                 const pending = parseInt(data.pending_count, 10);
                 badge.style.display = pending > 0 ? 'block' : 'none';
-                lastPending = pending;
             }
         } catch (e) {}
     }
 
-    pollPending();
-    setInterval(pollPending, 8000);
+    // Run immediately and every 3 seconds for instant real-time sync across pages
+    pollLiveCounters();
+    setInterval(pollLiveCounters, 3000);
 })();
 
 document.addEventListener('DOMContentLoaded', () => {

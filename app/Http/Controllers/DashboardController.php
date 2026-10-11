@@ -466,16 +466,26 @@ class DashboardController extends Controller
         $unavailableCount   = $r->menuItems()->where('is_available', false)->count();
         $isBotOffline       = $r->bot_status !== 'connected';
 
+        $liveDeliveryCount = $todayAll->filter(fn($o) => !$o->isDineIn())
+            ->whereIn('status', ['pending', 'confirmed', 'preparing', 'out_for_delivery'])
+            ->count();
+
+        $activeDineInCount = $todayAll->filter(fn($o) => $o->isDineIn())
+            ->whereIn('status', ['pending', 'confirmed', 'preparing', 'served'])
+            ->count();
+
         return response()->json([
-            'success'         => true,
-            'today_count'     => $totalToday,
-            'pending_count'   => $pendingCount,
-            'revenue'         => $activeRevenue,
-            'aov'             => $totalToday > 0 ? round($activeRevenue / $totalToday) : 0,
-            'active_count'    => $activeCount,
-            'delivered_count' => $deliveredCount,
-            'latest_order_id' => $liveOrders->first()?->id ?? 0,
-            'status_counts'   => [
+            'success'               => true,
+            'today_count'           => $totalToday,
+            'pending_count'         => $pendingCount,
+            'live_delivery_count'   => $liveDeliveryCount,
+            'active_dine_in_count'  => $activeDineInCount,
+            'revenue'               => $activeRevenue,
+            'aov'                   => $totalToday > 0 ? round($activeRevenue / $totalToday) : 0,
+            'active_count'          => $activeCount,
+            'delivered_count'       => $deliveredCount,
+            'latest_order_id'       => $liveOrders->first()?->id ?? 0,
+            'status_counts'         => [
                 'pending'          => $pendingCount,
                 'confirmed'        => $confirmedCount,
                 'preparing'        => $preparingCount,
