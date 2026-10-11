@@ -1400,6 +1400,12 @@
         ->whereIn('status', ['pending', 'confirmed', 'preparing', 'served'])
         ->whereDate('created_at', now()->today())
         ->count() : 0;
+
+    $liveDeliveryOrdersCount = $currentRest ? $currentRest->orders()
+        ->deliveryOrders()
+        ->whereIn('status', ['pending', 'confirmed', 'preparing', 'out_for_delivery'])
+        ->whereDate('created_at', now()->today())
+        ->count() : 0;
 @endphp
 
 <!-- Mobile Backdrop -->
@@ -1502,8 +1508,8 @@
                 </svg>
             </span>
             <span class="sidebar-nav-label">Live Orders</span>
-            @if(isset($liveOrdersCount) && $liveOrdersCount > 0)
-                <span class="sidebar-nav-badge">{{ $liveOrdersCount }}</span>
+            @if(isset($liveDeliveryOrdersCount) && $liveDeliveryOrdersCount > 0)
+                <span class="sidebar-nav-badge">{{ $liveDeliveryOrdersCount }}</span>
             @endif
         </a>
 
@@ -1618,12 +1624,15 @@
             </a>
             <a href="{{ route('dashboard.live-orders', $restId) }}" class="tasty-nav-item {{ request()->routeIs('dashboard.live-orders*') ? 'active' : '' }}">
                 Order
-                @if(isset($liveOrdersCount) && $liveOrdersCount > 0)
-                    <span class="tasty-nav-badge">{{ $liveOrdersCount }}</span>
+                @if(isset($liveDeliveryOrdersCount) && $liveDeliveryOrdersCount > 0)
+                    <span class="tasty-nav-badge">{{ $liveDeliveryOrdersCount }}</span>
                 @endif
             </a>
             <a href="{{ route('dashboard.dine-in', $restId) }}" class="tasty-nav-item {{ request()->routeIs('dashboard.dine-in*') ? 'active' : '' }}">
                 Tables
+                @if(isset($activeDineInCount) && $activeDineInCount > 0)
+                    <span class="tasty-nav-badge" style="background: #059669;">{{ $activeDineInCount }}</span>
+                @endif
             </a>
             <a href="{{ route('dashboard.riders', $restId) }}" class="tasty-nav-item {{ request()->routeIs('dashboard.riders*') ? 'active' : '' }}">
                 Rider Fleet
@@ -1672,7 +1681,7 @@
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
-                <span class="tasty-bell-dot" style="display: {{ (isset($pendingCount) && $pendingCount > 0) || (isset($liveOrdersCount) && $liveOrdersCount > 0) ? 'block' : 'none' }};"></span>
+                <span class="tasty-bell-dot" style="display: {{ (isset($pendingCount) && $pendingCount > 0) || (isset($liveDeliveryOrdersCount) && $liveDeliveryOrdersCount > 0) ? 'block' : 'none' }};"></span>
             </a>
 
             <!-- Admin Profile Pill (Mockup Match: Avatar + Name + Chevron) -->
