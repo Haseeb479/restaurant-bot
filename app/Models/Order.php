@@ -451,15 +451,29 @@ class Order extends Model
      */
     public function isDineIn(): bool
     {
-        if (($this->order_type ?? '') === 'dine_in') {
+        if (strtolower((string)($this->order_type ?? '')) === 'dine_in') {
             return true;
         }
         if (!empty($this->table_number) || !empty($this->table_id)) {
             return true;
         }
-        return str_contains(strtolower(trim((string)$this->delivery_address)), 'table')
-            || str_contains(strtolower(trim((string)$this->customer_phone)), 'dine-in')
-            || str_contains(strtolower(trim((string)$this->notes)), 'dine-in');
+        $addr = strtolower(trim((string)$this->delivery_address));
+        $phone = strtolower(trim((string)$this->customer_phone));
+        $notes = strtolower(trim((string)$this->notes));
+
+        return str_starts_with($addr, 'table') 
+            || str_contains($addr, 'table #') 
+            || str_contains($addr, 'table-')
+            || str_contains($phone, 'dine-in')
+            || str_contains($notes, 'dine-in');
+    }
+
+    /**
+     * Check if this is a WhatsApp Delivery or Takeaway order.
+     */
+    public function isDelivery(): bool
+    {
+        return ! $this->isDineIn();
     }
 
     /**
@@ -486,9 +500,49 @@ class Order extends Model
     {
         return $query->where(function ($q) {
             $q->where('order_type', 'dine_in')
-              ->orWhereNotNull('table_number')
+              ->orWhere(function ($sub) {
+                  $sub->whereNotNull('table_number')
+                      ->where('table_number', '!=', '');
+              })
               ->orWhere('delivery_address', 'LIKE', 'Table %')
-              ->orWhere('notes', 'LIKE', '%DINE-IN%');
+              ->orWhere('delivery_address', 'LIKE', 'table %')
+              ->orWhere('notes', 'LIKE', '%DINE-IN%')
+              ->orWhere('notes', 'LIKE', '%dine-in%');
+        });
+    }
+
+    /**
+     * Scope for Delivery & WhatsApp orders (strictly excluding Dine-In).
+     */
+    public function scopeDeliveryOrders($query)
+    {
+        return $query->where(function ($q) {
+            $q->where(function ($sub) {
+                $sub->whereNull('order_type')
+                    ->orWhere('order_type', '!=', 'dine_in');
+            })
+            ->where(function ($sub) {
+                $sub->whereNull('table_number')
+                    ->orWhere('table_number', '');
+            })
+            ->where(function ($sub) {
+                $sub->whereNull('delivery_address')
+                    ->orWhere(function ($addrQ) {
+                        $addrQ->where('delivery_address', 'NOT LIKE', 'Table %')
+                              ->where('delivery_address', 'NOT LIKE', 'table %');
+                    });
+            })
+            ->where(function ($sub) {
+                $sub->whereNull('notes')
+                    ->orWhere(function ($noteQ) {
+                        $noteQ->where('notes', 'NOT LIKE', '%DINE-IN%')
+                              ->where('notes', 'NOT LIKE', '%dine-in%');
+                    });
+            })
+            ->where(function ($sub) {
+                $sub->whereNull('customer_phone')
+                    ->orWhere('customer_phone', 'NOT LIKE', '%dine-in%');
+            });
         });
     }
 }

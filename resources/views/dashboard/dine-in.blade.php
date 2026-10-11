@@ -609,8 +609,15 @@
                         <span class="table-tile-status {{ $status }}" id="tableTileStatus_{{ $tNum }}">
                             {{ $status === 'pending' ? '⚡ New' : ($status === 'preparing' ? '🔥 Cook' : ($status === 'served' ? '✓ Served' : 'Active')) }}
                         </span>
-                        <div class="table-tile-amount" id="tableTileAmount_{{ $tNum }}">
-                            Rs. {{ number_format($session['total'], 0) }}
+                        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; margin-top: 4px;">
+                            <div class="table-tile-amount" id="tableTileAmount_{{ $tNum }}">
+                                Rs. {{ number_format($session['total'], 0) }}
+                            </div>
+                            <span onclick="event.stopPropagation(); event.preventDefault(); window.open('{{ route('dashboard.dine-in.print-table-bill', [$restaurant->id, $tNum]) }}', '_blank')" 
+                                  style="font-size: 11px; padding: 2px 6px; background: rgba(0,0,0,0.07); border-radius: 5px; font-weight: 700; color: var(--text-body); cursor: pointer;"
+                                  title="Print Table Bill">
+                                🖨️ Bill
+                            </span>
                         </div>
                     @else
                         <span class="table-tile-status free" id="tableTileStatus_{{ $tNum }}">
@@ -830,7 +837,7 @@
     function changeDineStatus(orderId, newStatus, tableNum) {
         const csrf = "{{ csrf_token() }}";
         const url = "{{ url('dashboard/' . $restaurant->id . '/dine-in/orders') }}/" + orderId + "/status";
-        const printUrl = "{{ url('dashboard/' . $restaurant->id . '/bill') }}/" + orderId;
+        const printUrl = "{{ url('dashboard/' . $restaurant->id . '/orders') }}/" + orderId + "/print-bill";
         const currentTabStatus = new URLSearchParams(window.location.search).get('status') || '';
 
         const card = document.getElementById('ticketCard_' + orderId);

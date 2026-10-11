@@ -334,11 +334,13 @@ class DashboardController extends Controller
         $this->authCheck($id);
         $r = Restaurant::findOrFail($id);
 
-        $todayOrders = $r->todayOrders()->with('items')->get();
+        // Strict Separation: Live Orders section ONLY displays WhatsApp Delivery / Takeaway orders
+        $todayOrders = $r->todayOrders()->deliveryOrders()->with('items')->get();
         $riders      = $r->riders()->get();
 
-        // Only active live orders
+        // Only active live delivery orders
         $liveOrders = $r->orders()
+            ->deliveryOrders()
             ->with('items')
             ->whereIn('status', ['pending', 'confirmed', 'preparing', 'out_for_delivery'])
             ->orderBy('created_at', 'desc')
@@ -387,10 +389,11 @@ class DashboardController extends Controller
     {
         $this->authCheck($id);
         $r     = Restaurant::findOrFail($id);
-        $today = $r->todayOrders()->with(['items'])->get();
+        $today = $r->todayOrders()->deliveryOrders()->with(['items'])->get();
 
-        // Return recent orders (including active + recently completed/cancelled) for smooth live updates
+        // Return recent delivery orders only for smooth live updates
         $liveOrders = $r->orders()
+            ->deliveryOrders()
             ->with(['items'])
             ->whereIn('status', ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'])
             ->orderBy('created_at', 'desc')
@@ -481,12 +484,7 @@ class DashboardController extends Controller
         // Dine-In orders for today
         $dineInOrders = $r->orders()
             ->with('items')
-            ->where(function ($q) {
-                $q->where('order_type', 'dine_in')
-                  ->orWhereNotNull('table_number')
-                  ->orWhere('delivery_address', 'LIKE', 'Table %')
-                  ->orWhere('notes', 'LIKE', '%DINE-IN%');
-            })
+            ->dineIn()
             ->whereDate('created_at', now()->today())
             ->orderBy('created_at', 'desc')
             ->get();
@@ -561,12 +559,7 @@ class DashboardController extends Controller
 
         $dineInOrders = $r->orders()
             ->with(['items'])
-            ->where(function ($q) {
-                $q->where('order_type', 'dine_in')
-                  ->orWhereNotNull('table_number')
-                  ->orWhere('delivery_address', 'LIKE', 'Table %')
-                  ->orWhere('notes', 'LIKE', '%DINE-IN%');
-            })
+            ->dineIn()
             ->whereDate('created_at', now()->today())
             ->orderBy('created_at', 'desc')
             ->take(60)
@@ -686,13 +679,15 @@ class DashboardController extends Controller
         }
 
         $validated = $request->validate([
-            'status' => 'required|string|in:confirmed,preparing,ready,served,delivered,cancelled',
+            'status' => 'required|string|in:confirmed,preparing,ready,served,delivered,cancelled,paid',
         ]);
 
-        $order->status = $validated['status'];
-        if ($validated['status'] === 'delivered') {
+        $statusToSet = $validated['status'];
+        if ($statusToSet === 'paid' || $statusToSet === 'delivered') {
+            $statusToSet = 'delivered';
             $order->is_paid = true;
         }
+        $order->status = $statusToSet;
         $order->save();
 
         if ($request->wantsJson() || $request->ajax()) {
@@ -700,8 +695,9 @@ class DashboardController extends Controller
                 'success' => true,
                 'message' => "Order #{$order->daily_order_number} updated to " . ucfirst($order->status),
                 'order'   => [
-                    'id'     => $order->id,
-                    'status' => $order->status,
+                    'id'      => $order->id,
+                    'status'  => $order->status,
+                    'is_paid' => $order->is_paid,
                 ],
             ]);
         }
@@ -925,6 +921,42 @@ class DashboardController extends Controller
         return view('dashboard.print-bill', [
             'restaurant' => $r,
             'order'      => $order,
+        ]);
+    }
+
+    // ── Print Consolidated Dine-In Table Bill ────────────────
+    public function printTableBill(string $id, string $table)
+    {
+        $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
+
+        $orders = $r->orders()
+            ->with(['items'])
+            ->dineIn()
+            ->whereDate('created_at', now()->today())
+            ->whereIn('status', ['pending', 'confirmed', 'preparing', 'served', 'delivered'])
+            ->get()
+            ->filter(fn($o) => (string)$o->getResolvedTableNumber() === (string)$table);
+
+        if ($orders->isEmpty()) {
+            $orders = $r->orders()
+                ->with(['items'])
+                ->dineIn()
+                ->latest()
+                ->get()
+                ->filter(fn($o) => (string)$o->getResolvedTableNumber() === (string)$table)
+                ->take(5);
+        }
+
+        abort_if($orders->isEmpty(), 404, "No active orders found for Table {$table}.");
+
+        $leadOrder = $orders->first();
+
+        return view('dashboard.print-bill', [
+            'restaurant'  => $r,
+            'order'       => $leadOrder,
+            'tableOrders' => $orders,
+            'tableNumber' => $table,
         ]);
     }
 

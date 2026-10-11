@@ -869,7 +869,7 @@
                             <div class="card-meta-grid">
                                 <div class="card-meta-item">
                                     <span>🏷️</span>
-                                    <span>{{ $o->delivery_address ? 'Delivery' : 'Dine in' }}</span>
+                                    <span>{{ $o->delivery_address ? 'Delivery' : 'Takeaway / Pickup' }}</span>
                                 </div>
                                 <div class="card-meta-item">
                                     <span>👥</span>
@@ -1257,7 +1257,7 @@
                     <div class="card-meta-grid">
                         <div class="card-meta-item">
                             <span>🏷️</span>
-                            <span>${escHtml(o.delivery_address ? 'Delivery' : 'Dine in')}</span>
+                            <span>${escHtml(o.delivery_address ? 'Delivery' : 'Takeaway / Pickup')}</span>
                         </div>
                         <div class="card-meta-item">
                             <span>👥</span>
@@ -1376,7 +1376,7 @@
         document.getElementById('drawerOrderSub').textContent   = 'Placed at ' + (o.created_at_time || '--') + ' • ' + (o.created_at_humans || '');
         document.getElementById('drawerCustomerName').textContent  = o.customer_name || 'Guest';
         document.getElementById('drawerCustomerPhone').textContent = o.customer_phone || '';
-        document.getElementById('drawerAddress').textContent       = o.delivery_address || 'Dine-in / Pickup';
+        document.getElementById('drawerAddress').textContent       = o.delivery_address || 'Takeaway / Self Pickup';
         document.getElementById('drawerTotalBill').textContent     = 'PKR ' + Number(o.total).toLocaleString();
         document.getElementById('drawerPrintLink').href           = '/dashboard/' + RESTAURANT_ID + '/orders/' + o.id + '/print-bill';
 

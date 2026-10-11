@@ -1,9 +1,18 @@
+@php
+    $isDineIn = $order->isDineIn() || isset($tableNumber);
+    $resolvedTable = $tableNumber ?? $order->getResolvedTableNumber();
+    $allOrders = isset($tableOrders) ? $tableOrders : collect([$order]);
+    $allItems = $allOrders->flatMap(fn($o) => $o->items);
+    $foodSubtotal = (float) ($allItems->sum('subtotal') ?: $allOrders->sum('total'));
+    $deliveryFee  = $isDineIn ? 0.0 : (float) ($order->delivery_charge ?? 0);
+    $grandTotal   = $foodSubtotal + $deliveryFee;
+@endphp
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bill #{{ $order->tracking_code }} - {{ $restaurant->name }}</title>
+    <title>{{ $isDineIn ? 'Table #' . ($resolvedTable ?: '1') . ' Bill' : 'Bill #' . $order->tracking_code }} - {{ $restaurant->name }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
@@ -281,8 +290,13 @@
     <!-- TOP ACTION BAR -->
     <div class="no-print-bar">
         <button onclick="window.print()" class="btn btn-print">
-            🖨️ Print Parcel Bill
+            🖨️ {{ $isDineIn ? 'Print Table Bill' : 'Print Parcel Bill' }}
         </button>
+        @if($isDineIn && !$order->is_paid)
+            <button onclick="settleAndCloseBill()" class="btn" id="btnSettleBill" style="background: #059669; color: #ffffff;">
+                💳 Mark Paid & Close
+            </button>
+        @endif
         <button onclick="window.close()" class="btn btn-close">
             ✕ Close
         </button>
@@ -297,23 +311,35 @@
             @if($restaurant->address || $restaurant->city)
                 <p>{{ $restaurant->address }}{{ $restaurant->address && $restaurant->city ? ', ' : '' }}{{ $restaurant->city }}</p>
             @endif
-            <p>WhatsApp / Phone: {{ $restaurant->whatsapp_number }}</p>
-            <div class="receipt-type-badge">📦 PARCEL DELIVERY SLIP</div>
+            <p>Phone / WhatsApp: {{ $restaurant->whatsapp_number }}</p>
+            <div class="receipt-type-badge" style="background: {{ $isDineIn ? '#059669' : '#0f172a' }};">
+                {{ $isDineIn ? '🍽️ DINE-IN TABLE RECEIPT' : '📦 PARCEL DELIVERY SLIP' }}
+            </div>
         </div>
 
         <!-- ORDER META -->
         <div class="meta-section">
             <div class="meta-row">
-                <span class="meta-lbl">ORDER CODE:</span>
-                <span class="meta-val" style="font-size: 14px; letter-spacing: 0.5px;">#{{ $order->tracking_code }}</span>
+                <span class="meta-lbl">{{ $isDineIn ? 'TABLE:' : 'ORDER CODE:' }}</span>
+                <span class="meta-val" style="font-size: 14px; letter-spacing: 0.5px; color: {{ $isDineIn ? '#059669' : '#0f172a' }};">
+                    {{ $isDineIn ? 'TABLE #' . strtoupper($resolvedTable ?: 'Counter') : '#' . $order->tracking_code }}
+                </span>
             </div>
+            @if($isDineIn)
+                <div class="meta-row">
+                    <span class="meta-lbl">ORDER REF:</span>
+                    <span class="meta-val">#{{ $order->daily_order_number ?: $order->id }} ({{ $order->tracking_code }})</span>
+                </div>
+            @endif
             <div class="meta-row">
                 <span class="meta-lbl">DATE & TIME:</span>
                 <span class="meta-val">{{ $order->created_at->format('d-M-Y h:i A') }}</span>
             </div>
             <div class="meta-row">
                 <span class="meta-lbl">PAYMENT:</span>
-                <span class="meta-val">{{ strtoupper(str_replace('_', ' ', $order->payment_method ?: 'CASH ON DELIVERY')) }}</span>
+                <span class="meta-val" style="color: {{ $order->is_paid ? '#059669' : '#d97706' }};">
+                    {{ $order->is_paid ? 'PAID' : ($isDineIn ? 'CASH AT COUNTER' : strtoupper(str_replace('_', ' ', $order->payment_method ?: 'CASH ON DELIVERY'))) }}
+                </span>
             </div>
             <div class="meta-row">
                 <span class="meta-lbl">STATUS:</span>
@@ -321,30 +347,51 @@
             </div>
         </div>
 
-        <!-- PARCEL & CUSTOMER ATTACHMENT BOX -->
-        <div class="parcel-box">
-            <div class="parcel-box-title">📍 Customer & Delivery Details</div>
-            <div style="font-weight: 700; font-size: 13px; color: #0f172a;">
-                👤 {{ $order->customer_name ?: 'Valued Customer' }}
-            </div>
-            <div style="color: #475569; font-size: 12px; margin-top: 1px;">
-                📞 {{ $order->formatted_customer_phone }}
-            </div>
-            <div class="parcel-addr">
-                {{ $order->delivery_address ?: $order->masked_delivery_address }}
-            </div>
-
-            @if($order->rider_name)
-                <div style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed #cbd5e1; font-size: 11.5px; color: #0f172a;">
-                    🛵 <strong>Rider:</strong> {{ $order->rider_name }}
-                    @if($order->rider_phone)
-                        ({{ $order->rider_phone }})
-                    @endif
+        <!-- TABLE / GUEST OR PARCEL DELIVERY DETAILS -->
+        @if($isDineIn)
+            <div class="parcel-box" style="background: #f0fdf4; border-color: #bbf7d0;">
+                <div class="parcel-box-title" style="color: #166534;">🍽️ Table & Service Details</div>
+                <div style="font-weight: 800; font-size: 14px; color: #14532d;">
+                    🪑 Table #{{ $resolvedTable ?: 'Counter' }}
                 </div>
-            @endif
+                <div style="font-size: 12px; color: #166534; margin-top: 2px;">
+                    👤 Guest: <strong>{{ $order->customer_name ?: 'Dine-In Guest' }}</strong>
+                </div>
+                @if($order->customer_phone && !str_contains(strtolower($order->customer_phone), 'dine-in'))
+                    <div style="color: #475569; font-size: 11px; margin-top: 1px;">
+                        📞 {{ $order->formatted_customer_phone }}
+                    </div>
+                @endif
+                @if(!empty($order->notes) && !str_starts_with($order->notes, 'DINE-IN ORDER • Table'))
+                    <div style="margin-top: 6px; padding-top: 4px; border-top: 1px dashed #cbd5e1; font-size: 11px; color: #475569;">
+                        💬 <em>{{ $order->notes }}</em>
+                    </div>
+                @endif
+            </div>
+        @else
+            <!-- PARCEL & CUSTOMER ATTACHMENT BOX -->
+            <div class="parcel-box">
+                <div class="parcel-box-title">📍 Customer & Delivery Details</div>
+                <div style="font-weight: 700; font-size: 13px; color: #0f172a;">
+                    👤 {{ $order->customer_name ?: 'Valued Customer' }}
+                </div>
+                <div style="color: #475569; font-size: 12px; margin-top: 1px;">
+                    📞 {{ $order->formatted_customer_phone }}
+                </div>
+                <div class="parcel-addr">
+                    {{ $order->delivery_address ?: $order->masked_delivery_address }}
+                </div>
 
-
-        </div>
+                @if($order->rider_name)
+                    <div style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed #cbd5e1; font-size: 11.5px; color: #0f172a;">
+                        🛵 <strong>Rider:</strong> {{ $order->rider_name }}
+                        @if($order->rider_phone)
+                            ({{ $order->rider_phone }})
+                        @endif
+                    </div>
+                @endif
+            </div>
+        @endif
 
         <!-- ITEMS TABLE -->
         <table class="items-table">
@@ -356,7 +403,7 @@
                 </tr>
             </thead>
             <tbody>
-                @forelse($order->items as $item)
+                @forelse($allItems as $item)
                     <tr>
                         <td>
                             <div class="item-name">{{ $item->display_label }}</div>
@@ -370,7 +417,7 @@
                 @empty
                     <tr>
                         <td colspan="3" style="text-align: center; color: #64748b; padding: 10px 0;">
-                            Order confirmed via WhatsApp
+                            No items recorded
                         </td>
                     </tr>
                 @endforelse
@@ -378,17 +425,12 @@
         </table>
 
         <!-- TOTALS BREAKDOWN -->
-        @php
-            $foodSubtotal = $order->items->sum('subtotal') ?: $order->total;
-            $deliveryFee  = $order->delivery_charge ?? 0;
-            $grandTotal   = $foodSubtotal + $deliveryFee;
-        @endphp
         <div class="totals-section">
             <div class="total-row">
-                <span class="meta-lbl">Food Subtotal:</span>
+                <span class="meta-lbl">{{ $isDineIn ? 'Food & Drink Total:' : 'Food Subtotal:' }}</span>
                 <span class="meta-val">Rs. {{ number_format($foodSubtotal, 0) }}</span>
             </div>
-            @if($deliveryFee > 0)
+            @if(!$isDineIn && $deliveryFee > 0)
                 <div class="total-row">
                     <span class="meta-lbl">Delivery Fee:</span>
                     <span class="meta-val">Rs. {{ number_format($deliveryFee, 0) }}</span>
@@ -402,19 +444,50 @@
 
         <!-- FOOTER -->
         <div class="receipt-footer">
-            <p><strong>Thank you for ordering with {{ $restaurant->name }}!</strong></p>
-            <p style="font-size: 9.5px; color: #94a3b8; margin-top: 4px;">Powered by WhatsApp Restaurant Bot</p>
+            <p><strong>{{ $isDineIn ? 'Thank you for dining at ' . $restaurant->name . '!' : 'Thank you for ordering with ' . $restaurant->name . '!' }}</strong></p>
+            <p style="font-size: 9.5px; color: #94a3b8; margin-top: 4px;">{{ $isDineIn ? 'Dine-In POS Receipt' : 'Powered by WhatsApp Restaurant Bot' }}</p>
         </div>
 
     </div>
 
-    <!-- Auto-Print on Load -->
+    <!-- Auto-Print on Load & Cashier Helpers -->
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 window.print();
-            }, 400);
+            }, 450);
         });
+
+        function settleAndCloseBill() {
+            const btn = document.getElementById('btnSettleBill');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerText = 'Settling...';
+            }
+            fetch("{{ url('dashboard/' . $restaurant->id . '/dine-in/orders/' . $order->id . '/status') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ status: 'delivered' })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✓ Table order marked as Paid & Cleared!');
+                    window.close();
+                } else {
+                    alert(data.message || 'Error settling bill');
+                    if (btn) { btn.disabled = false; btn.innerText = '💳 Mark Paid & Close'; }
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                if (btn) { btn.disabled = false; btn.innerText = '💳 Mark Paid & Close'; }
+            });
+        }
     </script>
 
 </body>

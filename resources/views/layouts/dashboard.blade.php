@@ -1396,12 +1396,7 @@
     $isOpen = (bool) ($currentRest->is_open ?? true);
 
     $activeDineInCount = $currentRest ? $currentRest->orders()
-        ->where(function ($q) {
-            $q->where('order_type', 'dine_in')
-              ->orWhereNotNull('table_number')
-              ->orWhere('delivery_address', 'LIKE', 'Table %')
-              ->orWhere('notes', 'LIKE', '%DINE-IN%');
-        })
+        ->dineIn()
         ->whereIn('status', ['pending', 'confirmed', 'preparing', 'served'])
         ->whereDate('created_at', now()->today())
         ->count() : 0;

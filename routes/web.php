@@ -303,6 +303,9 @@ Route::prefix('dashboard/{id}')->group(function () {
     Route::post('dine-in/tables',              [DashboardController::class, 'updateDineInTables'])->name('dashboard.dine-in.update-tables');
     Route::post('dine-in/orders/{order}/status',[DashboardController::class, 'updateDineInStatus'])->name('dashboard.dine-in.update-status');
     Route::get('orders/{order}/print-bill',     [DashboardController::class, 'printBill'])->name('dashboard.print-bill');
+    Route::get('bill/{order}',                 [DashboardController::class, 'printBill'])->name('dashboard.bill');
+    Route::get('dine-in/orders/{order}/print-bill', [DashboardController::class, 'printBill'])->name('dashboard.dine-in.print-bill');
+    Route::get('dine-in/table/{table}/print-bill', [DashboardController::class, 'printTableBill'])->name('dashboard.dine-in.print-table-bill');
     Route::post('orders/{order}/status',       [DashboardController::class, 'updateStatus'])->name('dashboard.update-status');
     Route::get('menu',                         [DashboardController::class, 'menu'])->name('dashboard.menu');
     Route::post('menu/category',               [DashboardController::class, 'storeCategory'])->name('dashboard.store-category');
