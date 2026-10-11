@@ -136,23 +136,35 @@ class OrderService
         ) {
             $trackingCode = Order::generateTrackingCode($restaurant);
 
+            $isTableOrder = false;
+            $tableNum = null;
+            if (preg_match('/table\s*#?\s*([a-z0-9\-]+)/i', (string) $customerAddress, $tm)) {
+                $isTableOrder = true;
+                $tableNum = $tm[1];
+            } elseif (preg_match('/dine[\s\-_]*in/i', (string) $customerAddress)) {
+                $isTableOrder = true;
+            }
+
             $order = Order::create([
                 'restaurant_id'        => $restaurant->id,
                 'customer_phone'       => $customerPhone,
                 'customer_name'        => $customerName,
                 'delivery_address'     => $customerAddress,
+                'order_type'           => $isTableOrder ? 'dine_in' : 'delivery',
+                'table_number'         => $tableNum,
                 'delivery_lat'         => $deliveryLat,
                 'delivery_lng'         => $deliveryLng,
                 'delivery_distance_km' => $calculatedDistance,
                 'delivery_place_name'  => $deliveryPlaceName,
                 'location_source'      => $locationSource,
                 'subtotal'             => $subtotal,
-                'delivery_charge'      => $deliveryCharge,
-                'total'                => $total,
+                'delivery_charge'      => $isTableOrder ? 0 : $deliveryCharge,
+                'total'                => $isTableOrder ? $subtotal : $total,
                 'payment_method'       => 'cash_on_delivery',
                 'status'               => 'pending',
                 'is_paid'              => false,
                 'tracking_code'        => $trackingCode,
+                'notes'                => $isTableOrder ? "DINE-IN ORDER • Table {$tableNum}" : null,
             ]);
 
             foreach ($orderItemsData as $item) {

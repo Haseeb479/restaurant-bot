@@ -1162,7 +1162,7 @@
 
 <script>
     const RESTAURANT_ID     = '{{ $restaurant->id }}';
-    const LIVE_FEED_URL     = '/dashboard/' + RESTAURANT_ID + '/orders/live-feed';
+    const LIVE_FEED_URL     = '/dashboard/' + RESTAURANT_ID + '/orders/live-feed?scope=delivery';
     const CSRF_TOKEN        = document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}';
 
     let currentOrdersMap = {};

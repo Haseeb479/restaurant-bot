@@ -1301,18 +1301,32 @@ PROMPT;
                 $restaurant, $trackingCode, $customerName, $contactPhone,
                 $address, $subtotal, $deliveryCharge, $total, $paymentMethod, $parsedItems
             ) {
+                $isTableOrder = false;
+                $tableNum = null;
+                if (preg_match('/table\s*#?\s*([a-z0-9\-]+)/i', (string) $address, $tm)) {
+                    $isTableOrder = true;
+                    $tableNum = $tm[1];
+                } elseif (preg_match('/dine[\s\-_]*in/i', (string) $address)) {
+                    $isTableOrder = true;
+                }
+
+                $finalDeliveryCharge = $isTableOrder ? 0.0 : $deliveryCharge;
+                $finalTotal = $isTableOrder ? (float) $subtotal : (float) $total;
+
                 $order = Order::create([
                     'restaurant_id'    => $restaurant->id,
                     'tracking_code'    => $trackingCode,
                     'customer_name'    => $customerName,
                     'customer_phone'   => $contactPhone,
                     'delivery_address' => $address,
+                    'order_type'       => $isTableOrder ? 'dine_in' : 'delivery',
+                    'table_number'     => $tableNum,
                     'subtotal'         => $subtotal,
-                    'delivery_charge'  => $deliveryCharge,
-                    'total'            => $total,
+                    'delivery_charge'  => $finalDeliveryCharge,
+                    'total'            => $finalTotal,
                     'status'           => 'pending',
                     'payment_method'   => $paymentMethod,
-                    'notes'            => 'Placed via AI WhatsApp Bot',
+                    'notes'            => $isTableOrder ? "DINE-IN ORDER • Table {$tableNum}" : 'Placed via AI WhatsApp Bot',
                 ]);
 
                 // Save order items

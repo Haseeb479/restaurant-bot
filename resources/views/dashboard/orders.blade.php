@@ -1841,11 +1841,26 @@ function showLiveOrderToast(order) {
     const toast = document.getElementById('liveOrderToast');
     if (!toast) return;
 
-    document.getElementById('toastTitle').textContent = `New Order #${order.id} Placed!`;
+    const isDine = order.is_dine_in || false;
+    const titleText = isDine 
+        ? `🔔 New Table Order #${order.id} (Table ${order.table_number || '1'}) Placed!` 
+        : `🔔 New Delivery Order #${order.id} Placed!`;
+    const actionText = isDine ? 'View in TABLES ➔' : 'View in ORDERS ➔';
+
+    document.getElementById('toastTitle').textContent = titleText;
     document.getElementById('toastBody').textContent = `${order.customer_name || 'Customer'} • Rs ${Number(order.total || 0).toLocaleString()}`;
+    const actionEl = toast.querySelector('.toast-action-btn');
+    if (actionEl) actionEl.textContent = actionText;
+
     toast.style.display = 'flex';
     toast.onclick = () => {
-        openOrderDrawer(order.id);
+        if (order.view_url) {
+            window.location.href = order.view_url;
+        } else if (isDine) {
+            window.location.href = `/dashboard/{{ $restaurant->id }}/dine-in?table=${encodeURIComponent(order.table_number || '')}&order_id=${order.id}`;
+        } else {
+            window.location.href = `/dashboard/{{ $restaurant->id }}/live-orders?order_id=${order.id}`;
+        }
         toast.style.display = 'none';
     };
 
@@ -2069,30 +2084,41 @@ async function fetchLiveOrdersFeed() {
             notifIcon.textContent = pendingCount > 0 ? '🔔' : '✅';
         }
 
+        const activeStatuses = ['pending', 'confirmed', 'preparing', 'out_for_delivery'];
+        const latestPending = (data.orders || []).find(o => o.status === 'pending');
+        const targetLatest  = latestPending || (data.orders || []).find(o => activeStatuses.includes(o.status));
+
         if (notifHeading) {
-            notifHeading.textContent = pendingCount > 0
-                ? `${pendingCount} New ${pendingCount === 1 ? 'Order' : 'Orders'} Arrived!`
-                : 'All Caught Up — Kitchen in Sync';
+            if (pendingCount > 0) {
+                const isDineOnly = (data.orders || []).filter(o => o.status === 'pending').every(o => o.is_dine_in);
+                notifHeading.textContent = isDineOnly
+                    ? `${pendingCount} New Table ${pendingCount === 1 ? 'Order' : 'Orders'} Arrived!`
+                    : `${pendingCount} New ${pendingCount === 1 ? 'Order' : 'Orders'} Arrived!`;
+            } else {
+                notifHeading.textContent = 'All Caught Up — Kitchen in Sync';
+            }
         }
 
         if (notifSub) {
             notifSub.textContent = pendingCount > 0
-                ? 'Customer orders placed via WhatsApp are awaiting review & acceptance.'
-                : 'No pending orders. Incoming WhatsApp orders will trigger audio chime and alert here instantly.';
+                ? 'Incoming orders are awaiting kitchen preparation and acceptance.'
+                : 'No pending orders. Incoming orders will trigger audio chime and alert here instantly.';
         }
 
         if (notifCta) {
-            notifCta.textContent = pendingCount > 0
-                ? `⚡ Open Live Orders Command Center (${activeCount} Active) →`
-                : `⚡ View Live Kitchen Stream (${activeCount} Active) →`;
+            if (targetLatest && targetLatest.is_dine_in) {
+                notifCta.href = targetLatest.view_url || `/dashboard/{{ $restaurant->id }}/dine-in?table=${encodeURIComponent(targetLatest.table_number || '')}`;
+                notifCta.textContent = `🍽️ View Table ${targetLatest.table_number || 'Floor Map'} in TABLE Section →`;
+            } else {
+                notifCta.href = `{{ route('dashboard.live-orders', $restaurant->id) }}`;
+                notifCta.textContent = pendingCount > 0
+                    ? `⚡ Open Live Orders Command Center (${activeCount} Active) →`
+                    : `⚡ View Live Kitchen Stream (${activeCount} Active) →`;
+            }
         }
 
         // Update Latest Order Preview in Notification Card (Active non-delivered only)
         if (notifPreview) {
-            const activeStatuses = ['pending', 'confirmed', 'preparing', 'out_for_delivery'];
-            const latestPending = (data.orders || []).find(o => o.status === 'pending');
-            const targetLatest  = latestPending || (data.orders || []).find(o => activeStatuses.includes(o.status));
-
             if (targetLatest) {
                 notifPreview.style.display = 'flex';
                 const pId    = document.getElementById('previewOrderId');
@@ -2103,10 +2129,18 @@ async function fetchLiveOrdersFeed() {
                 const pTime  = document.getElementById('previewOrderTime');
 
                 if (pId) pId.textContent = '#' + (targetLatest.daily_order_number || targetLatest.tracking_code || targetLatest.id);
-                if (pName) pName.textContent = targetLatest.customer_name || 'Customer';
+                if (pName) {
+                    pName.textContent = targetLatest.is_dine_in 
+                        ? `Table #${targetLatest.table_number || '1'} (${targetLatest.customer_name || 'Guest'})`
+                        : (targetLatest.customer_name || 'Customer');
+                }
                 if (pPhone) {
-                    const fullP = targetLatest.customer_phone || '';
-                    pPhone.textContent = fullP ? `(${fullP.slice(-6)})` : '';
+                    if (targetLatest.is_dine_in) {
+                        pPhone.textContent = '🍽️ Dine-In';
+                    } else {
+                        const fullP = targetLatest.customer_phone || '';
+                        pPhone.textContent = fullP ? `(${fullP.slice(-6)})` : '';
+                    }
                 }
                 if (pItems) {
                     const itemsArr = targetLatest.items || [];

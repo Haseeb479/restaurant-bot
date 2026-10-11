@@ -385,16 +385,25 @@ class DashboardController extends Controller
     }
 
     // ── Live JSON Feed for Real-Time Dashboard Updates ────
-    public function liveOrdersFeed(string $id)
+    public function liveOrdersFeed(Request $request, string $id)
     {
         $this->authCheck($id);
-        $r     = Restaurant::findOrFail($id);
-        $today = $r->todayOrders()->deliveryOrders()->with(['items'])->get();
+        $r = Restaurant::findOrFail($id);
 
-        // Return recent delivery orders only for smooth live updates
-        $liveOrders = $r->orders()
-            ->deliveryOrders()
-            ->with(['items'])
+        $scope = $request->query('scope'); // 'delivery' for live-orders section, null for dashboard overview
+
+        $todayAll = $r->todayOrders()->with(['items'])->get();
+
+        if ($scope === 'delivery') {
+            $today = $todayAll->filter(fn($o) => !$o->isDineIn());
+            $ordersQuery = $r->orders()->deliveryOrders()->with(['items']);
+        } else {
+            // Dashboard / Executive overview: includes all today orders (delivery + table dine-in)
+            $today = $todayAll;
+            $ordersQuery = $r->orders()->with(['items']);
+        }
+
+        $liveOrders = $ordersQuery
             ->whereIn('status', ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'])
             ->orderBy('created_at', 'desc')
             ->take(40)
@@ -404,6 +413,9 @@ class DashboardController extends Controller
         $activeCount   = $today->whereIn('status', ['pending', 'confirmed', 'preparing', 'out_for_delivery'])->count();
 
         $ordersData = $liveOrders->map(function ($o) use ($r) {
+            $isDine = $o->isDineIn();
+            $tableNum = $o->getResolvedTableNumber();
+
             return [
                 'id'                  => $o->id,
                 'daily_order_number'  => $o->daily_order_number ?: $o->id,
@@ -412,7 +424,7 @@ class DashboardController extends Controller
                 'status'              => $o->status,
                 'status_label'        => $o->status_label,
                 'total'               => (float) $o->total,
-                'customer_name'       => $o->customer_name ?: 'Guest',
+                'customer_name'       => $o->customer_name ?: ($isDine ? 'Table Guest' : 'Guest'),
                 'customer_phone'      => $o->customer_phone ?: 'N/A',
                 'full_customer_phone' => $o->customer_phone ?: '',
                 'created_at_humans'   => $o->created_at ? $o->created_at->diffForHumans(null, true, true) : '',
@@ -424,9 +436,15 @@ class DashboardController extends Controller
                 'delivery_lat'        => $o->delivery_lat ? (float) $o->delivery_lat : null,
                 'delivery_lng'        => $o->delivery_lng ? (float) $o->delivery_lng : null,
                 'estimated_minutes'   => $o->estimated_minutes,
+                'is_dine_in'          => $isDine,
+                'table_number'        => $tableNum,
+                'order_type'          => $isDine ? 'dine_in' : 'delivery',
+                'view_url'            => $isDine 
+                    ? route('dashboard.dine-in', [$r->id, 'table' => $tableNum, 'order_id' => $o->id]) 
+                    : route('dashboard.live-orders', [$r->id, 'order_id' => $o->id]),
 
                 'payment_method'      => $o->payment_method ?: 'cash_on_delivery',
-                'delivery_fee'        => (float) ($r->delivery_charge ?? 0),
+                'delivery_fee'        => (float) ($isDine ? 0 : ($r->delivery_charge ?? 0)),
                 'items'               => $o->items->map(fn($i) => [
                     'name'      => $i->name ?? $i->item_name,
                     'item_name' => $i->name ?? $i->item_name,
@@ -444,7 +462,7 @@ class DashboardController extends Controller
         $pendingCount = $today->where('status', 'pending')->count();
         $readyCount = $today->where('status', 'confirmed')->whereNotNull('rider_name')->count();
 
-        $waitingRidersCount = $today->whereIn('status', ['confirmed', 'preparing'])->whereNull('rider_name')->count();
+        $waitingRidersCount = $today->whereIn('status', ['confirmed', 'preparing'])->filter(fn($o) => !$o->isDineIn())->whereNull('rider_name')->count();
         $unavailableCount   = $r->menuItems()->where('is_available', false)->count();
         $isBotOffline       = $r->bot_status !== 'connected';
 

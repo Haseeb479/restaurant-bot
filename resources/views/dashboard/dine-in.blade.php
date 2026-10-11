@@ -799,10 +799,31 @@
 <script>
     let knownOrderIds = @json($dineInOrders->pluck('id'));
     let dinePollTimer = null;
+    let globalAudioCtx = null;
+
+    function unlockAudio() {
+        try {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx && !globalAudioCtx) {
+                globalAudioCtx = new AudioCtx();
+            }
+            if (globalAudioCtx && globalAudioCtx.state === 'suspended') {
+                globalAudioCtx.resume();
+            }
+        } catch(e) {}
+    }
+    ['click', 'touchstart', 'keydown'].forEach(evt => {
+        document.addEventListener(evt, unlockAudio, { passive: true });
+    });
 
     function playChimeSound() {
         try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) return;
+            const ctx = globalAudioCtx || new AudioCtx();
+            if (ctx.state === 'suspended') {
+                ctx.resume();
+            }
             const now = ctx.currentTime;
             
             // Bell chime note 1 (Higher ping)
@@ -810,26 +831,26 @@
             const gain1 = ctx.createGain();
             osc1.type = 'sine';
             osc1.frequency.setValueAtTime(880, now); // A5
-            gain1.gain.setValueAtTime(0.4, now);
-            gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+            gain1.gain.setValueAtTime(0.5, now);
+            gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
             osc1.connect(gain1);
             gain1.connect(ctx.destination);
             osc1.start(now);
-            osc1.stop(now + 0.6);
+            osc1.stop(now + 0.7);
 
             // Bell chime note 2 (Harmonic ring)
             const osc2 = ctx.createOscillator();
             const gain2 = ctx.createGain();
             osc2.type = 'triangle';
-            osc2.frequency.setValueAtTime(1174.66, now + 0.12); // D6
-            gain2.gain.setValueAtTime(0.45, now + 0.12);
-            gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+            osc2.frequency.setValueAtTime(1174.66, now + 0.15); // D6
+            gain2.gain.setValueAtTime(0.55, now + 0.15);
+            gain2.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
             osc2.connect(gain2);
             gain2.connect(ctx.destination);
-            osc2.start(now + 0.12);
-            osc2.stop(now + 0.9);
+            osc2.start(now + 0.15);
+            osc2.stop(now + 1.2);
         } catch (e) {
-            console.log('Audio error:', e);
+            console.log('Audio chime error:', e);
         }
     }
 
@@ -1107,16 +1128,21 @@
                     }
                 });
 
-                // Check for genuinely brand NEW incoming orders
+                // Check for genuinely brand NEW incoming table orders
                 const currentIds = (data.orders || []).map(o => o.id);
                 const hasNewIncoming = currentIds.some(id => !knownOrderIds.includes(id));
 
                 if (hasNewIncoming) {
                     playChimeSound();
+                    const newOrders = (data.orders || []).filter(o => !knownOrderIds.includes(o.id));
+                    const latestNew = newOrders[0] || (data.orders || [])[0];
+                    if (latestNew) {
+                        showDineInLiveToast(latestNew);
+                    }
                     knownOrderIds = currentIds;
                     setTimeout(() => {
                         window.location.reload();
-                    }, 500);
+                    }, 2200);
                 } else {
                     knownOrderIds = currentIds;
                 }
@@ -1143,11 +1169,52 @@
         .catch(err => console.log('Feed poll error:', err));
     }
 
-    // Auto-poll every 5 seconds
+    function showDineInLiveToast(order) {
+        const existing = document.getElementById('dineInLiveToast');
+        if (existing) existing.remove();
+
+        const toast = document.createElement('div');
+        toast.id = 'dineInLiveToast';
+        toast.style.position = 'fixed';
+        toast.style.top = '24px';
+        toast.style.right = '24px';
+        toast.style.background = '#064e3b';
+        toast.style.color = '#ffffff';
+        toast.style.padding = '14px 20px';
+        toast.style.borderRadius = '14px';
+        toast.style.boxShadow = '0 10px 30px rgba(0,0,0,0.25)';
+        toast.style.zIndex = '99999';
+        toast.style.display = 'flex';
+        toast.style.alignItems = 'center';
+        toast.style.gap = '14px';
+        toast.style.cursor = 'pointer';
+
+        const tNum = order.table_number || '1';
+        const cName = order.customer_name || 'Guest';
+        const total = Number(order.total || 0).toLocaleString();
+
+        toast.innerHTML = `
+            <div style="width: 42px; height: 42px; border-radius: 12px; background: #10b981; display: flex; align-items: center; justify-content: center; font-size: 22px;">
+                🔔
+            </div>
+            <div>
+                <div style="font-size: 14px; font-weight: 800; color: #ffffff;">⚡ New Order Placed for Table #${tNum}!</div>
+                <div style="font-size: 12px; color: #a7f3d0; margin-top: 2px;">${cName} • Rs ${total}</div>
+            </div>
+            <span style="font-size: 12px; font-weight: 700; background: rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 8px; margin-left: 10px;">View Ticket ➔</span>
+        `;
+
+        document.body.appendChild(toast);
+        toast.onclick = () => {
+            window.location.href = `{{ url('dashboard/' . $restaurant->id . '/dine-in') }}?table=${encodeURIComponent(tNum)}&order_id=${order.id}`;
+        };
+    }
+
+    // Fast auto-poll every 2.5 seconds for instant live notifications
     document.addEventListener('DOMContentLoaded', function() {
         dinePollTimer = setInterval(() => {
             pollDineInFeed(false);
-        }, 5000);
+        }, 2500);
     });
 </script>
 @endsection
