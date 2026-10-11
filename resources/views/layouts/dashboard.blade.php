@@ -1630,8 +1630,8 @@
             <a href="{{ route('dashboard.dine-in', $restId) }}" class="tasty-nav-item {{ request()->routeIs('dashboard.dine-in*') ? 'active' : '' }}">
                 Tables
             </a>
-            <a href="{{ route('dashboard.dine-in', $restId) }}" class="tasty-nav-item">
-                VIP Rooms
+            <a href="{{ route('dashboard.riders', $restId) }}" class="tasty-nav-item {{ request()->routeIs('dashboard.riders*') ? 'active' : '' }}">
+                Rider Fleet
             </a>
             <a href="{{ route('dashboard.reports', $restId) }}" class="tasty-nav-item {{ request()->routeIs('dashboard.reports*') ? 'active' : '' }}">
                 Sales
