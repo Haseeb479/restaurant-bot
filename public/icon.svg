@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FD6941;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F08D45;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#FD6941" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <!-- Background Rounded Squircle -->
+  <rect width="512" height="512" rx="128" fill="#070A08"/>
+  <rect x="24" y="24" width="464" height="464" rx="108" fill="#121714" stroke="#1f2822" stroke-width="2"/>
+  
+  <!-- Glowing Center Plate / Flame Icon -->
+  <g transform="translate(106, 106)" filter="url(#shadow)">
+    <!-- Flame / Foodio Core Emblem -->
+    <path d="M150 15 C150 15, 215 100, 215 185 C215 255, 160 285, 150 285 C140 285, 85 255, 85 185 C85 140, 115 80, 150 15 Z" fill="url(#grad)" />
+    <!-- Inner Flame -->
+    <path d="M150 120 C150 120, 185 165, 185 210 C185 245, 160 265, 150 265 C140 265, 115 245, 115 210 C115 180, 135 150, 150 120 Z" fill="#FFE5DB" opacity="0.9" />
+  </g>
+  <!-- Brand Caption -->
+  <text x="256" y="445" font-family="'Segoe UI', Roboto, sans-serif" font-size="34" font-weight="900" fill="#FFFFFF" text-anchor="middle" letter-spacing="4">FOODIO POS</text>
+</svg>

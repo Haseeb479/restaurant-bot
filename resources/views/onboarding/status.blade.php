@@ -86,6 +86,23 @@
                         <span>→</span>
                     </a>
                 @endif
+
+                <!-- 1-Click Desktop App Install Option for Owner PC -->
+                <div class="mt-6 pt-6 border-t border-slate-100 flex flex-col items-center">
+                    <p class="text-xs text-slate-500 font-medium mb-3">Want to use this as a dedicated Desktop App on your Windows PC?</p>
+                    <button 
+                        type="button" 
+                        id="installDesktopAppBtn" 
+                        onclick="triggerDesktopAppInstall()" 
+                        class="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition border border-slate-200"
+                    >
+                        <span>💻</span>
+                        <span>Install Desktop App to PC</span>
+                    </button>
+                    <p id="installInstruction" class="text-[11px] text-slate-400 mt-2 hidden">
+                        Click the <strong>Install</strong> icon in your browser address bar (top right) or press <strong>Menu → Install Foodio POS</strong>.
+                    </p>
+                </div>
             </div>
 
         @elseif($restaurant->status === 'rejected' || $restaurant->registration_status === 'rejected')
@@ -178,5 +195,30 @@
         &copy; {{ date('Y') }} Foodio Technologies. All rights reserved.
     </footer>
 
+    <script>
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const btn = document.getElementById('installDesktopAppBtn');
+            if (btn) btn.classList.remove('hidden');
+        });
+
+        function triggerDesktopAppInstall() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        const btn = document.getElementById('installDesktopAppBtn');
+                        if (btn) btn.innerText = '✓ Installed to PC';
+                    }
+                    deferredPrompt = null;
+                });
+            } else {
+                const instr = document.getElementById('installInstruction');
+                if (instr) instr.classList.remove('hidden');
+            }
+        }
+    </script>
 </body>
 </html>

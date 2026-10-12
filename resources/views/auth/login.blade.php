@@ -24,6 +24,18 @@
             }
         }
     </script>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#FD6941">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" type="image/svg+xml" href="/icon.svg">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(() => {});
+            });
+        }
+    </script>
     <style>body { font-family: 'Plus Jakarta Sans', sans-serif; }</style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between selection:bg-brand-500 selection:text-white">

@@ -13,12 +13,20 @@
         })();
     </script>
 
-    <!-- Google Font: Urbanist (Typography Requirement) -->
-    <link rel="dns-prefetch" href="//fonts.googleapis.com">
-    <link rel="dns-prefetch" href="//fonts.gstatic.com">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&display=swap" rel="stylesheet">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#FD6941">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" type="image/svg+xml" href="/icon.svg">
+
+    <!-- Service Worker Registration for Desktop App -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(() => {});
+            });
+        }
+    </script>
 
     <style>
         :root {
@@ -1651,8 +1659,17 @@
             </div>
         </nav>
 
-        <!-- 3. RIGHT: Headset, Settings, Bell, Admin Pill -->
+        <!-- 3. RIGHT: Desktop App, Headset, Settings, Bell, Admin Pill -->
         <div class="tasty-right-actions">
+            <!-- 💻 Desktop App Quick Installer Circle -->
+            <button type="button" id="headerInstallDesktopBtn" onclick="triggerDesktopAppInstall()" class="tasty-circle-btn" title="Download & Install Desktop App to PC" style="display: none; color: #FD6941;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="20" height="14" x="2" y="3" rx="2"/>
+                    <line x1="8" x2="16" y1="21" y2="21"/>
+                    <line x1="12" x2="12" y1="17" y2="21"/>
+                </svg>
+            </button>
+
             <!-- Headset Support Circle -->
             <a href="https://wa.me/923000000000" target="_blank" class="tasty-circle-btn" title="Contact Support">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1929,6 +1946,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }, { passive: true });
     });
 });
+
+// ── Desktop App Install Trigger ──
+let deferredDesktopPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredDesktopPrompt = e;
+    const btn = document.getElementById('headerInstallDesktopBtn');
+    if (btn) btn.style.display = 'inline-flex';
+});
+
+function triggerDesktopAppInstall() {
+    if (deferredDesktopPrompt) {
+        deferredDesktopPrompt.prompt();
+        deferredDesktopPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+                const btn = document.getElementById('headerInstallDesktopBtn');
+                if (btn) btn.style.display = 'none';
+            }
+            deferredDesktopPrompt = null;
+        });
+    } else {
+        alert("To install as a Desktop App:\nClick the Install icon in the right side of your browser address bar (top right) or press Menu (⋮) -> 'Install Foodio POS'.");
+    }
+}
 </script>
 
 </body>

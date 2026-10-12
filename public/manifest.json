@@ -1,0 +1,19 @@
+{
+  "name": "Foodio Restaurant POS & Kitchen",
+  "short_name": "Foodio POS",
+  "description": "Standalone Desktop POS, Floor Map & Live Kitchen Command Center for Restaurants",
+  "start_url": "/login",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#070A08",
+  "theme_color": "#FD6941",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
