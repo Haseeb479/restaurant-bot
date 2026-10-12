@@ -1661,14 +1661,14 @@
 
         <!-- 3. RIGHT: Desktop App, Headset, Settings, Bell, Admin Pill -->
         <div class="tasty-right-actions">
-            <!-- 💻 Desktop App Quick Installer Circle -->
-            <button type="button" id="headerInstallDesktopBtn" onclick="triggerDesktopAppInstall()" class="tasty-circle-btn" title="Download & Install Desktop App to PC" style="display: none; color: #FD6941;">
+            <!-- 💻 Desktop App Quick Installer (.exe) -->
+            <a href="{{ route('download.desktop') }}" class="tasty-circle-btn" title="Download Official Windows Desktop App (.exe)" style="color: #FD6941;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect width="20" height="14" x="2" y="3" rx="2"/>
                     <line x1="8" x2="16" y1="21" y2="21"/>
                     <line x1="12" x2="12" y1="17" y2="21"/>
                 </svg>
-            </button>
+            </a>
 
             <!-- Headset Support Circle -->
             <a href="https://wa.me/923000000000" target="_blank" class="tasty-circle-btn" title="Contact Support">

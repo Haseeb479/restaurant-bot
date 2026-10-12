@@ -87,20 +87,18 @@
                     </a>
                 @endif
 
-                <!-- 1-Click Desktop App Install Option for Owner PC -->
+                <!-- Official Windows Desktop App (.exe) Installer for Owner PC -->
                 <div class="mt-6 pt-6 border-t border-slate-100 flex flex-col items-center">
-                    <p class="text-xs text-slate-500 font-medium mb-3">Want to use this as a dedicated Desktop App on your Windows PC?</p>
-                    <button 
-                        type="button" 
-                        id="installDesktopAppBtn" 
-                        onclick="triggerDesktopAppInstall()" 
-                        class="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition border border-slate-200"
+                    <p class="text-xs text-slate-500 font-medium mb-3">Install as a standalone Windows Desktop Application on your Cashier/POS PC:</p>
+                    <a 
+                        href="{{ route('download.desktop') }}" 
+                        class="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold rounded-xl shadow-md shadow-emerald-600/20 hover:shadow-lg transition active:scale-95"
                     >
-                        <span>💻</span>
-                        <span>Install Desktop App to PC</span>
-                    </button>
-                    <p id="installInstruction" class="text-[11px] text-slate-400 mt-2 hidden">
-                        Click the <strong>Install</strong> icon in your browser address bar (top right) or press <strong>Menu → Install Foodio POS</strong>.
+                        <span>📥</span>
+                        <span>Download Foodio-POS-Setup.exe (Windows)</span>
+                    </a>
+                    <p class="text-[11px] text-slate-400 mt-2">
+                        Includes automatic Windows Desktop shortcut &amp; native POS mode.
                     </p>
                 </div>
             </div>

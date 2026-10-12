@@ -11,6 +11,17 @@ Route::get('/', function () {
     return view('landing');
 })->name('landing');
 
+// ── Official Windows Desktop App Installer (.exe) Download ────
+Route::get('/download/desktop', function () {
+    $filePath = public_path('installer/Foodio-POS-Setup.exe');
+    if (file_exists($filePath)) {
+        return response()->download($filePath, 'Foodio-POS-Setup.exe', [
+            'Content-Type' => 'application/octet-stream'
+        ]);
+    }
+    return redirect()->route('landing');
+})->name('download.desktop');
+
 // ── Production Health, Liveness & Readiness Endpoints (Req 16) ─
 // 1. Liveness: Process is alive and answering HTTP traffic
 Route::get('/health/live', function () {
