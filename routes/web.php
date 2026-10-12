@@ -11,14 +11,34 @@ Route::get('/', function () {
     return view('landing');
 })->name('landing');
 
-// ── Official Windows Desktop App Installer (.exe) Download ────
-Route::get('/download/desktop', function () {
-    $filePath = public_path('installer/Foodio-POS-Setup.exe');
-    if (file_exists($filePath)) {
-        return response()->download($filePath, 'Foodio-POS-Setup.exe', [
-            'Content-Type' => 'application/octet-stream'
+// ── Official Windows Desktop App Installer Download ───────────
+Route::get('/download/desktop', function (\Illuminate\Http\Request $request) {
+    // If user requests explicit exe or standard package
+    $format = $request->query('format');
+    $zipPath = public_path('installer/Foodio-POS-Setup.zip');
+    $exePath = public_path('installer/Foodio-POS-Setup.exe');
+
+    if ($format === 'exe' && file_exists($exePath)) {
+        return response()->download($exePath, 'Foodio-POS-Setup.exe', [
+            'Content-Type' => 'application/octet-stream',
+            'Content-Disposition' => 'attachment; filename="Foodio-POS-Setup.exe"',
         ]);
     }
+
+    // Default to ZIP package: eliminates Chrome "Dangerous executable" warning
+    if (file_exists($zipPath)) {
+        return response()->download($zipPath, 'Foodio-POS-Setup.zip', [
+            'Content-Type' => 'application/zip',
+            'Content-Disposition' => 'attachment; filename="Foodio-POS-Setup.zip"',
+        ]);
+    }
+
+    if (file_exists($exePath)) {
+        return response()->download($exePath, 'Foodio-POS-Setup.exe', [
+            'Content-Type' => 'application/octet-stream',
+        ]);
+    }
+
     return redirect()->route('landing');
 })->name('download.desktop');
 
