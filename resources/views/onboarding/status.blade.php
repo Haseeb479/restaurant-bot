@@ -86,21 +86,6 @@
                         <span>→</span>
                     </a>
                 @endif
-
-                <!-- Official Windows Desktop App (.exe) Installer for Owner PC -->
-                <div class="mt-6 pt-6 border-t border-slate-100 flex flex-col items-center">
-                    <p class="text-xs text-slate-500 font-medium mb-3">Install as a standalone Windows Desktop Application on your Cashier/POS PC:</p>
-                    <a 
-                        href="{{ route('download.desktop') }}" 
-                        class="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold rounded-xl shadow-md shadow-emerald-600/20 hover:shadow-lg transition active:scale-95"
-                    >
-                        <span>📥</span>
-                        <span>Download Foodio-POS-Setup.exe (Windows)</span>
-                    </a>
-                    <p class="text-[11px] text-slate-400 mt-2">
-                        Includes automatic Windows Desktop shortcut &amp; native POS mode.
-                    </p>
-                </div>
             </div>
 
         @elseif($restaurant->status === 'rejected' || $restaurant->registration_status === 'rejected')
