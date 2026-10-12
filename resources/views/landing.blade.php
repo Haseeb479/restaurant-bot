@@ -39,6 +39,10 @@
 
             <!-- Right Action Buttons -->
             <div class="flex items-center gap-3 sm:gap-4">
+                <a href="{{ route('download.desktop') }}" class="hidden sm:inline-flex items-center gap-2 text-xs font-extrabold text-slate-800 hover:text-brand-600 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 px-3.5 py-2 rounded-xl transition shadow-xs">
+                    <span>💻</span>
+                    <span>Download App (.exe)</span>
+                </a>
                 <a href="{{ route('landing.owner-login-page') }}" class="text-sm font-bold text-slate-700 hover:text-brand-600 px-3 py-2 rounded-xl hover:bg-slate-50 transition">
                     Sign In
                 </a>
@@ -87,6 +91,10 @@
                             <a href="{{ route('onboarding.signup') }}" class="px-7 py-4 rounded-full bg-white text-slate-950 hover:bg-brand-50 font-extrabold text-base shadow-xl shadow-black/10 hover:scale-[1.02] transition active:scale-95 flex items-center gap-2">
                                 <span>Get Started Free</span>
                                 <span>→</span>
+                            </a>
+                            <a href="{{ route('download.desktop') }}" class="px-6 py-4 rounded-full bg-emerald-700/80 hover:bg-emerald-700 text-white font-extrabold text-base border border-emerald-400/30 backdrop-blur-md shadow-lg transition flex items-center gap-2">
+                                <span>💻</span>
+                                <span>Download Desktop App (.exe)</span>
                             </a>
                             <a href="#how-it-works" class="px-6 py-4 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-base border border-white/20 backdrop-blur-md transition flex items-center gap-2">
                                 <span>See How It Works</span>
@@ -495,6 +503,7 @@
             </div>
 
             <div class="flex items-center gap-6 font-semibold">
+                <a href="{{ route('download.desktop') }}" class="text-emerald-400 hover:text-emerald-300 font-bold transition">💻 Download Windows App (.exe)</a>
                 <a href="{{ route('landing.owner-login-page') }}" class="hover:text-white transition">Owner Sign In</a>
                 <a href="{{ route('onboarding.signup') }}" class="hover:text-white transition">Register</a>
                 <a href="{{ route('admin.force-logout') }}" class="hover:text-white transition">Superadmin Portal</a>
