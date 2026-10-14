@@ -11,6 +11,12 @@ Route::get('/', function () {
     return view('landing');
 })->name('landing');
 
+// ── Android Mobile App Download Routes ─────────────────────────
+Route::get('/app', [\App\Http\Controllers\AppDownloadController::class, 'page'])->name('download.app.page');
+Route::get('/download/app', [\App\Http\Controllers\AppDownloadController::class, 'download'])->name('download.app');
+Route::get('/download/apk', [\App\Http\Controllers\AppDownloadController::class, 'download'])->name('download.apk');
+Route::get('/apk', [\App\Http\Controllers\AppDownloadController::class, 'download']);
+
 // ── Legacy Download Route (Redirects to landing) ───────────────
 Route::get('/download/desktop', function () {
     return redirect()->route('landing');

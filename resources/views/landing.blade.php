@@ -38,7 +38,11 @@
             </nav>
 
             <!-- Right Action Buttons -->
-            <div class="flex items-center gap-3 sm:gap-4">
+            <div class="flex items-center gap-2 sm:gap-4">
+                <a href="{{ route('download.app.page') }}" class="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-2 rounded-xl transition shadow-sm">
+                    <svg class="w-4 h-4 fill-current text-emerald-600" viewBox="0 0 24 24"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993s-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993s-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.4116 13.8533 8.125 12 8.125c-1.8534 0-3.5902.2866-5.1368.8247L4.8409 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.784h24c-.3432-4.1251-2.6889-7.5973-6.1185-9.4626"/></svg>
+                    <span>Download App</span>
+                </a>
                 <a href="{{ route('landing.owner-login-page') }}" class="text-sm font-bold text-slate-700 hover:text-brand-600 px-3 py-2 rounded-xl hover:bg-slate-50 transition">
                     Sign In
                 </a>
@@ -83,13 +87,17 @@
                         </p>
 
                         <!-- Hero CTA Buttons -->
-                        <div class="flex flex-wrap items-center gap-4 pt-2">
+                        <div class="flex flex-wrap items-center gap-3 sm:gap-4 pt-2">
                             <a href="{{ route('onboarding.signup') }}" class="px-7 py-4 rounded-full bg-white text-slate-950 hover:bg-brand-50 font-extrabold text-base shadow-xl shadow-black/10 hover:scale-[1.02] transition active:scale-95 flex items-center gap-2">
                                 <span>Get Started Free</span>
                                 <span>→</span>
                             </a>
-                            <a href="#how-it-works" class="px-6 py-4 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-base border border-white/20 backdrop-blur-md transition flex items-center gap-2">
-                                <span>See How It Works</span>
+                            <a href="{{ route('download.app.page') }}" class="px-6 py-4 rounded-full bg-emerald-500/25 hover:bg-emerald-500/35 text-white font-extrabold text-base border border-emerald-400/40 backdrop-blur-md shadow-lg shadow-emerald-950/20 hover:scale-[1.02] transition active:scale-95 flex items-center gap-2.5">
+                                <svg class="w-5 h-5 text-emerald-300 fill-current" viewBox="0 0 24 24"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993s-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993s-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.4116 13.8533 8.125 12 8.125c-1.8534 0-3.5902.2866-5.1368.8247L4.8409 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.784h24c-.3432-4.1251-2.6889-7.5973-6.1185-9.4626"/></svg>
+                                <span>Download App (.APK)</span>
+                            </a>
+                            <a href="#how-it-works" class="px-5 py-4 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-base border border-white/20 backdrop-blur-md transition flex items-center gap-2">
+                                <span>See Features</span>
                             </a>
                         </div>
 
@@ -500,8 +508,24 @@
                 <a href="{{ route('admin.force-logout') }}" class="hover:text-white transition">Superadmin Portal</a>
             </div>
 
+    <!-- Floating Mobile App Download Banner (Visible for Chrome on Android / Mobile) -->
+    <div class="sm:hidden fixed bottom-4 inset-x-4 z-50">
+        <div class="bg-slate-900/95 backdrop-blur-md border border-emerald-500/40 rounded-2xl p-3 shadow-2xl flex items-center justify-between gap-3 text-left">
+            <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-slate-950 shadow">
+                    <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993s-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993s-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.4116 13.8533 8.125 12 8.125c-1.8534 0-3.5902.2866-5.1368.8247L4.8409 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.784h24c-.3432-4.1251-2.6889-7.5973-6.1185-9.4626"/></svg>
+                </div>
+                <div>
+                    <div class="text-xs font-black text-white leading-tight">Foodio Android App</div>
+                    <div class="text-[10px] text-emerald-400 font-semibold">Faster experience & live orders</div>
+                </div>
+            </div>
+            <a href="{{ route('download.app.page') }}" class="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black shadow-md flex items-center gap-1 active:scale-95 transition">
+                <span>Download APK</span>
+                <span>↓</span>
+            </a>
         </div>
-    </footer>
+    </div>
 
 </body>
 </html>
