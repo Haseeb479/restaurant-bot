@@ -3,216 +3,255 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Owner Sign In — Foodio Platform</title>
+    <title>Foodio — Restaurant Operator Portal Login</title>
+    <!-- Google Fonts: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
                     colors: {
                         brand: {
-                            50: '#ecfdf5', 100: '#d1fae5',
-                            500: '#10b981', 600: '#059669',
-                            700: '#047857', 900: '#064e3b',
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            400: '#34d399',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                        },
+                        whatsapp: {
+                            DEFAULT: '#25D366',
+                            dark: '#128C7E',
                         }
-                    },
-                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] }
+                    }
                 }
             }
         }
     </script>
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#FD6941">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="icon" type="image/svg+xml" href="/icon.svg">
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').catch(() => {});
-            });
+    <style>
+        .glass-dark {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
-    </script>
-    <style>body { font-family: 'Plus Jakarta Sans', sans-serif; }</style>
+        .glow-emerald {
+            box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.25);
+        }
+    </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between selection:bg-brand-500 selection:text-white">
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-white relative overflow-x-hidden">
 
-    <!-- Header -->
-    <header class="bg-white border-b border-slate-200/80">
-        <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-            <a href="/" class="flex items-center gap-2.5 group">
-                <div class="w-9 h-9 rounded-2xl bg-brand-600 flex items-center justify-center text-white shadow-md shadow-brand-600/30 group-hover:scale-105 transition">
-                    <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                        <path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.38 5.08L2 22l5.09-1.34C8.54 21.49 10.22 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm4.64 14.34c-.23.64-1.34 1.25-1.85 1.33-.48.08-1.08.11-3.23-.78-2.61-1.08-4.27-3.76-4.4-3.93-.13-.17-1.06-1.41-1.06-2.69s.67-1.9 1-2.17c.28-.27.61-.34.81-.34.2 0 .41 0 .59.01.19.01.44-.07.69.52.26.61.88 2.14.95 2.3.07.16.12.35.02.56-.1.21-.15.34-.3.51-.15.17-.32.38-.45.51-.15.15-.3.31-.13.61.17.3.76 1.25 1.63 2.02 1.12.99 2.06 1.3 2.36 1.44.3.14.47.12.65-.08.17-.2.74-.86.94-1.15.2-.29.41-.24.68-.14.28.1.1.75 2.13.88 2.27.13.14.22.21.25.26.04.05.04.83-.19 1.47z"/>
-                    </svg>
-                </div>
-                <div class="flex flex-col">
-                    <span class="text-xl font-black tracking-tight text-slate-900 leading-none">Foodio<span class="text-brand-500">.</span></span>
-                    <span class="text-[9px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">Restaurant Portal</span>
-                </div>
-            </a>
-            <div class="flex items-center gap-4 text-xs font-semibold">
-                <a href="/" class="text-slate-500 hover:text-slate-900 transition">← Back to Home</a>
-                <a href="{{ route('onboarding.signup') }}" class="text-brand-600 hover:text-brand-700 bg-brand-50 px-3.5 py-1.5 rounded-full border border-brand-200/60 transition">
-                    Register New Restaurant
-                </a>
+    <!-- Ambient Glow Backgrounds -->
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[650px] h-[400px] bg-emerald-500/10 rounded-full blur-[140px] pointer-events-none"></div>
+    <div class="absolute bottom-0 right-0 w-[450px] h-[400px] bg-teal-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+    <!-- Top Minimal Navigation -->
+    <header class="p-6 relative z-10 flex items-center justify-between max-w-7xl mx-auto w-full">
+        <a href="/" class="flex items-center gap-2.5 group">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform">
+                <i data-lucide="utensils" class="w-4 h-4 text-slate-950 stroke-[2.5]"></i>
             </div>
+            <span class="text-lg font-extrabold text-white tracking-tight">Foodio <span class="text-[10px] bg-emerald-500/20 text-emerald-300 font-mono px-2 py-0.5 rounded-full border border-emerald-500/30">PORTAL</span></span>
+        </a>
+
+        <div class="flex items-center gap-4 text-xs font-semibold">
+            <span class="text-slate-400 hidden sm:inline">New to Foodio?</span>
+            <a href="{{ route('onboarding.signup') }}" class="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 hover:border-emerald-500/50 text-emerald-400 hover:text-emerald-300 transition-all flex items-center gap-1.5 shadow-sm">
+                <span>Start Free Trial</span>
+                <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+            </a>
         </div>
     </header>
 
-    <!-- Main Sign In Container -->
-    <main class="flex-1 flex items-center justify-center px-4 py-12">
-        <div class="w-full max-w-md bg-white rounded-3xl p-8 sm:p-10 border border-slate-200/80 shadow-2xl shadow-slate-200/60">
+    <!-- Main Authentication Modal -->
+    <main class="flex-1 flex items-center justify-center p-4 relative z-10 my-4">
+        <div class="w-full max-w-md glass-dark rounded-3xl p-8 border border-slate-800 shadow-2xl glow-emerald space-y-6">
             
-            <div class="text-center mb-8">
-                <div class="w-14 h-14 bg-brand-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl border border-brand-100">
-                    🔐
+            <!-- Header -->
+            <div class="text-center space-y-1.5">
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold uppercase tracking-wider mb-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Terminal Authentication
                 </div>
-                <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Restaurant Owner Sign In</h1>
-                <p class="text-xs text-slate-500 mt-1.5">Sign in to access your live orders, menu catalog, and WhatsApp bot.</p>
+                <h1 class="text-2xl font-extrabold text-white tracking-tight">Restaurant Owner Sign In</h1>
+                <p class="text-xs text-slate-400">Access your cloud POS register, WhatsApp bot, and kitchen display</p>
             </div>
 
+            <!-- Session Alerts -->
             @if(session('success'))
-                <div class="mb-6 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold flex items-center gap-2">
-                    <span>✅</span> {{ session('success') }}
+                <div class="p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center gap-2">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                    <span>{{ session('success') }}</span>
                 </div>
             @endif
 
             @if(session('info'))
-                <div class="mb-6 p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold flex items-center gap-2">
-                    <span>ℹ️</span> {{ session('info') }}
+                <div class="p-3.5 rounded-xl bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 text-xs font-semibold flex items-center gap-2">
+                    <i data-lucide="info" class="w-4 h-4 text-cyan-400 shrink-0"></i>
+                    <span>{{ session('info') }}</span>
                 </div>
             @endif
 
             @if($errors->hasBag('owner') && $errors->owner->any())
-                <div class="mb-6 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
-                    <span>⚠️</span> {{ $errors->owner->first() }}
+                <div class="p-3.5 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-300 text-xs font-semibold flex items-center gap-2">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-400 shrink-0"></i>
+                    <span>{{ $errors->owner->first() }}</span>
                 </div>
             @elseif($errors->any())
-                <div class="mb-6 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
-                    <span>⚠️</span> {{ $errors->first() }}
+                <div class="p-3.5 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-300 text-xs font-semibold flex items-center gap-2">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-400 shrink-0"></i>
+                    <span>{{ $errors->first() }}</span>
                 </div>
             @endif
 
-            <form method="POST" action="{{ route('landing.owner-login') }}" class="space-y-5" onsubmit="sessionStorage.setItem('owner_authenticated_session','active')">
+            <!-- Station Role Selector Tabs (Visual UI) -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1.5">Station Role</label>
+                <div class="grid grid-cols-3 gap-2">
+                    <button type="button" onclick="selectStation('owner', this)" class="station-tab py-2 rounded-xl border border-emerald-500 bg-emerald-500/10 text-emerald-300 text-xs font-bold transition-all flex items-center justify-center gap-1">
+                        <i data-lucide="shield" class="w-3.5 h-3.5"></i>
+                        <span>Admin</span>
+                    </button>
+                    <button type="button" onclick="selectStation('cashier', this)" class="station-tab py-2 rounded-xl border border-slate-700 bg-slate-900 text-slate-400 text-xs font-semibold hover:border-slate-600 transition-all flex items-center justify-center gap-1">
+                        <i data-lucide="tablet" class="w-3.5 h-3.5"></i>
+                        <span>POS</span>
+                    </button>
+                    <button type="button" onclick="selectStation('kitchen', this)" class="station-tab py-2 rounded-xl border border-slate-700 bg-slate-900 text-slate-400 text-xs font-semibold hover:border-slate-600 transition-all flex items-center justify-center gap-1">
+                        <i data-lucide="chef-hat" class="w-3.5 h-3.5"></i>
+                        <span>Kitchen</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Login Form -->
+            <form method="POST" action="{{ route('landing.owner-login') }}" class="space-y-4" onsubmit="sessionStorage.setItem('owner_authenticated_session','active')">
                 @csrf
 
-                <!-- Restaurant Name (type-in, not dropdown) -->
+                <!-- Restaurant Name or Phone Input -->
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                        Restaurant Name
-                    </label>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1.5">Restaurant Name or Phone</label>
                     <div class="relative">
-                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-base pointer-events-none">🏪</span>
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+                            <i data-lucide="store" class="w-4 h-4"></i>
+                        </span>
                         <input
                             type="text"
                             name="restaurant_name"
                             value="{{ old('restaurant_name') }}"
-                            placeholder="e.g. Fezio Cafe & Grill"
+                            placeholder="e.g. Copper Kettle Grill or 03001234567"
                             required
                             autocomplete="organization"
-                            class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white transition"
+                            class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-all"
                         >
                     </div>
-                    <p class="text-[11px] text-slate-400 mt-1.5">Type your restaurant / brand name exactly as registered.</p>
+                    <p class="text-[10px] text-slate-500 mt-1">Enter your restaurant name or registered WhatsApp number.</p>
                 </div>
 
-                <!-- Password with show/hide toggle -->
+                <!-- Password with Show/Hide -->
                 <div>
-                    <div class="flex items-center justify-between mb-2">
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700">Owner Password</label>
-                        <a href="{{ route('owner.forgot-password') }}" class="text-[11px] font-semibold text-brand-600 hover:text-brand-700 hover:underline transition">
-                            Forgot Password?
-                        </a>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="text-xs font-semibold text-slate-300">Owner Password</label>
+                        <a href="{{ route('owner.forgot-password') }}" class="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium">Forgot password?</a>
                     </div>
                     <div class="relative">
-                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-base pointer-events-none">🔑</span>
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+                            <i data-lucide="lock" class="w-4 h-4"></i>
+                        </span>
                         <input
                             type="password"
                             id="owner_password_field"
                             name="password"
-                            placeholder="Enter your dashboard password"
+                            placeholder="Enter terminal security password"
                             required
                             autocomplete="current-password"
-                            class="w-full pl-10 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white transition"
+                            class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-10 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-all"
                         >
-                        <!-- Show/Hide Toggle -->
                         <button
                             type="button"
-                            onclick="toggleOwnerPassword()"
-                            id="toggle_pw_btn"
-                            tabindex="-1"
-                            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-600 transition p-1 text-base leading-none select-none"
+                            onclick="togglePassword()"
+                            class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300"
                             title="Show/hide password"
                         >
-                            <svg id="eye_icon_open" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                            </svg>
-                            <svg id="eye_icon_closed" class="w-5 h-5 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
-                            </svg>
+                            <i id="eye-icon" data-lucide="eye" class="w-4 h-4"></i>
                         </button>
                     </div>
                 </div>
 
-                <!-- Submit Button -->
+                <!-- Remember Terminal & SSL -->
+                <div class="flex items-center justify-between text-xs pt-1">
+                    <label class="flex items-center gap-2 cursor-pointer text-slate-400 select-none">
+                        <input type="checkbox" checked class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-0">
+                        <span>Remember this terminal</span>
+                    </label>
+                    <span class="text-emerald-400 font-mono text-[10px] flex items-center gap-1">
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> 256-Bit SSL
+                    </span>
+                </div>
+
+                <!-- Action Button -->
                 <button
                     type="submit"
-                    class="w-full py-3.5 bg-brand-600 hover:bg-brand-500 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-brand-600/25 hover:shadow-brand-600/35 transition active:scale-[0.99] flex items-center justify-center gap-2"
+                    class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all flex items-center justify-center gap-2"
                 >
-                    <span>Sign In to Dashboard</span>
-                    <span>→</span>
+                    <i data-lucide="log-in" class="w-4 h-4"></i>
+                    <span>Access Foodio POS Register</span>
                 </button>
             </form>
 
-            <div class="mt-8 pt-6 border-t border-slate-100 text-center space-y-3 text-xs text-slate-500">
+            <div class="pt-4 border-t border-slate-800 text-center space-y-2 text-xs text-slate-400">
                 <p>
-                    Don't have an account?
-                    <a href="{{ route('onboarding.signup') }}" class="text-brand-600 font-bold hover:underline">
-                        Register Your Restaurant →
+                    Don't have an active restaurant?
+                    <a href="{{ route('onboarding.signup') }}" class="text-emerald-400 font-bold hover:underline ml-1">
+                        Start 14-Day Free Trial →
                     </a>
                 </p>
-                <p>
-                    Platform Administrator?
-                    <a href="{{ route('admin.force-logout') }}" class="text-slate-600 font-semibold hover:underline hover:text-slate-900 transition">
-                        SuperAdmin Login
+                <div class="pt-2 flex items-center justify-center gap-4 text-[11px] text-slate-500">
+                    <a href="/" class="hover:text-slate-300 flex items-center gap-1">
+                        <i data-lucide="arrow-left" class="w-3 h-3"></i> Home
                     </a>
-                </p>
+                    <span>•</span>
+                    <a href="{{ route('admin.force-logout') }}" class="hover:text-slate-300">
+                        Platform Superadmin
+                    </a>
+                </div>
             </div>
 
         </div>
     </main>
 
-    <footer class="py-6 text-center text-xs text-slate-400 border-t border-slate-200/60">
-        &copy; {{ date('Y') }} Foodio Technologies. All rights reserved.
+    <!-- Footer -->
+    <footer class="p-6 text-center text-xs text-slate-500 relative z-10">
+        <p>Foodio Restaurant OS • Meta WhatsApp Cloud API Partner • Live POS Sync</p>
     </footer>
 
     <script>
-    function toggleOwnerPassword() {
-        const field = document.getElementById('owner_password_field');
-        const eyeOpen   = document.getElementById('eye_icon_open');
-        const eyeClosed = document.getElementById('eye_icon_closed');
+        lucide.createIcons();
 
-        if (field.type === 'password') {
-            field.type = 'text';
-            eyeOpen.classList.add('hidden');
-            eyeClosed.classList.remove('hidden');
-        } else {
-            field.type = 'password';
-            eyeOpen.classList.remove('hidden');
-            eyeClosed.classList.add('hidden');
+        function togglePassword() {
+            const input = document.getElementById('owner_password_field');
+            const eye = document.getElementById('eye-icon');
+            if (input.type === 'password') {
+                input.type = 'text';
+            } else {
+                input.type = 'password';
+            }
         }
-    }
 
-    // Reset authentication token whenever user is on the Login page (e.g. via Browser Back)
-    sessionStorage.removeItem('owner_authenticated_session');
-    window.addEventListener('pageshow', function() {
-        sessionStorage.removeItem('owner_authenticated_session');
-    });
+        function selectStation(role, btn) {
+            document.querySelectorAll('.station-tab').forEach(el => {
+                el.className = 'station-tab py-2 rounded-xl border border-slate-700 bg-slate-900 text-slate-400 text-xs font-semibold hover:border-slate-600 transition-all flex items-center justify-center gap-1';
+            });
+            btn.className = 'station-tab py-2 rounded-xl border border-emerald-500 bg-emerald-500/10 text-emerald-300 text-xs font-bold transition-all flex items-center justify-center gap-1';
+        }
     </script>
 </body>
 </html>

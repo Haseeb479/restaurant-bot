@@ -3,529 +3,703 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Foodio — Smart AI WhatsApp Ordering & Automation for Restaurants</title>
+    <title>Foodio — The Intelligent Restaurant OS (Cloud POS + WhatsApp Automation)</title>
+    <!-- Google Fonts: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            400: '#34d399',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                        },
+                        whatsapp: {
+                            DEFAULT: '#25D366',
+                            dark: '#128C7E',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-dark {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .glow-box-emerald:hover {
+            box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.3);
+        }
+    </style>
 </head>
-<body class="landing-page bg-white text-slate-800 antialiased selection:bg-brand-500 selection:text-white">
+<body class="bg-slate-950 text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-white">
 
-    <!-- ── Header Navigation Bar ─────────────────────────────── -->
-    <header class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-100 transition duration-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-3">
-            
-            <!-- Brand Logo -->
-            <a href="/" class="flex items-center gap-2.5 group">
-                <div class="w-10 h-10 rounded-2xl bg-brand-600 flex items-center justify-center text-white shadow-lg shadow-brand-600/30 group-hover:scale-105 transition">
-                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/>
-                        <path d="M8.5 9.5c.7 2 2 3.3 4 4"/>
-                    </svg>
-                </div>
-                <div class="flex flex-col">
-                    <span class="text-2xl font-black tracking-tight text-slate-900 leading-none">Foodio<span class="text-brand-500">.</span></span>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">WhatsApp AI Platform</span>
-                </div>
+    <!-- Top Announcement Bar -->
+    <div class="bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 border-b border-emerald-500/20 py-2 px-4 text-center text-xs sm:text-sm text-slate-300">
+        <span class="inline-flex items-center gap-2 font-medium">
+            <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold text-[11px] tracking-wide uppercase">New Release</span>
+            <span>Official WhatsApp Cloud API 2.0 Integration & Split-Bill Cloud POS is now live!</span>
+            <a href="{{ route('onboarding.signup') }}" class="underline text-emerald-400 hover:text-emerald-300 font-bold ml-1 inline-flex items-center gap-1">
+                Claim 14-Day Free Access <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
             </a>
-
-            <!-- Center Navigation Links -->
-            <nav class="hidden xl:flex items-center gap-8 text-sm font-semibold text-slate-600">
-                <a href="#features" class="nav-link">Features</a>
-                <a href="#how-it-works" class="nav-link">How It Works</a>
-                <a href="#pricing" class="nav-link">Pricing</a>
-                <a href="#faq" class="nav-link">FAQ</a>
-            </nav>
-
-            <!-- Right Action Buttons -->
-            <div class="flex items-center gap-2 sm:gap-4">
-                <a href="{{ route('download.app.page') }}" class="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-2 rounded-xl transition shadow-sm">
-                    <svg class="w-4 h-4 fill-current text-emerald-600" viewBox="0 0 24 24"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993s-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993s-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.4116 13.8533 8.125 12 8.125c-1.8534 0-3.5902.2866-5.1368.8247L4.8409 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.784h24c-.3432-4.1251-2.6889-7.5973-6.1185-9.4626"/></svg>
-                    <span>Download App</span>
-                </a>
-                <a href="{{ route('landing.owner-login-page') }}" class="text-sm font-bold text-slate-700 hover:text-brand-600 px-3 py-2 rounded-xl hover:bg-slate-50 transition">
-                    Sign In
-                </a>
-                <a href="{{ route('admin.force-logout') }}" class="hidden lg:inline-flex text-xs font-semibold text-slate-500 hover:text-slate-900 border border-slate-200 px-3 py-2 rounded-xl hover:bg-slate-50 transition">
-                    Superadmin
-                </a>
-                <a href="{{ route('onboarding.signup') }}" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm shadow-md shadow-brand-600/25 hover:shadow-lg hover:shadow-brand-600/35 transition active:scale-95">
-                    <span>Get Started</span>
-                    <span>→</span>
-                </a>
-            </div>
-
-        </div>
-    </header>
-
-    <!-- ── Hero Section (Matching SawaBot / Modern SaaS Style) ─ -->
-    <section class="relative pt-6 pb-20 overflow-hidden">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            
-            <!-- Big Hero Banner Card (Green Rounded Container) -->
-            <div class="hero-panel relative gradient-wa rounded-[2.5rem] p-8 sm:p-12 lg:p-16 text-white shadow-2xl shadow-brand-900/20 overflow-hidden">
-                
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
-                    
-                    <!-- Left Hero Content -->
-                    <div class="lg:col-span-7 space-y-6">
-                        
-                        <!-- Mini Badge -->
-                        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-bold tracking-wide text-brand-100">
-                            <span class="w-2 h-2 rounded-full bg-brand-300"></span>
-                            #1 WhatsApp Restaurant Bot in Pakistan
-                        </div>
-
-                        <!-- Big Punchy Title -->
-                        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.15]">
-                            Stop Losing Customers On <span class="text-brand-300 underline decoration-brand-400/40 underline-offset-8">WhatsApp</span>.
-                        </h1>
-
-                        <!-- Subtitle -->
-                        <p class="text-base sm:text-lg text-emerald-50/90 font-normal leading-relaxed max-w-xl">
-                            AI WhatsApp assistant that answers menus, takes automated customer orders 24/7, and prints thermal kitchen receipts without commission fees.
-                        </p>
-
-                        <!-- Hero CTA Buttons -->
-                        <div class="flex flex-wrap items-center gap-3 sm:gap-4 pt-2">
-                            <a href="{{ route('onboarding.signup') }}" class="px-7 py-4 rounded-full bg-white text-slate-950 hover:bg-brand-50 font-extrabold text-base shadow-xl shadow-black/10 hover:scale-[1.02] transition active:scale-95 flex items-center gap-2">
-                                <span>Get Started Free</span>
-                                <span>→</span>
-                            </a>
-                            <a href="{{ route('download.app.page') }}" class="px-6 py-4 rounded-full bg-emerald-500/25 hover:bg-emerald-500/35 text-white font-extrabold text-base border border-emerald-400/40 backdrop-blur-md shadow-lg shadow-emerald-950/20 hover:scale-[1.02] transition active:scale-95 flex items-center gap-2.5">
-                                <svg class="w-5 h-5 text-emerald-300 fill-current" viewBox="0 0 24 24"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993s-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993s-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.4116 13.8533 8.125 12 8.125c-1.8534 0-3.5902.2866-5.1368.8247L4.8409 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.784h24c-.3432-4.1251-2.6889-7.5973-6.1185-9.4626"/></svg>
-                                <span>Download App (.APK)</span>
-                            </a>
-                            <a href="#how-it-works" class="px-5 py-4 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-base border border-white/20 backdrop-blur-md transition flex items-center gap-2">
-                                <span>See Features</span>
-                            </a>
-                        </div>
-
-                        <!-- Hero Feature Pills -->
-                        <div class="pt-6 border-t border-white/15 grid grid-cols-3 gap-3 sm:gap-4 text-xs font-bold text-emerald-100">
-                            <div class="flex items-center gap-2">
-                                <svg class="h-4 w-4 text-emerald-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m13 2-3 8h7l-6 12 1-9H5l8-11Z"/></svg>
-                                <span>Instant Setup</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <svg class="h-4 w-4 text-emerald-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                                <span>Live Status Alerts</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <svg class="h-4 w-4 text-emerald-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>
-                                <span>0% Commission</span>
-                            </div>
-                        </div>
-
-                    </div>
-
-                    <!-- Right Showcase: Simulated Smartphone with WhatsApp Live Order -->
-                    <div class="lg:col-span-5 flex justify-center">
-                        <div class="phone-mockup w-full max-w-[340px] bg-slate-950 rounded-[3rem] p-3 shadow-2xl shadow-black/50 border-4 border-slate-800">
-                            
-                            <div class="bg-[#efeae2] rounded-[2.3rem] overflow-hidden flex flex-col h-[520px] text-slate-900">
-                                
-                                <div class="bg-[#075E54] text-white px-4 py-3.5 flex items-center gap-3 shadow-sm">
-                                    <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-bold text-sm">
-                                        🍔
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <div class="text-sm font-bold truncate">Fezio Cafe & Grill</div>
-                                        <div class="text-[10px] text-emerald-200 flex items-center gap-1">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Verified WhatsApp Bot
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="flex-1 p-3.5 space-y-3 overflow-y-auto text-xs">
-                                    <div class="flex justify-end">
-                                        <div class="bg-[#dcf8c6] text-slate-900 p-2.5 rounded-2xl rounded-tr-xs max-w-[82%] shadow-sm">
-                                            Assalam o Alaikum! I want 1x Zinger Burger and 1x Loaded Fries for delivery at Main Bazar Lodhran.
-                                            <div class="text-[9px] text-slate-400 text-right mt-1">2:45 PM ✓✓</div>
-                                        </div>
-                                    </div>
-
-                                    <div class="flex justify-start">
-                                        <div class="bg-white text-slate-900 p-3 rounded-2xl rounded-tl-xs max-w-[88%] shadow-sm border border-slate-200/60 space-y-1.5">
-                                            <div class="font-bold text-emerald-800 text-[11px]">🎉 Order Confirmed! #FZ1048</div>
-                                            <div class="text-slate-600 text-[11px]">
-                                                • 1x Zinger Burger (Rs. 450)<br>
-                                                • 1x Loaded Fries (Rs. 350)<br>
-                                                • Delivery: Rs. 50
-                                            </div>
-                                            <div class="font-black text-slate-900 border-t border-slate-100 pt-1">
-                                                Total: Rs. 850 (COD)
-                                            </div>
-                                            <div class="bg-emerald-50 text-emerald-700 p-1.5 rounded-lg text-[10px] font-semibold flex items-center gap-1">
-                                                <span>👨‍🍳</span> Order Accepted & Kitchen Ticket Printed!
-                                            </div>
-                                            <div class="text-[9px] text-slate-400 text-right">2:45 PM</div>
-                                        </div>
-                                    </div>
-
-                                    <div class="flex justify-start">
-                                        <div class="bg-white text-slate-900 p-2.5 rounded-xl max-w-[88%] shadow-sm border border-slate-200">
-                                            <div class="text-[10px] font-bold text-slate-700 mb-1">📦 Order Status Update</div>
-                                            <div class="h-14 bg-emerald-100 rounded-lg flex items-center justify-center text-xs font-bold text-emerald-800 border border-emerald-200">
-                                                🛵 Out for Delivery • ETA ~25 mins
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="bg-[#f0f2f5] p-2 flex items-center gap-2 border-t border-slate-200">
-                                    <div class="flex-1 bg-white rounded-full px-3 py-1.5 text-[11px] text-slate-400">
-                                        Type a message...
-                                    </div>
-                                    <div class="w-7 h-7 rounded-full bg-[#00a884] text-white flex items-center justify-center text-xs">
-                                        ➤
-                                    </div>
-                                </div>
-
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-    </section>
-
-    <!-- ── Capability Agent Cards ─────────────────────────────── -->
-    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 mb-16 relative z-20">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
-            <div class="capability-card bg-white rounded-3xl p-6 border border-slate-100 flex items-start gap-4">
-                <div class="icon-tile bg-emerald-50 text-emerald-600">
-                    <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3m0 12v3m9-9h-3M6 12H3m15.36-6.36-2.12 2.12M7.76 16.24l-2.12 2.12m12.72 0-2.12-2.12M7.76 7.76 5.64 5.64"/><circle cx="12" cy="12" r="4"/></svg>
-                </div>
-                <div>
-                    <h3 class="font-extrabold text-base text-slate-900">AI Ordering Agent</h3>
-                    <p class="text-xs text-slate-500 mt-1 leading-relaxed">Answers menu questions, suggests combo deals, and handles order confirmations 24/7 in Roman Urdu & English.</p>
-                </div>
-            </div>
-
-            <div class="capability-card bg-white rounded-3xl p-6 border border-slate-100 flex items-start gap-4">
-                <div class="icon-tile bg-teal-50 text-teal-600">
-                    <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                </div>
-                <div>
-                    <h3 class="font-extrabold text-base text-slate-900">Instant WhatsApp Updates</h3>
-                    <p class="text-xs text-slate-500 mt-1 leading-relaxed">Customers automatically receive status notifications, dispatched rider contacts, and estimated delivery times directly on WhatsApp.</p>
-                </div>
-            </div>
-
-            <div class="capability-card bg-white rounded-3xl p-6 border border-slate-100 flex items-start gap-4">
-                <div class="icon-tile bg-amber-50 text-amber-600">
-                    <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5h16M6 16V9m4 7V5m4 11v-4m4 4V7"/></svg>
-                </div>
-                <div>
-                    <h3 class="font-extrabold text-base text-slate-900">Kitchen POS & Thermal Bills</h3>
-                    <p class="text-xs text-slate-500 mt-1 leading-relaxed">Live order sound alert, instant 80mm thermal receipt printing, customer database, and automated Google Sheets sync.</p>
-                </div>
-            </div>
-
-        </div>
-    </section>
-
-    <!-- ── Features Section ───────────────────────────────────── -->
-    <section id="features" class="py-20 bg-slate-50 border-y border-slate-100">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            
-            <div class="text-center max-w-3xl mx-auto mb-16">
-                <span class="text-xs font-bold uppercase tracking-wider text-brand-600 bg-brand-50 px-3.5 py-1 rounded-full">Everything You Need</span>
-                <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mt-3">Built Specifically for Modern Pakistani Restaurants</h2>
-                <p class="text-slate-600 text-sm sm:text-base mt-3">Eliminate third-party aggregators charging 25-30% commissions. Own your customers directly on WhatsApp.</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div class="feature-card bg-white rounded-3xl p-8 border border-slate-200/70 shadow-sm">
-                    <div class="icon-tile mb-6"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/><path d="M8.5 9.5c.7 2 2 3.3 4 4"/></svg></div>
-                    <h3 class="text-lg font-bold text-slate-900 mb-2">Automated WhatsApp Ordering</h3>
-                    <p class="text-sm text-slate-600 leading-relaxed">Customers browse your categories, customize sizes & add-ons, and place orders directly in chat without downloading an app.</p>
-                </div>
-
-                <div class="feature-card bg-white rounded-3xl p-8 border border-slate-200/70 shadow-sm">
-                    <div class="icon-tile mb-6"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
-                    <h3 class="text-lg font-bold text-slate-900 mb-2">Automated Order Status Alerts</h3>
-                    <p class="text-sm text-slate-600 leading-relaxed">Customers receive clean order tracking codes with real-time status notifications sent directly in WhatsApp from preparation to delivery.</p>
-                </div>
-
-                <div class="feature-card bg-white rounded-3xl p-8 border border-slate-200/70 shadow-sm">
-                    <div class="icon-tile mb-6"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8m-8 4h8"/></svg></div>
-                    <h3 class="text-lg font-bold text-slate-900 mb-2">1-Click Excel & Image Menu OCR</h3>
-                    <p class="text-sm text-slate-600 leading-relaxed">Upload your existing paper menu photo, PDF, or Excel sheet. Our AI extracts categories, items, and prices into your bot in 10 seconds.</p>
-                </div>
-
-                <div class="feature-card bg-white rounded-3xl p-8 border border-slate-200/70 shadow-sm">
-                    <div class="icon-tile mb-6"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg></div>
-                    <h3 class="text-lg font-bold text-slate-900 mb-2">Kitchen Live Feed & Print Bills</h3>
-                    <p class="text-sm text-slate-600 leading-relaxed">Real-time sound bell when new orders arrive. Print standardized customer receipts and kitchen KOT tickets with a single tap.</p>
-                </div>
-
-                <div class="feature-card bg-white rounded-3xl p-8 border border-slate-200/70 shadow-sm">
-                    <div class="icon-tile mb-6"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 18-5v12L3 13v-2Zm0 2 2 7h4l-2.5-6.3M21 12a3 3 0 0 1-3 3"/></svg></div>
-                    <h3 class="text-lg font-bold text-slate-900 mb-2">WhatsApp Deal Broadcasts</h3>
-                    <p class="text-sm text-slate-600 leading-relaxed">Send special weekend deals and promo vouchers directly to all past customers who have ever ordered from your restaurant.</p>
-                </div>
-
-                <div class="feature-card bg-white rounded-3xl p-8 border border-slate-200/70 shadow-sm">
-                    <div class="icon-tile mb-6"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5h16M6 16V9m4 7V5m4 11v-4m4 4V7"/></svg></div>
-                    <h3 class="text-lg font-bold text-slate-900 mb-2">Google Sheets Auto-Sync</h3>
-                    <p class="text-sm text-slate-600 leading-relaxed">Every order automatically streams into your private Google Spreadsheet for real-time accounting and ledger management.</p>
-                </div>
-            </div>
-
-        </div>
-    </section>
-
-    <!-- ── How It Works ───────────────────────────────────────── -->
-    <section id="how-it-works" class="py-20 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            
-            <div class="text-center max-w-2xl mx-auto mb-16">
-                <span class="text-xs font-bold uppercase tracking-wider text-brand-600 bg-brand-50 px-3.5 py-1 rounded-full">Simple 3-Step Setup</span>
-                <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mt-3">Live in Under 5 Minutes</h2>
-                <p class="text-slate-600 text-sm mt-2">No complicated hardware or technical knowledge required.</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-                <div class="step-card bg-slate-50 rounded-3xl p-8 border border-slate-200/60 relative">
-                    <div class="w-10 h-10 rounded-2xl bg-brand-600 text-white font-extrabold flex items-center justify-center text-base mb-6 shadow-md shadow-brand-600/20">1</div>
-                    <h3 class="text-xl font-bold text-slate-900 mb-2">Register & Pick a Plan</h3>
-                    <p class="text-sm text-slate-600 leading-relaxed">Sign up with your restaurant details and choose a flexible monthly subscription that matches your order volume.</p>
-                </div>
-
-                <div class="step-card bg-slate-50 rounded-3xl p-8 border border-slate-200/60 relative">
-                    <div class="w-10 h-10 rounded-2xl bg-brand-600 text-white font-extrabold flex items-center justify-center text-base mb-6 shadow-md shadow-brand-600/20">2</div>
-                    <h3 class="text-xl font-bold text-slate-900 mb-2">Scan WhatsApp QR Code</h3>
-                    <p class="text-sm text-slate-600 leading-relaxed">Scan the QR code from your phone's WhatsApp Linked Devices. Your bot goes live instantly without Meta API approval delays.</p>
-                </div>
-
-                <div class="step-card bg-slate-50 rounded-3xl p-8 border border-slate-200/60 relative">
-                    <div class="w-10 h-10 rounded-2xl bg-brand-600 text-white font-extrabold flex items-center justify-center text-base mb-6 shadow-md shadow-brand-600/20">3</div>
-                    <h3 class="text-xl font-bold text-slate-900 mb-2">Receive Orders & Kitchen Tickets</h3>
-                    <p class="text-sm text-slate-600 leading-relaxed">Customers chat to place orders 24/7. Live orders pop up on your kitchen dashboard with 1-tap thermal bill printing.</p>
-                </div>
-            </div>
-
-        </div>
-    </section>
-
-    <!-- ── Pricing Section ────────────────────────────────────── -->
-    <section id="pricing" class="py-20 bg-slate-50 border-t border-slate-100">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            
-            <div class="text-center max-w-2xl mx-auto mb-16">
-                <span class="text-xs font-bold uppercase tracking-wider text-brand-600 bg-brand-50 px-3.5 py-1 rounded-full">Transparent Pricing</span>
-                <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mt-3">Simple Plans for Every Stage</h2>
-                <p class="text-slate-600 text-sm mt-2">Zero commission per order. Upgrade or cancel anytime.</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch max-w-6xl mx-auto">
-                
-                <!-- Starter -->
-                <div class="plan-card bg-white rounded-3xl p-8 border border-slate-200/80 shadow-sm flex flex-col justify-between">
-                    <div>
-                        <h3 class="text-xl font-bold text-slate-900">Starter</h3>
-                        <p class="text-xs text-slate-500 mt-1">Perfect for cafes & single cloud kitchens.</p>
-                        
-                        <div class="my-6">
-                            <div class="flex items-baseline gap-1">
-                                <span class="text-xs text-slate-400 font-bold">PKR</span>
-                                <span class="text-4xl font-black text-slate-900">Rs. 3,000</span>
-                                <span class="text-xs text-slate-500 font-medium">/ month</span>
-                            </div>
-                        </div>
-
-                        <ul class="space-y-3 text-sm text-slate-600 border-t border-slate-100 pt-6">
-                            <li class="flex items-center gap-2.5"><span class="text-brand-600 font-bold">✓</span> Up to 500 orders/month</li>
-                            <li class="flex items-center gap-2.5"><span class="text-brand-600 font-bold">✓</span> 40 Menu Items</li>
-                            <li class="flex items-center gap-2.5"><span class="text-brand-600 font-bold">✓</span> AI WhatsApp Bot</li>
-                            <li class="flex items-center gap-2.5"><span class="text-brand-600 font-bold">✓</span> Kitchen Thermal Print</li>
-                        </ul>
-                    </div>
-
-                    <a href="{{ route('onboarding.signup') }}" class="mt-8 w-full py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm text-center block transition">
-                        Get Started with Starter
-                    </a>
-                </div>
-
-                <!-- Pro -->
-                <div class="plan-card bg-white rounded-3xl p-8 border-2 border-brand-500 shadow-xl shadow-brand-500/10 flex flex-col justify-between relative">
-                    <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-brand-600 text-white text-[11px] font-black uppercase tracking-wider px-4 py-1 rounded-full shadow-md">
-                        Most Popular
-                    </div>
-
-                    <div>
-                        <h3 class="text-xl font-bold text-slate-900">Pro</h3>
-                        <p class="text-xs text-slate-500 mt-1">For busy restaurants & growing delivery hubs.</p>
-                        
-                        <div class="my-6">
-                            <div class="flex items-baseline gap-1">
-                                <span class="text-xs text-slate-400 font-bold">PKR</span>
-                                <span class="text-4xl font-black text-slate-900">Rs. 7,000</span>
-                                <span class="text-xs text-slate-500 font-medium">/ month</span>
-                            </div>
-                        </div>
-
-                        <ul class="space-y-3 text-sm text-slate-600 border-t border-slate-100 pt-6">
-                            <li class="flex items-center gap-2.5"><span class="text-brand-600 font-bold">✓</span> Up to 2,000 orders/month</li>
-                            <li class="flex items-center gap-2.5"><span class="text-brand-600 font-bold">✓</span> 150 Menu Items</li>
-                            <li class="flex items-center gap-2.5"><span class="text-brand-600 font-bold">✓</span> <strong>Automated Order Status Alerts</strong></li>
-                            <li class="flex items-center gap-2.5"><span class="text-brand-600 font-bold">✓</span> Excel & Image Menu OCR</li>
-                            <li class="flex items-center gap-2.5"><span class="text-brand-600 font-bold">✓</span> WhatsApp Deal Broadcasts</li>
-                        </ul>
-                    </div>
-
-                    <a href="{{ route('onboarding.signup') }}" class="mt-8 w-full py-3.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm text-center block shadow-md shadow-brand-600/20 transition">
-                        Get Started with Pro
-                    </a>
-                </div>
-
-                <!-- Enterprise -->
-                <div class="plan-card bg-white rounded-3xl p-8 border border-slate-200/80 shadow-sm flex flex-col justify-between">
-                    <div>
-                        <h3 class="text-xl font-bold text-slate-900">Enterprise</h3>
-                        <p class="text-xs text-slate-500 mt-1">Multi-branch franchises & high-volume brands.</p>
-                        
-                        <div class="my-6">
-                            <div class="flex items-baseline gap-1">
-                                <span class="text-xs text-slate-400 font-bold">PKR</span>
-                                <span class="text-4xl font-black text-slate-900">Rs. 15,000</span>
-                                <span class="text-xs text-slate-500 font-medium">/ month</span>
-                            </div>
-                        </div>
-
-                        <ul class="space-y-3 text-sm text-slate-600 border-t border-slate-100 pt-6">
-                            <li class="flex items-center gap-2.5"><span class="text-brand-600 font-bold">✓</span> Unlimited orders/month</li>
-                            <li class="flex items-center gap-2.5"><span class="text-brand-600 font-bold">✓</span> 500+ Menu Items</li>
-                            <li class="flex items-center gap-2.5"><span class="text-brand-600 font-bold">✓</span> Dedicated WhatsApp Server</li>
-                            <li class="flex items-center gap-2.5"><span class="text-brand-600 font-bold">✓</span> Custom Webhooks & POS API</li>
-                            <li class="flex items-center gap-2.5"><span class="text-brand-600 font-bold">✓</span> 24/7 Priority Support</li>
-                        </ul>
-                    </div>
-
-                    <a href="{{ route('onboarding.signup') }}" class="mt-8 w-full py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm text-center block transition">
-                        Get Started with Enterprise
-                    </a>
-                </div>
-
-            </div>
-
-        </div>
-    </section>
-
-    <!-- ── FAQ Section ────────────────────────────────────────── -->
-    <section id="faq" class="py-20 bg-white">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            
-            <div class="text-center max-w-xl mx-auto mb-14">
-                <span class="text-xs font-bold uppercase tracking-wider text-brand-600 bg-brand-50 px-3.5 py-1 rounded-full">Got Questions?</span>
-                <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight mt-3">Frequently Asked Questions</h2>
-            </div>
-
-            <div class="space-y-4">
-                <details class="group bg-slate-50 border border-slate-200/70 rounded-2xl p-6 [&_summary::-webkit-details-marker]:hidden">
-                    <summary class="flex items-center justify-between cursor-pointer font-bold text-base text-slate-900">
-                        <span>Do I need a Meta / Facebook Business API verification?</span>
-                        <span class="text-brand-600 transition group-open:rotate-180">▼</span>
-                    </summary>
-                    <p class="mt-4 text-sm text-slate-600 leading-relaxed">
-                        No! Foodio connects directly via QR code web pairing, so you can connect your existing WhatsApp Business or normal SIM number in 30 seconds without waiting weeks for Meta verification.
-                    </p>
-                </details>
-
-                <details class="group bg-slate-50 border border-slate-200/70 rounded-2xl p-6 [&_summary::-webkit-details-marker]:hidden">
-                    <summary class="flex items-center justify-between cursor-pointer font-bold text-base text-slate-900">
-                        <span>How do customers get updates on their orders?</span>
-                        <span class="text-brand-600 transition group-open:rotate-180">▼</span>
-                    </summary>
-                    <p class="mt-4 text-sm text-slate-600 leading-relaxed">
-                        When an order is confirmed, prepared, or dispatched from your kitchen dashboard, the customer automatically receives an automated WhatsApp message with their unique order tracking code and status updates in real-time.
-                    </p>
-                </details>
-
-                <details class="group bg-slate-50 border border-slate-200/70 rounded-2xl p-6 [&_summary::-webkit-details-marker]:hidden">
-                    <summary class="flex items-center justify-between cursor-pointer font-bold text-base text-slate-900">
-                        <span>Can I print receipts in my kitchen?</span>
-                        <span class="text-brand-600 transition group-open:rotate-180">▼</span>
-                    </summary>
-                    <p class="mt-4 text-sm text-slate-600 leading-relaxed">
-                        Yes! Foodio comes with a 1-tap print bill feature formatted for standard 80mm and 58mm ESC/POS thermal receipt printers.
-                    </p>
-                </details>
-
-                <details class="group bg-slate-50 border border-slate-200/70 rounded-2xl p-6 [&_summary::-webkit-details-marker]:hidden">
-                    <summary class="flex items-center justify-between cursor-pointer font-bold text-base text-slate-900">
-                        <span>What payment methods are supported for subscriptions?</span>
-                        <span class="text-brand-600 transition group-open:rotate-180">▼</span>
-                    </summary>
-                    <p class="mt-4 text-sm text-slate-600 leading-relaxed">
-                        We accept Visa/Mastercard (Stripe), JazzCash, EasyPaisa, and Direct Bank Transfer (IBAN). Once paid, Super Admin approves your restaurant and activates your portal.
-                    </p>
-                </details>
-            </div>
-
-        </div>
-    </section>
-
-    <!-- ── Bottom CTA Banner ──────────────────────────────────── -->
-    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-20">
-        <div class="gradient-wa rounded-[2.5rem] p-10 sm:p-14 text-center text-white relative overflow-hidden shadow-2xl">
-            <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight max-w-2xl mx-auto">
-                Ready to Turn WhatsApp Into Your #1 Sales Channel?
-            </h2>
-            <p class="text-emerald-100 text-sm sm:text-base mt-3 max-w-xl mx-auto">
-                Join restaurants across Pakistan who are scaling their online orders without paying commissions.
-            </p>
-            <div class="mt-8 flex justify-center">
-                <a href="{{ route('onboarding.signup') }}" class="px-8 py-4 rounded-full bg-white text-slate-950 hover:bg-brand-50 font-extrabold text-base shadow-xl hover:scale-105 transition active:scale-95">
-                    Start Your Restaurant Registration →
-                </a>
-            </div>
-        </div>
-    </section>
-
-    <!-- ── Footer ─────────────────────────────────────────────── -->
-    <footer class="bg-slate-950 text-slate-400 py-12 border-t border-slate-900 text-xs">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
-            
-            <div class="flex items-center gap-3">
-                <div class="brand-mark !h-7 !w-7 !rounded-lg">
-                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m13 2-3 8h7l-6 12 1-9H5l8-11Z"/></svg>
-                </div>
-                <span class="text-white font-extrabold text-sm">Foodio</span>
-                <span class="text-slate-600">|</span>
-                <span>&copy; {{ date('Y') }} Foodio Technologies. All rights reserved.</span>
-            </div>
-
-            <div class="flex items-center gap-6 font-semibold">
-                <a href="{{ route('landing.owner-login-page') }}" class="hover:text-white transition">Owner Sign In</a>
-                <a href="{{ route('onboarding.signup') }}" class="hover:text-white transition">Register</a>
-                <a href="{{ route('admin.force-logout') }}" class="hover:text-white transition">Superadmin Portal</a>
-            </div>
-
-    <!-- Floating Mobile App Download Banner (Visible for Chrome on Android / Mobile) -->
-    <div class="sm:hidden fixed bottom-4 inset-x-4 z-50">
-        <div class="bg-slate-900/95 backdrop-blur-md border border-emerald-500/40 rounded-2xl p-3 shadow-2xl flex items-center justify-between gap-3 text-left">
-            <div class="flex items-center gap-2.5">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-slate-950 shadow">
-                    <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993s-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993s-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.4116 13.8533 8.125 12 8.125c-1.8534 0-3.5902.2866-5.1368.8247L4.8409 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.784h24c-.3432-4.1251-2.6889-7.5973-6.1185-9.4626"/></svg>
-                </div>
-                <div>
-                    <div class="text-xs font-black text-white leading-tight">Foodio Android App</div>
-                    <div class="text-[10px] text-emerald-400 font-semibold">Faster experience & live orders</div>
-                </div>
-            </div>
-            <a href="{{ route('download.app.page') }}" class="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black shadow-md flex items-center gap-1 active:scale-95 transition">
-                <span>Download APK</span>
-                <span>↓</span>
-            </a>
-        </div>
+        </span>
     </div>
 
+    <!-- Sticky Floating Navbar -->
+    <header class="sticky top-0 z-50 px-4 sm:px-8 py-4">
+        <nav class="max-w-7xl mx-auto glass-dark rounded-2xl px-5 py-3.5 flex items-center justify-between border border-slate-800 shadow-2xl">
+            <!-- Brand Logo -->
+            <a href="{{ route('landing') }}" class="flex items-center gap-3 group">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 via-teal-500 to-emerald-600 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-emerald-500/25 group-hover:scale-105 transition-transform">
+                    <i data-lucide="utensils" class="w-5 h-5 text-slate-950 stroke-[2.5]"></i>
+                </div>
+                <div>
+                    <span class="text-xl font-extrabold tracking-tight text-white flex items-center gap-1.5">
+                        Foodio
+                        <span class="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">OS</span>
+                    </span>
+                    <p class="text-[10px] text-slate-400 font-medium -mt-1">POS & WhatsApp Automation</p>
+                </div>
+            </a>
+
+            <!-- Desktop Nav Links -->
+            <div class="hidden lg:flex items-center gap-8 text-sm font-semibold text-slate-300">
+                <a href="#features" class="hover:text-emerald-400 transition-colors">Core Modules</a>
+                <a href="#pos-demo" class="hover:text-emerald-400 transition-colors">Cloud POS</a>
+                <a href="#whatsapp-sim" class="hover:text-emerald-400 transition-colors flex items-center gap-1.5">
+                    <i data-lucide="message-square" class="w-4 h-4 text-emerald-400"></i> WhatsApp Bot
+                </a>
+                <a href="#calculator" class="hover:text-emerald-400 transition-colors">ROI Calculator</a>
+                <a href="#pricing" class="hover:text-emerald-400 transition-colors">Pricing</a>
+                <a href="/foodio-redesign/showcase.html" target="_blank" class="px-2.5 py-1 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-bold hover:bg-indigo-500/30 transition-all flex items-center gap-1">
+                    <span>3-in-1 Showcase</span>
+                    <i data-lucide="external-link" class="w-3 h-3"></i>
+                </a>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-3">
+                <a href="{{ route('landing.owner-login-page') }}" class="hidden sm:inline-flex px-4 py-2 text-sm font-semibold text-slate-200 hover:text-white transition-colors">
+                    Sign In
+                </a>
+                <a href="{{ route('onboarding.signup') }}" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 hover:-translate-y-0.5 transition-all flex items-center gap-2">
+                    <span>Start Free Trial</span>
+                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="relative pt-12 pb-20 px-4 sm:px-6 overflow-hidden">
+        <!-- Ambient Radial Glow -->
+        <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-emerald-500/10 rounded-full blur-[140px] pointer-events-none"></div>
+
+        <div class="max-w-6xl mx-auto text-center relative z-10 space-y-6">
+            
+            <!-- Top Pill -->
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900 border border-emerald-500/30 text-emerald-400 text-xs font-semibold shadow-inner">
+                <i data-lucide="zap" class="w-3.5 h-3.5 fill-current"></i>
+                <span>Stop paying 25–30% delivery app commissions</span>
+            </div>
+
+            <!-- Main Headline -->
+            <h1 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-white tracking-tight leading-[1.1]">
+                The Intelligent Operating System for Restaurants: <br>
+                <span class="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
+                    Cloud POS + WhatsApp Automation
+                </span>
+            </h1>
+
+            <!-- Subtitle -->
+            <p class="max-w-3xl mx-auto text-base sm:text-lg text-slate-400 font-normal leading-relaxed">
+                Empower your restaurant with direct WhatsApp ordering, real-time table reservations, cloud billing, and automated kitchen printing—all synchronized into a single, unified POS dashboard.
+            </p>
+
+            <!-- Dual Primary CTAs -->
+            <div class="pt-2 flex flex-wrap items-center justify-center gap-4">
+                <a href="{{ route('onboarding.signup') }}" class="px-8 py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-extrabold text-base shadow-xl shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:-translate-y-0.5 transition-all flex items-center gap-2.5">
+                    <i data-lucide="rocket" class="w-5 h-5 text-slate-950"></i>
+                    <span>Launch Your Restaurant Free</span>
+                </a>
+                <a href="#whatsapp-sim" class="px-8 py-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-base border border-slate-700/80 shadow-lg hover:border-slate-600 transition-all flex items-center gap-2.5">
+                    <i data-lucide="play-circle" class="w-5 h-5 text-emerald-400"></i>
+                    <span>Try Live WhatsApp Demo</span>
+                </a>
+            </div>
+
+            <!-- Metric Badges Strip -->
+            <div class="pt-8 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+                <div class="glass-card rounded-2xl p-4 text-center border border-slate-800">
+                    <div class="text-2xl sm:text-3xl font-extrabold text-white">3x Faster</div>
+                    <p class="text-xs text-slate-400 mt-1 font-medium">Table Turnaround</p>
+                </div>
+                <div class="glass-card rounded-2xl p-4 text-center border border-slate-800">
+                    <div class="text-2xl sm:text-3xl font-extrabold text-emerald-400">0% Comm.</div>
+                    <p class="text-xs text-slate-400 mt-1 font-medium">Keep 100% Customer Revenue</p>
+                </div>
+                <div class="glass-card rounded-2xl p-4 text-center border border-slate-800">
+                    <div class="text-2xl sm:text-3xl font-extrabold text-white">99.8%</div>
+                    <p class="text-xs text-slate-400 mt-1 font-medium">WhatsApp Bot Order Accuracy</p>
+                </div>
+                <div class="glass-card rounded-2xl p-4 text-center border border-slate-800">
+                    <div class="text-2xl sm:text-3xl font-extrabold text-teal-400">2,500+</div>
+                    <p class="text-xs text-slate-400 mt-1 font-medium">Outlets & Cloud Kitchens</p>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Interactive Dual Showcase (Cloud POS Tablet + WhatsApp Bot Live Phone) -->
+    <section id="pos-demo" class="py-16 px-4 sm:px-6 relative">
+        <div class="max-w-7xl mx-auto space-y-8">
+            
+            <div class="text-center max-w-3xl mx-auto space-y-2">
+                <span class="text-xs font-bold uppercase tracking-widest text-emerald-400">Live Hardware & Software Synergy</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-white">See the Foodio Ecosystem in Action</h2>
+                <p class="text-slate-400 text-sm sm:text-base">Watch an order travel from a customer's WhatsApp conversation straight into the POS terminal and kitchen display in under 2 seconds.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                
+                <!-- Left: Tablet Cloud POS UI (7 cols) -->
+                <div class="lg:col-span-7 glass-dark rounded-3xl p-5 border border-slate-800 shadow-2xl relative overflow-hidden">
+                    <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+                        <div class="flex items-center gap-3">
+                            <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+                            <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                            <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                            <span class="text-xs font-mono text-slate-400 ml-2 font-bold flex items-center gap-1.5">
+                                <i data-lucide="tablet" class="w-3.5 h-3.5 text-emerald-400"></i> Foodio POS Terminal — Station #01
+                            </span>
+                        </div>
+                        <span class="text-xs px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Online & Synced
+                        </span>
+                    </div>
+
+                    <!-- POS Active Register Dashboard Mock -->
+                    <div class="pt-4 grid grid-cols-1 sm:grid-cols-12 gap-4">
+                        
+                        <!-- Category & Items Grid (7 cols) -->
+                        <div class="sm:col-span-7 space-y-3">
+                            <div class="flex items-center gap-2 overflow-x-auto pb-1 text-xs font-semibold">
+                                <button class="px-3 py-1.5 rounded-lg bg-emerald-500 text-slate-950 font-bold whitespace-nowrap">Popular</button>
+                                <button class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 whitespace-nowrap">Burgers</button>
+                                <button class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 whitespace-nowrap">Pizzas</button>
+                                <button class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 whitespace-nowrap">Drinks</button>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2.5">
+                                <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 hover:border-emerald-500/50 cursor-pointer transition-all">
+                                    <div class="flex justify-between items-start">
+                                        <span class="text-xs font-bold text-white">Truffle Smash Burger</span>
+                                        <span class="text-xs font-bold text-emerald-400">$14.50</span>
+                                    </div>
+                                    <span class="text-[10px] text-slate-500">In Stock (38 left)</span>
+                                </div>
+                                <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 hover:border-emerald-500/50 cursor-pointer transition-all">
+                                    <div class="flex justify-between items-start">
+                                        <span class="text-xs font-bold text-white">Woodfired Margherita</span>
+                                        <span class="text-xs font-bold text-emerald-400">$18.00</span>
+                                    </div>
+                                    <span class="text-[10px] text-slate-500">In Stock (22 left)</span>
+                                </div>
+                                <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 hover:border-emerald-500/50 cursor-pointer transition-all">
+                                    <div class="flex justify-between items-start">
+                                        <span class="text-xs font-bold text-white">Artisan Truffle Fries</span>
+                                        <span class="text-xs font-bold text-emerald-400">$8.50</span>
+                                    </div>
+                                    <span class="text-[10px] text-slate-500">Chef's Special</span>
+                                </div>
+                                <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 hover:border-emerald-500/50 cursor-pointer transition-all">
+                                    <div class="flex justify-between items-start">
+                                        <span class="text-xs font-bold text-white">Craft Hibiscus Tea</span>
+                                        <span class="text-xs font-bold text-emerald-400">$5.00</span>
+                                    </div>
+                                    <span class="text-[10px] text-slate-500">Fresh Brewed</span>
+                                </div>
+                            </div>
+
+                            <!-- Live Kitchen Stream Indicator -->
+                            <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="chef-hat" class="w-4 h-4 text-amber-400"></i>
+                                    <span class="text-slate-300 font-medium">Kitchen Queue: <strong>4 Tickets Preparing</strong></span>
+                                </div>
+                                <span class="text-[11px] text-amber-400 font-semibold">Avg. Prep: 11 mins</span>
+                            </div>
+                        </div>
+
+                        <!-- Current Order Ticket Panel (5 cols) -->
+                        <div class="sm:col-span-5 bg-slate-900 rounded-2xl p-3.5 border border-slate-800 flex flex-col justify-between space-y-3">
+                            <div>
+                                <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                                    <div>
+                                        <h4 class="text-xs font-extrabold text-white">Order #FD-1094</h4>
+                                        <span class="text-[10px] text-emerald-400 font-semibold">Source: WhatsApp Bot</span>
+                                    </div>
+                                    <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">Table 07</span>
+                                </div>
+
+                                <div class="pt-2 space-y-2 text-xs">
+                                    <div class="flex justify-between text-slate-300">
+                                        <span>1x Truffle Smash Burger</span>
+                                        <span class="font-bold text-white">$14.50</span>
+                                    </div>
+                                    <div class="flex justify-between text-slate-300">
+                                        <span>1x Artisan Truffle Fries</span>
+                                        <span class="font-bold text-white">$8.50</span>
+                                    </div>
+                                    <div class="flex justify-between text-slate-300">
+                                        <span>1x Craft Hibiscus Tea</span>
+                                        <span class="font-bold text-white">$5.00</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="border-t border-slate-800 pt-2 space-y-2">
+                                <div class="flex justify-between text-xs text-slate-400">
+                                    <span>Subtotal</span>
+                                    <span>$28.00</span>
+                                </div>
+                                <div class="flex justify-between text-xs text-slate-400">
+                                    <span>Tax (8%)</span>
+                                    <span>$2.24</span>
+                                </div>
+                                <div class="flex justify-between text-sm font-extrabold text-white">
+                                    <span>Total Due</span>
+                                    <span class="text-emerald-400">$30.24</span>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-2 pt-1">
+                                    <button class="py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white flex items-center justify-center gap-1">
+                                        <i data-lucide="printer" class="w-3.5 h-3.5 text-slate-400"></i> Print KOT
+                                    </button>
+                                    <button class="py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black flex items-center justify-center gap-1">
+                                        <i data-lucide="check" class="w-3.5 h-3.5"></i> Settle Bill
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Right: Interactive WhatsApp Smartphone Simulator (5 cols) -->
+                <div id="whatsapp-sim" class="lg:col-span-5 glass-dark rounded-3xl p-5 border border-slate-800 shadow-2xl relative">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-full bg-whatsapp flex items-center justify-center text-white">
+                                <i data-lucide="message-circle" class="w-5 h-5 fill-current"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xs font-bold text-white flex items-center gap-1">
+                                    Foodio SmartBot
+                                    <i data-lucide="check-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+                                </h3>
+                                <p class="text-[10px] text-slate-400">Automated Restaurant Assistant</p>
+                            </div>
+                        </div>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono">Live Demo</span>
+                    </div>
+
+                    <!-- Chat History -->
+                    <div id="chat-messages" class="py-4 space-y-3 min-h-[300px] max-h-[340px] overflow-y-auto text-xs pr-1">
+                        
+                        <!-- Bot message -->
+                        <div class="flex items-start gap-2">
+                            <div class="bg-slate-800 text-slate-200 p-3 rounded-2xl rounded-tl-none max-w-[85%] border border-slate-700/60 space-y-1">
+                                <p class="font-medium">👋 Welcome to <strong>Bistro Gourmet</strong>! I am your AI food assistant powered by Foodio. How can I delight you today?</p>
+                                <div class="pt-1 flex flex-wrap gap-1.5">
+                                    <span class="px-2 py-0.5 rounded bg-slate-700 text-[10px] text-emerald-300 font-semibold">1. Browse Menu 📖</span>
+                                    <span class="px-2 py-0.5 rounded bg-slate-700 text-[10px] text-teal-300 font-semibold">2. Reserve Table 🍽️</span>
+                                    <span class="px-2 py-0.5 rounded bg-slate-700 text-[10px] text-cyan-300 font-semibold">3. Repeat Last Order ⚡</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Customer message -->
+                        <div class="flex items-end justify-end gap-2">
+                            <div class="bg-emerald-600 text-white p-3 rounded-2xl rounded-tr-none max-w-[80%] shadow">
+                                <p>Can I order 1 Truffle Smash Burger and 1 Truffle Fries to Table #7?</p>
+                                <span class="text-[9px] text-emerald-200 block text-right mt-1">15:42 ✓✓</span>
+                            </div>
+                        </div>
+
+                        <!-- Bot response -->
+                        <div class="flex items-start gap-2">
+                            <div class="bg-slate-800 text-slate-200 p-3 rounded-2xl rounded-tl-none max-w-[85%] border border-slate-700/60 space-y-1.5">
+                                <p class="font-medium">✅ Order received! Placed directly on <strong>Table #7 POS</strong>.</p>
+                                <div class="bg-slate-900 p-2 rounded-xl text-[11px] space-y-1 border border-slate-800 font-mono">
+                                    <div class="text-slate-300">1x Truffle Smash Burger: $14.50</div>
+                                    <div class="text-slate-300">1x Artisan Truffle Fries: $8.50</div>
+                                    <div class="text-emerald-400 font-bold border-t border-slate-800 pt-1">Total: $23.00 + tax</div>
+                                </div>
+                                <p class="text-[11px] text-slate-400">Estimated kitchen prep time: <strong>12 minutes</strong>. Would you like to add craft tea?</p>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Interactive Sim Action Buttons -->
+                    <div class="pt-3 border-t border-slate-800 flex items-center gap-2">
+                        <input type="text" id="demo-input" placeholder="Type: 'Book a table' or 'Add Drink'..." class="flex-1 bg-slate-900 border border-slate-700 text-xs rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+                        <button onclick="sendSimMessage()" class="px-3.5 py-2 rounded-xl bg-whatsapp text-white hover:bg-emerald-600 font-bold text-xs flex items-center gap-1 shadow">
+                            <span>Send</span>
+                            <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                    <p class="text-[10px] text-slate-500 text-center mt-2">Try clicking buttons or typing above to see instantaneous automated responses.</p>
+                </div>
+
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Core Modules Grid -->
+    <section id="features" class="py-16 px-4 sm:px-6 bg-slate-900/40 border-y border-slate-900">
+        <div class="max-w-7xl mx-auto space-y-12">
+            
+            <div class="text-center max-w-2xl mx-auto space-y-2">
+                <span class="text-xs font-bold uppercase tracking-widest text-emerald-400">Complete Automation Suite</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-white">Everything Your Restaurant Needs to Scale</h2>
+                <p class="text-slate-400 text-sm">Replace 5 fractured tools with one seamless, high-speed ecosystem designed for hospitality.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <!-- Feature 1 -->
+                <div class="glass-card rounded-2xl p-6 border border-slate-800 hover:border-emerald-500/40 transition-all space-y-4 glow-box-emerald">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+                        <i data-lucide="tablet-smartphone" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-white">Lightning Fast Cloud POS</h3>
+                    <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                        Works online and offline. Handles table layouts, split checks, multi-currency, and Bluetooth thermal kitchen receipt printers with zero lag.
+                    </p>
+                    <ul class="text-xs text-slate-300 space-y-2 pt-2">
+                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i> Offline sync protection</li>
+                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i> Split bill & tip management</li>
+                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i> Multi-terminal staff permissions</li>
+                    </ul>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="glass-card rounded-2xl p-6 border border-slate-800 hover:border-emerald-500/40 transition-all space-y-4 glow-box-emerald">
+                    <div class="w-12 h-12 rounded-xl bg-whatsapp/20 text-emerald-400 flex items-center justify-center font-bold">
+                        <i data-lucide="bot" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-white">Autonomous WhatsApp Bot</h3>
+                    <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                        Turns WhatsApp into a high-converting digital ordering desk. Sends rich digital catalogs, takes address details, and collects card or cash payments.
+                    </p>
+                    <ul class="text-xs text-slate-300 space-y-2 pt-2">
+                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i> Meta Official Cloud API certified</li>
+                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i> Instant reservation confirmations</li>
+                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i> Re-engagement & loyalty marketing</li>
+                    </ul>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="glass-card rounded-2xl p-6 border border-slate-800 hover:border-emerald-500/40 transition-all space-y-4 glow-box-emerald">
+                    <div class="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
+                        <i data-lucide="monitor" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-white">Smart Kitchen Display (KDS)</h3>
+                    <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                        Eliminate lost paper tickets. Orders from POS terminals, dine-in QR codes, and WhatsApp populate directly on kitchen prep monitors with timers.
+                    </p>
+                    <ul class="text-xs text-slate-300 space-y-2 pt-2">
+                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i> Station routing (Grill, Bar, Pastry)</li>
+                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i> Audible kitchen alerts & timers</li>
+                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i> 1-tap "Ready" WhatsApp ping</li>
+                    </ul>
+                </div>
+
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Interactive Commission Savings & ROI Calculator -->
+    <section id="calculator" class="py-16 px-4 sm:px-6">
+        <div class="max-w-4xl mx-auto glass-dark rounded-3xl p-6 sm:p-10 border border-slate-800 space-y-8">
+            
+            <div class="text-center space-y-2">
+                <span class="text-xs font-bold uppercase tracking-widest text-emerald-400">Commission Free Independence</span>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-white">How Much Money Are Aggregators Taking From You?</h2>
+                <p class="text-xs sm:text-sm text-slate-400">See your exact annual savings by shifting orders to direct Foodio WhatsApp channels.</p>
+            </div>
+
+            <div class="space-y-6 pt-4">
+                <div>
+                    <div class="flex justify-between items-center text-sm font-semibold mb-2">
+                        <span class="text-slate-300">Monthly Restaurant Sales:</span>
+                        <span id="sales-value" class="text-emerald-400 font-extrabold text-lg">$25,000 / mo</span>
+                    </div>
+                    <input type="range" id="sales-slider" min="5000" max="100000" step="1000" value="25000" oninput="updateCalculator()" class="w-full h-2.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
+                    <div class="bg-rose-950/30 border border-rose-900/50 rounded-2xl p-5 text-center">
+                        <span class="text-xs font-semibold text-rose-300">Third-Party App Commission (30%)</span>
+                        <div id="commission-lost" class="text-2xl sm:text-3xl font-extrabold text-rose-400 mt-2">-$7,500 / mo</div>
+                        <p class="text-[11px] text-slate-400 mt-1">Lost to delivery marketplaces annually: <span id="annual-lost" class="text-rose-300 font-bold">$90,000</span></p>
+                    </div>
+
+                    <div class="bg-emerald-950/30 border border-emerald-900/50 rounded-2xl p-5 text-center">
+                        <span class="text-xs font-semibold text-emerald-300">Saved with Foodio Flat SaaS</span>
+                        <div id="savings-amount" class="text-2xl sm:text-3xl font-extrabold text-emerald-400 mt-2">+$7,401 / mo</div>
+                        <p class="text-[11px] text-slate-400 mt-1">Net profit retained by your restaurant: <span id="annual-savings" class="text-emerald-300 font-bold">$88,812</span></p>
+                    </div>
+                </div>
+
+                <div class="text-center pt-2">
+                    <a href="{{ route('onboarding.signup') }}" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-500 text-slate-950 font-bold text-sm hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20">
+                        <span>Keep 100% of Your Revenue Today</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="py-16 px-4 sm:px-6 bg-slate-900/20 border-t border-slate-900">
+        <div class="max-w-6xl mx-auto space-y-12">
+            
+            <div class="text-center max-w-xl mx-auto space-y-2">
+                <span class="text-xs font-bold uppercase tracking-widest text-emerald-400">Transparent Pricing</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-white">Simple Plans. Flat Monthly SaaS.</h2>
+                <p class="text-slate-400 text-sm">No transaction cuts. No hidden per-order commissions.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
+                
+                <!-- Starter Plan -->
+                <div class="glass-card rounded-3xl p-6 sm:p-8 border border-slate-800 flex flex-col justify-between space-y-6">
+                    <div class="space-y-4">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Starter Outlets</span>
+                        <h3 class="text-2xl font-bold text-white">Cloud POS Core</h3>
+                        <p class="text-xs text-slate-400">For cafes and food trucks needing fast billing and receipt printing.</p>
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-4xl font-extrabold text-white">$49</span>
+                            <span class="text-xs text-slate-400">/ month</span>
+                        </div>
+                        <ul class="text-xs text-slate-300 space-y-2.5 pt-4 border-t border-slate-800">
+                            <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> 1 Active Cloud POS Terminal</li>
+                            <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Digital Dine-in QR Menu</li>
+                            <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Thermal Receipt Printer Sync</li>
+                            <li class="flex items-center gap-2 text-slate-500"><i data-lucide="x" class="w-4 h-4"></i> Automated WhatsApp Bot</li>
+                        </ul>
+                    </div>
+                    <a href="{{ route('onboarding.signup') }}" class="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs text-center transition-all">
+                        Start Free 14-Day Trial
+                    </a>
+                </div>
+
+                <!-- Growth Plan (Featured) -->
+                <div class="glass-dark rounded-3xl p-6 sm:p-8 border-2 border-emerald-500 shadow-2xl shadow-emerald-500/10 flex flex-col justify-between space-y-6 relative">
+                    <div class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-emerald-500 text-slate-950 font-extrabold text-[10px] uppercase tracking-wider">
+                        Most Popular Choice
+                    </div>
+                    <div class="space-y-4">
+                        <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Full Automation</span>
+                        <h3 class="text-2xl font-bold text-white">POS + WhatsApp Pro</h3>
+                        <p class="text-xs text-slate-400">The complete system powering high-volume restaurants and bistros.</p>
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-4xl font-extrabold text-white">$99</span>
+                            <span class="text-xs text-slate-400">/ month</span>
+                        </div>
+                        <ul class="text-xs text-slate-300 space-y-2.5 pt-4 border-t border-slate-800">
+                            <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Unlimited POS Terminals</li>
+                            <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Official WhatsApp Ordering Bot</li>
+                            <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Interactive Table Floorplan & KDS</li>
+                            <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Re-Order Marketing Broadcasts</li>
+                            <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Priority 24/7 WhatsApp Support</li>
+                        </ul>
+                    </div>
+                    <a href="{{ route('onboarding.signup') }}" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 text-slate-950 font-extrabold text-xs text-center transition-all shadow-lg shadow-emerald-500/20">
+                        Launch Free Trial Now
+                    </a>
+                </div>
+
+                <!-- Enterprise Plan -->
+                <div class="glass-card rounded-3xl p-6 sm:p-8 border border-slate-800 flex flex-col justify-between space-y-6">
+                    <div class="space-y-4">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Franchise & Chains</span>
+                        <h3 class="text-2xl font-bold text-white">Multi-Outlet Enterprise</h3>
+                        <p class="text-xs text-slate-400">For multi-branch chains, centralized cloud kitchens, and franchises.</p>
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-4xl font-extrabold text-white">$249</span>
+                            <span class="text-xs text-slate-400">/ month</span>
+                        </div>
+                        <ul class="text-xs text-slate-300 space-y-2.5 pt-4 border-t border-slate-800">
+                            <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Multi-branch central inventory sync</li>
+                            <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Custom WhatsApp AI Prompts</li>
+                            <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Dedicated Server & SLA Guarantee</li>
+                            <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Custom ERP & Accounting Webhooks</li>
+                        </ul>
+                    </div>
+                    <a href="{{ route('onboarding.signup') }}" class="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs text-center transition-all">
+                        Contact Enterprise Team
+                    </a>
+                </div>
+
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Global Footer -->
+    <footer class="bg-slate-950 border-t border-slate-800 py-12 px-4 sm:px-8">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
+            
+            <div class="space-y-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-slate-950 font-black">
+                        <i data-lucide="utensils" class="w-4 h-4 text-slate-950 stroke-[2.5]"></i>
+                    </div>
+                    <span class="text-lg font-bold text-white">Foodio OS</span>
+                </div>
+                <p class="text-xs text-slate-400">The premier cloud restaurant automation system, unifying POS and direct WhatsApp commerce.</p>
+                <p class="text-[11px] text-slate-600">© 2026 Foodio Technologies Inc. All rights reserved.</p>
+            </div>
+
+            <div>
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-200 mb-3">Platform Navigation</h4>
+                <ul class="text-xs text-slate-400 space-y-2">
+                    <li><a href="{{ route('landing') }}" class="hover:text-emerald-400">Home Landing</a></li>
+                    <li><a href="{{ route('landing.owner-login-page') }}" class="hover:text-emerald-400">Restaurant Portal Login</a></li>
+                    <li><a href="{{ route('onboarding.signup') }}" class="hover:text-emerald-400">Start Free Trial</a></li>
+                    <li><a href="/foodio-redesign/showcase.html" target="_blank" class="hover:text-emerald-400 font-bold text-emerald-400">3-Screen Live Showcase</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-200 mb-3">POS & Integrations</h4>
+                <ul class="text-xs text-slate-400 space-y-2">
+                    <li><span class="hover:text-slate-300">WhatsApp Business Cloud API</span></li>
+                    <li><span class="hover:text-slate-300">Kitchen Display Systems (KDS)</span></li>
+                    <li><span class="hover:text-slate-300">Thermal Receipt Printers</span></li>
+                    <li><span class="hover:text-slate-300">Stripe & Apple Pay Terminal</span></li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-200 mb-3">Terminal Access</h4>
+                <div class="glass-card rounded-xl p-3 border border-slate-800 space-y-2">
+                    <p class="text-[11px] text-slate-400">Need instant cashier access? Jump to the terminal login:</p>
+                    <a href="{{ route('landing.owner-login-page') }}" class="block w-full text-center py-2 rounded-lg bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30 hover:bg-emerald-500/30 transition-all">
+                        Access Foodio POS →
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </footer>
+
+    <!-- Interactive Scripts -->
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // ROI Calculator Function
+        function updateCalculator() {
+            const sales = parseInt(document.getElementById('sales-slider').value);
+            document.getElementById('sales-value').textContent = '$' + sales.toLocaleString() + ' / mo';
+            
+            const commission = Math.round(sales * 0.30);
+            const foodioCost = 99;
+            const savings = commission - foodioCost;
+            
+            document.getElementById('commission-lost').textContent = '-$' + commission.toLocaleString() + ' / mo';
+            document.getElementById('annual-lost').textContent = '$' + (commission * 12).toLocaleString();
+            
+            document.getElementById('savings-amount').textContent = '+$' + savings.toLocaleString() + ' / mo';
+            document.getElementById('annual-savings').textContent = '$' + (savings * 12).toLocaleString();
+        }
+
+        // Simulator Interactive Messages
+        function sendSimMessage() {
+            const input = document.getElementById('demo-input');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            const chat = document.getElementById('chat-messages');
+
+            // Append user message
+            const userBubble = document.createElement('div');
+            userBubble.className = 'flex items-end justify-end gap-2';
+            userBubble.innerHTML = `
+                <div class="bg-emerald-600 text-white p-3 rounded-2xl rounded-tr-none max-w-[80%] shadow">
+                    <p>${escapeHtml(text)}</p>
+                    <span class="text-[9px] text-emerald-200 block text-right mt-1">Just now ✓✓</span>
+                </div>
+            `;
+            chat.appendChild(userBubble);
+            input.value = '';
+            chat.scrollTop = chat.scrollHeight;
+
+            // Simulated automated response after 600ms
+            setTimeout(() => {
+                const botBubble = document.createElement('div');
+                botBubble.className = 'flex items-start gap-2';
+                
+                let responseContent = `Got it! We have logged your request: "${escapeHtml(text)}" and instantly forwarded it to the kitchen display screen & cashier station #01.`;
+                if (text.toLowerCase().includes('table') || text.toLowerCase().includes('reserve')) {
+                    responseContent = `🍽️ Table reservation request detected! We have 2 window booths free at 7:30 PM. Shall I confirm for party of 2?`;
+                } else if (text.toLowerCase().includes('drink') || text.toLowerCase().includes('tea')) {
+                    responseContent = `🥤 Added 1x Craft Hibiscus Tea ($5.00) to Table #7 ticket! Updated subtotal synced with POS.`;
+                }
+
+                botBubble.innerHTML = `
+                    <div class="bg-slate-800 text-slate-200 p-3 rounded-2xl rounded-tl-none max-w-[85%] border border-slate-700/60 space-y-1">
+                        <p class="font-medium">${responseContent}</p>
+                        <span class="text-[9px] text-slate-500 block">Instant WhatsApp Bot response • 0.3s</span>
+                    </div>
+                `;
+                chat.appendChild(botBubble);
+                chat.scrollTop = chat.scrollHeight;
+            }, 500);
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        document.getElementById('demo-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendSimMessage();
+            }
+        });
+    </script>
 </body>
 </html>

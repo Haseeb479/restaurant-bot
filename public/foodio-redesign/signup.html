@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Foodio — 14-Day Free Trial Restaurant Onboarding</title>
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            whatsapp: {
+              DEFAULT: '#25D366',
+              dark: '#128C7E',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .glass-dark {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex selection:bg-emerald-500 selection:text-white">
+
+  <!-- Full Split Layout -->
+  <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 min-h-screen">
+    
+    <!-- Left Column: Trust, Social Proof & Partner Value (5 cols) -->
+    <div class="lg:col-span-5 bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-8 sm:p-12 flex flex-col justify-between border-r border-slate-800 relative overflow-hidden">
+      
+      <!-- Background Ambient Glow -->
+      <div class="absolute -bottom-20 -left-20 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+      <!-- Top Branding -->
+      <div class="relative z-10 space-y-6">
+        <a href="index.html" class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-emerald-500/20">
+            <i data-lucide="utensils" class="w-5 h-5 text-slate-950 stroke-[2.5]"></i>
+          </div>
+          <div>
+            <span class="text-xl font-extrabold tracking-tight text-white">Foodio <span class="text-xs text-emerald-400 font-mono">ONBOARDING</span></span>
+            <p class="text-[10px] text-slate-400">Zero Commission Restaurant OS</p>
+          </div>
+        </a>
+
+        <div class="space-y-2 pt-4">
+          <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Launch in Under 10 Minutes</span>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-white leading-tight">
+            Stop losing 30% on every food order. Keep 100% of your customer relationships.
+          </h2>
+        </div>
+      </div>
+
+      <!-- Featured Testimonial Card -->
+      <div class="relative z-10 my-8 glass-dark rounded-2xl p-6 border border-slate-800 shadow-xl space-y-4">
+        <div class="flex items-center gap-1 text-amber-400">
+          <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+          <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+          <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+          <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+          <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+        </div>
+        <p class="text-xs sm:text-sm text-slate-300 italic leading-relaxed">
+          "Foodio completely transformed our business. By routing orders through our automated WhatsApp bot straight to the kitchen POS, we cut aggregator commissions by $3,400 each month and our repeat orders doubled."
+        </p>
+        <div class="flex items-center gap-3 pt-2 border-t border-slate-800">
+          <div class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center font-bold text-emerald-400 text-xs border border-emerald-500/30">
+            MG
+          </div>
+          <div>
+            <h4 class="text-xs font-bold text-white">Marcus Greene</h4>
+            <p class="text-[10px] text-slate-400">Founder & Managing Director, Truffle Bistro Group</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trust Badges Footer -->
+      <div class="relative z-10 space-y-3 pt-4 border-t border-slate-800">
+        <div class="flex items-center gap-4 text-slate-400 text-xs">
+          <span class="flex items-center gap-1.5"><i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i> No Credit Card Required</span>
+          <span class="flex items-center gap-1.5"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Cancel Anytime</span>
+        </div>
+        <p class="text-[11px] text-slate-500">Official Meta WhatsApp Cloud Partner • 99.9% Uptime Guarantee</p>
+      </div>
+
+    </div>
+
+    <!-- Right Column: Interactive Multi-Step Setup Wizard (7 cols) -->
+    <div class="lg:col-span-7 bg-slate-950 p-6 sm:p-12 flex flex-col justify-between">
+      
+      <!-- Top Step Indicator -->
+      <div class="max-w-xl mx-auto w-full space-y-4">
+        
+        <div class="flex items-center justify-between text-xs font-bold text-slate-400 pb-2">
+          <span>Create Restaurant Account</span>
+          <span class="text-emerald-400 font-mono" id="step-number-text">Step 1 of 3</span>
+        </div>
+
+        <!-- Visual Progress Bar -->
+        <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+          <div id="progress-bar" class="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-300 w-1/3"></div>
+        </div>
+
+        <!-- Form Container -->
+        <div class="pt-6">
+
+          <!-- Step 1: Restaurant Profile -->
+          <div id="step-1" class="space-y-5">
+            <div>
+              <h1 class="text-2xl font-extrabold text-white">Tell us about your restaurant</h1>
+              <p class="text-xs text-slate-400 mt-1">We'll pre-configure your Cloud POS layout and kitchen stations.</p>
+            </div>
+
+            <div class="space-y-4 pt-2">
+              <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1.5">Restaurant or Brand Name</label>
+                <input type="text" id="restaurant-name" placeholder="e.g. Copper Kettle Grill & Bar" value="The Artisan Woodfire Kitchen" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-300 mb-1.5">Cuisine Type</label>
+                  <select class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+                    <option>Fine Dining & Bistro</option>
+                    <option>Pizza & Italian</option>
+                    <option>Burgers & Fast Casual</option>
+                    <option>Cafe & Bakery</option>
+                    <option>Multi-Brand Cloud Kitchen</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-300 mb-1.5">Active Dining Tables</label>
+                  <input type="number" value="18" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1.5">City & Primary Currency</label>
+                <div class="grid grid-cols-2 gap-3">
+                  <input type="text" placeholder="City (e.g. New York, London, Dubai)" value="Chicago, IL" class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+                  <select class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+                    <option>USD ($)</option>
+                    <option>GBP (£)</option>
+                    <option>EUR (€)</option>
+                    <option>AED (د.إ)</option>
+                    <option>PKR (Rs)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="pt-4">
+              <button onclick="goToStep(2)" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
+                <span>Continue: Connect WhatsApp & Menu</span>
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Step 2: WhatsApp & Menu Integration -->
+          <div id="step-2" class="space-y-5 hidden">
+            <div>
+              <h1 class="text-2xl font-extrabold text-white">Configure your WhatsApp Bot</h1>
+              <p class="text-xs text-slate-400 mt-1">This number will handle customer questions, orders, and table bookings.</p>
+            </div>
+
+            <div class="space-y-4 pt-2">
+              <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1.5">Official Restaurant WhatsApp Number</label>
+                <div class="relative">
+                  <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-whatsapp">
+                    <i data-lucide="phone" class="w-4 h-4"></i>
+                  </span>
+                  <input type="tel" placeholder="+1 (555) 019-2834" value="+1 (312) 555-0899" class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+                </div>
+                <p class="text-[10px] text-slate-500 mt-1">We automatically configure the Meta Cloud API webhook for instant responses.</p>
+              </div>
+
+              <!-- Menu Import Option -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1.5">Menu Setup Preference</label>
+                <div class="space-y-2">
+                  <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-900 border border-emerald-500/50 cursor-pointer">
+                    <input type="radio" name="menu_opt" checked class="mt-0.5 text-emerald-500 focus:ring-0">
+                    <div>
+                      <span class="text-xs font-bold text-white block">Pre-load Foodio Gourmet Starter Menu</span>
+                      <span class="text-[10px] text-slate-400">Includes 25 popular starters, mains, cocktails, and table combos you can edit later.</span>
+                    </div>
+                  </label>
+                  <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-900 border border-slate-800 cursor-pointer hover:border-slate-700">
+                    <input type="radio" name="menu_opt" class="mt-0.5 text-emerald-500 focus:ring-0">
+                    <div>
+                      <span class="text-xs font-bold text-white block">Upload Existing Menu (PDF or Excel CSV)</span>
+                      <span class="text-[10px] text-slate-400">Our AI menu parser automatically maps items, modifiers, and prices.</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="pt-4 flex items-center gap-3">
+              <button onclick="goToStep(1)" class="w-1/3 py-3 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-slate-300 hover:bg-slate-800">
+                ← Back
+              </button>
+              <button onclick="goToStep(3)" class="w-2/3 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
+                <span>Continue: Terminal Credentials</span>
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Step 3: Admin & Hardware Setup -->
+          <div id="step-3" class="space-y-5 hidden">
+            <div>
+              <h1 class="text-2xl font-extrabold text-white">Create your Master Admin Login</h1>
+              <p class="text-xs text-slate-400 mt-1">Use this password to access the Cloud POS and manage cashier permissions.</p>
+            </div>
+
+            <div class="space-y-4 pt-2">
+              <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1.5">Master Operator Email</label>
+                <input type="email" value="alex@artisanwoodfire.com" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1.5">Terminal Master Password</label>
+                <input type="password" value="SuperSecureFoodio2026!" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1.5">Kitchen Printer Type</label>
+                <select class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+                  <option>Standard 80mm ESC/POS Thermal Printer (LAN / USB)</option>
+                  <option>Bluetooth Mobile Receipt Printer (58mm)</option>
+                  <option>Kitchen Display Tablet (No paper tickets)</option>
+                  <option>Will configure hardware later</option>
+                </select>
+              </div>
+
+              <div class="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-300 flex items-center gap-2">
+                <i data-lucide="gift" class="w-4 h-4 text-emerald-400"></i>
+                <span>Your 14-Day Full-Access Free Trial includes unlimited WhatsApp bot messages & unlimited POS terminals.</span>
+              </div>
+            </div>
+
+            <div class="pt-4 flex items-center gap-3">
+              <button onclick="goToStep(2)" class="w-1/3 py-3 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-slate-300 hover:bg-slate-800">
+                ← Back
+              </button>
+              <button onclick="completeOnboarding()" id="finish-btn" class="w-2/3 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
+                <i data-lucide="sparkles" class="w-4 h-4 text-slate-950"></i>
+                <span>Launch Foodio Restaurant OS</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Step 4: Success State -->
+          <div id="step-success" class="space-y-6 text-center py-8 hidden">
+            <div class="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/40">
+              <i data-lucide="check" class="w-8 h-8 stroke-[3]"></i>
+            </div>
+            <div class="space-y-2">
+              <h2 class="text-2xl font-extrabold text-white">Your Restaurant OS is Live!</h2>
+              <p class="text-xs text-slate-300 max-w-md mx-auto">
+                We've configured <strong>The Artisan Woodfire Kitchen</strong> with 18 tables, pre-loaded your menu, and initiated the WhatsApp bot listener.
+              </p>
+            </div>
+            <div class="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <a href="login.html" class="w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-500 text-slate-950 font-black text-xs hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20">
+                Sign In to POS Register →
+              </a>
+              <a href="showcase.html" class="w-full sm:w-auto px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs">
+                View 3-in-1 Design Showcase
+              </a>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Bottom Nav Link -->
+      <div class="text-center text-xs text-slate-500 pt-6">
+        Already have an account? <a href="login.html" class="text-emerald-400 hover:underline font-bold">Sign in here</a>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    function goToStep(step) {
+      document.getElementById('step-1').classList.add('hidden');
+      document.getElementById('step-2').classList.add('hidden');
+      document.getElementById('step-3').classList.add('hidden');
+      document.getElementById('step-success').classList.add('hidden');
+
+      const progressBar = document.getElementById('progress-bar');
+      const stepText = document.getElementById('step-number-text');
+
+      if (step === 1) {
+        document.getElementById('step-1').classList.remove('hidden');
+        progressBar.style.width = '33%';
+        stepText.textContent = 'Step 1 of 3';
+      } else if (step === 2) {
+        document.getElementById('step-2').classList.remove('hidden');
+        progressBar.style.width = '66%';
+        stepText.textContent = 'Step 2 of 3';
+      } else if (step === 3) {
+        document.getElementById('step-3').classList.remove('hidden');
+        progressBar.style.width = '100%';
+        stepText.textContent = 'Step 3 of 3';
+      }
+      lucide.createIcons();
+    }
+
+    function completeOnboarding() {
+      const btn = document.getElementById('finish-btn');
+      btn.innerHTML = `<span>Configuring Cloud POS & WhatsApp Webhooks...</span>`;
+      setTimeout(() => {
+        document.getElementById('step-3').classList.add('hidden');
+        document.getElementById('step-success').classList.remove('hidden');
+        document.getElementById('progress-bar').style.width = '100%';
+        document.getElementById('step-number-text').textContent = 'Completed';
+        lucide.createIcons();
+      }, 800);
+    }
+  </script>
+</body>
+</html>

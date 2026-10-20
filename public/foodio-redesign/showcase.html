@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Foodio Restaurant OS — 3-Screen Live Interactive Showcase</title>
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            emerald: {
+              400: '#34D399',
+              500: '#10B981',
+              600: '#059669',
+            },
+            whatsapp: {
+              DEFAULT: '#25D366',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-950 text-white font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- Top Showcase Navigation Bar -->
+  <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-6 py-4 sticky top-0 z-50 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-emerald-500/25">
+        <i data-lucide="utensils" class="w-5 h-5 text-slate-950 stroke-[2.5]"></i>
+      </div>
+      <div>
+        <h1 class="text-base font-extrabold text-white tracking-tight flex items-center gap-2">
+          Foodio Restaurant OS Showcase
+          <span class="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full uppercase border border-emerald-500/30">
+            3-in-1 Live Redesign
+          </span>
+        </h1>
+        <p class="text-xs text-slate-400">Live implementation of the Nexus-style UI mockup</p>
+      </div>
+    </div>
+
+    <!-- Quick Navigation Links to standalone pages -->
+    <div class="flex items-center gap-2 bg-slate-800/80 p-1 rounded-xl border border-slate-700/70 text-xs font-semibold">
+      <a href="index.html" target="_blank" class="px-3 py-1.5 rounded-lg hover:bg-slate-700 text-slate-300 hover:text-white transition-all flex items-center gap-1.5">
+        <i data-lucide="layout" class="w-3.5 h-3.5 text-emerald-400"></i>
+        <span>1. Main SaaS Page</span>
+        <i data-lucide="external-link" class="w-3 h-3 text-slate-500"></i>
+      </a>
+      <a href="login.html" target="_blank" class="px-3 py-1.5 rounded-lg hover:bg-slate-700 text-slate-300 hover:text-white transition-all flex items-center gap-1.5">
+        <i data-lucide="log-in" class="w-3.5 h-3.5 text-teal-400"></i>
+        <span>2. POS Login</span>
+        <i data-lucide="external-link" class="w-3 h-3 text-slate-500"></i>
+      </a>
+      <a href="signup.html" target="_blank" class="px-3 py-1.5 rounded-lg hover:bg-slate-700 text-slate-300 hover:text-white transition-all flex items-center gap-1.5">
+        <i data-lucide="user-plus" class="w-3.5 h-3.5 text-cyan-400"></i>
+        <span>3. Onboarding</span>
+        <i data-lucide="external-link" class="w-3 h-3 text-slate-500"></i>
+      </a>
+    </div>
+  </header>
+
+  <!-- Showcase Content: 3-Screen Live Embedded Showcase Grid -->
+  <main class="flex-1 p-6 lg:p-8 max-w-[1700px] mx-auto w-full space-y-8">
+    
+    <div class="text-center max-w-2xl mx-auto py-2">
+      <span class="text-xs font-extrabold uppercase tracking-widest text-emerald-400">Interactive Preview Grid</span>
+      <h2 class="text-2xl sm:text-3xl font-extrabold text-white mt-1">Live Interconnected Foodio Screens</h2>
+      <p class="text-xs sm:text-sm text-slate-400 mt-2">Every button, WhatsApp chat simulator, ROI calculator slider, and onboarding step is fully interactive in real time.</p>
+    </div>
+
+    <!-- 3 Screen Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Frame 1: Main SaaS Landing Page -->
+      <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-2xl flex flex-col group hover:border-emerald-500/50 transition-all">
+        <div class="p-3.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between text-xs">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-500/80"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-500/80"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></span>
+            <span class="font-mono text-slate-300 text-[11px] ml-2 font-bold">1. Main Page (index.html)</span>
+          </div>
+          <a href="index.html" target="_blank" class="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1 text-[11px]">
+            Open Fullscreen <i data-lucide="maximize-2" class="w-3 h-3"></i>
+          </a>
+        </div>
+        <div class="h-[650px] w-full bg-slate-950 relative overflow-hidden">
+          <iframe src="index.html" class="w-full h-full border-0 select-none"></iframe>
+        </div>
+      </div>
+
+      <!-- Frame 2: Restaurant Portal Login -->
+      <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-2xl flex flex-col group hover:border-emerald-500/50 transition-all">
+        <div class="p-3.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between text-xs">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-500/80"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-500/80"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></span>
+            <span class="font-mono text-slate-300 text-[11px] ml-2 font-bold">2. POS Login (login.html)</span>
+          </div>
+          <a href="login.html" target="_blank" class="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1 text-[11px]">
+            Open Fullscreen <i data-lucide="maximize-2" class="w-3 h-3"></i>
+          </a>
+        </div>
+        <div class="h-[650px] w-full bg-slate-950 relative overflow-hidden">
+          <iframe src="login.html" class="w-full h-full border-0 select-none"></iframe>
+        </div>
+      </div>
+
+      <!-- Frame 3: Restaurant Onboarding Setup -->
+      <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-2xl flex flex-col group hover:border-emerald-500/50 transition-all">
+        <div class="p-3.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between text-xs">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-500/80"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-500/80"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></span>
+            <span class="font-mono text-slate-300 text-[11px] ml-2 font-bold">3. Onboarding (signup.html)</span>
+          </div>
+          <a href="signup.html" target="_blank" class="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1 text-[11px]">
+            Open Fullscreen <i data-lucide="maximize-2" class="w-3 h-3"></i>
+          </a>
+        </div>
+        <div class="h-[650px] w-full bg-slate-950 relative overflow-hidden">
+          <iframe src="signup.html" class="w-full h-full border-0 select-none"></iframe>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Reference Section: Original Visual Mockup -->
+    <div class="bg-slate-900/60 rounded-3xl p-6 sm:p-8 border border-slate-800 mt-8 space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <i data-lucide="image" class="w-5 h-5 text-emerald-400"></i>
+            Original Design Blueprint Comparison
+          </h3>
+          <p class="text-xs text-slate-400">Reference design mockup generated for the Foodio Nexus-Style 3-in-1 UI</p>
+        </div>
+        <span class="text-xs px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 font-mono font-bold">100% Visual Fidelity</span>
+      </div>
+      <div class="rounded-2xl overflow-hidden border border-slate-800 shadow-2xl">
+        <img src="foodio_nexus_showcase.jpg" alt="Foodio UI Blueprint" class="w-full object-cover">
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="p-6 border-t border-slate-800 text-center text-xs text-slate-500">
+    Foodio Restaurant OS Redesign Hub • Built with Tailwind CSS, Plus Jakarta Sans & Lucide Icons
+  </footer>
+
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>
