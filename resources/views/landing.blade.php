@@ -58,7 +58,7 @@
         }
 
         .card-3d:hover {
-            transform: translateY(-8px) rotateX(2.5deg) rotateY(-2deg);
+            transform: translateY(-6px) rotateX(2deg) rotateY(-1.5deg);
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 40px -5px rgba(16, 185, 129, 0.3);
         }
 
@@ -85,34 +85,18 @@
             transform: translateY(2px) scale(0.98);
         }
 
-        /* 3D Kinetic Floating Physics */
+        /* 3D Animations */
         @keyframes float-hero {
             0%, 100% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-12px) rotate(1.2deg); }
-        }
-        @keyframes pulse-halo {
-            0% { transform: scale(0.92); opacity: 0.8; }
-            50% { transform: scale(1.1); opacity: 0.25; }
-            100% { transform: scale(0.92); opacity: 0.8; }
-        }
-        @keyframes data-stream {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(200%); }
+            50% { transform: translateY(-10px) rotate(1deg); }
         }
         @keyframes ticket-curl {
             0% { transform: rotateX(-50deg) translateY(-25px); opacity: 0; }
             100% { transform: rotateX(0deg) translateY(0); opacity: 1; }
         }
-        @keyframes scooter-drive {
-            0% { transform: translateX(0px); }
-            50% { transform: translateX(120px); }
-            100% { transform: translateX(0px); }
-        }
 
         .animate-float { animation: float-hero 5.5s ease-in-out infinite; }
-        .animate-pulse-halo { animation: pulse-halo 2.8s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
         .ticket-animated { transform-origin: top center; animation: ticket-curl 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .scooter-motion { animation: scooter-drive 8s ease-in-out infinite; }
     </style>
 </head>
 <body class="text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-slate-950 overflow-x-hidden">
@@ -153,14 +137,13 @@
 
             <!-- Desktop Nav Links -->
             <div class="hidden lg:flex items-center gap-7 text-xs font-bold text-slate-300 relative z-10">
-                <a href="#hero-3d" class="hover:text-emerald-400 transition-colors flex items-center gap-1">
-                    <i data-lucide="layers" class="w-3.5 h-3.5 text-emerald-400"></i> 1. Kinetic Hero
+                <a href="#showcase-explorer" class="hover:text-emerald-400 transition-colors flex items-center gap-1">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5 text-emerald-400"></i> 4-Design 3D Explorer
                 </a>
-                <a href="#floorplan-module" class="hover:text-emerald-400 transition-colors">2. 3D Floorplan</a>
-                <a href="#node-studio" class="hover:text-emerald-400 transition-colors">3. WhatsApp Studio</a>
-                <a href="#kds-printer" class="hover:text-emerald-400 transition-colors">4. 3D KDS & Thermal</a>
-                <a href="#logistics-radar" class="hover:text-emerald-400 transition-colors">5. Fleet Radar</a>
-                <a href="#vault-closing" class="hover:text-emerald-400 transition-colors">6. 3D Vault</a>
+                <a href="#floorplan-module" class="hover:text-emerald-400 transition-colors">Floorplan</a>
+                <a href="#node-studio" class="hover:text-emerald-400 transition-colors">WhatsApp Studio</a>
+                <a href="#kds-printer" class="hover:text-emerald-400 transition-colors">KDS & Thermal</a>
+                <a href="#logistics-radar" class="hover:text-emerald-400 transition-colors">Fleet Radar</a>
                 <a href="#pricing" class="hover:text-emerald-400 transition-colors">Pricing</a>
             </div>
 
@@ -177,8 +160,8 @@
         </nav>
     </header>
 
-    <!-- MODULE 1: 3D Kinetic Hero & Spatial Conduit -->
-    <section id="hero-3d" class="relative pt-12 pb-16 px-4 sm:px-6 overflow-hidden perspective-container">
+    <!-- 3D Spatial Hero -->
+    <section class="relative pt-12 pb-16 px-4 sm:px-6 overflow-hidden perspective-container">
         <div class="max-w-6xl mx-auto text-center relative z-10 space-y-6">
             
             <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full clay-card text-emerald-300 text-xs font-black border border-emerald-500/30 shadow-xl">
@@ -202,30 +185,77 @@
                     <i data-lucide="sparkles" class="w-5 h-5 text-slate-950"></i>
                     <span>Start 14-Day Free Access</span>
                 </a>
-                <a href="{{ route('landing.owner-login-page') }}" class="clay-card px-8 py-4 rounded-2xl text-white font-extrabold text-base border border-slate-700/80 hover:border-emerald-500/50 transition-all flex items-center gap-2.5 hover:scale-[1.02]">
-                    <i data-lucide="log-in" class="w-5 h-5 text-emerald-400"></i>
-                    <span>Terminal Operator Login</span>
+                <a href="#showcase-explorer" class="clay-card px-8 py-4 rounded-2xl text-white font-extrabold text-base border border-slate-700/80 hover:border-emerald-500/50 transition-all flex items-center gap-2.5 hover:scale-[1.02]">
+                    <i data-lucide="layers" class="w-5 h-5 text-emerald-400"></i>
+                    <span>Explore 4 3D Mockup Designs ↓</span>
                 </a>
             </div>
 
-            <!-- 3D Spatial Hero Render Frame -->
-            <div class="pt-8 relative max-w-5xl mx-auto">
-                <div class="clay-card p-3 rounded-[32px] border border-white/10 shadow-2xl relative overflow-hidden group card-3d">
+        </div>
+    </section>
+
+    <!-- CORE FEATURE: THE 4 3D ANIMATION MOCKUP DESIGNS EXPLORER -->
+    <section id="showcase-explorer" class="py-12 px-4 sm:px-6 relative perspective-container">
+        <div class="max-w-6xl mx-auto space-y-8">
+            
+            <div class="text-center max-w-3xl mx-auto space-y-2">
+                <span class="text-xs font-black uppercase tracking-widest text-emerald-400">Interactive 3D System Explorer</span>
+                <h2 class="text-3xl sm:text-5xl font-black text-white">4 Distinct 3D Animation UI Mockup Designs</h2>
+                <p class="text-slate-400 text-sm">Click the tabs below to explore each operational phase modeled in full 3D spatial depth.</p>
+            </div>
+
+            <!-- 4 Interactive Tabs -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 max-w-5xl mx-auto">
+                <button onclick="switchDesign(1, this)" id="tab-btn-1" class="design-tab py-3.5 px-4 rounded-2xl border border-emerald-500 bg-emerald-500/20 text-emerald-300 text-xs font-black transition-all flex items-center justify-center gap-2 shadow-lg">
+                    <i data-lucide="bot" class="w-4 h-4 text-emerald-400"></i>
+                    <span>1. Kinetic Hero & Bot</span>
+                </button>
+                <button onclick="switchDesign(2, this)" id="tab-btn-2" class="design-tab py-3.5 px-4 rounded-2xl border border-slate-700 bg-slate-900/80 text-slate-400 text-xs font-bold hover:border-slate-500 transition-all flex items-center justify-center gap-2">
+                    <i data-lucide="printer" class="w-4 h-4 text-slate-400"></i>
+                    <span>2. Login & 3D Printer</span>
+                </button>
+                <button onclick="switchDesign(3, this)" id="tab-btn-3" class="design-tab py-3.5 px-4 rounded-2xl border border-slate-700 bg-slate-900/80 text-slate-400 text-xs font-bold hover:border-slate-500 transition-all flex items-center justify-center gap-2">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4 text-slate-400"></i>
+                    <span>3. Command Deck</span>
+                </button>
+                <button onclick="switchDesign(4, this)" id="tab-btn-4" class="design-tab py-3.5 px-4 rounded-2xl border border-slate-700 bg-slate-900/80 text-slate-400 text-xs font-bold hover:border-slate-500 transition-all flex items-center justify-center gap-2">
+                    <i data-lucide="navigation" class="w-4 h-4 text-slate-400"></i>
+                    <span>4. Live Fleet Radar</span>
+                </button>
+            </div>
+
+            <!-- Active 3D Design Display Container -->
+            <div class="clay-card p-4 sm:p-6 border border-white/10 shadow-2xl card-3d relative overflow-hidden">
+                
+                <!-- Main Image Preview -->
+                <div class="rounded-2xl overflow-hidden relative shadow-2xl border border-white/10 bg-slate-950">
                     <img 
+                        id="design-display-img"
                         src="/images/foodio_3d_landing.jpg" 
-                        alt="Foodio 3D Spatial Hero Showcase" 
-                        class="w-full object-cover rounded-[24px] transition-transform duration-700 ease-out group-hover:scale-105"
+                        alt="3D Spatial UI Mockup Design" 
+                        class="w-full object-cover transition-opacity duration-300"
                     >
-                    <div class="absolute bottom-6 left-6 clay-card px-4 py-2.5 rounded-2xl border border-emerald-500/40 shadow-xl flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-xl bg-whatsapp/20 text-whatsapp flex items-center justify-center font-black">
-                            <i data-lucide="bot" class="w-4 h-4 text-emerald-400"></i>
-                        </div>
-                        <div class="text-left">
-                            <span class="text-[10px] text-slate-400 font-bold block uppercase">Autonomous Bot</span>
-                            <span class="text-xs font-black text-white">99.8% WhatsApp Accuracy</span>
-                        </div>
+                </div>
+
+                <!-- Dynamic Feature Bar Below Image -->
+                <div class="pt-6 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-800/80 mt-6 text-left">
+                    <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800">
+                        <span class="text-[10px] text-emerald-400 font-bold uppercase tracking-wider block" id="feature-tag-1">Primary 3D Object</span>
+                        <h4 class="text-xs font-black text-white mt-1" id="feature-title-1">Floating Clay Mascot & POS Tablet</h4>
+                        <p class="text-[11px] text-slate-400 mt-1" id="feature-desc-1">Suspended zero-gravity AI mascot with real-time cursor gyro-tilt.</p>
+                    </div>
+                    <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800">
+                        <span class="text-[10px] text-teal-400 font-bold uppercase tracking-wider block" id="feature-tag-2">Motion Physics</span>
+                        <h4 class="text-xs font-black text-white mt-1" id="feature-title-2">Sine-Wave Floating & Parallax</h4>
+                        <p class="text-[11px] text-slate-400 mt-1" id="feature-desc-2">Fluid bobbing physics and spatial depth layers that react to scroll.</p>
+                    </div>
+                    <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800">
+                        <span class="text-[10px] text-cyan-400 font-bold uppercase tracking-wider block" id="feature-tag-3">SaaS Synergy</span>
+                        <h4 class="text-xs font-black text-white mt-1" id="feature-title-3">WhatsApp-to-POS Conduit</h4>
+                        <p class="text-[11px] text-slate-400 mt-1" id="feature-desc-3">Direct order packet pulses traveling straight into the Cloud POS register.</p>
                     </div>
                 </div>
+
             </div>
 
         </div>
@@ -244,7 +274,6 @@
             <!-- 3D Floorplan Canvas -->
             <div class="clay-card p-6 sm:p-8 border border-white/10 shadow-2xl card-3d">
                 
-                <!-- Floorplan Header Status -->
                 <div class="flex flex-wrap items-center justify-between pb-6 border-b border-slate-800 gap-4">
                     <div class="flex items-center gap-3">
                         <span class="w-3.5 h-3.5 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -260,9 +289,8 @@
                 <!-- 3D Table Grid -->
                 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 pt-6">
                     
-                    <!-- Table 01 (Dining) -->
-                    <div onclick="inspectTable('T-01', 'Dining', 'Truffle Smash Burger x2', '$29.00')" class="clay-card p-4 text-center border border-amber-500/40 hover:border-amber-400 cursor-pointer transition-all hover:scale-105 group relative overflow-hidden">
-                        <div class="w-12 h-12 mx-auto rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center font-black mb-2 border border-amber-500/30 shadow-inner">
+                    <div onclick="inspectTable('T-01', 'Dining', 'Truffle Smash Burger x2', '$29.00')" class="clay-card p-4 text-center border border-amber-500/40 hover:border-amber-400 cursor-pointer transition-all hover:scale-105 group">
+                        <div class="w-12 h-12 mx-auto rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center font-black mb-2 border border-amber-500/30">
                             <i data-lucide="utensils" class="w-5 h-5"></i>
                         </div>
                         <span class="text-xs font-black text-white block">Table 01</span>
@@ -270,7 +298,6 @@
                         <span class="text-[11px] text-slate-300 font-mono block mt-1">$29.00</span>
                     </div>
 
-                    <!-- Table 02 (Vacant) -->
                     <div onclick="inspectTable('T-02', 'Vacant', 'None', '$0.00')" class="clay-card p-4 text-center border border-emerald-500/40 hover:border-emerald-400 cursor-pointer transition-all hover:scale-105 group">
                         <div class="w-12 h-12 mx-auto rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black mb-2 border border-emerald-500/30">
                             <i data-lucide="check" class="w-5 h-5"></i>
@@ -280,7 +307,6 @@
                         <span class="text-[11px] text-slate-500 font-mono block mt-1">Ready</span>
                     </div>
 
-                    <!-- Table 03 (Bill Requested) -->
                     <div onclick="inspectTable('T-03', 'Bill Requested', 'Margherita Pizza, Wine', '$38.50')" class="clay-card p-4 text-center border border-cyan-500/50 hover:border-cyan-400 cursor-pointer transition-all hover:scale-105 group">
                         <div class="w-12 h-12 mx-auto rounded-full bg-cyan-500/20 text-cyan-300 flex items-center justify-center font-black mb-2 border border-cyan-500/30">
                             <i data-lucide="receipt" class="w-5 h-5"></i>
@@ -290,7 +316,6 @@
                         <span class="text-[11px] text-cyan-300 font-mono font-bold block mt-1">$38.50</span>
                     </div>
 
-                    <!-- Table 04 (Dining) -->
                     <div onclick="inspectTable('T-04', 'Dining', 'Flame Grill Steak, Fries', '$42.00')" class="clay-card p-4 text-center border border-amber-500/40 hover:border-amber-400 cursor-pointer transition-all hover:scale-105 group">
                         <div class="w-12 h-12 mx-auto rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center font-black mb-2 border border-amber-500/30">
                             <i data-lucide="flame" class="w-5 h-5"></i>
@@ -300,7 +325,6 @@
                         <span class="text-[11px] text-slate-300 font-mono block mt-1">$42.00</span>
                     </div>
 
-                    <!-- Table 05 (Vacant) -->
                     <div onclick="inspectTable('T-05', 'Vacant', 'None', '$0.00')" class="clay-card p-4 text-center border border-emerald-500/40 hover:border-emerald-400 cursor-pointer transition-all hover:scale-105 group">
                         <div class="w-12 h-12 mx-auto rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black mb-2 border border-emerald-500/30">
                             <i data-lucide="check" class="w-5 h-5"></i>
@@ -310,7 +334,6 @@
                         <span class="text-[11px] text-slate-500 font-mono block mt-1">Ready</span>
                     </div>
 
-                    <!-- Table 06 (WhatsApp Order Incoming) -->
                     <div onclick="inspectTable('T-06', 'WhatsApp Live Order', 'Woodfire Pizza x1, Craft Tea', '$23.00')" class="clay-card p-4 text-center border border-emerald-400 bg-emerald-950/30 hover:border-emerald-300 cursor-pointer transition-all hover:scale-105 group">
                         <div class="w-12 h-12 mx-auto rounded-full bg-whatsapp/20 text-whatsapp flex items-center justify-center font-black mb-2 border border-emerald-500/30">
                             <i data-lucide="message-square" class="w-5 h-5 text-emerald-400"></i>
@@ -322,7 +345,7 @@
 
                 </div>
 
-                <!-- Interactive Inspector Drawer -->
+                <!-- Inspector Drawer -->
                 <div id="table-inspector" class="mt-6 p-4 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-wrap items-center justify-between gap-4 text-xs">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-emerald-400 font-black">
@@ -354,11 +377,9 @@
                 <p class="text-slate-400 text-sm">Visual node architecture showing how incoming customer messages automatically trigger language detection, menu catalogs, and instant POS tickets.</p>
             </div>
 
-            <!-- Spatial Node Canvas -->
             <div class="clay-card p-6 sm:p-10 border border-white/10 shadow-2xl space-y-6 card-3d">
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 relative">
                     
-                    <!-- Node 1 -->
                     <div class="clay-card p-5 border border-emerald-500/40 relative">
                         <div class="w-8 h-8 rounded-xl bg-whatsapp/20 text-whatsapp flex items-center justify-center font-black mb-3">
                             <i data-lucide="message-circle" class="w-4 h-4 text-emerald-400"></i>
@@ -368,7 +389,6 @@
                         <p class="text-[11px] text-slate-400 mt-1">Customer texts "Hi" or scans table QR code.</p>
                     </div>
 
-                    <!-- Node 2 -->
                     <div class="clay-card p-5 border border-teal-500/40 relative">
                         <div class="w-8 h-8 rounded-xl bg-teal-500/20 text-teal-300 flex items-center justify-center font-black mb-3">
                             <i data-lucide="globe" class="w-4 h-4 text-teal-400"></i>
@@ -378,7 +398,6 @@
                         <p class="text-[11px] text-slate-400 mt-1">Auto-detects language & replies in native tongue.</p>
                     </div>
 
-                    <!-- Node 3 -->
                     <div class="clay-card p-5 border border-cyan-500/40 relative">
                         <div class="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center font-black mb-3">
                             <i data-lucide="book-open" class="w-4 h-4 text-cyan-400"></i>
@@ -388,7 +407,6 @@
                         <p class="text-[11px] text-slate-400 mt-1">Serves food pictures, prices, and portion modifiers.</p>
                     </div>
 
-                    <!-- Node 4 -->
                     <div class="clay-card p-5 border border-emerald-400 relative">
                         <div class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center font-black mb-3">
                             <i data-lucide="zap" class="w-4 h-4 text-emerald-400"></i>
@@ -419,10 +437,8 @@
                 <p class="text-slate-400 text-sm">Visual kanban swimlanes with preparation countdown timers and automatic ESC/POS thermal printing.</p>
             </div>
 
-            <!-- KDS Board -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 
-                <!-- Incoming Column -->
                 <div class="clay-card p-5 border border-cyan-500/30 space-y-4">
                     <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                         <span class="text-xs font-black uppercase text-cyan-400 flex items-center gap-1.5">
@@ -442,7 +458,6 @@
                     </div>
                 </div>
 
-                <!-- Preparing Column -->
                 <div class="clay-card p-5 border border-amber-500/30 space-y-4">
                     <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                         <span class="text-xs font-black uppercase text-amber-400 flex items-center gap-1.5">
@@ -462,7 +477,6 @@
                     </div>
                 </div>
 
-                <!-- Ready & Dispatched Column -->
                 <div class="clay-card p-5 border border-emerald-500/30 space-y-4">
                     <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                         <span class="text-xs font-black uppercase text-emerald-400 flex items-center gap-1.5">
@@ -512,7 +526,6 @@
                     <span class="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-mono font-bold text-xs border border-emerald-500/30">GPS Radar Online</span>
                 </div>
 
-                <!-- Simulation Radar Track -->
                 <div class="p-6 rounded-2xl bg-slate-900/90 border border-slate-800 relative overflow-hidden">
                     <div class="flex items-center justify-between text-xs font-bold text-slate-400 mb-4">
                         <span>Bistro Kitchen Hub</span>
@@ -520,7 +533,6 @@
                         <span>Customer Doorstep</span>
                     </div>
 
-                    <!-- Glowing Route Track -->
                     <div class="w-full h-3 bg-slate-800 rounded-full overflow-hidden relative border border-slate-700/60 p-0.5">
                         <div class="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 rounded-full w-2/3"></div>
                     </div>
@@ -539,45 +551,6 @@
         </div>
     </section>
 
-    <!-- MODULE 6: 3D Daily Financial Vault & Cash Reconciliation -->
-    <section id="vault-closing" class="py-16 px-4 sm:px-6 relative perspective-container border-t border-slate-900">
-        <div class="max-w-4xl mx-auto space-y-8">
-            
-            <div class="text-center space-y-2">
-                <span class="text-xs font-black uppercase tracking-widest text-emerald-400">Module 06 • Vault & Financials</span>
-                <h2 class="text-3xl sm:text-4xl font-black text-white">3D Shift Closing & Cash Reconciliation</h2>
-                <p class="text-slate-400 text-sm">Automated end-of-day register balancing, tip auditing, and financial reporting.</p>
-            </div>
-
-            <div class="clay-card p-6 sm:p-10 border border-white/10 shadow-2xl space-y-6 card-3d">
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                    <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
-                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Today's Gross Sales</span>
-                        <div class="text-2xl sm:text-3xl font-black text-white mt-1">$1,842.50</div>
-                        <span class="text-[10px] text-emerald-400 font-bold mt-1 block">+18% vs Yesterday</span>
-                    </div>
-                    <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
-                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">WhatsApp Direct Orders</span>
-                        <div class="text-2xl sm:text-3xl font-black text-emerald-400 mt-1">$1,290.00</div>
-                        <span class="text-[10px] text-slate-400 font-bold mt-1 block">70% Commission Free</span>
-                    </div>
-                    <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
-                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cash in Drawer</span>
-                        <div class="text-2xl sm:text-3xl font-black text-cyan-400 mt-1">$552.50</div>
-                        <span class="text-[10px] text-cyan-300 font-bold mt-1 block">Balanced 100%</span>
-                    </div>
-                </div>
-
-                <div class="text-center pt-2">
-                    <button onclick="alert('Daily closing audit PDF generated and sent to owner WhatsApp!')" class="btn-3d px-8 py-3.5 rounded-2xl bg-emerald-500 text-slate-950 font-black text-xs">
-                        Download Daily Shift Audit (PDF) →
-                    </button>
-                </div>
-            </div>
-
-        </div>
-    </section>
-
     <!-- Pricing Section -->
     <section id="pricing" class="py-16 px-4 sm:px-6 bg-slate-950/60 border-t border-slate-900 perspective-container">
         <div class="max-w-6xl mx-auto space-y-12">
@@ -590,7 +563,6 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
                 
-                <!-- Starter Plan -->
                 <div class="clay-card p-6 sm:p-8 border border-white/10 flex flex-col justify-between space-y-6 card-3d">
                     <div class="space-y-4">
                         <span class="text-xs font-black uppercase tracking-wider text-slate-400">Starter</span>
@@ -611,7 +583,6 @@
                     </a>
                 </div>
 
-                <!-- Growth Plan (Featured) -->
                 <div class="clay-card p-6 sm:p-8 border-2 border-emerald-500 shadow-2xl flex flex-col justify-between space-y-6 relative card-3d">
                     <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-full bg-emerald-500 text-slate-950 font-black text-[10px] uppercase tracking-wider shadow-lg">
                         Most Popular Choice
@@ -636,7 +607,6 @@
                     </a>
                 </div>
 
-                <!-- Enterprise Plan -->
                 <div class="clay-card p-6 sm:p-8 border border-white/10 flex flex-col justify-between space-y-6 card-3d">
                     <div class="space-y-4">
                         <span class="text-xs font-black uppercase tracking-wider text-slate-400">Chains & Franchises</span>
@@ -710,9 +680,90 @@
         </div>
     </footer>
 
-    <!-- Interactive Scripts -->
+    <!-- Interactive Scripts for 4-Design Switcher & Floorplan -->
     <script>
         lucide.createIcons();
+
+        // 4 Design Metadata
+        const designs = {
+            1: {
+                img: '/images/foodio_3d_landing.jpg',
+                tag1: 'Primary 3D Object',
+                title1: 'Floating Clay Mascot & POS Tablet',
+                desc1: 'Suspended zero-gravity AI mascot with real-time cursor gyro-tilt.',
+                tag2: 'Motion Physics',
+                title2: 'Sine-Wave Floating & Parallax',
+                desc2: 'Fluid bobbing physics and spatial depth layers that react to scroll.',
+                tag3: 'SaaS Synergy',
+                title3: 'WhatsApp-to-POS Conduit',
+                desc3: 'Direct order packet pulses traveling straight into the Cloud POS register.'
+            },
+            2: {
+                img: '/images/foodio_3d_linked.jpg',
+                tag1: 'Primary 3D Object',
+                title1: 'Suspended Keycard & Thermal Printer',
+                desc1: '3D biometric security passkey and physical desktop receipt printer.',
+                tag2: 'Motion Physics',
+                title2: 'Curling Paper Receipt Physics',
+                desc2: 'Simulated 3D thermal print head spitting out tickets with micro-shakes.',
+                tag3: 'SaaS Synergy',
+                title3: 'Instant Kitchen Ticket Dispatch',
+                desc3: 'Automated ESC/POS thermal printing for kitchen cooking stations.'
+            },
+            3: {
+                img: '/images/foodio_command_center.jpg',
+                tag1: 'Primary 3D Object',
+                title1: 'Multi-Tenant Operations Deck',
+                desc1: '12-table dine-in floorplan, live customer stream & KDS kanban board.',
+                tag2: 'Motion Physics',
+                title2: 'Pulsing Halos & Steam Particles',
+                desc2: 'Color-coded table status discs (Mint Vacant, Amber Dining, Cyan Billing).',
+                tag3: 'SaaS Synergy',
+                title3: 'Human Staff Takeover Mode',
+                desc3: '1-click toggle to pause the AI bot and take over customer conversation manually.'
+            },
+            4: {
+                img: '/images/foodio_customer_tracking.jpg',
+                tag1: 'Primary 3D Object',
+                title1: '3D Real-Time Fleet Radar',
+                desc1: 'Low-poly 3D city map with moving delivery motorcycle and customer pin.',
+                tag2: 'Motion Physics',
+                title2: 'GPS Breadcrumb Ribbon Gliding',
+                desc2: 'Motorcycle smoothly advances along illuminated turquoise route with radar pings.',
+                tag3: 'SaaS Synergy',
+                title3: 'Public Web Tracking Link',
+                desc3: 'No app download required; customers track orders directly in browser.'
+            }
+        };
+
+        function switchDesign(id, btn) {
+            // Update button styles
+            document.querySelectorAll('.design-tab').forEach(el => {
+                el.className = 'design-tab py-3.5 px-4 rounded-2xl border border-slate-700 bg-slate-900/80 text-slate-400 text-xs font-bold hover:border-slate-500 transition-all flex items-center justify-center gap-2';
+            });
+            btn.className = 'design-tab py-3.5 px-4 rounded-2xl border border-emerald-500 bg-emerald-500/20 text-emerald-300 text-xs font-black transition-all flex items-center justify-center gap-2 shadow-lg';
+
+            // Transition image
+            const img = document.getElementById('design-display-img');
+            img.style.opacity = '0';
+            
+            setTimeout(() => {
+                img.src = designs[id].img;
+                document.getElementById('feature-tag-1').textContent = designs[id].tag1;
+                document.getElementById('feature-title-1').textContent = designs[id].title1;
+                document.getElementById('feature-desc-1').textContent = designs[id].desc1;
+
+                document.getElementById('feature-tag-2').textContent = designs[id].tag2;
+                document.getElementById('feature-title-2').textContent = designs[id].title2;
+                document.getElementById('feature-desc-2').textContent = designs[id].desc2;
+
+                document.getElementById('feature-tag-3').textContent = designs[id].tag3;
+                document.getElementById('feature-title-3').textContent = designs[id].title3;
+                document.getElementById('feature-desc-3').textContent = designs[id].desc3;
+
+                img.style.opacity = '1';
+            }, 180);
+        }
 
         function inspectTable(id, status, desc, amount) {
             document.getElementById('inspect-title').textContent = `Selected: Table ${id} (${status})`;
