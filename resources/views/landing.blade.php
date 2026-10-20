@@ -478,7 +478,7 @@
                         </div>
                         <p class="text-xs text-slate-300">Delivering to Gulberg III</p>
                         <span class="text-[10px] text-slate-400 block">ETA: 6 mins</span>
-                        <a href="{{ route('track.order', 'DEMO-1089') }}" target="_blank" class="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-emerald-400 block text-center transition">Track on Live Map →</a>
+                        <a href="#logistics-radar" class="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-emerald-400 block text-center transition">Track on Live Radar →</a>
                     </div>
                 </div>
 
