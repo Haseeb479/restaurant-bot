@@ -123,37 +123,37 @@ class OnboardingController extends Controller
         if ($plans->isEmpty()) {
             $plans = collect([
                 SubscriptionPlan::create([
-                    'name'                 => 'Starter',
+                    'name'                 => 'Cloud POS Core',
                     'slug'                 => 'starter',
-                    'price_monthly'        => 3000,
-                    'price_yearly'         => 30000,
+                    'price_monthly'        => 0,
+                    'price_yearly'         => 0,
                     'max_orders_per_month' => 500,
-                    'max_menu_items'       => 40,
+                    'max_menu_items'       => 50,
                     'is_active'            => true,
                     'is_popular'           => false,
-                    'features'             => ['AI WhatsApp Bot', 'Order Status Updates', 'Customer History', 'CSV Exports'],
+                    'features'             => ['1 Active Cloud POS Terminal', 'Digital Dine-in QR Menu', 'Thermal Receipt Printer Sync', '14-Day Free Trial'],
                 ]),
                 SubscriptionPlan::create([
-                    'name'                 => 'Pro',
+                    'name'                 => 'POS + WhatsApp Pro',
                     'slug'                 => 'pro',
-                    'price_monthly'        => 7000,
-                    'price_yearly'         => 70000,
-                    'max_orders_per_month' => 2000,
-                    'max_menu_items'       => 150,
+                    'price_monthly'        => 8000,
+                    'price_yearly'         => 80000,
+                    'max_orders_per_month' => 5000,
+                    'max_menu_items'       => 250,
                     'is_active'            => true,
                     'is_popular'           => true,
-                    'features'             => ['Everything in Starter', 'Excel Menu OCR Import', 'Deal Broadcasts', 'Priority AI Response', 'Kitchen POS Tickets'],
+                    'features'             => ['Unlimited POS Terminals', 'Official WhatsApp Ordering Bot', 'Table Seating & Kitchen KDS', 'Automated Customer Re-Order Alerts'],
                 ]),
                 SubscriptionPlan::create([
-                    'name'                 => 'Enterprise',
+                    'name'                 => 'Multi-Outlet OS',
                     'slug'                 => 'enterprise',
-                    'price_monthly'        => 15000,
-                    'price_yearly'         => 150000,
-                    'max_orders_per_month' => 10000,
-                    'max_menu_items'       => 500,
+                    'price_monthly'        => 16000,
+                    'price_yearly'         => 160000,
+                    'max_orders_per_month' => 50000,
+                    'max_menu_items'       => 1000,
                     'is_active'            => true,
                     'is_popular'           => false,
-                    'features'             => ['Everything in Pro', 'Unlimited Orders', 'Dedicated WhatsApp Server', 'Custom Google Sheet Webhooks', '24/7 SLA Support'],
+                    'features'             => ['Multi-branch central inventory sync', 'Custom WhatsApp AI Persona', 'Dedicated Server & SLA Guarantee'],
                 ]),
             ]);
         }
@@ -179,6 +179,22 @@ class OnboardingController extends Controller
 
         $restaurant->plan_id             = $plan->id;
         $restaurant->plan                = $plan->slug;
+
+        // If Starter / Free 14-Day trial, activate trial directly
+        if ($plan->price_monthly <= 0 || $plan->slug === 'starter') {
+            $restaurant->payment_status      = 'completed';
+            $restaurant->registration_status = 'approved';
+            $restaurant->status              = 'active';
+            $restaurant->trial_started_at    = now();
+            $restaurant->plan_expires_at     = now()->addDays(14);
+            $restaurant->save();
+
+            AuditLog::log('onboarding.trial_activated', "14-Day Free Trial activated for restaurant {$restaurant->name} (#{$restaurant->id}) on {$plan->name}.");
+
+            return redirect()->route('onboarding.status', $restaurant->id)
+                ->with('success', "14-Day Free Trial activated! Your restaurant is ready.");
+        }
+
         $restaurant->registration_status = 'pending_payment';
         $restaurant->save();
 

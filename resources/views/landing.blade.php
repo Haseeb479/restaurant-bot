@@ -377,22 +377,22 @@
                 <div>
                     <div class="flex justify-between items-center text-sm font-bold mb-2">
                         <span class="text-slate-700">Monthly Restaurant Sales:</span>
-                        <span id="sales-value" class="text-emerald-600 font-extrabold text-lg">$25,000 / mo</span>
+                        <span id="sales-value" class="text-emerald-600 font-extrabold text-lg">Rs. 1,000,000 / mo</span>
                     </div>
-                    <input type="range" id="sales-slider" min="5000" max="100000" step="1000" value="25000" oninput="updateCalculator()" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600">
+                    <input type="range" id="sales-slider" min="200000" max="5000000" step="50000" value="1000000" oninput="updateCalculator()" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600">
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                     <div class="p-5 rounded-2xl bg-rose-50 border border-rose-200 text-center">
                         <span class="text-xs font-bold text-rose-700 uppercase tracking-wider">Third-Party App Commission (30%)</span>
-                        <div id="commission-lost" class="text-3xl font-extrabold text-rose-600 mt-1">-$7,500 / mo</div>
-                        <p class="text-xs text-slate-500 mt-1">Lost to delivery apps: <span id="annual-lost" class="text-rose-700 font-bold">$90,000 / yr</span></p>
+                        <div id="commission-lost" class="text-3xl font-extrabold text-rose-600 mt-1">-Rs. 300,000 / mo</div>
+                        <p class="text-xs text-slate-500 mt-1">Lost to delivery apps: <span id="annual-lost" class="text-rose-700 font-bold">Rs. 3,600,000 / yr</span></p>
                     </div>
 
                     <div class="p-5 rounded-2xl bg-emerald-50 border border-emerald-200 text-center">
                         <span class="text-xs font-bold text-emerald-800 uppercase tracking-wider">Saved with Foodio Flat SaaS</span>
-                        <div id="savings-amount" class="text-3xl font-extrabold text-emerald-600 mt-1">+$7,401 / mo</div>
-                        <p class="text-xs text-slate-500 mt-1">Retained by your restaurant: <span id="annual-savings" class="text-emerald-700 font-bold">$88,812 / yr</span></p>
+                        <div id="savings-amount" class="text-3xl font-extrabold text-emerald-600 mt-1">+Rs. 292,000 / mo</div>
+                        <p class="text-xs text-slate-500 mt-1">Retained by your restaurant: <span id="annual-savings" class="text-emerald-700 font-bold">Rs. 3,504,000 / yr</span></p>
                     </div>
                 </div>
             </div>
@@ -418,9 +418,9 @@
                         <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Starter</span>
                         <h3 class="text-2xl font-bold text-slate-900">Cloud POS Core</h3>
                         <p class="text-xs text-slate-500">For cafes and food trucks needing fast billing and receipt printing.</p>
-                        <div class="flex items-baseline gap-1">
-                            <span class="text-4xl font-extrabold text-slate-900">$49</span>
-                            <span class="text-xs text-slate-400">/ month</span>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-4xl font-extrabold text-slate-900">Free</span>
+                            <span class="text-xs text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">14-Day Free Trial</span>
                         </div>
                         <ul class="text-xs text-slate-600 space-y-2.5 pt-4 border-t border-slate-100">
                             <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-600"></i> 1 Active Cloud POS Terminal</li>
@@ -442,8 +442,9 @@
                         <span class="text-xs font-bold uppercase tracking-wider text-emerald-600">Full System</span>
                         <h3 class="text-2xl font-bold text-slate-900">POS + WhatsApp Pro</h3>
                         <p class="text-xs text-slate-500">The complete operating system powering high-volume restaurants.</p>
-                        <div class="flex items-baseline gap-1">
-                            <span class="text-4xl font-extrabold text-slate-900">$99</span>
+                        <div class="flex items-baseline gap-1.5">
+                            <span class="text-xs font-bold text-slate-500">PKR</span>
+                            <span class="text-4xl font-extrabold text-slate-900">Rs. 8k</span>
                             <span class="text-xs text-slate-400">/ month</span>
                         </div>
                         <ul class="text-xs text-slate-600 space-y-2.5 pt-4 border-t border-slate-100">
@@ -464,8 +465,9 @@
                         <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Franchises</span>
                         <h3 class="text-2xl font-bold text-slate-900">Multi-Outlet OS</h3>
                         <p class="text-xs text-slate-500">For multi-branch chains, centralized cloud kitchens, and franchises.</p>
-                        <div class="flex items-baseline gap-1">
-                            <span class="text-4xl font-extrabold text-slate-900">$249</span>
+                        <div class="flex items-baseline gap-1.5">
+                            <span class="text-xs font-bold text-slate-500">PKR</span>
+                            <span class="text-4xl font-extrabold text-slate-900">Rs. 16k</span>
                             <span class="text-xs text-slate-400">/ month</span>
                         </div>
                         <ul class="text-xs text-slate-600 space-y-2.5 pt-4 border-t border-slate-100">
@@ -509,13 +511,13 @@
 
         function updateCalculator() {
             const sales = parseInt(document.getElementById('sales-slider').value);
-            document.getElementById('sales-value').textContent = '$' + sales.toLocaleString() + ' / mo';
+            document.getElementById('sales-value').textContent = 'Rs. ' + sales.toLocaleString() + ' / mo';
             const commission = Math.round(sales * 0.30);
-            const savings = commission - 99;
-            document.getElementById('commission-lost').textContent = '-$' + commission.toLocaleString() + ' / mo';
-            document.getElementById('annual-lost').textContent = '$' + (commission * 12).toLocaleString() + ' / yr';
-            document.getElementById('savings-amount').textContent = '+$' + savings.toLocaleString() + ' / mo';
-            document.getElementById('annual-savings').textContent = '$' + (savings * 12).toLocaleString() + ' / yr';
+            const savings = commission - 8000;
+            document.getElementById('commission-lost').textContent = '-Rs. ' + commission.toLocaleString() + ' / mo';
+            document.getElementById('annual-lost').textContent = 'Rs. ' + (commission * 12).toLocaleString() + ' / yr';
+            document.getElementById('savings-amount').textContent = '+Rs. ' + savings.toLocaleString() + ' / mo';
+            document.getElementById('annual-savings').textContent = 'Rs. ' + (savings * 12).toLocaleString() + ' / yr';
         }
 
         function sendSimText() {

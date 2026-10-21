@@ -183,11 +183,18 @@
                             </div>
 
                             <div class="py-2">
-                                <div class="flex items-baseline gap-1">
-                                    <span class="text-xs text-slate-500 font-bold">PKR</span>
-                                    <span class="text-4xl font-black text-slate-900">Rs. {{ number_format((float) ($plan->price_monthly ?? $plan->price_pkr ?? 0)) }}</span>
-                                    <span class="text-xs text-slate-500 font-medium">/ month</span>
-                                </div>
+                                @if(($plan->price_monthly ?? 0) <= 0 || $plan->slug === 'starter')
+                                    <div class="flex items-baseline gap-2">
+                                        <span class="text-4xl font-black text-slate-900">Free</span>
+                                        <span class="text-xs text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">14-Day Free Trial</span>
+                                    </div>
+                                @else
+                                    <div class="flex items-baseline gap-1">
+                                        <span class="text-xs text-slate-500 font-bold">PKR</span>
+                                        <span class="text-4xl font-black text-slate-900">Rs. {{ number_format((float) ($plan->price_monthly ?? $plan->price_pkr ?? 0)) }}</span>
+                                        <span class="text-xs text-slate-500 font-medium">/ month</span>
+                                    </div>
+                                @endif
                             </div>
 
                             <ul class="space-y-3 text-xs text-slate-600 border-t border-slate-200/80 pt-6">
@@ -227,7 +234,13 @@
                                 value="{{ $plan->id }}"
                                 class="w-full py-3.5 {{ $isPopular ? 'btn-featured' : 'btn-primary-glass' }} text-xs font-bold rounded-xl transition duration-200 active:scale-[0.99] flex items-center justify-center gap-2"
                             >
-                                <span>Choose {{ $plan->name }}</span>
+                                @if(($plan->price_monthly ?? 0) <= 0 || $plan->slug === 'starter')
+                                    <span>Start Free 14-Day Trial</span>
+                                @elseif($isPopular)
+                                    <span>Launch Free 14-Day Trial</span>
+                                @else
+                                    <span>Choose {{ $plan->name }}</span>
+                                @endif
                                 <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
                             </button>
                         </div>
