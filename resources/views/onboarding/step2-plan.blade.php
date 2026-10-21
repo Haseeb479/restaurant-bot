@@ -39,44 +39,65 @@
     </script>
     <style>
         body {
-            background-color: #F8F7F4;
+            background-color: #F5F2EB;
             background-image: 
-                radial-gradient(at 15% 10%, rgba(16, 185, 129, 0.05) 0px, transparent 40%),
-                radial-gradient(at 85% 15%, rgba(209, 250, 229, 0.3) 0px, transparent 45%);
+                radial-gradient(ellipse at 12% 18%, rgba(35, 30, 20, 0.045) 0%, transparent 48%),
+                radial-gradient(ellipse at 88% 12%, rgba(16, 185, 129, 0.055) 0%, transparent 45%),
+                radial-gradient(ellipse at 92% 70%, rgba(30, 25, 15, 0.05) 0%, transparent 52%),
+                radial-gradient(ellipse at 20% 75%, rgba(35, 30, 20, 0.04) 0%, transparent 42%),
+                linear-gradient(145deg, #F9F7F2 0%, #F4F1EA 45%, #EBE7DD 100%);
             color: #111827;
         }
 
         .glass-card {
-            background: rgba(255, 255, 255, 0.75);
-            backdrop-filter: blur(28px);
-            -webkit-backdrop-filter: blur(28px);
-            border: 1px solid rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.48);
+            backdrop-filter: blur(28px) saturate(170%);
+            -webkit-backdrop-filter: blur(28px) saturate(170%);
+            border: 1px solid rgba(255, 255, 255, 0.78);
             box-shadow: 
-                0 20px 40px -15px rgba(0, 0, 0, 0.05),
-                0 2px 6px rgba(0, 0, 0, 0.02);
+                0 35px 70px -15px rgba(45, 55, 72, 0.14),
+                0 15px 30px -8px rgba(0, 0, 0, 0.06),
+                inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.95);
             border-radius: 28px;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .glass-card:hover {
+            box-shadow: 
+                0 45px 85px -15px rgba(45, 55, 72, 0.18),
+                0 20px 40px -8px rgba(0, 0, 0, 0.08),
+                inset 0 1px 1.5px 0 rgba(255, 255, 255, 1);
+            transform: translateY(-2px);
         }
 
         .glass-card-featured {
-            background: rgba(255, 255, 255, 0.92);
-            backdrop-filter: blur(28px);
-            -webkit-backdrop-filter: blur(28px);
-            border: 2px solid #10b981;
+            background: rgba(255, 255, 255, 0.58);
+            backdrop-filter: blur(28px) saturate(170%);
+            -webkit-backdrop-filter: blur(28px) saturate(170%);
+            border: 2px solid rgba(16, 185, 129, 0.75);
             box-shadow: 
-                0 25px 50px -12px rgba(16, 185, 129, 0.15),
-                0 4px 12px rgba(0, 0, 0, 0.04);
+                0 45px 85px -15px rgba(16, 185, 129, 0.20),
+                0 20px 40px -8px rgba(45, 55, 72, 0.14),
+                inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.95);
             border-radius: 28px;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .glass-card-featured:hover {
+            box-shadow: 
+                0 50px 95px -15px rgba(16, 185, 129, 0.25),
+                0 24px 45px -8px rgba(45, 55, 72, 0.18),
+                inset 0 1px 1.5px 0 rgba(255, 255, 255, 1);
+            transform: translateY(-2px);
         }
 
         .btn-primary-glass {
             background: #0f172a;
             color: #ffffff;
-            box-shadow: 0 8px 20px -3px rgba(15, 23, 42, 0.25);
+            box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.3), 0 4px 8px -2px rgba(0, 0, 0, 0.1);
             transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .btn-primary-glass:hover {
             background: #047857;
-            box-shadow: 0 10px 25px -3px rgba(4, 120, 87, 0.35);
+            box-shadow: 0 16px 36px -4px rgba(4, 120, 87, 0.42), 0 6px 12px -2px rgba(4, 120, 87, 0.2);
             transform: translateY(-1px);
         }
 

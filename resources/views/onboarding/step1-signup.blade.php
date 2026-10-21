@@ -39,40 +39,45 @@
     </script>
     <style>
         body {
-            background-color: #F8F7F4;
+            background-color: #F5F2EB;
             background-image: 
-                radial-gradient(at 15% 10%, rgba(16, 185, 129, 0.05) 0px, transparent 40%),
-                radial-gradient(at 85% 15%, rgba(209, 250, 229, 0.3) 0px, transparent 45%);
+                radial-gradient(ellipse at 12% 18%, rgba(35, 30, 20, 0.045) 0%, transparent 48%),
+                radial-gradient(ellipse at 88% 12%, rgba(16, 185, 129, 0.055) 0%, transparent 45%),
+                radial-gradient(ellipse at 92% 70%, rgba(30, 25, 15, 0.05) 0%, transparent 52%),
+                radial-gradient(ellipse at 20% 75%, rgba(35, 30, 20, 0.04) 0%, transparent 42%),
+                linear-gradient(145deg, #F9F7F2 0%, #F4F1EA 45%, #EBE7DD 100%);
             color: #111827;
         }
 
         .glass-card {
-            background: rgba(255, 255, 255, 0.72);
-            backdrop-filter: blur(28px);
-            -webkit-backdrop-filter: blur(28px);
-            border: 1px solid rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.48);
+            backdrop-filter: blur(32px) saturate(170%);
+            -webkit-backdrop-filter: blur(32px) saturate(170%);
+            border: 1px solid rgba(255, 255, 255, 0.78);
             box-shadow: 
-                0 25px 50px -12px rgba(0, 0, 0, 0.06),
-                0 2px 6px rgba(0, 0, 0, 0.02);
+                0 35px 70px -15px rgba(45, 55, 72, 0.16),
+                0 15px 30px -8px rgba(0, 0, 0, 0.06),
+                inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.95);
             border-radius: 32px;
         }
 
         .btn-primary-glass {
             background: #0f172a;
             color: #ffffff;
-            box-shadow: 0 8px 20px -3px rgba(15, 23, 42, 0.25);
+            box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.3), 0 4px 8px -2px rgba(0, 0, 0, 0.1);
             transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .btn-primary-glass:hover {
             background: #047857;
-            box-shadow: 0 10px 25px -3px rgba(4, 120, 87, 0.35);
+            box-shadow: 0 16px 36px -4px rgba(4, 120, 87, 0.42), 0 6px 12px -2px rgba(4, 120, 87, 0.2);
             transform: translateY(-1px);
         }
 
         .glass-pill-nav {
-            background: rgba(255, 255, 255, 0.65);
-            backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.85);
+            background: rgba(255, 255, 255, 0.52);
+            backdrop-filter: blur(24px) saturate(160%);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.06), inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
             border-radius: 9999px;
         }
     </style>

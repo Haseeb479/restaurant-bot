@@ -38,68 +38,108 @@
         }
     </script>
     <style>
-        /* Warm Minimalist Alabaster Background & Soft Caustics */
+        /* Warm Minimalist Alabaster Background with Soft Natural Studio Shadows */
         body {
-            background-color: #F8F7F4;
+            background-color: #F5F2EB;
             background-image: 
-                radial-gradient(at 15% 10%, rgba(16, 185, 129, 0.05) 0px, transparent 40%),
-                radial-gradient(at 85% 15%, rgba(209, 250, 229, 0.3) 0px, transparent 45%),
-                radial-gradient(at 50% 90%, rgba(240, 253, 244, 0.5) 0px, transparent 60%);
+                /* Ambient organic studio shadow overlays */
+                radial-gradient(ellipse at 12% 18%, rgba(35, 30, 20, 0.045) 0%, transparent 48%),
+                radial-gradient(ellipse at 88% 12%, rgba(16, 185, 129, 0.055) 0%, transparent 45%),
+                radial-gradient(ellipse at 92% 70%, rgba(30, 25, 15, 0.05) 0%, transparent 52%),
+                radial-gradient(ellipse at 20% 75%, rgba(35, 30, 20, 0.04) 0%, transparent 42%),
+                linear-gradient(145deg, #F9F7F2 0%, #F4F1EA 45%, #EBE7DD 100%);
             color: #111827;
+            min-height: 100vh;
         }
 
-        /* Frosted Glass Floating Styles */
+        /* Frosted Glass Floating Styles - Translucent with Deep Diffuse Shadows */
         .glass-pill-nav {
-            background: rgba(255, 255, 255, 0.65);
-            backdrop-filter: blur(28px);
-            -webkit-backdrop-filter: blur(28px);
-            border: 1px solid rgba(255, 255, 255, 0.85);
-            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+            background: rgba(255, 255, 255, 0.45);
+            backdrop-filter: blur(32px) saturate(180%);
+            -webkit-backdrop-filter: blur(32px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.78);
+            box-shadow: 
+                0 30px 60px -15px rgba(45, 55, 72, 0.14),
+                0 12px 24px -6px rgba(0, 0, 0, 0.06),
+                inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.95);
             border-radius: 9999px;
         }
 
         .glass-card {
-            background: rgba(255, 255, 255, 0.65);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.85);
+            background: rgba(255, 255, 255, 0.46);
+            backdrop-filter: blur(28px) saturate(170%);
+            -webkit-backdrop-filter: blur(28px) saturate(170%);
+            border: 1px solid rgba(255, 255, 255, 0.78);
             box-shadow: 
-                0 20px 45px -15px rgba(0, 0, 0, 0.06),
-                0 1px 3px rgba(0, 0, 0, 0.02);
+                0 35px 70px -15px rgba(45, 55, 72, 0.14),
+                0 15px 30px -8px rgba(0, 0, 0, 0.06),
+                0 1px 3px rgba(0, 0, 0, 0.02),
+                inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.95);
             border-radius: 28px;
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .glass-card:hover {
+            box-shadow: 
+                0 45px 85px -15px rgba(45, 55, 72, 0.18),
+                0 20px 40px -8px rgba(0, 0, 0, 0.08),
+                inset 0 1px 1.5px 0 rgba(255, 255, 255, 1);
+            transform: translateY(-2px);
+        }
+
+        .glass-card-featured {
+            background: rgba(255, 255, 255, 0.56);
+            backdrop-filter: blur(28px) saturate(170%);
+            -webkit-backdrop-filter: blur(28px) saturate(170%);
+            border: 2px solid rgba(16, 185, 129, 0.75);
+            box-shadow: 
+                0 45px 85px -15px rgba(16, 185, 129, 0.20),
+                0 20px 40px -8px rgba(45, 55, 72, 0.14),
+                inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.95);
+            border-radius: 28px;
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .glass-card-featured:hover {
+            box-shadow: 
+                0 50px 95px -15px rgba(16, 185, 129, 0.25),
+                0 24px 45px -8px rgba(45, 55, 72, 0.18),
+                inset 0 1px 1.5px 0 rgba(255, 255, 255, 1);
+            transform: translateY(-2px);
         }
 
         .glass-metric-chip {
-            background: rgba(255, 255, 255, 0.75);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.95);
-            box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.07), 0 2px 6px rgba(0, 0, 0, 0.02);
-            border-radius: 20px;
+            background: linear-gradient(135deg, rgba(236, 253, 245, 0.65) 0%, rgba(255, 255, 255, 0.38) 100%);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border: 1.5px solid rgba(16, 185, 129, 0.38);
+            box-shadow: 
+                -8px 24px 38px -8px rgba(25, 45, 35, 0.24),
+                0 10px 20px -5px rgba(0, 0, 0, 0.08),
+                inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.95);
+            border-radius: 22px;
         }
 
         .btn-glass {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(220, 226, 232, 0.8);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            background: rgba(255, 255, 255, 0.68);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06), inset 0 1px 1px rgba(255, 255, 255, 0.9);
             transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .btn-glass:hover {
-            background: #ffffff;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+            background: rgba(255, 255, 255, 0.92);
+            box-shadow: 0 8px 22px rgba(0, 0, 0, 0.09);
             transform: translateY(-1px);
         }
 
         .btn-primary-glass {
             background: #0f172a;
             color: #ffffff;
-            box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.25);
+            box-shadow: 0 14px 30px -4px rgba(15, 23, 42, 0.32), 0 4px 8px -2px rgba(0, 0, 0, 0.1);
             transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .btn-primary-glass:hover {
             background: #047857;
-            box-shadow: 0 12px 28px -4px rgba(4, 120, 87, 0.35);
+            box-shadow: 0 16px 36px -4px rgba(4, 120, 87, 0.42), 0 6px 12px -2px rgba(4, 120, 87, 0.2);
             transform: translateY(-1.5px);
         }
 
@@ -180,7 +220,7 @@
                 <div class="relative mx-auto rounded-[32px] p-2 sm:p-4 transition-all">
                     
                     <!-- High-Res Mockup Image Platter (Matching Exact Theme) -->
-                    <div class="relative rounded-[28px] overflow-hidden shadow-2xl shadow-slate-900/10 border border-white/80 bg-white/40 backdrop-blur-md">
+                    <div class="relative rounded-[28px] overflow-hidden border border-white/70 bg-white/20 backdrop-blur-xl shadow-[0_50px_100px_-20px_rgba(35,45,55,0.24),0_20px_45px_-10px_rgba(0,0,0,0.12),inset_0_1.5px_2px_rgba(255,255,255,0.95)]">
                         <img 
                             src="/images/foodio_pure_hospitality.jpg" 
                             alt="Foodio Pure Hospitality Zero Commissions UI Showcase" 
@@ -434,7 +474,7 @@
                 </div>
 
                 <!-- Growth Plan (Featured) -->
-                <div class="glass-card p-8 border-2 border-emerald-500/80 shadow-xl flex flex-col justify-between space-y-6 relative">
+                <div class="glass-card-featured p-8 flex flex-col justify-between space-y-6 relative">
                     <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-emerald-600 text-white font-extrabold text-[10px] uppercase tracking-wider shadow-sm">
                         Most Popular Choice
                     </div>
