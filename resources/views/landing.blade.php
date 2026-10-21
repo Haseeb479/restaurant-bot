@@ -484,7 +484,7 @@
                         <p class="text-xs text-slate-500">The complete operating system powering high-volume restaurants.</p>
                         <div class="flex items-baseline gap-1.5">
                             <span class="text-xs font-bold text-slate-500">PKR</span>
-                            <span class="text-4xl font-extrabold text-slate-900">Rs. 8k</span>
+                            <span class="text-4xl font-extrabold text-slate-900">Rs.8000</span>
                             <span class="text-xs text-slate-400">/ month</span>
                         </div>
                         <ul class="text-xs text-slate-600 space-y-2.5 pt-4 border-t border-slate-100">
@@ -495,7 +495,7 @@
                         </ul>
                     </div>
                     <a href="{{ route('onboarding.signup') }}" class="btn-primary-glass w-full py-3.5 rounded-full text-xs font-bold text-center block">
-                        Launch Free 14-Day Trial
+                        Launch Now
                     </a>
                 </div>
 
@@ -507,7 +507,7 @@
                         <p class="text-xs text-slate-500">For multi-branch chains, centralized cloud kitchens, and franchises.</p>
                         <div class="flex items-baseline gap-1.5">
                             <span class="text-xs font-bold text-slate-500">PKR</span>
-                            <span class="text-4xl font-extrabold text-slate-900">Rs. 16k</span>
+                            <span class="text-4xl font-extrabold text-slate-900">Rs.16000</span>
                             <span class="text-xs text-slate-400">/ month</span>
                         </div>
                         <ul class="text-xs text-slate-600 space-y-2.5 pt-4 border-t border-slate-100">
