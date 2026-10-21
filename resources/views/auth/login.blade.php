@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Foodio — 3D Spatial Terminal Sign In</title>
+    <title>Foodio — Restaurant Terminal Sign In</title>
     <!-- Google Fonts: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,135 +39,119 @@
     </script>
     <style>
         body {
-            background-color: #0b0f17;
+            background-color: #F8F7F4;
             background-image: 
-                radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.12) 0px, transparent 50%),
-                radial-gradient(at 100% 10%, rgba(20, 184, 166, 0.10) 0px, transparent 50%),
-                radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 60%);
+                radial-gradient(at 15% 10%, rgba(16, 185, 129, 0.05) 0px, transparent 40%),
+                radial-gradient(at 85% 15%, rgba(209, 250, 229, 0.3) 0px, transparent 45%);
+            color: #111827;
         }
 
-        .perspective-container {
-            perspective: 1000px;
-        }
-
-        .clay-card-3d {
-            background: linear-gradient(135deg, rgba(30, 41, 59, 0.75), rgba(15, 23, 42, 0.9));
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+        .glass-card {
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid rgba(255, 255, 255, 0.95);
             box-shadow: 
-                inset 0 1px 1px 0 rgba(255, 255, 255, 0.2),
-                0 30px 60px -12px rgba(0, 0, 0, 0.8),
-                0 0 40px -10px rgba(16, 185, 129, 0.25);
+                0 25px 50px -12px rgba(0, 0, 0, 0.06),
+                0 2px 6px rgba(0, 0, 0, 0.02);
             border-radius: 32px;
-            transform-style: preserve-3d;
-            transition: transform 0.3s ease-out;
         }
 
-        .btn-3d {
-            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-            box-shadow: 0 8px 20px -4px rgba(16, 185, 129, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+        .btn-primary-glass {
+            background: #0f172a;
+            color: #ffffff;
+            box-shadow: 0 8px 20px -3px rgba(15, 23, 42, 0.25);
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .btn-3d:hover {
-            transform: translateY(-3px) scale(1.02);
-            box-shadow: 0 14px 28px -4px rgba(16, 185, 129, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.6);
-        }
-        .btn-3d:active {
-            transform: translateY(2px) scale(0.98);
-            box-shadow: 0 4px 10px -2px rgba(16, 185, 129, 0.4);
+        .btn-primary-glass:hover {
+            background: #047857;
+            box-shadow: 0 10px 25px -3px rgba(4, 120, 87, 0.35);
+            transform: translateY(-1px);
         }
 
-        /* 3D Keycard Floating Animation */
-        @keyframes float-keycard {
-            0%, 100% { transform: translateY(0px) rotate(-2deg); }
-            50% { transform: translateY(-10px) rotate(2deg); }
-        }
-        .keycard-float {
-            animation: float-keycard 4s ease-in-out infinite;
+        .glass-pill-nav {
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.85);
+            border-radius: 9999px;
         }
     </style>
 </head>
-<body class="text-slate-100 font-sans antialiased min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 relative overflow-x-hidden">
+<body class="antialiased min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-white">
 
     <!-- Top Minimal Navigation -->
-    <header class="p-6 relative z-10 flex items-center justify-between max-w-7xl mx-auto w-full">
+    <header class="p-6 relative z-10 flex items-center justify-between max-w-5xl mx-auto w-full">
         <a href="/" class="flex items-center gap-2.5 group">
-            <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-emerald-500/25 group-hover:scale-105 transition-transform">
-                <i data-lucide="utensils" class="w-5 h-5 text-slate-950 stroke-[2.8]"></i>
+            <div class="w-7 h-7 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-sm">
+                <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12c0 3.84 2.16 7.18 5.34 8.86L6.5 22l3.41-1.07C10.59 21.08 11.28 21.14 12 21.14c5.52 0 10-4.48 10-9.14S17.52 2 12 2z"/>
+                </svg>
             </div>
-            <span class="text-lg font-black text-white tracking-tight">Foodio <span class="text-[10px] bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black px-2 py-0.5 rounded-full uppercase tracking-wider">3D PORTAL</span></span>
+            <span class="text-xl font-bold tracking-tight text-slate-900">Foodio</span>
+            <span class="text-[10px] font-mono font-bold bg-slate-200/60 text-slate-700 px-2 py-0.5 rounded-full ml-1">TERMINAL</span>
         </a>
 
-        <div class="flex items-center gap-4 text-xs font-bold">
-            <span class="text-slate-400 hidden sm:inline">New restaurant?</span>
-            <a href="{{ route('onboarding.signup') }}" class="btn-3d px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 hover:border-emerald-500/50 text-emerald-400 hover:text-emerald-300 transition-all flex items-center gap-1.5 shadow-sm">
-                <span>Start Free Trial</span>
-                <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+        <div class="flex items-center gap-4 text-xs font-semibold">
+            <span class="text-slate-500 hidden sm:inline">New restaurant?</span>
+            <a href="{{ route('onboarding.signup') }}" class="glass-pill-nav px-4 py-2 text-slate-900 hover:text-emerald-700 font-bold transition">
+                Start Free Trial →
             </a>
         </div>
     </header>
 
-    <!-- Main 3D Suspended Container -->
-    <main class="flex-1 flex items-center justify-center p-4 relative z-10 my-4 perspective-container">
-        
-        <div id="login-card-3d" class="w-full max-w-md clay-card-3d p-8 sm:p-10 border border-white/10 relative">
+    <!-- Main Glass Login Container -->
+    <main class="flex-1 flex items-center justify-center p-4 relative z-10 my-4">
+        <div class="w-full max-w-md glass-card p-8 sm:p-10 space-y-6">
             
-            <!-- 3D Suspended Security Keycard Avatar -->
-            <div class="keycard-float -mt-16 mx-auto w-20 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 via-teal-500 to-emerald-600 p-1 flex items-center justify-center shadow-xl shadow-emerald-500/30 border border-white/30 text-slate-950">
-                <div class="w-full h-full rounded-xl bg-slate-950/20 backdrop-blur-sm flex items-center justify-center text-white">
-                    <i data-lucide="shield-check" class="w-7 h-7 text-emerald-300"></i>
-                </div>
-            </div>
-
             <!-- Header -->
-            <div class="text-center space-y-1.5 pt-4">
-                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-wider">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Spatial Authorization
-                </div>
-                <h1 class="text-2xl font-black text-white tracking-tight">Restaurant Sign In</h1>
-                <p class="text-xs text-slate-400">Access your 3D Cloud POS, WhatsApp bot, and kitchen display</p>
+            <div class="text-center space-y-1">
+                <span class="inline-block px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-[10px] font-bold uppercase tracking-wider border border-emerald-200">
+                    Terminal Authentication
+                </span>
+                <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight mt-1">Restaurant Sign In</h1>
+                <p class="text-xs text-slate-500">Access your cloud POS, WhatsApp bot, and kitchen display</p>
             </div>
 
             <!-- Session Alerts -->
             @if(session('success'))
-                <div class="mt-4 p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center gap-2">
-                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                <div class="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600 shrink-0"></i>
                     <span>{{ session('success') }}</span>
                 </div>
             @endif
 
             @if(session('info'))
-                <div class="mt-4 p-3.5 rounded-xl bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 text-xs font-semibold flex items-center gap-2">
-                    <i data-lucide="info" class="w-4 h-4 text-cyan-400 shrink-0"></i>
+                <div class="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-xs font-semibold flex items-center gap-2">
+                    <i data-lucide="info" class="w-4 h-4 text-blue-600 shrink-0"></i>
                     <span>{{ session('info') }}</span>
                 </div>
             @endif
 
             @if($errors->hasBag('owner') && $errors->owner->any())
-                <div class="mt-4 p-3.5 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-300 text-xs font-semibold flex items-center gap-2">
-                    <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-400 shrink-0"></i>
+                <div class="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-600 shrink-0"></i>
                     <span>{{ $errors->owner->first() }}</span>
                 </div>
             @elseif($errors->any())
-                <div class="mt-4 p-3.5 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-300 text-xs font-semibold flex items-center gap-2">
-                    <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-400 shrink-0"></i>
+                <div class="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-600 shrink-0"></i>
                     <span>{{ $errors->first() }}</span>
                 </div>
             @endif
 
             <!-- Station Role Selector Pucks -->
-            <div class="pt-4">
-                <label class="block text-xs font-bold text-slate-300 mb-1.5">Station Role</label>
+            <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1.5">Station Role</label>
                 <div class="grid grid-cols-3 gap-2">
-                    <button type="button" onclick="selectStation('owner', this)" class="station-tab py-2.5 rounded-xl border border-emerald-500 bg-emerald-500/10 text-emerald-300 text-xs font-black transition-all flex items-center justify-center gap-1 shadow-sm">
+                    <button type="button" onclick="selectStation('owner', this)" class="station-tab py-2 rounded-xl border border-emerald-600 bg-emerald-50 text-emerald-800 text-xs font-bold transition flex items-center justify-center gap-1 shadow-sm">
                         <i data-lucide="shield" class="w-3.5 h-3.5"></i>
                         <span>Admin</span>
                     </button>
-                    <button type="button" onclick="selectStation('cashier', this)" class="station-tab py-2.5 rounded-xl border border-slate-700 bg-slate-900/80 text-slate-400 text-xs font-bold hover:border-slate-600 transition-all flex items-center justify-center gap-1">
+                    <button type="button" onclick="selectStation('cashier', this)" class="station-tab py-2 rounded-xl border border-slate-200 bg-white text-slate-600 text-xs font-semibold hover:border-slate-300 transition flex items-center justify-center gap-1">
                         <i data-lucide="tablet" class="w-3.5 h-3.5"></i>
                         <span>POS</span>
                     </button>
-                    <button type="button" onclick="selectStation('kitchen', this)" class="station-tab py-2.5 rounded-xl border border-slate-700 bg-slate-900/80 text-slate-400 text-xs font-bold hover:border-slate-600 transition-all flex items-center justify-center gap-1">
+                    <button type="button" onclick="selectStation('kitchen', this)" class="station-tab py-2 rounded-xl border border-slate-200 bg-white text-slate-600 text-xs font-semibold hover:border-slate-300 transition flex items-center justify-center gap-1">
                         <i data-lucide="chef-hat" class="w-3.5 h-3.5"></i>
                         <span>Kitchen</span>
                     </button>
@@ -175,14 +159,14 @@
             </div>
 
             <!-- Login Form -->
-            <form method="POST" action="{{ route('landing.owner-login') }}" class="space-y-4 pt-3" onsubmit="sessionStorage.setItem('owner_authenticated_session','active')">
+            <form method="POST" action="{{ route('landing.owner-login') }}" class="space-y-4 pt-1" onsubmit="sessionStorage.setItem('owner_authenticated_session','active')">
                 @csrf
 
                 <!-- Restaurant Name or Phone -->
                 <div>
-                    <label class="block text-xs font-bold text-slate-300 mb-1.5">Restaurant Name or Phone</label>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Restaurant Name or Phone</label>
                     <div class="relative">
-                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                             <i data-lucide="store" class="w-4 h-4"></i>
                         </span>
                         <input
@@ -192,19 +176,19 @@
                             placeholder="e.g. Copper Kettle Grill or 03001234567"
                             required
                             autocomplete="organization"
-                            class="w-full bg-slate-900/90 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-all shadow-inner"
+                            class="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 shadow-sm transition"
                         >
                     </div>
                 </div>
 
                 <!-- Password -->
                 <div>
-                    <div class="flex items-center justify-between mb-1.5">
-                        <label class="text-xs font-bold text-slate-300">Terminal Password</label>
-                        <a href="{{ route('owner.forgot-password') }}" class="text-[11px] text-emerald-400 hover:text-emerald-300 font-bold">Forgot password?</a>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="text-xs font-bold text-slate-700">Terminal Password</label>
+                        <a href="{{ route('owner.forgot-password') }}" class="text-[11px] text-emerald-700 hover:underline font-bold">Forgot password?</a>
                     </div>
                     <div class="relative">
-                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                             <i data-lucide="lock" class="w-4 h-4"></i>
                         </span>
                         <input
@@ -214,12 +198,12 @@
                             placeholder="Enter password"
                             required
                             autocomplete="current-password"
-                            class="w-full bg-slate-900/90 border border-slate-700 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-all shadow-inner"
+                            class="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-10 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 shadow-sm transition"
                         >
                         <button
                             type="button"
                             onclick="togglePassword()"
-                            class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300"
+                            class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600"
                             title="Show/hide password"
                         >
                             <i id="eye-icon" data-lucide="eye" class="w-4 h-4"></i>
@@ -229,38 +213,38 @@
 
                 <!-- Remember Terminal -->
                 <div class="flex items-center justify-between text-xs pt-1">
-                    <label class="flex items-center gap-2 cursor-pointer text-slate-400 select-none">
-                        <input type="checkbox" checked class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-0">
+                    <label class="flex items-center gap-2 cursor-pointer text-slate-600 select-none">
+                        <input type="checkbox" checked class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-0">
                         <span>Remember terminal</span>
                     </label>
-                    <span class="text-emerald-400 font-mono text-[10px] flex items-center gap-1">
-                        <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> 256-Bit SSL
+                    <span class="text-emerald-700 font-mono text-[10px] font-bold flex items-center gap-1">
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> SSL Protected
                     </span>
                 </div>
 
-                <!-- 3D Push Button -->
+                <!-- Submit Button -->
                 <button
                     type="submit"
-                    class="btn-3d w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 mt-2"
+                    class="btn-primary-glass w-full py-3.5 rounded-full text-xs font-bold flex items-center justify-center gap-2 mt-2"
                 >
                     <i data-lucide="log-in" class="w-4 h-4"></i>
                     <span>Access Foodio POS Register</span>
                 </button>
             </form>
 
-            <div class="pt-5 border-t border-slate-800 text-center space-y-2 text-xs text-slate-400 mt-4">
+            <div class="pt-4 border-t border-slate-200/80 text-center space-y-2 text-xs text-slate-500">
                 <p>
                     Don't have an active restaurant?
-                    <a href="{{ route('onboarding.signup') }}" class="text-emerald-400 font-bold hover:underline ml-1">
-                        Start 14-Day Free Trial →
+                    <a href="{{ route('onboarding.signup') }}" class="text-emerald-700 font-bold hover:underline ml-1">
+                        Register Your Restaurant →
                     </a>
                 </p>
-                <div class="pt-1 flex items-center justify-center gap-4 text-[11px] text-slate-500">
-                    <a href="/" class="hover:text-slate-300 flex items-center gap-1 font-medium">
+                <div class="pt-1 flex items-center justify-center gap-4 text-[11px] text-slate-400">
+                    <a href="/" class="hover:text-slate-700 flex items-center gap-1 font-medium">
                         <i data-lucide="arrow-left" class="w-3 h-3"></i> Home
                     </a>
                     <span>•</span>
-                    <a href="{{ route('admin.force-logout') }}" class="hover:text-slate-300 font-medium">
+                    <a href="{{ route('admin.force-logout') }}" class="hover:text-slate-700 font-medium">
                         Platform Superadmin
                     </a>
                 </div>
@@ -269,9 +253,9 @@
         </div>
     </main>
 
-    <!-- Footer -->
-    <footer class="p-6 text-center text-xs text-slate-500 relative z-10">
-        <p>Foodio 3D Restaurant OS • Cloud POS & Meta WhatsApp Integration</p>
+    <!-- Clean Footer -->
+    <footer class="p-6 text-center text-xs text-slate-400 relative z-10">
+        <p>Foodio — Pure hospitality. Zero commissions.</p>
     </footer>
 
     <script>
@@ -288,18 +272,10 @@
 
         function selectStation(role, btn) {
             document.querySelectorAll('.station-tab').forEach(el => {
-                el.className = 'station-tab py-2.5 rounded-xl border border-slate-700 bg-slate-900/80 text-slate-400 text-xs font-bold hover:border-slate-600 transition-all flex items-center justify-center gap-1';
+                el.className = 'station-tab py-2 rounded-xl border border-slate-200 bg-white text-slate-600 text-xs font-semibold hover:border-slate-300 transition flex items-center justify-center gap-1';
             });
-            btn.className = 'station-tab py-2.5 rounded-xl border border-emerald-500 bg-emerald-500/10 text-emerald-300 text-xs font-black transition-all flex items-center justify-center gap-1 shadow-sm';
+            btn.className = 'station-tab py-2 rounded-xl border border-emerald-600 bg-emerald-50 text-emerald-800 text-xs font-bold transition flex items-center justify-center gap-1 shadow-sm';
         }
-
-        // 3D Tilt Effect on Mouse Move
-        const card = document.getElementById('login-card-3d');
-        document.addEventListener('mousemove', (e) => {
-            const xAxis = (window.innerWidth / 2 - e.pageX) / 45;
-            const yAxis = (window.innerHeight / 2 - e.pageY) / 45;
-            card.style.transform = `rotateY(${xAxis}deg) rotateX(${yAxis}deg)`;
-        });
     </script>
 </body>
 </html>

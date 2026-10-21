@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Foodio — 3D Spatial Restaurant Onboarding</title>
+    <title>Foodio — Register Your Restaurant</title>
     <!-- Google Fonts: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,85 +39,92 @@
     </script>
     <style>
         body {
-            background-color: #0b0f17;
+            background-color: #F8F7F4;
             background-image: 
-                radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.12) 0px, transparent 50%),
-                radial-gradient(at 100% 10%, rgba(20, 184, 166, 0.10) 0px, transparent 50%),
-                radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 60%);
+                radial-gradient(at 15% 10%, rgba(16, 185, 129, 0.05) 0px, transparent 40%),
+                radial-gradient(at 85% 15%, rgba(209, 250, 229, 0.3) 0px, transparent 45%);
+            color: #111827;
         }
 
-        .clay-card {
-            background: linear-gradient(135deg, rgba(30, 41, 59, 0.75), rgba(15, 23, 42, 0.9));
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+        .glass-card {
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid rgba(255, 255, 255, 0.95);
             box-shadow: 
-                inset 0 1px 1px 0 rgba(255, 255, 255, 0.15),
-                0 20px 40px -15px rgba(0, 0, 0, 0.7);
-            border-radius: 28px;
+                0 25px 50px -12px rgba(0, 0, 0, 0.06),
+                0 2px 6px rgba(0, 0, 0, 0.02);
+            border-radius: 32px;
         }
 
-        .btn-3d {
-            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-            box-shadow: 0 8px 20px -4px rgba(16, 185, 129, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+        .btn-primary-glass {
+            background: #0f172a;
+            color: #ffffff;
+            box-shadow: 0 8px 20px -3px rgba(15, 23, 42, 0.25);
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .btn-3d:hover {
-            transform: translateY(-3px) scale(1.02);
-            box-shadow: 0 14px 28px -4px rgba(16, 185, 129, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.6);
+        .btn-primary-glass:hover {
+            background: #047857;
+            box-shadow: 0 10px 25px -3px rgba(4, 120, 87, 0.35);
+            transform: translateY(-1px);
         }
-        .btn-3d:active {
-            transform: translateY(2px) scale(0.98);
+
+        .glass-pill-nav {
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.85);
+            border-radius: 9999px;
         }
     </style>
 </head>
-<body class="text-slate-100 font-sans antialiased min-h-screen flex selection:bg-emerald-500 selection:text-slate-950">
+<body class="antialiased min-h-screen flex selection:bg-emerald-500 selection:text-white">
 
-    <!-- Full 3D Split Layout -->
+    <!-- Split Screen Layout -->
     <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 min-h-screen">
         
-        <!-- Left Column: 3D Spatial Visual & Trust (5 cols) -->
-        <div class="lg:col-span-5 p-8 sm:p-12 flex flex-col justify-between border-r border-slate-800 relative overflow-hidden bg-slate-950/60 backdrop-blur-md">
+        <!-- Left Column: Trust, Social Proof & Partner Value (5 cols) -->
+        <div class="lg:col-span-5 p-8 sm:p-12 flex flex-col justify-between border-r border-slate-200/80 bg-white/40 backdrop-blur-md relative overflow-hidden">
             
-            <div class="relative z-10 space-y-6">
-                <a href="{{ route('landing') }}" class="flex items-center gap-3 group">
-                    <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-emerald-500/25 group-hover:scale-105 transition-transform">
-                        <i data-lucide="utensils" class="w-5 h-5 text-slate-950 stroke-[2.8]"></i>
+            <div class="space-y-6">
+                <a href="{{ route('landing') }}" class="flex items-center gap-2.5 group">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-sm">
+                        <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12c0 3.84 2.16 7.18 5.34 8.86L6.5 22l3.41-1.07C10.59 21.08 11.28 21.14 12 21.14c5.52 0 10-4.48 10-9.14S17.52 2 12 2z"/>
+                        </svg>
                     </div>
-                    <div>
-                        <span class="text-xl font-black tracking-tight text-white">Foodio <span class="text-[10px] bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black px-2 py-0.5 rounded-full uppercase tracking-wider">3D ONBOARDING</span></span>
-                        <p class="text-[10px] text-slate-400">Zero Commission Restaurant OS</p>
-                    </div>
+                    <span class="text-xl font-bold tracking-tight text-slate-900">Foodio</span>
+                    <span class="text-[10px] font-mono font-bold bg-slate-200/60 text-slate-700 px-2 py-0.5 rounded-full ml-1">ONBOARDING</span>
                 </a>
 
                 <div class="space-y-2 pt-2">
-                    <span class="text-xs font-black uppercase tracking-wider text-emerald-400">Launch in Under 10 Minutes</span>
-                    <h2 class="text-2xl sm:text-3xl font-black text-white leading-tight">
-                        Automate WhatsApp orders directly into your kitchen and Cloud POS.
+                    <span class="text-xs font-extrabold uppercase tracking-wider text-emerald-600">Pure Hospitality</span>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 leading-tight">
+                        Keep 100% of your revenue. Automate WhatsApp ordering into your POS.
                     </h2>
                 </div>
 
-                <!-- 3D Linked Visual Preview Card -->
-                <div class="clay-card p-2 rounded-2xl border border-white/10 shadow-2xl overflow-hidden mt-4">
-                    <img src="/images/foodio_3d_linked.jpg" alt="3D Ecosystem" class="w-full object-cover rounded-xl">
+                <!-- Showcase Image Asset -->
+                <div class="glass-card p-3 rounded-2xl overflow-hidden mt-4 shadow-md">
+                    <img src="/images/foodio_pure_hospitality.jpg" alt="Foodio System" class="w-full object-cover rounded-xl">
                 </div>
             </div>
 
             <!-- Testimonial & Badges -->
-            <div class="relative z-10 space-y-4 pt-6 border-t border-slate-800">
-                <div class="flex items-center gap-1 text-amber-400">
+            <div class="space-y-4 pt-6 border-t border-slate-200/80">
+                <div class="flex items-center gap-1 text-amber-500">
                     <i data-lucide="star" class="w-4 h-4 fill-current"></i>
                     <i data-lucide="star" class="w-4 h-4 fill-current"></i>
                     <i data-lucide="star" class="w-4 h-4 fill-current"></i>
                     <i data-lucide="star" class="w-4 h-4 fill-current"></i>
                     <i data-lucide="star" class="w-4 h-4 fill-current"></i>
-                    <span class="text-xs text-slate-300 font-bold ml-2">5.0 / 5.0 Rating</span>
+                    <span class="text-xs text-slate-600 font-bold ml-2">5.0 / 5.0 Rating</span>
                 </div>
-                <p class="text-xs text-slate-400 italic">
-                    "Foodio's automated bot slashed our delivery aggregator commissions by $3,400 monthly while keeping orders running 24/7."
+                <p class="text-xs text-slate-600 italic leading-relaxed">
+                    "Foodio eliminated our aggregator commissions completely while giving our guests an effortless WhatsApp ordering experience."
                 </p>
-                <div class="flex items-center gap-4 text-slate-400 text-xs font-bold pt-1">
-                    <span class="flex items-center gap-1.5"><i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i> No Credit Card Required</span>
-                    <span class="flex items-center gap-1.5"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> 14-Day Full Free Access</span>
+                <div class="flex items-center gap-4 text-slate-500 text-xs font-semibold pt-1">
+                    <span class="flex items-center gap-1.5"><i data-lucide="shield-check" class="w-4 h-4 text-emerald-600"></i> No Credit Card Required</span>
+                    <span class="flex items-center gap-1.5"><i data-lucide="check" class="w-4 h-4 text-emerald-600"></i> 14-Day Free Access</span>
                 </div>
             </div>
 
@@ -128,38 +135,38 @@
             
             <div class="max-w-xl mx-auto w-full space-y-6">
                 
-                <!-- 3D Step Progress Indicator -->
+                <!-- Progress Stepper -->
                 <div class="space-y-2">
-                    <div class="flex items-center justify-between text-xs font-bold text-slate-400">
-                        <span class="text-white">Restaurant Registration</span>
-                        <span class="text-emerald-400 font-mono font-bold">Step 1 of 3: Account Setup</span>
+                    <div class="flex items-center justify-between text-xs font-bold text-slate-500">
+                        <span class="text-slate-900">Restaurant Registration</span>
+                        <span class="text-emerald-700 font-mono font-bold">Step 1 of 3: Account Setup</span>
                     </div>
-                    <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800 p-0.5">
-                        <div class="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 rounded-full w-1/3"></div>
+                    <div class="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                        <div class="h-full bg-emerald-600 rounded-full w-1/3"></div>
                     </div>
                 </div>
 
                 <!-- Title -->
                 <div>
-                    <h1 class="text-2xl sm:text-3xl font-black text-white">Create Your Restaurant Bot</h1>
-                    <p class="text-xs text-slate-400 mt-1">Configure your automated WhatsApp ordering bot and Cloud POS credentials.</p>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Create Your Restaurant Bot</h1>
+                    <p class="text-xs text-slate-500 mt-1">Configure your automated WhatsApp ordering bot and Cloud POS credentials.</p>
                 </div>
 
                 <!-- Validation Alerts -->
                 @if(session('success'))
-                    <div class="p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center gap-2">
-                        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+                    <div class="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+                        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i>
                         <span>{{ session('success') }}</span>
                     </div>
                 @endif
 
                 @if($errors->any())
-                    <div class="p-4 rounded-2xl bg-rose-950/60 border border-rose-500/40 text-rose-300 text-xs space-y-1">
-                        <div class="font-bold flex items-center gap-1.5 text-rose-400">
+                    <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs space-y-1">
+                        <div class="font-bold flex items-center gap-1.5 text-rose-700">
                             <i data-lucide="alert-triangle" class="w-4 h-4"></i>
                             <span>Please correct the errors below:</span>
                         </div>
-                        <ul class="list-disc list-inside space-y-0.5 text-[11px] text-rose-200 pl-1">
+                        <ul class="list-disc list-inside space-y-0.5 text-[11px] text-rose-700 pl-1">
                             @foreach($errors->all() as $error)
                                 <li>{{ $error }}</li>
                             @endforeach
@@ -173,127 +180,127 @@
 
                     <!-- 1. Restaurant Details -->
                     <div class="space-y-3 pt-2">
-                        <span class="text-xs font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                        <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
                             <i data-lucide="store" class="w-3.5 h-3.5"></i> 1. Restaurant Details
                         </span>
 
                         <div>
-                            <label class="block text-xs font-bold text-slate-300 mb-1">Restaurant or Brand Name *</label>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Restaurant or Brand Name *</label>
                             <input
                                 type="text"
                                 name="name"
                                 value="{{ old('name') }}"
                                 required
                                 placeholder="e.g. Copper Kettle Grill & Bar"
-                                class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 shadow-inner"
+                                class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 shadow-sm transition"
                             >
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-xs font-bold text-slate-300 mb-1">City *</label>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">City *</label>
                                 <input
                                     type="text"
                                     name="city"
                                     value="{{ old('city') }}"
                                     placeholder="e.g. Lahore, Karachi, Islamabad"
-                                    class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 shadow-inner"
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 shadow-sm transition"
                                 >
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-slate-300 mb-1">Address / Branch</label>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Address / Branch</label>
                                 <input
                                     type="text"
                                     name="address"
                                     value="{{ old('address') }}"
                                     placeholder="e.g. Main Boulevard, Gulberg"
-                                    class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 shadow-inner"
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 shadow-sm transition"
                                 >
                             </div>
                         </div>
                     </div>
 
                     <!-- 2. WhatsApp Integration -->
-                    <div class="space-y-3 pt-4 border-t border-slate-800">
-                        <span class="text-xs font-black uppercase tracking-wider text-whatsapp flex items-center gap-1.5">
+                    <div class="space-y-3 pt-4 border-t border-slate-200/80">
+                        <span class="text-xs font-bold uppercase tracking-wider text-whatsapp flex items-center gap-1.5">
                             <i data-lucide="message-circle" class="w-3.5 h-3.5"></i> 2. WhatsApp Bot Integration
                         </span>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-xs font-bold text-slate-300 mb-1">Restaurant WhatsApp Number *</label>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Restaurant WhatsApp Number *</label>
                                 <input
                                     type="text"
                                     name="whatsapp_number"
                                     value="{{ old('whatsapp_number') }}"
                                     required
                                     placeholder="e.g. 03001234567"
-                                    class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 shadow-inner"
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 shadow-sm transition"
                                 >
                                 <span class="text-[10px] text-slate-500">The number customers text to order.</span>
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-slate-300 mb-1">Owner Contact Phone *</label>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Owner Contact Phone *</label>
                                 <input
                                     type="text"
                                     name="owner_phone"
                                     value="{{ old('owner_phone') }}"
                                     required
                                     placeholder="e.g. 03217654321"
-                                    class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 shadow-inner"
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 shadow-sm transition"
                                 >
-                                <span class="text-[10px] text-slate-500">Direct phone for urgent shift alerts.</span>
+                                <span class="text-[10px] text-slate-500">Direct personal phone for shift alerts.</span>
                             </div>
                         </div>
 
                         <div>
-                            <label class="block text-xs font-bold text-slate-300 mb-1">Owner Full Name *</label>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Owner Full Name *</label>
                             <input
                                 type="text"
                                 name="owner_name"
                                 value="{{ old('owner_name') }}"
                                 required
                                 placeholder="e.g. Ahmed Khan"
-                                class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 shadow-inner"
+                                class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 shadow-sm transition"
                             >
                         </div>
                     </div>
 
                     <!-- 3. Security Credentials -->
-                    <div class="space-y-3 pt-4 border-t border-slate-800">
-                        <span class="text-xs font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                    <div class="space-y-3 pt-4 border-t border-slate-200/80">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                             <i data-lucide="lock" class="w-3.5 h-3.5"></i> 3. Master Terminal Credentials
                         </span>
 
                         <div>
-                            <label class="block text-xs font-bold text-slate-300 mb-1">Owner Work Email *</label>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Owner Work Email *</label>
                             <input
                                 type="email"
                                 name="email"
                                 value="{{ old('email') }}"
                                 required
                                 placeholder="owner@restaurant.com"
-                                class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 shadow-inner"
+                                class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 shadow-sm transition"
                             >
                         </div>
 
                         <div>
-                            <label class="block text-xs font-bold text-slate-300 mb-1">Terminal Master Password *</label>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Terminal Master Password *</label>
                             <input
                                 type="password"
                                 name="owner_password"
                                 required
                                 placeholder="Minimum 8 characters with letters & numbers"
-                                class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 shadow-inner"
+                                class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 shadow-sm transition"
                             >
                         </div>
                     </div>
 
-                    <!-- 3D Submit Button -->
+                    <!-- Submit Button -->
                     <div class="pt-4">
                         <button
                             type="submit"
-                            class="btn-3d w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2"
+                            class="btn-primary-glass w-full py-3.5 rounded-full text-xs font-bold flex items-center justify-center gap-2"
                         >
                             <span>Proceed to Choose Plan</span>
                             <i data-lucide="arrow-right" class="w-4 h-4"></i>
@@ -307,7 +314,7 @@
             <!-- Bottom Nav -->
             <div class="text-center text-xs text-slate-500 pt-6">
                 Already registered? 
-                <a href="{{ route('landing.owner-login-page') }}" class="text-emerald-400 hover:underline font-bold ml-1">
+                <a href="{{ route('landing.owner-login-page') }}" class="text-emerald-700 hover:underline font-bold ml-1">
                     Sign in to POS Portal →
                 </a>
             </div>
