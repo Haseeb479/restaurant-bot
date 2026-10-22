@@ -572,12 +572,12 @@
         color: #4ade80;
     }
 
-    /* Card 6: Radial Sales Goal Gauge Card */
-    .vessa-card-gauge {
+    /* Card 6: Rider Fleet & Live Delivery Status Card */
+    .vessa-card-riders {
         background: var(--bg-card);
         border: 1px solid var(--border-card);
         border-radius: 28px;
-        padding: 28px 28px 24px;
+        padding: 24px 26px 20px;
         box-shadow: var(--shadow-card);
         display: flex;
         flex-direction: column;
@@ -587,101 +587,209 @@
         box-sizing: border-box;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    .vessa-card-gauge:hover {
+    .vessa-card-riders:hover {
         transform: translateY(-2px);
         box-shadow: var(--shadow-elevated);
     }
 
-    .vessa-gauge-header {
+    .vessa-fleet-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
         margin-bottom: 12px;
     }
-    .vessa-gauge-title {
-        font-size: 16px;
+    .vessa-fleet-title-wrap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .vessa-fleet-title {
+        font-size: 17px;
         font-weight: 800;
         color: var(--text-heading);
         letter-spacing: -0.02em;
     }
+    .vessa-fleet-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: var(--color-forest-light);
+        color: var(--color-forest);
+        padding: 4px 10px;
+        border-radius: 9999px;
+        font-size: 11px;
+        font-weight: 700;
+    }
+    [data-theme="dark"] .vessa-fleet-badge {
+        background: rgba(30, 92, 71, 0.3);
+        color: #4ade80;
+    }
 
-    .vessa-gauge-art-wrap {
+    .vessa-fleet-stats-strip {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+        padding: 10px 12px;
+        background: var(--bg-canvas);
+        border-radius: 14px;
+        margin-bottom: 12px;
+    }
+    .vessa-fleet-stat-box {
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
-        position: relative;
-        margin: 10px 0;
-    }
-
-    .vessa-gauge-center {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -42%);
         text-align: center;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
     }
-    .vessa-gauge-pct {
-        font-size: 34px;
+    .vessa-fleet-stat-val {
+        font-size: 17px;
         font-weight: 800;
         color: var(--text-heading);
-        letter-spacing: -0.03em;
-        line-height: 1;
+        line-height: 1.1;
     }
-    .vessa-gauge-lbl {
-        font-size: 11.5px;
-        font-weight: 600;
+    .vessa-fleet-stat-lbl {
+        font-size: 10px;
+        font-weight: 700;
         color: var(--text-muted);
-        margin-top: 4px;
+        margin-top: 3px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
     }
 
-    .vessa-gauge-stats {
+    .vessa-fleet-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex: 1;
+        overflow-y: auto;
+        max-height: 200px;
+        padding-right: 4px;
+    }
+    .vessa-fleet-list::-webkit-scrollbar {
+        width: 4px;
+    }
+    .vessa-fleet-list::-webkit-scrollbar-thumb {
+        background: var(--border-subtle);
+        border-radius: 4px;
+    }
+
+    .vessa-rider-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 10px 0;
-        border-top: 1px solid var(--border-subtle);
-        font-size: 12.5px;
-        color: var(--text-muted);
+        padding: 9px 12px;
+        border-radius: 14px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        transition: all 0.15s ease;
     }
-    .vessa-gauge-stats strong {
-        color: var(--text-heading);
-        font-weight: 700;
+    .vessa-rider-row:hover {
+        border-color: var(--color-forest);
+        background: var(--color-forest-light);
+    }
+    [data-theme="dark"] .vessa-rider-row:hover {
+        background: rgba(17, 66, 50, 0.15);
     }
 
-    .vessa-gauge-progress-bar {
-        width: 100%;
-        height: 7px;
-        border-radius: 9999px;
+    .vessa-rider-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+    }
+    .vessa-rider-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
         background: var(--bg-canvas);
-        overflow: hidden;
-        margin-top: 6px;
+        color: var(--color-forest);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 800;
+        flex-shrink: 0;
     }
-    .vessa-gauge-fill {
-        width: 69.8%;
-        height: 100%;
-        background: var(--color-forest);
-        border-radius: 9999px;
-        transform-origin: left;
-        animation: vessaGaugeFillGrow 700ms var(--ease-out-smooth) 320ms both;
+    .vessa-rider-avatar.on-trip {
+        background: #FFF3E0;
+        color: #E65100;
     }
-    @keyframes vessaGaugeFillGrow {
-        0% { transform: scaleX(0); }
-        100% { transform: scaleX(1); }
-    }
-    [data-theme="dark"] .vessa-gauge-fill {
-        background: #34d399;
+    [data-theme="dark"] .vessa-rider-avatar.on-trip {
+        background: rgba(230, 81, 0, 0.2);
+        color: #FF9800;
     }
 
-    .vessa-gauge-footer-sub {
+    .vessa-rider-meta {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+    .vessa-rider-name {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-heading);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .vessa-rider-phone {
         font-size: 11px;
-        color: var(--text-light);
-        font-weight: 500;
-        margin-top: 6px;
-        text-align: center;
+        color: var(--text-muted);
+        text-decoration: none;
+    }
+    .vessa-rider-phone:hover {
+        color: var(--color-forest);
+    }
+
+    .vessa-rider-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 9999px;
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .vessa-rider-pill.available {
+        background: #E8EFEA;
+        color: #114232;
+    }
+    [data-theme="dark"] .vessa-rider-pill.available {
+        background: rgba(16, 185, 129, 0.15);
+        color: #34d399;
+    }
+    .vessa-rider-pill.on-trip {
+        background: #FFF3E0;
+        color: #C05621;
+        border: 1px solid #FBD38D;
+    }
+    [data-theme="dark"] .vessa-rider-pill.on-trip {
+        background: rgba(237, 137, 54, 0.2);
+        color: #FBD38D;
+        border-color: rgba(237, 137, 54, 0.35);
+    }
+
+    .vessa-fleet-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 10px;
+        margin-top: 8px;
+        border-top: 1px solid var(--border-subtle);
+        font-size: 12px;
+    }
+    .vessa-fleet-footer-link {
+        color: var(--color-forest);
+        font-weight: 700;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: gap 0.15s ease;
+    }
+    .vessa-fleet-footer-link:hover {
+        gap: 7px;
     }
 
     /* Floating Ask Gemini Pill */
@@ -1863,70 +1971,136 @@
             </div>
         </div>
 
-        <!-- ── CARD 6: SALES OVERVIEW (SPEEDOMETER GAUGE) ── -->
-        <div class="vessa-card-gauge">
-            <div class="vessa-gauge-header">
-                <span class="vessa-gauge-title" style="font-size: 17px; font-weight: 800;">Sales overview</span>
-                <button type="button" class="vessa-dropdown-pill" style="padding: 4px 10px;">
-                    ⋮
-                </button>
+        <!-- ── CARD 6: RIDER FLEET & LIVE DELIVERY STATUS ── -->
+        @php
+            $activeDeliveryOrders = $todayOrders->where('status', 'out_for_delivery');
+            $deliveringRiderMap = [];
+            foreach ($activeDeliveryOrders as $ado) {
+                if ($ado->rider_name) {
+                    $deliveringRiderMap[$ado->rider_name] = $ado;
+                }
+            }
+
+            $fleetAvailableCount = 0;
+            $fleetDeliveringCount = count($deliveringRiderMap);
+            $fleetCompletedCount = $todayOrders->where('status', 'delivered')->whereNotNull('rider_name')->count();
+
+            // Build complete fleet list
+            $fleetList = [];
+            foreach ($riders as $r) {
+                $isTrip = isset($deliveringRiderMap[$r->name]);
+                if (!$isTrip && $r->is_active) {
+                    $fleetAvailableCount++;
+                }
+                $fleetList[] = [
+                    'name'     => $r->name,
+                    'phone'    => $r->phone,
+                    'is_active'=> (bool) $r->is_active,
+                    'on_trip'  => $isTrip,
+                    'order_id' => $isTrip ? $deliveringRiderMap[$r->name]->id : null,
+                    'time_out' => $isTrip ? ($deliveringRiderMap[$r->name]->updated_at?->format('h:i A') ?? '') : null
+                ];
+            }
+
+            // Also include third-party/adhoc riders out on delivery if any
+            foreach ($deliveringRiderMap as $rName => $ado) {
+                if (!$riders->contains('name', $rName)) {
+                    $fleetList[] = [
+                        'name'     => $rName,
+                        'phone'    => $ado->rider_phone ?? '',
+                        'is_active'=> true,
+                        'on_trip'  => true,
+                        'order_id' => $ado->id,
+                        'time_out' => $ado->updated_at?->format('h:i A') ?? ''
+                    ];
+                }
+            }
+
+            // Sort so those currently on trip appear first, then available
+            usort($fleetList, function($a, $b) {
+                if ($a['on_trip'] === $b['on_trip']) return strcmp($a['name'], $b['name']);
+                return $a['on_trip'] ? -1 : 1;
+            });
+        @endphp
+
+        <div class="vessa-card-riders">
+            <div class="vessa-fleet-header">
+                <div class="vessa-fleet-title-wrap">
+                    <span class="vessa-fleet-title">Rider Fleet</span>
+                    <span class="vessa-fleet-badge">
+                        <span class="vessa-live-dot" style="width: 7px; height: 7px;"></span>
+                        <span id="fleetActiveBadge">{{ count($fleetList) }} Riders</span>
+                    </span>
+                </div>
+                <a href="{{ route('dashboard.riders', $restaurant->id) }}" class="vessa-dropdown-pill" style="padding: 4px 10px; text-decoration: none;" title="Manage Delivery Fleet">
+                    + Add
+                </a>
             </div>
 
-            <!-- Tachometer / Speedometer Gauge Arc Canvas -->
-            <div class="vessa-gauge-art-wrap">
-                <svg width="220" height="145" viewBox="0 0 240 160">
-                    <defs>
-                        <linearGradient id="vessaGaugeGrad" x1="0" y1="0" x2="1" y2="0">
-                            <stop offset="0%" stop-color="#2D6A4F"/>
-                            <stop offset="100%" stop-color="#114232"/>
-                        </linearGradient>
-                    </defs>
-
-                    <!-- Radial Tick Marks Background -->
-                    <g stroke="var(--border-subtle)" stroke-width="1.8" stroke-linecap="round" opacity="0.8">
-                        <line x1="38" y1="120" x2="48" y2="116"/>
-                        <line x1="48" y1="92"  x2="57" y2="92"/>
-                        <line x1="66" y1="68"  x2="73" y2="73"/>
-                        <line x1="92" y1="50"  x2="97" y2="58"/>
-                        <line x1="120" y1="42" x2="120" y2="52"/>
-                        <line x1="148" y1="50" x2="143" y2="58"/>
-                        <line x1="174" y1="68" x2="167" y2="73"/>
-                        <line x1="192" y1="92" x2="183" y2="92"/>
-                        <line x1="202" y1="120" x2="192" y2="116"/>
-                    </g>
-
-                    <!-- Background Base Arc: Center (120, 115), Radius 72 -->
-                    <path d="M 57 122 A 72 72 0 1 1 183 122" fill="none" stroke="var(--border-subtle)" stroke-width="12" stroke-linecap="round"/>
-
-                    <!-- Active Glowing Green Progress Arc (69.8% Progress) with Progressive Sweep -->
-                    <path class="vessa-gauge-progress-arc" d="M 57 122 A 72 72 0 1 1 176 90" fill="none" stroke="url(#vessaGaugeGrad)" stroke-width="12" stroke-linecap="round"/>
-
-                    <!-- Small active pointer tip dot with Spring Pop -->
-                    <circle class="vessa-gauge-pointer-dot" cx="176" cy="90" r="4" fill="#ffffff" stroke="#114232" stroke-width="2"/>
-                </svg>
-
-                <div class="vessa-gauge-center">
-                    <span class="vessa-gauge-pct" id="kpi-sales-goal">69.8%</span>
-                    <span class="vessa-gauge-lbl">Sales goal</span>
+            <!-- Fleet Micro Stats Strip -->
+            <div class="vessa-fleet-stats-strip">
+                <div class="vessa-fleet-stat-box">
+                    <span class="vessa-fleet-stat-val" id="kpiFleetAvailable" style="color: var(--color-green);">{{ $fleetAvailableCount }}</span>
+                    <span class="vessa-fleet-stat-lbl">Available</span>
+                </div>
+                <div class="vessa-fleet-stat-box" style="border-left: 1px solid var(--border-subtle); border-right: 1px solid var(--border-subtle);">
+                    <span class="vessa-fleet-stat-val" id="kpiFleetOnTrip" style="color: #ea580c;">{{ $fleetDeliveringCount }}</span>
+                    <span class="vessa-fleet-stat-lbl">On Delivery</span>
+                </div>
+                <div class="vessa-fleet-stat-box">
+                    <span class="vessa-fleet-stat-val" id="kpiFleetCompleted" style="color: var(--color-forest);">{{ $fleetCompletedCount }}</span>
+                    <span class="vessa-fleet-stat-lbl">Delivered</span>
                 </div>
             </div>
 
-            <!-- Stats and Progress Footer -->
-            <div>
-                <div class="vessa-gauge-stats">
-                    <span>Number of sales:</span>
-                    <strong id="kpi-sales-count">{{ $totalOrdersToday > 0 ? $totalOrdersToday : 48 }}</strong>
-                </div>
-                <div class="vessa-gauge-stats" style="border-top: none; padding-top: 0;">
-                    <span>Total sales:</span>
-                    <strong id="kpi-sales-amount" style="color: var(--color-forest);">${{ number_format($todayRevenue > 0 ? $todayRevenue : 17113) }}</strong>
-                </div>
-                <div class="vessa-gauge-progress-bar">
-                    <div class="vessa-gauge-fill"></div>
-                </div>
-                <div class="vessa-gauge-footer-sub" style="text-align: left; margin-top: 8px;">
-                    <span style="color: var(--color-forest); font-weight: 700;">↗ $7,387</span> to the $24,500 goal, 12 days left
-                </div>
+            <!-- Scrollable Riders List -->
+            <div class="vessa-fleet-list" id="vessaFleetList">
+                @forelse($fleetList as $rf)
+                    <div class="vessa-rider-row">
+                        <div class="vessa-rider-left">
+                            <div class="vessa-rider-avatar {{ $rf['on_trip'] ? 'on-trip' : '' }}">
+                                {{ $rf['on_trip'] ? '🛵' : substr($rf['name'], 0, 1) }}
+                            </div>
+                            <div class="vessa-rider-meta">
+                                <span class="vessa-rider-name">{{ $rf['name'] }}</span>
+                                @if(!empty($rf['phone']))
+                                    <a href="tel:{{ $rf['phone'] }}" class="vessa-rider-phone">📞 {{ $rf['phone'] }}</a>
+                                @else
+                                    <span class="vessa-rider-phone" style="font-size: 11px; color: var(--text-light);">No phone</span>
+                                @endif
+                            </div>
+                        </div>
+
+                        <div>
+                            @if($rf['on_trip'])
+                                <span class="vessa-rider-pill on-trip" title="Dispatched {{ $rf['time_out'] }}">
+                                    <span>🚴 Delivering #{{ $rf['order_id'] }}</span>
+                                </span>
+                            @else
+                                <span class="vessa-rider-pill available">
+                                    <span>● Available</span>
+                                </span>
+                            @endif
+                        </div>
+                    </div>
+                @empty
+                    <div style="text-align: center; padding: 24px 10px; color: var(--text-muted);">
+                        <div style="font-size: 26px; margin-bottom: 6px;">🛵</div>
+                        <div style="font-size: 13px; font-weight: 700; color: var(--text-heading); margin-bottom: 4px;">No riders registered yet</div>
+                        <p style="font-size: 11.5px; margin: 0 0 12px; color: var(--text-muted);">Add your delivery staff to track live deliveries and assign orders.</p>
+                        <a href="{{ route('dashboard.riders', $restaurant->id) }}" class="vessa-btn-forest" style="padding: 6px 16px; font-size: 12px; display: inline-flex;">
+                            + Add Delivery Rider
+                        </a>
+                    </div>
+                @endforelse
+            </div>
+
+            <!-- Fleet Footer Link -->
+            <div class="vessa-fleet-footer">
+                <span style="color: var(--text-muted); font-size: 11.5px;">Auto-synced with Live Orders</span>
+                <a href="{{ route('dashboard.riders', $restaurant->id) }}" class="vessa-fleet-footer-link">
+                    Manage Fleet ➔
+                </a>
             </div>
         </div>
 
@@ -2549,6 +2723,14 @@ async function fetchLiveOrdersFeed() {
 
         const kpiComp = document.getElementById('kpi-completed');
         if (kpiComp) animateCountUp(kpiComp, Number(data.delivered_count ?? 0));
+
+        // Update Live Rider Fleet Micro Counters
+        const activeDelivering = Object.values(allOrdersMap).filter(o => o.status === 'out_for_delivery' && o.rider_name);
+        const deliveredWithRider = Object.values(allOrdersMap).filter(o => o.status === 'delivered' && o.rider_name);
+        const kpiFleetTrip = document.getElementById('kpiFleetOnTrip');
+        if (kpiFleetTrip) kpiFleetTrip.textContent = activeDelivering.length;
+        const kpiFleetComp = document.getElementById('kpiFleetCompleted');
+        if (kpiFleetComp) kpiFleetComp.textContent = deliveredWithRider.length;
 
         // Update Order Pipeline Stage Counters (if on page)
         const sc = data.status_counts || {};
@@ -3340,17 +3522,17 @@ document.addEventListener('DOMContentLoaded', function() {
     if (kpiStock) {
         animateCountUp(kpiStock, {{ (int) ($unavailableItems->count() > 0 ? $unavailableItems->count() : 7) }}, { duration: 500 });
     }
-    const kpiGoal = document.getElementById('kpi-sales-goal');
-    if (kpiGoal) {
-        animateCountUp(kpiGoal, 69.8, { suffix: '%', decimals: 1, duration: 750 });
+    const kpiFleetAvail = document.getElementById('kpiFleetAvailable');
+    if (kpiFleetAvail) {
+        animateCountUp(kpiFleetAvail, {{ (int) $fleetAvailableCount }}, { duration: 600 });
     }
-    const kpiCount = document.getElementById('kpi-sales-count');
-    if (kpiCount) {
-        animateCountUp(kpiCount, {{ (int) ($totalOrdersToday > 0 ? $totalOrdersToday : 48) }}, { duration: 600 });
+    const kpiFleetTripEl = document.getElementById('kpiFleetOnTrip');
+    if (kpiFleetTripEl) {
+        animateCountUp(kpiFleetTripEl, {{ (int) $fleetDeliveringCount }}, { duration: 600 });
     }
-    const kpiAmount = document.getElementById('kpi-sales-amount');
-    if (kpiAmount) {
-        animateCountUp(kpiAmount, {{ (int) ($todayRevenue > 0 ? $todayRevenue : 17387) }}, { prefix: 'Rs. ', duration: 700 });
+    const kpiFleetCompEl = document.getElementById('kpiFleetCompleted');
+    if (kpiFleetCompEl) {
+        animateCountUp(kpiFleetCompEl, {{ (int) $fleetCompletedCount }}, { duration: 600 });
     }
 });
 
