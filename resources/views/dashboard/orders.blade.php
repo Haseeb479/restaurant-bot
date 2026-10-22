@@ -37,26 +37,37 @@
         width: 100%;
     }
 
-    /* ── 12-COLUMN BENTO GRID ── */
-    .vessa-bento-grid {
+    /* ── BENTO GRID ALIGNMENT (EXACT REFERENCE REPLICA) ── */
+    .vessa-row-1 {
         display: grid;
-        grid-template-columns: repeat(12, 1fr);
-        gap: 20px;
+        grid-template-columns: 1.55fr 1fr 1fr 1fr;
+        gap: 18px;
         width: 100%;
+        align-items: stretch;
+    }
+
+    .vessa-row-2 {
+        display: grid;
+        grid-template-columns: 1.85fr 1fr;
+        gap: 18px;
+        width: 100%;
+        margin-top: 18px;
+        align-items: stretch;
     }
 
     /* ── 3. DASHBOARD CARDS — STAGGERED ENTRANCE ANIMATION ── */
-    .vessa-bento-grid > div,
+    .vessa-row-1 > div,
+    .vessa-row-2 > div,
     #activityWorkspaceSection {
         animation: vessaCardEntrance var(--duration-deliberate) var(--ease-out-smooth) both;
         will-change: opacity, transform;
     }
-    .vessa-bento-grid > div:nth-child(1) { animation-delay: 35ms; }
-    .vessa-bento-grid > div:nth-child(2) { animation-delay: 85ms; }
-    .vessa-bento-grid > div:nth-child(3) { animation-delay: 135ms; }
-    .vessa-bento-grid > div:nth-child(4) { animation-delay: 185ms; }
-    .vessa-bento-grid > div:nth-child(5) { animation-delay: 235ms; }
-    .vessa-bento-grid > div:nth-child(6) { animation-delay: 285ms; }
+    .vessa-row-1 > div:nth-child(1) { animation-delay: 35ms; }
+    .vessa-row-1 > div:nth-child(2) { animation-delay: 85ms; }
+    .vessa-row-1 > div:nth-child(3) { animation-delay: 135ms; }
+    .vessa-row-1 > div:nth-child(4) { animation-delay: 185ms; }
+    .vessa-row-2 > div:nth-child(1) { animation-delay: 235ms; }
+    .vessa-row-2 > div:nth-child(2) { animation-delay: 285ms; }
     #activityWorkspaceSection { animation-delay: 335ms; }
 
     @keyframes vessaCardEntrance {
@@ -155,9 +166,8 @@
         animation: vessaAreaFade 500ms ease-out 300ms forwards;
     }
 
-    /* Card 1: Welcome Hero Card (spans 6 cols) */
+    /* Card 1: Welcome Hero Card */
     .vessa-card-welcome {
-        grid-column: span 6;
         background: var(--bg-card);
         border: 1px solid var(--border-card);
         border-radius: 28px;
@@ -167,6 +177,8 @@
         flex-direction: column;
         justify-content: space-between;
         min-height: 220px;
+        height: 100%;
+        box-sizing: border-box;
         position: relative;
         overflow: hidden;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -260,9 +272,8 @@
         transform: translateY(-1px);
     }
 
-    /* Metric Cards: span 2 cols each */
+    /* Metric Cards: Cards 2, 3, 4 */
     .vessa-card-metric {
-        grid-column: span 2;
         background: var(--bg-card);
         border: 1px solid var(--border-card);
         border-radius: 26px;
@@ -272,6 +283,8 @@
         flex-direction: column;
         justify-content: space-between;
         min-height: 220px;
+        height: 100%;
+        box-sizing: border-box;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     .vessa-card-metric:hover {
@@ -287,6 +300,44 @@
         margin-bottom: 12px;
     }
     .vessa-metric-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-heading);
+    }
+
+    .vessa-metric-icon-chip {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .vessa-metric-icon-chip.green {
+        background: #E8EFEA;
+        color: var(--color-forest);
+    }
+    [data-theme="dark"] .vessa-metric-icon-chip.green {
+        background: rgba(30, 92, 71, 0.3);
+        color: #4ade80;
+    }
+    .vessa-metric-icon-chip.teal {
+        background: #E0F2FE;
+        color: #0284c7;
+    }
+    [data-theme="dark"] .vessa-metric-icon-chip.teal {
+        background: rgba(2, 132, 199, 0.25);
+        color: #38bdf8;
+    }
+    .vessa-metric-icon-chip.amber {
+        background: #FEF3C7;
+        color: #d97706;
+    }
+    [data-theme="dark"] .vessa-metric-icon-chip.amber {
+        background: rgba(217, 119, 6, 0.25);
+        color: #fbbf24;
+    }
         font-size: 12.5px;
         font-weight: 600;
         color: var(--text-muted);
@@ -385,9 +436,8 @@
         color: var(--text-heading);
     }
 
-    /* ── ROW 2: MAIN CHART (8 COLS) & GAUGE (4 COLS) ── */
+    /* ── ROW 2: MAIN CHART & GAUGE ── */
     .vessa-card-chart {
-        grid-column: span 8;
         background: var(--bg-card);
         border: 1px solid var(--border-card);
         border-radius: 28px;
@@ -398,6 +448,8 @@
         justify-content: space-between;
         position: relative;
         min-height: 380px;
+        height: 100%;
+        box-sizing: border-box;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     .vessa-card-chart:hover {
@@ -520,9 +572,8 @@
         color: #4ade80;
     }
 
-    /* Card 6: Radial Sales Goal Gauge Card (4 cols) */
+    /* Card 6: Radial Sales Goal Gauge Card */
     .vessa-card-gauge {
-        grid-column: span 4;
         background: var(--bg-card);
         border: 1px solid var(--border-card);
         border-radius: 28px;
@@ -532,6 +583,8 @@
         flex-direction: column;
         justify-content: space-between;
         min-height: 380px;
+        height: 100%;
+        box-sizing: border-box;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     .vessa-card-gauge:hover {
@@ -662,22 +715,17 @@
     }
 
     @media (max-width: 1200px) {
-        .vessa-card-welcome { grid-column: span 12; }
-        .vessa-card-metric  { grid-column: span 4; }
-        .vessa-card-chart   { grid-column: span 12; }
-        .vessa-card-gauge   { grid-column: span 12; }
+        .vessa-row-1 { grid-template-columns: 1fr 1fr; }
+        .vessa-row-2 { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 768px) {
-        .vessa-card-welcome { grid-column: span 12; padding: 22px; }
-        .vessa-card-metric  { grid-column: span 12; }
-        .vessa-card-chart   { grid-column: span 12; padding: 20px; }
-        .vessa-card-gauge   { grid-column: span 12; padding: 20px; }
+        .vessa-row-1 { grid-template-columns: 1fr; }
+        .vessa-row-2 { grid-template-columns: 1fr; }
+        .vessa-card-welcome { padding: 22px; }
+        .vessa-card-chart   { padding: 20px; }
+        .vessa-card-gauge   { padding: 20px; }
         .vessa-floating-gemini-pill { bottom: 80px; right: 16px; }
-    }
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
     }
 
     /* ── 2. TWO-COLUMN OPERATIONAL WORKSPACE (68% / 32%) ── */
@@ -1580,11 +1628,11 @@
 <div class="dashboard-container">
 
     <!-- ═════════════════════════════════════════════════════════
-         BENTO GRID (EXACT REFERENCE UI MATCH - 6 CORE CARDS)
+         ROW 1: 4 HORIZONTALLY ALIGNED CARDS (EXACT REFERENCE REPLICA)
          ═════════════════════════════════════════════════════════ -->
-    <div class="vessa-bento-grid">
+    <div class="vessa-row-1">
 
-        <!-- ── CARD 1: WELCOME HERO CARD (SPANS 6 COLS) ── -->
+        <!-- ── CARD 1: WELCOME HERO CARD ── -->
         <div class="vessa-card-welcome">
             <div>
                 <div class="vessa-date-pill">
@@ -1592,145 +1640,164 @@
                 </div>
                 <h1 class="vessa-welcome-heading">Welcome back, {{ $ownerFirstName }}!</h1>
                 <p class="vessa-welcome-sub">
-                    Here is your restaurant operations summary for today. You have 
+                    Here's what's happening with your store today. You have 
                     <strong style="color: var(--color-forest);">{{ $pendingCount }} active {{ Str::plural('order', $pendingCount) }}</strong> 
-                    and <strong style="color: var(--color-forest);">{{ $activeDineInCount > 0 ? $activeDineInCount : 12 }} dine-in tables</strong> seated.
+                    and <strong style="color: var(--color-forest);">{{ $activeDineInCount > 0 ? $activeDineInCount : 12 }} tables</strong> seated.
                 </p>
             </div>
             <div class="vessa-welcome-actions">
                 <a href="{{ route('dashboard.dine-in', $restaurant->id) }}" class="vessa-btn-forest">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-                    New Order
+                    + New order
                 </a>
                 <a href="{{ route('dashboard.dine-in', $restaurant->id) }}" class="vessa-btn-outline">
-                    ⚡ Dine-In & KDS
+                    ⚡ Make a batch
                 </a>
             </div>
         </div>
 
-        <!-- ── CARD 2: METRIC 1 - TOTAL ORDERS (SPANS 2 COLS) ── -->
+        <!-- ── CARD 2: UNITS ON HAND ── -->
         <div class="vessa-card-metric">
             <div>
                 <div class="vessa-metric-header">
-                    <span class="vessa-metric-title">Total Orders</span>
-                    <span class="vessa-trend-pill up">↗ +12.4%</span>
+                    <span class="vessa-metric-title">Units on hand</span>
+                    <div class="vessa-metric-icon-chip green" title="Units in inventory">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+                            <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                            <path d="m3.3 7 8.7 5 8.7-5"/>
+                            <path d="M12 22V12"/>
+                        </svg>
+                    </div>
                 </div>
-                <div class="vessa-metric-val" id="kpi-total-orders">
-                    {{ number_format($totalOrdersToday > 0 ? $totalOrdersToday : 4345) }}
+                <div style="display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px;">
+                    <div class="vessa-metric-val" id="kpi-total-orders" style="margin-bottom: 0;">
+                        {{ number_format($totalOrdersToday > 0 ? $totalOrdersToday : 4345) }}
+                    </div>
+                    <span class="vessa-trend-pill coral" style="font-size: 11.5px;">↘ 3.2%</span>
                 </div>
-                <!-- Mini Bar Sparkline with Trend Curve SVG -->
-                <div class="vessa-metric-spark-wrap">
-                    <svg width="100%" height="44" viewBox="0 0 100 44" fill="none">
-                        <!-- Vertical mini bars -->
-                        <rect x="8"  y="26" width="6" height="16" rx="3" fill="#E8EFEA" class="vessa-spark-bar" style="--s-idx: 0;"/>
-                        <rect x="22" y="18" width="6" height="24" rx="3" fill="#E8EFEA" class="vessa-spark-bar" style="--s-idx: 1;"/>
-                        <rect x="36" y="22" width="6" height="20" rx="3" fill="#E8EFEA" class="vessa-spark-bar" style="--s-idx: 2;"/>
-                        <rect x="50" y="14" width="6" height="28" rx="3" fill="#E8EFEA" class="vessa-spark-bar" style="--s-idx: 3;"/>
-                        <rect x="64" y="10" width="6" height="32" rx="3" fill="#CBE0D4" class="vessa-spark-bar" style="--s-idx: 4;"/>
-                        <rect x="78" y="16" width="6" height="26" rx="3" fill="#E8EFEA" class="vessa-spark-bar" style="--s-idx: 5;"/>
-                        <rect x="92" y="6"  width="6" height="36" rx="3" fill="var(--color-forest)" class="vessa-spark-bar" style="--s-idx: 6;"/>
-                        <!-- Overlaid trend curve -->
-                        <path class="vessa-spark-line" d="M 11 26 Q 30 14, 53 16 T 95 6" stroke="var(--color-forest)" stroke-width="2" stroke-linecap="round"/>
+                <!-- Smooth wavy green spline curve -->
+                <div class="vessa-metric-spark-wrap" style="height: 38px; margin-bottom: 6px;">
+                    <svg width="100%" height="38" viewBox="0 0 120 38" fill="none">
+                        <path class="vessa-spark-line" d="M 4 26 C 24 32, 40 16, 64 22 C 84 26, 98 10, 116 6" stroke="var(--color-forest)" stroke-width="2.4" stroke-linecap="round"/>
                     </svg>
                 </div>
             </div>
             <div class="vessa-metric-subtext">
-                12 Tables • {{ $currentRest->city ?? 'Main Branch' }}
+                12 SKUs • 3 sites
             </div>
         </div>
 
-        <!-- ── CARD 3: METRIC 2 - TOTAL REVENUE (SPANS 2 COLS) ── -->
+        <!-- ── CARD 3: TOTAL STOCK VALUE ── -->
         <div class="vessa-card-metric">
             <div>
                 <div class="vessa-metric-header">
-                    <span class="vessa-metric-title">Total Revenue</span>
-                    <span class="vessa-trend-pill up">↗ +4.8%</span>
+                    <span class="vessa-metric-title">Total stock value</span>
+                    <div class="vessa-metric-icon-chip teal" title="Total Valuation">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+                            <line x1="12" y1="1" x2="12" y2="23"/>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                    </div>
                 </div>
-                <div class="vessa-metric-val" id="kpi-sales">
-                    Rs. {{ number_format($todayRevenue > 0 ? $todayRevenue : 32041) }}
+                <div style="display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px;">
+                    <div class="vessa-metric-val" id="kpi-sales" style="margin-bottom: 0;">
+                        ${{ number_format($todayRevenue > 0 ? $todayRevenue : 32039) }}
+                    </div>
+                    <span class="vessa-trend-pill up" style="font-size: 11.5px;">↗ 4.9%</span>
                 </div>
-                <!-- Smooth Ascending Spline Curve SVG -->
-                <div class="vessa-metric-spark-wrap">
-                    <svg width="100%" height="44" viewBox="0 0 100 44" fill="none">
-                        <defs>
-                            <linearGradient id="vessaGreenGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stop-color="#114232" stop-opacity="0.25"/>
-                                <stop offset="100%" stop-color="#114232" stop-opacity="0.0"/>
-                            </linearGradient>
-                        </defs>
-                        <path class="vessa-spark-area" d="M 4 36 C 24 38, 38 26, 56 22 C 72 18, 84 10, 96 6 L 96 42 L 4 42 Z" fill="url(#vessaGreenGrad)"/>
-                        <path class="vessa-spark-line" d="M 4 36 C 24 38, 38 26, 56 22 C 72 18, 84 10, 96 6" stroke="var(--color-forest)" stroke-width="2.5" stroke-linecap="round"/>
-                        <circle cx="96" cy="6" r="3.5" fill="var(--color-forest)" stroke="#ffffff" stroke-width="1.5"/>
+                <!-- Smooth wavy teal spline curve -->
+                <div class="vessa-metric-spark-wrap" style="height: 38px; margin-bottom: 6px;">
+                    <svg width="100%" height="38" viewBox="0 0 120 38" fill="none">
+                        <path class="vessa-spark-line" d="M 4 30 C 28 32, 48 18, 72 24 C 92 16, 102 10, 116 5" stroke="#0284c7" stroke-width="2.4" stroke-linecap="round"/>
                     </svg>
                 </div>
             </div>
             <div class="vessa-metric-subtext">
-                Net Sales • Live Today
+                At cost
             </div>
         </div>
 
-        <!-- ── CARD 4: METRIC 3 - LOW STOCK / 86 DISHES (SPANS 2 COLS) ── -->
+        <!-- ── CARD 4: LOW STOCK ITEMS ── -->
         <div class="vessa-card-metric">
             <div>
                 <div class="vessa-metric-header">
-                    <span class="vessa-metric-title">Low Stock Items</span>
-                    <span class="vessa-trend-pill coral">{{ $unavailableItems->count() > 0 ? $unavailableItems->count() : 1 }} out</span>
+                    <span class="vessa-metric-title">Low stock items</span>
+                    <div class="vessa-metric-icon-chip amber" title="Low Stock Alert">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+                            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                    </div>
                 </div>
-                <div class="vessa-metric-val" id="kpi-low-stock">
-                    {{ $unavailableItems->count() > 0 ? $unavailableItems->count() : 7 }}
+                <div style="display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px;">
+                    <div class="vessa-metric-val" id="kpi-low-stock" style="margin-bottom: 0;">
+                        {{ $unavailableItems->count() > 0 ? $unavailableItems->count() : 7 }}
+                    </div>
+                    <span class="vessa-trend-pill coral" style="font-size: 11.5px;">⚠ 1 out</span>
                 </div>
                 <!-- Dual Split Progress Bar -->
-                <div class="vessa-split-bar">
+                <div class="vessa-split-bar" style="margin-top: 10px; margin-bottom: 16px;">
                     <div class="vessa-split-bar-amber" style="width: 58%;"></div>
                     <div class="vessa-split-bar-coral" style="width: 42%;"></div>
                 </div>
             </div>
             <div class="vessa-metric-subtext" style="display: flex; align-items: center; justify-content: space-between;">
-                <span>3 dishes • 4 ingredients</span>
+                <span>3 products • 4 materials</span>
                 <div class="vessa-avatar-chips">
-                    <span class="vessa-chip" title="Truffle Burger">TB</span>
-                    <span class="vessa-chip" title="Wagyu Fillet">WF</span>
-                    <span class="vessa-chip" title="Matcha Oat">MO</span>
+                    <span class="vessa-chip" style="background:#fde68a; color:#92400e;">●</span>
+                    <span class="vessa-chip" style="background:#fed7aa; color:#9a3412;">●</span>
+                    <span class="vessa-chip" style="background:#fecdd3; color:#9f1239;">●</span>
                 </div>
             </div>
         </div>
 
-        <!-- ── CARD 5: MAIN ANALYTICS CHART (SPANS 8 COLS) ── -->
+    </div><!-- /.vessa-row-1 -->
+
+    <!-- ═════════════════════════════════════════════════════════
+         ROW 2: 2 HORIZONTALLY ALIGNED CARDS (CHART & GAUGE)
+         ═════════════════════════════════════════════════════════ -->
+    <div class="vessa-row-2">
+
+        <!-- ── CARD 5: INVENTORY STATISTICS ── -->
         <div class="vessa-card-chart">
             <div class="vessa-chart-header">
-                <span class="vessa-chart-title">Order & Revenue Statistics</span>
+                <span class="vessa-chart-title" style="font-size: 17px; font-weight: 800;">Inventory statistics</span>
                 <div class="vessa-chart-controls">
                     <span class="vessa-legend-pill">
-                        <span class="vessa-legend-dot forest"></span> Dine-in
+                        <span class="vessa-legend-dot forest"></span> Stock in
                     </span>
                     <span class="vessa-legend-pill">
-                        <span class="vessa-legend-dot ochre"></span> WhatsApp Bot
+                        <span class="vessa-legend-dot ochre"></span> Stock out
                     </span>
                     <span class="vessa-legend-pill">
-                        <span class="vessa-legend-line forest"></span> Revenue Curve
+                        <span class="vessa-legend-line forest"></span> Stock value
                     </span>
                     <button type="button" class="vessa-dropdown-pill" onclick="switchTrendRange(currentTrendRange === 'today' ? '7d' : 'today', this)">
                         <span>Monthly</span> ▾
                     </button>
+                    <button type="button" class="vessa-dropdown-pill" title="View Full Report">
+                        ↗
+                    </button>
                 </div>
             </div>
 
-            <!-- Grouped Dual Bars (Jan-Dec) & Bezier Spline Canvas -->
+            <!-- Grouped Dual Bars (Jan-Oct) & Bezier Spline Canvas -->
             <div class="vessa-chart-visual">
-                <!-- Pinned peak tooltip card for August -->
+                <!-- Pinned peak tooltip card for October -->
                 <div class="vessa-peak-tooltip">
-                    <div class="vessa-tooltip-month">August 2026 (Peak)</div>
+                    <div class="vessa-tooltip-month">October 2026</div>
                     <div class="vessa-tooltip-row">
-                        <span style="color: var(--text-muted);">● Dine-in:</span>
-                        <strong>Rs. 55,400</strong>
+                        <span style="color: var(--text-muted);">● Stock In:</span>
+                        <strong>$14,250</strong>
                     </div>
                     <div class="vessa-tooltip-row">
-                        <span style="color: var(--text-muted);">● WhatsApp Bot:</span>
-                        <strong>Rs. 43,100</strong>
+                        <span style="color: var(--text-muted);">● Stock Out:</span>
+                        <strong>$8,120</strong>
                     </div>
                     <div class="vessa-tooltip-total">
-                        <span>Total Revenue:</span>
-                        <span>Rs. 98,500</span>
+                        <span>Total Value:</span>
+                        <span>$22,370</span>
                     </div>
                 </div>
 
@@ -1748,66 +1815,60 @@
                     <line x1="20" y1="140" x2="700" y2="140" stroke="var(--border-subtle)" stroke-dasharray="4 4"/>
                     <line x1="20" y1="190" x2="700" y2="190" stroke="var(--border-subtle)"/>
 
-                    <!-- Grouped Dual Bars for 12 Months with Staggered Entrance Growth -->
+                    <!-- Grouped Dual Bars for 10 Months with Staggered Entrance Growth -->
                     <!-- 1. Jan -->
                     <rect class="vessa-chart-bar" style="--bar-idx: 0;" x="36"  y="110" width="10" height="80" rx="4" fill="#114232"/>
                     <rect class="vessa-chart-bar" style="--bar-idx: 0;" x="48"  y="130" width="10" height="60" rx="4" fill="#C89B53"/>
                     <!-- 2. Feb -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 1;" x="92"  y="95"  width="10" height="95" rx="4" fill="#114232"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 1;" x="104" y="115" width="10" height="75" rx="4" fill="#C89B53"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 1;" x="98"  y="95"  width="10" height="95" rx="4" fill="#114232"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 1;" x="110" y="115" width="10" height="75" rx="4" fill="#C89B53"/>
                     <!-- 3. Mar -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 2;" x="148" y="80"  width="10" height="110" rx="4" fill="#114232"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 2;" x="160" y="105" width="10" height="85"  rx="4" fill="#C89B53"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 2;" x="160" y="80"  width="10" height="110" rx="4" fill="#114232"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 2;" x="172" y="105" width="10" height="85"  rx="4" fill="#C89B53"/>
                     <!-- 4. Apr -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 3;" x="204" y="70"  width="10" height="120" rx="4" fill="#114232"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 3;" x="216" y="90"  width="10" height="100" rx="4" fill="#C89B53"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 3;" x="222" y="70"  width="10" height="120" rx="4" fill="#114232"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 3;" x="234" y="90"  width="10" height="100" rx="4" fill="#C89B53"/>
                     <!-- 5. May -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 4;" x="260" y="85"  width="10" height="105" rx="4" fill="#114232"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 4;" x="272" y="100" width="10" height="90"  rx="4" fill="#C89B53"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 4;" x="284" y="85"  width="10" height="105" rx="4" fill="#114232"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 4;" x="296" y="100" width="10" height="90"  rx="4" fill="#C89B53"/>
                     <!-- 6. Jun -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 5;" x="316" y="60"  width="10" height="130" rx="4" fill="#114232"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 5;" x="328" y="80"  width="10" height="110" rx="4" fill="#C89B53"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 5;" x="346" y="60"  width="10" height="130" rx="4" fill="#114232"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 5;" x="358" y="80"  width="10" height="110" rx="4" fill="#C89B53"/>
                     <!-- 7. Jul -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 6;" x="372" y="55"  width="10" height="135" rx="4" fill="#114232"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 6;" x="384" y="70"  width="10" height="120" rx="4" fill="#C89B53"/>
-                    <!-- 8. Aug (Peak month) -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 7;" x="428" y="35"  width="10" height="155" rx="4" fill="#114232"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 7;" x="440" y="50"  width="10" height="140" rx="4" fill="#C89B53"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 6;" x="408" y="55"  width="10" height="135" rx="4" fill="#114232"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 6;" x="420" y="70"  width="10" height="120" rx="4" fill="#C89B53"/>
+                    <!-- 8. Aug -->
+                    <rect class="vessa-chart-bar" style="--bar-idx: 7;" x="470" y="45"  width="10" height="145" rx="4" fill="#114232"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 7;" x="482" y="65"  width="10" height="125" rx="4" fill="#C89B53"/>
                     <!-- 9. Sep -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 8;" x="484" y="65"  width="10" height="125" rx="4" fill="#114232"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 8;" x="496" y="85"  width="10" height="105" rx="4" fill="#C89B53"/>
-                    <!-- 10. Oct -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 9;" x="540" y="75"  width="10" height="115" rx="4" fill="#114232"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 9;" x="552" y="95"  width="10" height="95"  rx="4" fill="#C89B53"/>
-                    <!-- 11. Nov -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 10;" x="596" y="90"  width="10" height="100" rx="4" fill="#114232"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 10;" x="608" y="110" width="10" height="80"  rx="4" fill="#C89B53"/>
-                    <!-- 12. Dec -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 11;" x="652" y="50"  width="10" height="140" rx="4" fill="#114232"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 11;" x="664" y="70"  width="10" height="120" rx="4" fill="#C89B53"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 8;" x="532" y="60"  width="10" height="130" rx="4" fill="#114232"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 8;" x="544" y="80"  width="10" height="110" rx="4" fill="#C89B53"/>
+                    <!-- 10. Oct (Highlighted Active Month) -->
+                    <rect class="vessa-chart-bar" style="--bar-idx: 9;" x="594" y="35"  width="12" height="155" rx="4" fill="#114232"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 9;" x="608" y="55"  width="12" height="135" rx="4" fill="#C89B53"/>
 
                     <!-- Overlaid Smooth Revenue Spline Area & Stroke with Drawing Reveal -->
-                    <path class="vessa-chart-curve-area" d="M 47 115 C 100 90, 150 75, 210 65 C 265 80, 320 50, 380 48 C 435 30, 490 60, 546 70 C 600 85, 630 60, 658 45 L 658 190 L 47 190 Z" fill="url(#vessaCurveAreaGrad)"/>
-                    <path class="vessa-chart-curve-stroke" d="M 47 115 C 100 90, 150 75, 210 65 C 265 80, 320 50, 380 48 C 435 30, 490 60, 546 70 C 600 85, 630 60, 658 45" stroke="#114232" stroke-width="3" stroke-linecap="round"/>
+                    <path class="vessa-chart-curve-area" d="M 47 115 C 100 90, 160 75, 230 65 C 290 80, 350 50, 420 48 C 480 35, 540 60, 608 35 L 608 190 L 47 190 Z" fill="url(#vessaCurveAreaGrad)"/>
+                    <path class="vessa-chart-curve-stroke" d="M 47 115 C 100 90, 160 75, 230 65 C 290 80, 350 50, 420 48 C 480 35, 540 60, 608 35" stroke="#114232" stroke-width="3" stroke-linecap="round"/>
 
-                    <!-- Pinned peak circle on August with Pop-In -->
-                    <circle class="vessa-peak-circle" cx="434" cy="35" r="5" fill="#114232" stroke="#ffffff" stroke-width="2.5"/>
+                    <!-- Pinned peak circle on Oct with Pop-In -->
+                    <circle class="vessa-peak-circle" cx="608" cy="35" r="5" fill="#114232" stroke="#ffffff" stroke-width="2.5"/>
                 </svg>
 
                 <!-- Month Labels Bar -->
                 <div style="display: flex; justify-content: space-between; padding: 6px 12px 0; font-size: 11px; font-weight: 700; color: var(--text-light); text-transform: uppercase;">
                     <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
-                    <span>Jul</span><span style="color: var(--color-forest); font-weight: 800;">Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span>
+                    <span>Jul</span><span>Aug</span><span>Sep</span><span style="color: var(--color-forest); font-weight: 800;">Oct</span>
                 </div>
             </div>
         </div>
 
-        <!-- ── CARD 6: RADIAL SALES GOAL GAUGE (SPANS 4 COLS) ── -->
+        <!-- ── CARD 6: SALES OVERVIEW (SPEEDOMETER GAUGE) ── -->
         <div class="vessa-card-gauge">
             <div class="vessa-gauge-header">
-                <span class="vessa-gauge-title">Sales Goal</span>
-                <button type="button" class="vessa-dropdown-pill">
-                    <span>Daily Target</span> ▾
+                <span class="vessa-gauge-title" style="font-size: 17px; font-weight: 800;">Sales overview</span>
+                <button type="button" class="vessa-dropdown-pill" style="padding: 4px 10px;">
+                    ⋮
                 </button>
             </div>
 
@@ -1835,7 +1896,6 @@
                     </g>
 
                     <!-- Background Base Arc: Center (120, 115), Radius 72 -->
-                    <!-- Semicircular sweep from 210 deg to -30 deg -->
                     <path d="M 57 122 A 72 72 0 1 1 183 122" fill="none" stroke="var(--border-subtle)" stroke-width="12" stroke-linecap="round"/>
 
                     <!-- Active Glowing Green Progress Arc (69.8% Progress) with Progressive Sweep -->
@@ -1859,18 +1919,18 @@
                 </div>
                 <div class="vessa-gauge-stats" style="border-top: none; padding-top: 0;">
                     <span>Total sales:</span>
-                    <strong id="kpi-sales-amount" style="color: var(--color-forest);">Rs. {{ number_format($todayRevenue > 0 ? $todayRevenue : 17387) }}</strong>
+                    <strong id="kpi-sales-amount" style="color: var(--color-forest);">${{ number_format($todayRevenue > 0 ? $todayRevenue : 17113) }}</strong>
                 </div>
                 <div class="vessa-gauge-progress-bar">
                     <div class="vessa-gauge-fill"></div>
                 </div>
-                <div class="vessa-gauge-footer-sub">
-                    Rs. {{ number_format($todayRevenue > 0 ? $todayRevenue : 17387) }} hit the Rs. 24,900 daily goal
+                <div class="vessa-gauge-footer-sub" style="text-align: left; margin-top: 8px;">
+                    <span style="color: var(--color-forest); font-weight: 700;">↗ $7,387</span> to the $24,500 goal, 12 days left
                 </div>
             </div>
         </div>
 
-    </div>
+    </div><!-- /.vessa-row-2 -->
 
     <!-- ── CARD 7: FLOATING ASK GEMINI PILL (BOTTOM RIGHT) ── -->
     <div class="vessa-floating-gemini-pill" onclick="alert('Foodio AI Assistant: Today your sales are trending +12.4% above average. 48 orders processed with Rs. {{ number_format($todayRevenue > 0 ? $todayRevenue : 32041) }} revenue.')">

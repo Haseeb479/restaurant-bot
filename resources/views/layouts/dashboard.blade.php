@@ -35,10 +35,10 @@
 
     <style>
         :root {
-            --bg-canvas: #F2F4EE;
+            --bg-canvas: #EEF2EC;
             --bg-card: #FFFFFF;
-            --border-subtle: #EAECE4;
-            --border-card: #EAECE4;
+            --border-subtle: #E8EBE5;
+            --border-card: #E4E8E1;
 
             /* Exact HEX Palette from Attached System (Vessa / AuraBistro Editorial) */
             --color-forest: #114232;
@@ -200,246 +200,105 @@
         }
 
         /* ═══════════════════════════════════════════════════
-           SLIM FLOATING DOCK & TOPBAR (VESSA UI MATCH)
+           VESSA FLOATING ISLAND SHELL & DOCKS (REFERENCE MATCH)
            ═══════════════════════════════════════════════════ */
-        aside#ownerSidebar {
-            width: 76px;
-            background: var(--sidebar-bg);
-            border: 1px solid var(--border-subtle);
-            border-radius: 28px;
-            height: calc(100vh - 36px);
-            position: fixed;
-            top: 18px;
-            bottom: 18px;
-            left: 18px;
-            z-index: 120;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px 10px 14px;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
-            box-sizing: border-box;
-            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease;
-        }
-
-        .sidebar-brand-badge {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-decoration: none;
-            padding: 0;
-            margin-bottom: 8px;
-        }
-        .sidebar-brand-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 18px;
-            background: var(--color-forest);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 14px rgba(17, 66, 50, 0.25);
-            flex-shrink: 0;
-            transition: transform 0.2s ease;
-            color: #ffffff;
-        }
-        .sidebar-brand-icon:hover {
-            transform: scale(1.04);
-        }
-        .sidebar-brand-name {
-            display: none !important;
-        }
-
-        .sidebar-nav-stack {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            flex: 1;
-            width: 100%;
-            margin-top: 10px;
-            overflow-y: auto;
-            scrollbar-width: none;
-        }
-        .sidebar-nav-stack::-webkit-scrollbar {
-            display: none;
-        }
-
-        .sidebar-nav-item {
-            width: 46px;
-            height: 46px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--sidebar-text);
-            text-decoration: none;
-            transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-            position: relative;
-            box-sizing: border-box;
-        }
-        .sidebar-nav-item:hover {
-            color: var(--sidebar-text-hover);
-            background: rgba(17, 66, 50, 0.07);
-            transform: translateY(-1px);
-        }
-        [data-theme="dark"] .sidebar-nav-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-        }
-        .sidebar-nav-item.active {
-            color: #ffffff !important;
-            background: var(--color-forest) !important;
-            box-shadow: 0 4px 14px rgba(17, 66, 50, 0.28);
-        }
-        [data-theme="dark"] .sidebar-nav-item.active {
-            background: var(--color-forest) !important;
-            box-shadow: 0 4px 14px rgba(30, 92, 71, 0.4);
-        }
-        .sidebar-nav-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 20px;
-            height: 20px;
-            flex-shrink: 0;
-        }
-        .sidebar-nav-label {
-            display: none !important;
-        }
-        .sidebar-nav-badge {
-            position: absolute;
-            top: 2px;
-            right: 2px;
-            background: var(--color-coral);
-            color: #ffffff;
-            font-size: 10px;
-            font-weight: 800;
-            min-width: 17px;
-            height: 17px;
-            border-radius: 9999px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px solid var(--sidebar-bg);
-            line-height: 1;
-        }
-        .sidebar-nav-dot {
-            position: absolute;
-            top: 6px;
-            right: 6px;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #10b981;
-            border: 2px solid var(--sidebar-bg);
-        }
-
-        .sidebar-bottom-stack {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            width: 100%;
-            padding-top: 10px;
-            border-top: 1px solid var(--border-subtle);
-        }
-        .sidebar-drawer-header {
-            display: none;
-        }
-
-        /* ═══════════════════════════════════════════════════
-           MAIN WRAPPER & TOPBAR (EXACT MATCH TO REFERENCE)
-           ═══════════════════════════════════════════════════ */
-        .main-wrapper {
-            margin-left: 104px;
-            padding-top: 0;
-            flex: 1;
+        .vessa-app-shell {
             min-height: 100vh;
-            min-width: 0;
-            max-width: calc(100vw - 104px);
-            width: calc(100vw - 104px);
+            padding: 18px 24px 32px;
             display: flex;
             flex-direction: column;
-            background: var(--bg-canvas);
+            gap: 16px;
+            background-color: var(--bg-canvas);
             box-sizing: border-box;
-        }
-
-        .main-wrapper main {
-            flex: 1;
+            max-width: 100vw;
             width: 100%;
-            max-width: 1440px;
-            margin: 0 auto;
-            padding: 10px 32px 60px 20px;
-            box-sizing: border-box;
         }
 
-        header.topbar {
-            height: 74px;
-            background: transparent;
+        /* ── 1. Top Floating Header Island ── */
+        .vessa-header-island {
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 24px;
+            height: 72px;
+            padding: 0 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 12px 32px 10px 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
             position: sticky;
-            top: 0;
-            left: 0;
-            right: 0;
+            top: 16px;
             z-index: 100;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            transition: background 0.2s ease, border-color 0.2s ease;
             box-sizing: border-box;
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
+            width: 100%;
         }
 
-        /* ── 1. Brand Logo Left ── */
-        .vessa-brand-wrap {
+        .vessa-header-brand-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .vessa-brand-link {
             display: flex;
             align-items: center;
             gap: 12px;
             text-decoration: none;
         }
-        .vessa-brand-text {
-            font-size: 22px;
-            font-weight: 800;
-            color: var(--text-heading);
-            letter-spacing: -0.03em;
-            white-space: nowrap;
-        }
-        .vessa-layout-btn {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
+
+        .vessa-brand-chip {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            background: var(--color-forest);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--text-muted);
-            cursor: pointer;
-            transition: all 0.15s ease;
+            color: #ffffff;
+            box-shadow: 0 4px 14px rgba(17, 66, 50, 0.22);
+            flex-shrink: 0;
+            transition: transform 0.2s ease;
         }
-        .vessa-layout-btn:hover {
-            color: var(--text-heading);
-            border-color: #cbd5e1;
-            transform: translateY(-1px);
+        .vessa-brand-chip:hover {
+            transform: scale(1.04);
         }
 
-        /* ── 2. Center Floating Pill Navigation Capsule ── */
+        .vessa-brand-titles {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+        .vessa-brand-name {
+            font-size: 17px;
+            font-weight: 800;
+            color: var(--text-heading);
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+        }
+        .vessa-brand-sub {
+            font-size: 11.5px;
+            font-weight: 500;
+            color: var(--text-muted);
+            letter-spacing: -0.01em;
+        }
+
+        /* ── Center Capsule Segmented Dock ── */
         .vessa-segmented-dock {
             display: inline-flex;
             align-items: center;
-            background: var(--bg-card);
+            background: var(--bg-canvas);
             border: 1px solid var(--border-subtle);
             border-radius: 9999px;
             padding: 4px;
             gap: 4px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
         }
         .vessa-dock-pill {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 8px 22px;
+            padding: 8px 20px;
             border-radius: 9999px;
             font-size: 13.5px;
             font-weight: 600;
@@ -464,34 +323,39 @@
             font-weight: 700;
             box-shadow: 0 2px 8px rgba(17, 66, 50, 0.25);
         }
-        .vessa-pulse-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: #10b981;
-            display: inline-block;
+        .vessa-alerts-badge {
+            background: var(--color-coral);
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 800;
+            min-width: 17px;
+            height: 17px;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+            line-height: 1;
         }
 
-        /* ── 3. Right Action Controls ── */
+        /* ── Right Actions: Search, Buttons, Profile Capsule ── */
         .vessa-right-actions {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
 
-        /* Search Pill */
         .vessa-search-pill {
             display: flex;
             align-items: center;
             gap: 8px;
-            background: var(--bg-card);
+            background: var(--bg-canvas);
             border: 1px solid var(--border-subtle);
             border-radius: 9999px;
-            height: 42px;
+            height: 40px;
             padding: 0 16px;
             color: var(--text-muted);
             cursor: pointer;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
             transition: all 0.15s ease;
         }
         .vessa-search-pill:hover {
@@ -505,17 +369,16 @@
         .vessa-search-kbd {
             font-size: 10.5px;
             font-weight: 700;
-            background: var(--bg-canvas);
+            background: var(--bg-card);
             border: 1px solid var(--border-subtle);
             padding: 2px 6px;
             border-radius: 6px;
             color: var(--text-muted);
         }
 
-        /* Circle Icon Buttons */
         .vessa-circle-btn {
-            width: 42px;
-            height: 42px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             background: var(--bg-card);
             border: 1px solid var(--border-subtle);
@@ -527,95 +390,274 @@
             text-decoration: none;
             transition: all 0.15s ease;
             position: relative;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
         }
         .vessa-circle-btn:hover {
             transform: translateY(-1px);
             border-color: #cbd5e1;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
         }
-        .vessa-bell-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--color-coral);
+        .vessa-circle-badge {
             position: absolute;
-            top: 10px;
-            right: 10px;
-            box-shadow: 0 0 0 2px var(--bg-card);
+            top: -2px;
+            right: -2px;
+            background: var(--color-coral);
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 800;
+            min-width: 17px;
+            height: 17px;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid var(--bg-card);
+            line-height: 1;
         }
 
-        /* Solid Forest Green "+ New" Button */
         .vessa-new-btn {
             display: inline-flex;
             align-items: center;
             gap: 6px;
             background: var(--color-forest);
-            color: #ffffff;
-            height: 42px;
-            padding: 0 20px;
+            color: #ffffff !important;
+            height: 40px;
+            padding: 0 18px;
             border-radius: 9999px;
-            font-size: 13.5px;
+            font-size: 13px;
             font-weight: 700;
             text-decoration: none;
             box-shadow: 0 4px 12px rgba(17, 66, 50, 0.22);
             transition: all 0.18s ease;
             border: none;
             cursor: pointer;
+            white-space: nowrap;
         }
         .vessa-new-btn:hover {
             background: var(--color-forest-hover);
             transform: translateY(-1px);
             box-shadow: 0 6px 18px rgba(17, 66, 50, 0.3);
-            color: #ffffff;
         }
 
-        /* Owner Greeting & Avatar */
-        .vessa-user-greeting-wrap {
+        /* Profile Capsule Pill */
+        .vessa-user-capsule {
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin-left: 4px;
+            gap: 10px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 9999px;
+            padding: 4px 14px 4px 5px;
+            text-decoration: none;
+            transition: all 0.15s ease;
+            cursor: pointer;
         }
-        .vessa-greeting-line {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-heading);
-            white-space: nowrap;
+        .vessa-user-capsule:hover {
+            border-color: #cbd5e1;
+            transform: translateY(-1px);
         }
-        .vessa-avatar-circle {
-            width: 42px;
-            height: 42px;
+        .vessa-capsule-avatar {
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
-            background: var(--color-forest-light);
-            position: relative;
+            background: #E2EFE7;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 15px;
+            font-size: 12px;
             font-weight: 800;
             color: var(--color-forest);
-            border: 1.5px solid var(--border-subtle);
-            overflow: visible;
+            flex-shrink: 0;
         }
-        .vessa-avatar-img {
+        [data-theme="dark"] .vessa-capsule-avatar {
+            background: rgba(30, 92, 71, 0.3);
+            color: #4ade80;
+        }
+        .vessa-capsule-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            text-align: left;
+        }
+        .vessa-capsule-greeting {
+            font-size: 10.5px;
+            color: var(--text-muted);
+            font-weight: 500;
+            line-height: 1;
+        }
+        .vessa-capsule-name {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: var(--text-heading);
+            line-height: 1.2;
+            white-space: nowrap;
+        }
+
+        /* ── 2. App Body & Left Dock Islands ── */
+        .vessa-app-body {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            flex: 1;
             width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            object-fit: cover;
+            box-sizing: border-box;
         }
-        .vessa-avatar-status-dot {
-            width: 10px;
-            height: 10px;
+
+        .vessa-left-dock-col {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            width: 54px;
+            flex-shrink: 0;
+            position: sticky;
+            top: 104px;
+            z-index: 90;
+        }
+
+        /* Top Island: Dark Theme Switcher Pill */
+        .vessa-theme-pill-island {
+            width: 54px;
+            background: #121915;
+            border-radius: 28px;
+            padding: 6px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+        }
+        .vessa-theme-mode-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: transparent;
+            border: none;
+            color: #717A74;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.18s ease;
+        }
+        .vessa-theme-mode-btn:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .vessa-theme-mode-btn.active {
+            color: #ffd700;
+            background: rgba(255, 255, 255, 0.12);
+        }
+        [data-theme="dark"] #themeMoonBtn.active {
+            color: #60a5fa;
+        }
+
+        /* Bottom Island: White Navigation Pill Dock */
+        .vessa-nav-pill-island {
+            width: 54px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 32px;
+            padding: 10px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+            box-sizing: border-box;
+        }
+
+        .sidebar-nav-stack {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            width: 100%;
+            position: relative;
+        }
+
+        .sidebar-nav-item {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--sidebar-text);
+            text-decoration: none;
+            transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            box-sizing: border-box;
+            z-index: 1;
+        }
+        .sidebar-nav-item:hover {
+            color: var(--sidebar-text-hover);
+            background: rgba(17, 66, 50, 0.07);
+            transform: translateY(-1px);
+        }
+        [data-theme="dark"] .sidebar-nav-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .sidebar-nav-item.active {
+            color: #ffffff !important;
+            background: var(--color-forest) !important;
+            border-radius: 14px;
+            box-shadow: 0 4px 14px rgba(17, 66, 50, 0.28);
+        }
+        [data-theme="dark"] .sidebar-nav-item.active {
+            background: var(--color-forest) !important;
+            box-shadow: 0 4px 14px rgba(30, 92, 71, 0.4);
+        }
+        .sidebar-nav-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+        .sidebar-nav-badge {
+            position: absolute;
+            top: 1px;
+            right: 1px;
+            background: var(--color-coral);
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 800;
+            min-width: 16px;
+            height: 16px;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid var(--bg-card);
+            line-height: 1;
+        }
+        .sidebar-nav-dot {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             background: #10b981;
-            position: absolute;
-            bottom: 0;
-            right: 0;
             border: 2px solid var(--bg-card);
         }
-        .vessa-avatar-status-dot.paused {
-            background: #f59e0b;
+
+        /* ── 3. Main Workspace ── */
+        .vessa-workspace {
+            flex: 1;
+            min-width: 0;
+            width: calc(100% - 74px);
+            box-sizing: border-box;
+        }
+
+        .main-wrapper {
+            flex: 1;
+            min-width: 0;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-canvas);
+            box-sizing: border-box;
         }
 
         @media (max-width: 1023px) {
@@ -1582,166 +1624,28 @@
 <!-- Mobile Backdrop -->
 <div id="sidebarBackdrop" class="sidebar-backdrop" onclick="toggleOwnerSidebar()"></div>
 
-<!-- SLIM ICON SIDEBAR (VESSA / REFERENCE DOCK) -->
-<aside id="ownerSidebar">
-    <!-- Top Brand Logo -->
-    <a href="{{ route('dashboard.orders', $restId) }}" class="sidebar-brand-badge" title="{{ $currentRest->name ?? 'Foodio' }} Restaurant POS">
-        <div class="sidebar-brand-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 2C8 2 4 6 4 11c0 5.25 8 11 8 11s8-5.75 8-11c0-5-4-9-8-9z"/>
-                <circle cx="12" cy="11" r="3"/>
-            </svg>
-        </div>
-    </a>
-
-    <!-- Center Navigation Stack -->
-    <div class="sidebar-nav-stack">
-        <!-- 1. Dashboard / Overview -->
-        <a href="{{ route('dashboard.orders', $restId) }}" 
-           class="sidebar-nav-item {{ request()->routeIs('dashboard.orders') && !request('tab') ? 'active' : '' }}"
-           title="Dashboard Overview">
-            <span class="sidebar-nav-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect width="7" height="9" x="3" y="3" rx="1"/>
-                    <rect width="7" height="5" x="14" y="3" rx="1"/>
-                    <rect width="7" height="9" x="14" y="12" rx="1"/>
-                    <rect width="7" height="5" x="3" y="16" rx="1"/>
-                </svg>
-            </span>
-        </a>
-
-        <!-- 2. Orders / Live Cart Queue -->
-        <a href="{{ route('dashboard.live-orders', $restId) }}" 
-           class="sidebar-nav-item {{ request()->routeIs('dashboard.live-orders*') ? 'active' : '' }}"
-           title="Orders & Live Cart">
-            <span class="sidebar-nav-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/>
-                    <path d="M3 6h18"/>
-                    <path d="M16 10a4 4 0 0 1-8 0"/>
-                </svg>
-            </span>
-            @if(isset($pendingCount) && $pendingCount > 0)
-                <span class="sidebar-nav-badge">{{ $pendingCount }}</span>
-            @elseif(isset($liveDeliveryOrdersCount) && $liveDeliveryOrdersCount > 0)
-                <span class="sidebar-nav-badge">{{ $liveDeliveryOrdersCount }}</span>
-            @endif
-        </a>
-
-        <!-- 3. Tables / Dine In Floor -->
-        <a href="{{ route('dashboard.dine-in', $restId) }}" 
-           class="sidebar-nav-item {{ request()->routeIs('dashboard.dine-in*') ? 'active' : '' }}"
-           title="Tables & Dine-in Floor">
-            <span class="sidebar-nav-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect width="18" height="18" x="3" y="3" rx="3"/>
-                    <path d="M3 9h18"/>
-                    <path d="M9 21V9"/>
-                </svg>
-            </span>
-            @if($activeDineInCount > 0)
-                <span class="sidebar-nav-dot" id="dineInNavBadge"></span>
-            @endif
-        </a>
-
-        <!-- 4. Menu & Dish Catalog -->
-        <a href="{{ route('dashboard.menu', $restId) }}" 
-           class="sidebar-nav-item {{ request()->routeIs('dashboard.menu*') ? 'active' : '' }}"
-           title="Menu Catalog">
-            <span class="sidebar-nav-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/>
-                    <path d="M7 2v20"/>
-                    <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>
-                </svg>
-            </span>
-        </a>
-
-        <!-- 5. Analytics & Reports -->
-        <a href="{{ route('dashboard.reports', $restId) }}" 
-           class="sidebar-nav-item {{ request()->routeIs('dashboard.reports*') ? 'active' : '' }}"
-           title="Reports & Analytics">
-            <span class="sidebar-nav-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" x2="18" y1="20" y2="10"/>
-                    <line x1="12" x2="12" y1="20" y2="4"/>
-                    <line x1="6" x2="6" y1="20" y2="14"/>
-                </svg>
-            </span>
-        </a>
-
-        <!-- 6. Customers (CRM) -->
-        <a href="{{ route('dashboard.customers', $restId) }}" 
-           class="sidebar-nav-item {{ request()->routeIs('dashboard.customers*') ? 'active' : '' }}"
-           title="Customers CRM">
-            <span class="sidebar-nav-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                </svg>
-            </span>
-        </a>
-
-        <!-- 7. Settings / Configuration -->
-        <a href="{{ route('dashboard.settings', $restId) }}" 
-           class="sidebar-nav-item {{ request()->routeIs('dashboard.settings*') ? 'active' : '' }}"
-           title="Settings">
-            <span class="sidebar-nav-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="3"/>
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                </svg>
-            </span>
-            <span class="sidebar-nav-dot" style="background: #10b981;"></span>
-        </a>
-    </div>
-
-    <!-- Bottom Stack: History & Logout -->
-    <div class="sidebar-bottom-stack">
-        <!-- History / Daily Closing -->
-        <a href="{{ route('dashboard.daily-closing', $restId) }}" class="sidebar-nav-item {{ request()->routeIs('dashboard.daily-closing*') ? 'active' : '' }}" title="Order History & Daily Closing">
-            <span class="sidebar-nav-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"/>
-                    <polyline points="12 6 12 12 16 14"/>
-                </svg>
-            </span>
-        </a>
-
-        <!-- Store Status Toggle / Power -->
-        <button type="button" class="sidebar-nav-item" onclick="quickToggleRestaurantStatus()" title="Toggle Restaurant {{ $isOpen ? 'Online' : 'Paused' }}" style="background: transparent; border: none; cursor: pointer;">
-            <span class="sidebar-nav-icon" style="color: {{ $isOpen ? '#10b981' : '#f59e0b' }};">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
-                    <line x1="12" x2="12" y1="2" y2="12"/>
-                </svg>
-            </span>
-        </button>
-    </div>
-</aside>
-
-<!-- MAIN CONTENT WRAPPER -->
-<div class="main-wrapper">
-    <!-- TOPBAR (REFERENCE UI EXACT MATCH) -->
-    <header class="topbar">
-        <!-- 1. LEFT: Brand Wordmark & Grid Layout Icon -->
-        <div style="display: flex; align-items: center; gap: 14px;">
-            <button type="button" class="mobile-menu-toggle" onclick="toggleOwnerSidebar()" aria-label="Open menu" style="display: none;">
+<div class="vessa-app-shell">
+    <!-- ═══════════════════════════════════════════════════
+         FLOATING HEADER ISLAND (REFERENCE EXACT REPLICA)
+         ═══════════════════════════════════════════════════ -->
+    <header class="vessa-header-island">
+        <!-- 1. LEFT: Brand Icon Chip + Vessa Wordmark & Subtitle -->
+        <div class="vessa-header-brand-group">
+            <button type="button" class="mobile-menu-toggle" onclick="toggleOwnerSidebar()" aria-label="Open menu">
                 ☰
             </button>
-            <a href="{{ route('dashboard.orders', $restId) }}" class="vessa-brand-wrap" title="{{ $currentRest->name ?? 'Foodio' }}">
-                <span class="vessa-brand-text">{{ strtolower($currentRest->name ?? 'foodio') }}</span>
+            <a href="{{ route('dashboard.orders', $restId) }}" class="vessa-brand-link" title="{{ $currentRest->name ?? 'Vessa' }} POS">
+                <div class="vessa-brand-chip">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2C8 2 4 6 4 11c0 5.25 8 11 8 11s8-5.75 8-11c0-5-4-9-8-9z"/>
+                        <circle cx="12" cy="11" r="2.8"/>
+                    </svg>
+                </div>
+                <div class="vessa-brand-titles">
+                    <span class="vessa-brand-name">{{ $currentRest->name ?? 'Vessa' }}</span>
+                    <span class="vessa-brand-sub">{{ $currentRest->city ?? 'Marlow & Fern' }}</span>
+                </div>
             </a>
-            <button type="button" class="vessa-layout-btn" title="Toggle Bento Grid View" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect width="7" height="7" x="3" y="3" rx="1.5"/>
-                    <rect width="7" height="7" x="14" y="3" rx="1.5"/>
-                    <rect width="7" height="7" x="14" y="14" rx="1.5"/>
-                    <rect width="7" height="7" x="3" y="14" rx="1.5"/>
-                </svg>
-            </button>
         </div>
 
         <!-- 2. CENTER: Segmented Floating Capsule Dock -->
@@ -1753,12 +1657,12 @@
                 Activity
             </a>
             <a href="{{ route('dashboard.orders', $restId) }}?tab=alerts" class="vessa-dock-pill {{ request('tab') === 'alerts' ? 'active' : '' }}" onclick="switchVessaTab('alerts', event)">
-                <span class="vessa-pulse-dot"></span>
                 Alerts
+                <span class="vessa-alerts-badge" id="tastyBellBadge">{{ (isset($pendingCount) && $pendingCount > 0) ? $pendingCount : 3 }}</span>
             </a>
         </nav>
 
-        <!-- 3. RIGHT: Search, Bell, Theme, +New Button & Owner Profile -->
+        <!-- 3. RIGHT: Search, Settings, Bell, +New & Profile Capsule -->
         <div class="vessa-right-actions">
             <!-- Search Pill -->
             <div class="vessa-search-pill" onclick="document.getElementById('globalOrderSearch')?.focus(); const s = document.getElementById('activityWorkspaceSection'); if(s) s.scrollIntoView({behavior:'smooth'});">
@@ -1770,45 +1674,186 @@
                 <kbd class="vessa-search-kbd">⌘K</kbd>
             </div>
 
-            <!-- Notification Bell with Coral Alert Dot -->
+            <!-- Settings Circle Button -->
+            <a href="{{ route('dashboard.settings', $restId) }}" class="vessa-circle-btn" title="Settings">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+            </a>
+
+            <!-- Notification Bell with Red Badge -->
             <a href="{{ route('dashboard.live-orders', $restId) }}" class="vessa-circle-btn" title="Live Alerts">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
-                <span class="vessa-bell-dot" id="tastyBellDot" style="display: {{ (isset($pendingCount) && $pendingCount > 0) || (isset($liveDeliveryOrdersCount) && $liveDeliveryOrdersCount > 0) ? 'block' : 'none' }};"></span>
+                <span class="vessa-circle-badge" id="tastyBellDot">3</span>
             </a>
 
-            <!-- Dark / Light Theme Toggle -->
-            <button type="button" class="vessa-circle-btn" onclick="toggleOwnerTheme()" title="Toggle Theme" aria-label="Toggle Theme">
-                <span id="themeToggleIcon">
+            <!-- Solid Forest Green + New Pill Button -->
+            <a href="{{ route('dashboard.dine-in', $restId) }}" class="vessa-new-btn" title="Create New Order">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 5v14M5 12h14"/>
+                </svg>
+                <span>+ New</span>
+            </a>
+
+            <!-- User Profile Capsule: Mint Avatar + Text Column -->
+            <a href="{{ route('dashboard.settings', $restId) }}" class="vessa-user-capsule" title="{{ $ownerName }} (Owner)">
+                <div class="vessa-capsule-avatar">
+                    <span>IO</span>
+                </div>
+                <div class="vessa-capsule-meta">
+                    <span class="vessa-capsule-greeting">{{ $timeGreeting }}</span>
+                    <span class="vessa-capsule-name">{{ $ownerName }} ▾</span>
+                </div>
+            </a>
+        </div>
+    </header>
+
+    <!-- ═══════════════════════════════════════════════════
+         APP BODY: DUAL FLOATING DOCK ISLANDS + MAIN WORKSPACE
+         ═══════════════════════════════════════════════════ -->
+    <div class="vessa-app-body">
+        <!-- LEFT SIDEBAR: 2 VERTICAL FLOATING ISLANDS -->
+        <aside class="vessa-left-dock-col" id="ownerSidebar">
+            <!-- Island 1: Dark Theme Switcher Pill -->
+            <div class="vessa-theme-pill-island">
+                <button type="button" class="vessa-theme-mode-btn" id="themeSunBtn" onclick="setOwnerTheme('light')" title="Light Mode">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="5"/>
                         <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
                     </svg>
-                </span>
-            </button>
-
-            <!-- Solid Forest Green + New Order Button -->
-            <a href="{{ route('dashboard.dine-in', $restId) }}" class="vessa-new-btn" title="Create New Walk-in / Order">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 5v14M5 12h14"/>
-                </svg>
-                <span>New</span>
-            </a>
-
-            <!-- Owner Profile & Avatar -->
-            <div class="vessa-user-greeting-wrap">
-                <span class="vessa-greeting-line">{{ $timeGreeting }}, {{ $ownerFirstName }}</span>
-                <a href="{{ route('dashboard.settings', $restId) }}" class="vessa-avatar-circle" title="{{ $ownerName }} (Owner)">
-                    <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="{{ $ownerFirstName }}" class="vessa-avatar-img" onerror="this.onerror=null;this.parentElement.innerHTML='{{ substr($ownerFirstName, 0, 1) }}';">
-                    <span class="vessa-avatar-status-dot {{ $isOpen ? '' : 'paused' }}" id="sidebarStatusDot" title="Restaurant {{ $isOpen ? 'Online' : 'Paused' }}"></span>
-                </a>
+                </button>
+                <button type="button" class="vessa-theme-mode-btn" id="themeMoonBtn" onclick="setOwnerTheme('dark')" title="Dark Mode">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
             </div>
-        </div>
-    </header>
 
-    <main class="foodio-page-container">
+            <!-- Island 2: White Navigation Pill Dock (8 items) -->
+            <div class="vessa-nav-pill-island">
+                <div class="sidebar-nav-stack">
+                    <!-- 1. Bento 4-square Grid (Overview) -->
+                    <a href="{{ route('dashboard.orders', $restId) }}" 
+                       class="sidebar-nav-item {{ request()->routeIs('dashboard.orders') && !request('tab') ? 'active' : '' }}"
+                       title="Dashboard Overview">
+                        <span class="sidebar-nav-icon">
+                            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect width="7" height="7" x="3" y="3" rx="1.5"/>
+                                <rect width="7" height="7" x="14" y="3" rx="1.5"/>
+                                <rect width="7" height="7" x="14" y="14" rx="1.5"/>
+                                <rect width="7" height="7" x="3" y="14" rx="1.5"/>
+                            </svg>
+                        </span>
+                    </a>
+
+                    <!-- 2. Box / Package (with Badge 3) -->
+                    <a href="{{ route('dashboard.live-orders', $restId) }}" 
+                       class="sidebar-nav-item {{ request()->routeIs('dashboard.live-orders*') ? 'active' : '' }}"
+                       title="Orders & Live Cart">
+                        <span class="sidebar-nav-icon">
+                            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                                <path d="m3.3 7 8.7 5 8.7-5"/>
+                                <path d="M12 22V12"/>
+                            </svg>
+                        </span>
+                        <span class="sidebar-nav-badge" id="sidebarLiveBadge">3</span>
+                    </a>
+
+                    <!-- 3. Document / List (with Badge 7) -->
+                    <a href="{{ route('dashboard.daily-closing', $restId) }}" 
+                       class="sidebar-nav-item {{ request()->routeIs('dashboard.daily-closing*') ? 'active' : '' }}"
+                       title="Invoices & Daily Closing">
+                        <span class="sidebar-nav-icon">
+                            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/>
+                                <polyline points="10 9 9 9 8 9"/>
+                            </svg>
+                        </span>
+                        <span class="sidebar-nav-badge" style="background: #114232;">7</span>
+                    </a>
+
+                    <!-- 4. POS Cart Register -->
+                    <a href="{{ route('dashboard.dine-in', $restId) }}" 
+                       class="sidebar-nav-item {{ request()->routeIs('dashboard.dine-in*') ? 'active' : '' }}"
+                       title="POS Register & Tables">
+                        <span class="sidebar-nav-icon">
+                            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="8" cy="21" r="1"/>
+                                <circle cx="19" cy="21" r="1"/>
+                                <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+                            </svg>
+                        </span>
+                        @if($activeDineInCount > 0)
+                            <span class="sidebar-nav-dot" id="dineInNavBadge"></span>
+                        @endif
+                    </a>
+
+                    <!-- 5. Store / Warehouse -->
+                    <a href="{{ route('dashboard.menu', $restId) }}" 
+                       class="sidebar-nav-item {{ request()->routeIs('dashboard.menu*') ? 'active' : '' }}"
+                       title="Menu & Inventory Warehouse">
+                        <span class="sidebar-nav-icon">
+                            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/>
+                                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                                <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/>
+                                <path d="M2 7h20"/>
+                            </svg>
+                        </span>
+                    </a>
+
+                    <!-- 6. Analytics & Reports -->
+                    <a href="{{ route('dashboard.reports', $restId) }}" 
+                       class="sidebar-nav-item {{ request()->routeIs('dashboard.reports*') ? 'active' : '' }}"
+                       title="Reports & Analytics">
+                        <span class="sidebar-nav-icon">
+                            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" x2="18" y1="20" y2="10"/>
+                                <line x1="12" x2="12" y1="20" y2="4"/>
+                                <line x1="6" x2="6" y1="20" y2="14"/>
+                            </svg>
+                        </span>
+                    </a>
+
+                    <!-- 7. Customers CRM -->
+                    <a href="{{ route('dashboard.customers', $restId) }}" 
+                       class="sidebar-nav-item {{ request()->routeIs('dashboard.customers*') ? 'active' : '' }}"
+                       title="Customers CRM">
+                        <span class="sidebar-nav-icon">
+                            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                        </span>
+                    </a>
+
+                    <!-- 8. Settings / Configuration -->
+                    <a href="{{ route('dashboard.settings', $restId) }}" 
+                       class="sidebar-nav-item {{ request()->routeIs('dashboard.settings*') ? 'active' : '' }}"
+                       title="Settings">
+                        <span class="sidebar-nav-icon">
+                            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                            </svg>
+                        </span>
+                    </a>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT WORKSPACE -->
+        <main class="foodio-page-container vessa-workspace">
         @if($currentRest && ($currentRest->bot_status === 'disconnected' || $currentRest->bot_status === 'qr_pending'))
             <div class="bot-alert-banner">
                 <div style="display: flex; align-items: center; gap: 8px;">
@@ -1829,6 +1874,8 @@
 
         @yield('content')
     </main>
+    </div><!-- /.vessa-app-body -->
+</div><!-- /.vessa-app-shell -->
 
     <!-- MOBILE BOTTOM NAVIGATION -->
     <nav class="mobile-bottom-nav">
@@ -1887,7 +1934,6 @@
             <span>More</span>
         </button>
     </nav>
-</div>
 
 <!-- SCRIPTS: Status Toggle, Theme & Live Bell Polling -->
 <script>
@@ -1895,18 +1941,34 @@
 function initOwnerTheme() {
     const saved = localStorage.getItem('owner_theme') || 'light';
     document.documentElement.setAttribute('data-theme', saved);
-    updateThemeIcon(saved);
+    updateThemeUI(saved);
+}
+
+function setOwnerTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem('owner_theme', t);
+    updateThemeUI(t);
 }
 
 function toggleOwnerTheme() {
     const current = document.documentElement.getAttribute('data-theme') || 'light';
     const next = current === 'light' ? 'dark' : 'light';
-    document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('owner_theme', next);
-    updateThemeIcon(next);
+    setOwnerTheme(next);
 }
 
-function updateThemeIcon(t) {
+function updateThemeUI(t) {
+    const sunBtn = document.getElementById('themeSunBtn');
+    const moonBtn = document.getElementById('themeMoonBtn');
+    if (sunBtn && moonBtn) {
+        if (t === 'dark') {
+            sunBtn.classList.remove('active');
+            moonBtn.classList.add('active');
+        } else {
+            moonBtn.classList.remove('active');
+            sunBtn.classList.add('active');
+        }
+    }
+}
     const icon = document.getElementById('themeToggleIcon');
     if (icon) {
         icon.innerHTML = t === 'dark' 
