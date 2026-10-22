@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AuraBistro • Nordic Ceramic & Milk Glass Interactive Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --canvas: #FAF8F5;
+      --milk-glass: rgba(255, 255, 255, 0.88);
+      --milk-glass-subtle: rgba(255, 255, 255, 0.65);
+      --border: rgba(228, 222, 212, 0.9);
+      --charcoal: #1C1917;
+      --stone-muted: #78716C;
+      --sage: #4A6B5D;
+      --sage-light: #EBF1EE;
+      --sage-dark: #334D41;
+      --terracotta: #C86D51;
+      --shadow: 0 10px 30px -5px rgba(28, 25, 23, 0.05);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #EFECE6;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      color: var(--charcoal);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 30px 16px;
+    }
+
+    /* Ambient Desktop Showcase Header */
+    .showcase-header {
+      text-align: center;
+      margin-bottom: 24px;
+      max-width: 600px;
+    }
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: #EBF1EE;
+      color: #4A6B5D;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+      border: 1px solid rgba(74, 107, 93, 0.2);
+    }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #4A6B5D; }
+    h1 { font-size: 28px; font-weight: 900; color: #1C1917; letter-spacing: -0.5px; margin-bottom: 6px; }
+    p.desc { font-size: 13.5px; color: #78716C; line-height: 1.5; }
+
+    /* Phone Device Mockup Container */
+    .phone-device {
+      width: 390px;
+      height: 844px;
+      background: var(--canvas);
+      border-radius: 48px;
+      box-shadow: 0 25px 60px -12px rgba(28, 25, 23, 0.15), 0 0 0 12px #2A2826, 0 0 0 14px #E4DED4;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* Dynamic Island Notch */
+    .notch {
+      width: 120px;
+      height: 30px;
+      background: #1C1917;
+      border-radius: 20px;
+      margin: 10px auto 0 auto;
+      z-index: 10;
+    }
+
+    /* App Header */
+    .app-header {
+      padding: 12px 20px 8px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .app-brand { font-size: 15px; font-weight: 800; letter-spacing: -0.3px; color: var(--charcoal); }
+    .app-brand span { color: var(--sage); }
+    .app-sub { font-size: 10.5px; color: var(--stone-muted); font-weight: 500; }
+    .mode-pill {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--sage);
+      background: var(--sage-light);
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid rgba(74, 107, 93, 0.2);
+    }
+
+    /* Floating Segmented Pill */
+    .segment-dock {
+      display: flex;
+      margin: 8px 20px 14px 20px;
+      background: var(--milk-glass);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 3px;
+    }
+    .segment-btn {
+      flex: 1;
+      padding: 8px 4px;
+      text-align: center;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--stone-muted);
+      border-radius: 15px;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      transition: all 0.2s ease;
+    }
+    .segment-btn.active {
+      background: var(--charcoal);
+      color: #FFFFFF;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+
+    /* Scrollable Screen Content */
+    .app-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 20px 30px 20px;
+    }
+    .app-scroll::-webkit-scrollbar { display: none; }
+
+    .eyebrow {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: var(--sage);
+      margin-bottom: 2px;
+      text-transform: uppercase;
+    }
+    .heading { font-size: 20px; font-weight: 800; color: var(--charcoal); letter-spacing: -0.3px; }
+    .subtext { font-size: 11.5px; color: var(--stone-muted); margin-top: 2px; margin-bottom: 14px; }
+
+    /* Category Filter Strip */
+    .filter-strip { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 14px; padding-bottom: 4px; }
+    .filter-chip {
+      padding: 6px 12px;
+      border-radius: 14px;
+      background: var(--milk-glass);
+      border: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--stone-muted);
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .filter-chip.active { background: var(--sage); color: #FFFFFF; border-color: var(--sage); }
+
+    /* Milk Glass Card */
+    .glass-card {
+      background: var(--milk-glass);
+      backdrop-filter: blur(24px);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .vintage-label { font-size: 10.5px; font-weight: 600; color: var(--stone-muted); }
+    .item-title { font-size: 14.5px; font-weight: 800; color: var(--charcoal); margin-top: 2px; }
+    .temp-tag {
+      background: var(--sage-light);
+      color: var(--sage);
+      font-size: 10.5px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 8px;
+    }
+
+    .tasting-chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0; }
+    .tasting-pill {
+      background: var(--canvas);
+      border: 1px solid var(--border);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--charcoal);
+    }
+
+    .pairing-box {
+      background: var(--sage-light);
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--sage-dark);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 8px 0;
+    }
+
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(228, 222, 212, 0.7);
+    }
+    .price-text { font-size: 15px; font-weight: 900; color: var(--charcoal); }
+    .add-btn {
+      background: var(--sage);
+      color: #FFFFFF;
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 7px 14px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .add-btn:hover { background: var(--sage-dark); }
+
+    /* Zen Ring Graphic */
+    .ring-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 0;
+    }
+    .ring-circle {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      border: 8px solid var(--sage-light);
+      border-top-color: var(--sage);
+      border-right-color: var(--terracotta);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+    .ring-val { font-size: 18px; font-weight: 900; color: var(--charcoal); }
+    .ring-sub { font-size: 9px; font-weight: 800; letter-spacing: 0.8px; color: var(--stone-muted); }
+
+    .split-metrics {
+      display: flex;
+      width: 100%;
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+      margin-top: 8px;
+    }
+    .split-col { flex: 1; }
+    .split-col:last-child { border-left: 1px solid var(--border); padding-left: 14px; }
+    .metric-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; }
+    .metric-dot.sage { background: var(--sage); }
+    .metric-dot.terra { background: var(--terracotta); }
+    .metric-label { font-size: 10.5px; color: var(--stone-muted); font-weight: 600; }
+    .metric-num { font-size: 14px; font-weight: 800; color: var(--charcoal); margin-top: 2px; }
+
+    .action-slider {
+      width: 100%;
+      background: var(--sage);
+      color: #FFFFFF;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 13px;
+      border-radius: 16px;
+      border: none;
+      cursor: pointer;
+      text-align: center;
+      margin-top: 10px;
+      box-shadow: 0 4px 12px rgba(74, 107, 93, 0.25);
+    }
+
+    /* Plating Table */
+    .specs-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+      font-size: 11px;
+    }
+    .specs-label { color: var(--stone-muted); }
+    .specs-val { font-weight: 700; color: var(--charcoal); }
+  </style>
+</head>
+<body>
+
+  <div class="showcase-header">
+    <div class="badge-pill">
+      <div class="badge-dot"></div>
+      DIRECTION 1 STANDALONE PREVIEW
+    </div>
+    <h1>Nordic Ceramic & Milk Glass</h1>
+    <p class="desc">
+      Warm oatmeal canvas (<code>#FAF8F5</code>), translucent milk glass panels, delicate charcoal typography, and soothing botanical sage accents. Click the tabs below inside the phone to experience the 3 screens.
+    </p>
+  </div>
+
+  <!-- Interactive Phone Mockup Frame -->
+  <div class="phone-device">
+    <div class="notch"></div>
+
+    <div class="app-header">
+      <div>
+        <div class="app-brand">AuraBistro <span>• Nordic</span></div>
+        <div class="app-sub">Calm Scandinavian Hospitality</div>
+      </div>
+      <div class="mode-pill">Milk Glass</div>
+    </div>
+
+    <!-- Segment Switcher -->
+    <div class="segment-dock">
+      <button class="segment-btn active" onclick="switchView('cellar')">🍷 Cellar</button>
+      <button class="segment-btn" onclick="switchView('zen')">🕯️ Zen Closing</button>
+      <button class="segment-btn" onclick="switchView('plating')">🌿 Plating</button>
+    </div>
+
+    <div class="app-scroll">
+
+      <!-- ═════════ VIEW 1: SOMMELIER CELLAR ═════════ -->
+      <div id="view-cellar">
+        <div class="eyebrow">SOMMELIER CELLAR</div>
+        <div class="heading">Curated Pairings</div>
+        <div class="subtext">Seasonal bottles and botanical mocktails</div>
+
+        <div class="filter-strip">
+          <div class="filter-chip active">All Cellar (14)</div>
+          <div class="filter-chip">Natural Reds (6)</div>
+          <div class="filter-chip">Mineral Whites (5)</div>
+          <div class="filter-chip">Botanical (3)</div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-top">
+            <div>
+              <div class="vintage-label">2021 • Côtes Catalanes</div>
+              <div class="item-title">Domaine de l'Horizon Rouge</div>
+            </div>
+            <div class="temp-tag">16°C</div>
+          </div>
+          <div class="tasting-chips">
+            <span class="tasting-pill">Smoky Oak</span>
+            <span class="tasting-pill">Wild Blackberry</span>
+            <span class="tasting-pill">Velvet Tannins</span>
+          </div>
+          <div class="pairing-box">
+            ✨ Pairs with: 45-Day Dry-Aged Ribeye
+          </div>
+          <div class="card-footer">
+            <div>
+              <div style="font-size: 10px; color: var(--stone-muted);">By the bottle</div>
+              <div class="price-text">Rs. 4,850</div>
+            </div>
+            <button class="add-btn" onclick="alert('Added Domaine de l’Horizon to Table T4 Tray!')">+ Add to Table</button>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-top">
+            <div>
+              <div class="vintage-label">House Brew • Zero Proof</div>
+              <div class="item-title">Artisan Juniper & Pine Tonic</div>
+            </div>
+            <div class="temp-tag">6°C</div>
+          </div>
+          <div class="tasting-chips">
+            <span class="tasting-pill">Crushed Pine</span>
+            <span class="tasting-pill">Bergamot Peel</span>
+            <span class="tasting-pill">Rosemary Smoke</span>
+          </div>
+          <div class="pairing-box">
+            ✨ Pairs with: Truffle Burrata & Heirloom Salad
+          </div>
+          <div class="card-footer">
+            <div>
+              <div style="font-size: 10px; color: var(--stone-muted);">Artisan Pitcher</div>
+              <div class="price-text">Rs. 1,250</div>
+            </div>
+            <button class="add-btn" onclick="alert('Added Botanical Tonic to Table T4 Tray!')">+ Add to Table</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═════════ VIEW 2: ZEN CLOSING ═════════ -->
+      <div id="view-zen" style="display: none;">
+        <div class="eyebrow">DAILY RECONCILIATION</div>
+        <div class="heading">Zen Closing</div>
+        <div class="subtext">Register balance and revenue reconciliation</div>
+
+        <div class="glass-card ring-container">
+          <div class="ring-circle">
+            <div class="ring-sub">TODAY'S GROSS</div>
+            <div class="ring-val">Rs. 184,200</div>
+            <div style="font-size: 10px; font-weight: 700; color: var(--sage); margin-top: 2px;">Balanced 🟢</div>
+          </div>
+
+          <div class="split-metrics">
+            <div class="split-col">
+              <div><span class="metric-dot sage"></span><span class="metric-label">Card / Raast QR (58%)</span></div>
+              <div class="metric-num">Rs. 106,836</div>
+              <div style="font-size: 10px; color: var(--stone-muted);">52 Bills</div>
+            </div>
+            <div class="split-col">
+              <div><span class="metric-dot terra"></span><span class="metric-label">Cash Drawer (42%)</span></div>
+              <div class="metric-num">Rs. 77,364</div>
+              <div style="font-size: 10px; color: var(--stone-muted);">32 Bills</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <div style="font-weight: 800; font-size: 13.5px;">Physical Cash Audit</div>
+            <div style="font-size: 10.5px; font-weight: 700; color: var(--sage); background: var(--sage-light); padding: 2px 7px; border-radius: 6px;">Variance: Rs. 0</div>
+          </div>
+          <div class="specs-row"><span class="specs-label">Opening Float:</span><span class="specs-val">Rs. 15,000</span></div>
+          <div class="specs-row"><span class="specs-label">Cash Inbound:</span><span class="specs-val">+ Rs. 77,364</span></div>
+          <div class="specs-row"><span class="specs-label">Payouts:</span><span class="specs-val" style="color: var(--terracotta);">- Rs. 4,200</span></div>
+          <div class="specs-row" style="border-top: 1px solid var(--border); padding-top: 6px; margin-top: 4px;">
+            <span style="font-weight: 700;">Counted in Till:</span>
+            <span style="font-weight: 900; color: var(--sage-dark);">Rs. 88,164</span>
+          </div>
+        </div>
+
+        <button class="action-slider" onclick="alert('Register Sealed 🕊️ Daily closing statement sent to owner WhatsApp.')">
+          Swipe to Seal Day & Lock Register →
+        </button>
+      </div>
+
+      <!-- ═════════ VIEW 3: PLATING GUIDE ═════════ -->
+      <div id="view-plating" style="display: none;">
+        <div class="eyebrow">EXPEDITION & RECIPES</div>
+        <div class="heading">Artisan Plating</div>
+        <div class="subtext">Proportions and serving temperatures</div>
+
+        <div class="filter-strip">
+          <div class="filter-chip active">Hot Line</div>
+          <div class="filter-chip">Garde Manger</div>
+          <div class="filter-chip">Barista Station</div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-top">
+            <div>
+              <div class="vintage-label">Main Course • Table T4</div>
+              <div class="item-title">Truffle Glazed Tenderloin</div>
+            </div>
+            <div class="temp-tag" style="background: #FAEDE8; color: var(--terracotta);">68°C Plating</div>
+          </div>
+          <div style="background: var(--canvas); padding: 8px 10px; border-radius: 10px; margin: 8px 0;">
+            <div class="specs-row"><span class="specs-label">Beef Fillet:</span><span class="specs-val">220g (Med Rare)</span></div>
+            <div class="specs-row"><span class="specs-label">Truffle Emulsion:</span><span class="specs-val">25ml warm drizzle</span></div>
+            <div class="specs-row"><span class="specs-label">Pomme Purée:</span><span class="specs-val">120g quenelle</span></div>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <span class="tasting-pill" style="background: var(--sage-light); color: var(--sage-dark);">Dairy (Butter)</span>
+            <span class="tasting-pill" style="background: var(--sage-light); color: var(--sage-dark);">Gluten Free</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    function switchView(tab) {
+      document.getElementById('view-cellar').style.display = tab === 'cellar' ? 'block' : 'none';
+      document.getElementById('view-zen').style.display = tab === 'zen' ? 'block' : 'none';
+      document.getElementById('view-plating').style.display = tab === 'plating' ? 'block' : 'none';
+
+      const buttons = document.querySelectorAll('.segment-btn');
+      buttons.forEach((b, idx) => {
+        if ((tab === 'cellar' && idx === 0) || (tab === 'zen' && idx === 1) || (tab === 'plating' && idx === 2)) {
+          b.classList.add('active');
+        } else {
+          b.classList.remove('active');
+        }
+      });
+    }
+  </script>
+</body>
+</html>

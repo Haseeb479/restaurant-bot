@@ -242,31 +242,34 @@ export default function OrdersScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
-      {/* ── Screen Header (Mockup Screen 2) ── */}
+      {/* ── Screen Header (AuraBistro Dual-Glass Pipeline) ── */}
       <View style={[styles.headerArea, { backgroundColor: theme.background }]}>
         <View style={styles.topTitleBar}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={22} color="#112D27" />
+          <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, { backgroundColor: theme.glassCard, borderColor: theme.glassBorder }]}>
+            <Ionicons name="arrow-back" size={20} color={theme.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Orders</Text>
-          <TouchableOpacity onPress={handleManualRefresh} style={styles.syncBtn}>
-            <Ionicons name="sync-outline" size={20} color="#064E45" />
+          <View style={{ alignItems: 'center' }}>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>Orders Pipeline</Text>
+            <Text style={[styles.headerSub, { color: theme.textMuted }]}>{liveCount} active tickets</Text>
+          </View>
+          <TouchableOpacity onPress={handleManualRefresh} style={[styles.syncBtn, { backgroundColor: theme.glassCard, borderColor: theme.glassBorder }]}>
+            <Ionicons name="sync-outline" size={18} color={theme.primary} />
           </TouchableOpacity>
         </View>
 
         {/* Search capsule input */}
-        <View style={styles.searchBar}>
-          <Ionicons name="search-outline" size={18} color="#7E9188" />
+        <View style={[styles.searchBar, { backgroundColor: theme.glassCard, borderColor: theme.glassBorder }]}>
+          <Ionicons name="search-outline" size={16} color={theme.textMuted} />
           <TextInput
-            placeholder="Search order, customer, phone..."
-            placeholderTextColor="#7E9188"
+            placeholder="Search order #, customer, table..."
+            placeholderTextColor={theme.textMuted}
             value={historySearch}
             onChangeText={setHistorySearch}
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: theme.text }]}
           />
           {historySearch.length > 0 && (
             <TouchableOpacity onPress={() => setHistorySearch('')}>
-              <Ionicons name="close-circle" size={16} color="#7E9188" />
+              <Ionicons name="close-circle" size={16} color={theme.textMuted} />
             </TouchableOpacity>
           )}
         </View>
@@ -294,7 +297,7 @@ export default function OrdersScreen() {
               <TouchableOpacity
                 onPress={() => {
                   updateStatusMutation.mutate({ orderId: incomingAlert.id, status: 'preparing' });
-                  Alert.alert('Kitchen Slip', `Order accepted! 🍳`);
+                  Alert.alert('Kitchen Slip', `Order accepted & KOT printed! 🍳`);
                 }}
                 style={styles.urgentAcceptBtn}
               >
@@ -304,7 +307,7 @@ export default function OrdersScreen() {
           );
         })()}
 
-        {/* ── Segmented Category Pills (Matching Screen 2 Mockup) ── */}
+        {/* ── Segmented Category Pills (Dual-Glass) ── */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterTabsRow}>
           {PIPELINE_TABS.map((tab) => {
             const active = activeTab === tab.key;
@@ -324,16 +327,18 @@ export default function OrdersScreen() {
                 onPress={() => setActiveTab(tab.key)}
                 style={[
                   styles.filterPill,
-                  active ? styles.filterPillActive : styles.filterPillInactive,
+                  active
+                    ? [styles.filterPillActive, { backgroundColor: theme.primary }]
+                    : [styles.filterPillInactive, { backgroundColor: theme.glassCard, borderColor: theme.glassBorder }],
                 ]}
               >
                 <Text
                   style={[
                     styles.filterPillText,
-                    active ? styles.filterPillTextActive : styles.filterPillTextInactive,
+                    active ? styles.filterPillTextActive : [styles.filterPillTextInactive, { color: theme.textMuted }],
                   ]}
                 >
-                  {tab.key === 'live' ? 'All' : tab.label.replace('🍽️ ', '').replace(' / Incoming', '')}
+                  {tab.key === 'live' ? 'All Live' : tab.label.replace('🍽️ ', '').replace(' / Incoming', '')}
                   {countLabel ? <Text style={styles.badgeSuperscript}>{countLabel}</Text> : null}
                 </Text>
               </TouchableOpacity>
@@ -367,7 +372,7 @@ export default function OrdersScreen() {
           data={displayedOrders}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.listContent}
-          refreshControl={<RefreshControl refreshing={isManualRefreshing} onRefresh={handleManualRefresh} />}
+          refreshControl={<RefreshControl refreshing={isManualRefreshing} onRefresh={handleManualRefresh} tintColor={theme.primary} />}
           renderItem={({ item }) => {
             const isPending = item.status === 'pending' || item.status === 'confirmed';
             const isPreparing = item.status === 'preparing';
@@ -383,9 +388,9 @@ export default function OrdersScreen() {
               <View
                 style={[
                   styles.orderCard,
-                  { backgroundColor: theme.surface, borderColor: isPending ? theme.primary : theme.border },
+                  { backgroundColor: theme.glassCard, borderColor: isPending ? theme.primary : theme.glassBorder },
                   isPending && { borderWidth: 1.5 },
-                  isDineIn && { borderLeftWidth: 4, borderLeftColor: theme.deepEmerald },
+                  isDineIn && { borderLeftWidth: 4, borderLeftColor: '#E06B43' },
                 ]}
               >
                 {/* Header Row */}
@@ -396,12 +401,12 @@ export default function OrdersScreen() {
                         <Text style={[styles.orderIdText, { color: theme.text }]}>
                           {item.daily_order_number ? `#${item.daily_order_number}` : `#${item.id}`}
                         </Text>
-                        <Text style={[styles.paymentBadge, { backgroundColor: theme.surfaceSubtle, color: theme.textMuted }]}>
+                        <Text style={[styles.paymentBadge, { backgroundColor: theme.glassBorder, color: theme.textMuted }]}>
                           {item.payment_method?.toUpperCase() || 'CASH'}
                         </Text>
                         {isDineIn && (
-                          <View style={{ backgroundColor: theme.primaryLight, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: theme.deepEmerald }}>
-                            <Text style={{ fontSize: 10, fontWeight: '800', color: theme.deepEmerald }}>
+                          <View style={{ backgroundColor: 'rgba(224, 107, 67, 0.12)', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(224, 107, 67, 0.3)' }}>
+                            <Text style={{ fontSize: 10, fontWeight: '800', color: '#E06B43' }}>
                               🍽️ {item.delivery_address?.toUpperCase() || 'DINE-IN'}
                             </Text>
                           </View>
@@ -419,7 +424,7 @@ export default function OrdersScreen() {
                   </Text>
 
                   {/* Items Pill Summary */}
-                  <View style={[styles.itemsSummaryBox, { backgroundColor: theme.surfaceSubtle }]}>
+                  <View style={[styles.itemsSummaryBox, { backgroundColor: theme.glassBorder }]}>
                     <Text style={[styles.itemsSummaryText, { color: theme.text }]} numberOfLines={2}>
                       {item.items?.map((i: any) => `${i.quantity}x ${i.name}`).join(' • ') || 'No item details'}
                     </Text>
@@ -428,7 +433,7 @@ export default function OrdersScreen() {
                   {/* Price & Timestamp */}
                   <View style={styles.cardBottomRow}>
                     <Text style={[styles.cardTime, { color: theme.textMuted }]}>
-                      {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      ⏱ {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </Text>
                     <Text style={[styles.cardTotal, { color: theme.primary }]}>
                       Rs. {Number(item.total).toLocaleString()}
@@ -437,18 +442,18 @@ export default function OrdersScreen() {
                 </TouchableOpacity>
 
                 {/* ── 1-Tap Quick Transition Action Pills ── */}
-                <View style={styles.cardActionRow}>
+                <View style={[styles.cardActionRow, { borderTopColor: theme.glassBorder }]}>
                   {isPending && (
                     <TouchableOpacity
                       onPress={() => {
                         updateStatusMutation.mutate({ orderId: item.id, status: 'preparing' });
                         Alert.alert('Kitchen Slip', `Kitchen ticket printed for Order #${item.daily_order_number || item.id} 🖨️`);
                       }}
-                      style={[styles.statusTransitionBtn, { backgroundColor: theme.deepEmerald }]}
+                      style={[styles.statusTransitionBtn, { backgroundColor: theme.primary }]}
                     >
                       <Ionicons name="restaurant" size={16} color="#FFFFFF" />
                       <Text style={styles.statusTransitionText}>
-                        {isDineIn ? 'Accept & Cook Table Order' : 'Accept & Prepare'}
+                        {isDineIn ? '⚡ Accept & Fire KOT' : '⚡ Accept & Cook'}
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -463,11 +468,11 @@ export default function OrdersScreen() {
                           setAssigningOrder(item);
                         }
                       }}
-                      style={[styles.statusTransitionBtn, { backgroundColor: isDineIn ? theme.deepEmerald : theme.foodOrange }]}
+                      style={[styles.statusTransitionBtn, { backgroundColor: isDineIn ? '#E06B43' : '#F59E0B' }]}
                     >
                       <Ionicons name={isDineIn ? 'restaurant' : 'bicycle'} size={16} color="#FFFFFF" />
                       <Text style={styles.statusTransitionText}>
-                        {isDineIn ? 'Food Ready / Mark Served 🍽️' : 'Ready / Assign Rider'}
+                        {isDineIn ? 'Mark Served to Table 🍽️' : 'Ready / Assign Rider 🛵'}
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -742,10 +747,14 @@ const styles = StyleSheet.create({
     borderColor: '#ECE9E0',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
-    color: '#112D27',
-    letterSpacing: -0.4,
+    letterSpacing: -0.3,
+  },
+  headerSub: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 1,
   },
   syncBtn: {
     width: 38,

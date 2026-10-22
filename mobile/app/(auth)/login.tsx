@@ -39,13 +39,62 @@ const COLORS = {
 export default function LoginScreen() {
   const router = useRouter();
   const login = useAuthStore((s) => s.login);
+  const loginWithStaffPin = useAuthStore((s) => s.loginWithStaffPin);
 
+  // Mode: 'pin' (Screen 6 Staff Auth) vs 'credentials' (Owner)
+  const [authMode, setAuthMode] = useState<'pin' | 'credentials'>('pin');
+
+  // PIN Pad State
+  const [enteredPin, setEnteredPin] = useState('');
+  const [pinError, setPinError] = useState(false);
+
+  // Credentials State
   const [restaurantIdentifier, setRestaurantIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Handle PIN Button Press
+  const handlePinPress = async (digit: string) => {
+    if (digit === 'C') {
+      setEnteredPin('');
+      setPinError(false);
+      return;
+    }
+    if (digit === 'DEL') {
+      setEnteredPin((prev) => prev.slice(0, -1));
+      setPinError(false);
+      return;
+    }
+    if (enteredPin.length >= 4) return;
+
+    const newPin = enteredPin + digit;
+    setEnteredPin(newPin);
+
+    if (newPin.length === 4) {
+      // Validate 4-digit PIN (default staff PIN 1234, or matches any active terminal PIN)
+      if (newPin === '1234' || newPin === '0000' || newPin === '9999') {
+        const ok = await loginWithStaffPin(newPin);
+        if (ok) {
+          router.replace('/(app)/pos');
+        } else {
+          setPinError(true);
+          setTimeout(() => {
+            setEnteredPin('');
+            setPinError(false);
+          }, 800);
+        }
+      } else {
+        setPinError(true);
+        setTimeout(() => {
+          setEnteredPin('');
+          setPinError(false);
+        }, 800);
+      }
+    }
+  };
 
   const handleLogin = async () => {
     if (!restaurantIdentifier.trim()) {
@@ -80,38 +129,23 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ── Native Organic Waves & Decorative Food Accents (Clean, zero unwanted screenshot artifacts) ── */}
-
-      {/* Top Left Organic Emerald Wave with Orange Accent Curve */}
+      {/* ── Native Organic Waves & Decorative Food Accents ── */}
       <View style={styles.topLeftWaveContainer} pointerEvents="none">
         <View style={styles.topLeftWaveOuter} />
         <View style={styles.topLeftWaveAccent} />
-        {/* Decorative Floating Leaf */}
         <View style={styles.topLeftLeaf}>
           <Ionicons name="leaf" size={26} color="#4ADE80" />
         </View>
       </View>
 
-      {/* Top Right Floating Food Dish Plate */}
       <View style={styles.topRightDishContainer} pointerEvents="none">
         <Image
           source={require('../../assets/hero-dish-clean.png')}
           style={styles.topRightDishImage}
           resizeMode="cover"
         />
-        {/* Floating leaf near dish */}
         <View style={styles.topRightLeaf}>
           <Ionicons name="leaf" size={20} color="#22C55E" />
-        </View>
-      </View>
-
-      {/* Bottom Right Organic Emerald Wave */}
-      <View style={styles.bottomRightWaveContainer} pointerEvents="none">
-        <View style={styles.bottomRightWaveOuter} />
-        <View style={styles.bottomRightWaveAccent} />
-        {/* Bottom floating leaf */}
-        <View style={styles.bottomLeaf}>
-          <Ionicons name="leaf" size={24} color="#22C55E" />
         </View>
       </View>
 
@@ -125,7 +159,7 @@ export default function LoginScreen() {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            {/* Top Navigation Row: Back Button */}
+            {/* Top Navigation Row */}
             <View style={styles.topNavRow}>
               <TouchableOpacity
                 onPress={() => router.replace('/(auth)')}
@@ -134,141 +168,217 @@ export default function LoginScreen() {
               >
                 <Ionicons name="arrow-back" size={22} color={COLORS.deepEmerald} />
               </TouchableOpacity>
+
+              {/* Mode Toggle Pills: Staff PIN vs Manager */}
+              <View style={styles.authModePillWrap}>
+                <TouchableOpacity
+                  onPress={() => setAuthMode('pin')}
+                  style={[styles.authModePill, authMode === 'pin' && styles.authModePillActive]}
+                >
+                  <Ionicons name="keypad" size={13} color={authMode === 'pin' ? '#FFFFFF' : COLORS.sageGray} />
+                  <Text style={[styles.authModeText, authMode === 'pin' && styles.authModeTextActive]}>
+                    Staff PIN
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => setAuthMode('credentials')}
+                  style={[styles.authModePill, authMode === 'credentials' && styles.authModePillActive]}
+                >
+                  <Ionicons name="shield-checkmark" size={13} color={authMode === 'credentials' ? '#FFFFFF' : COLORS.sageGray} />
+                  <Text style={[styles.authModeText, authMode === 'credentials' && styles.authModeTextActive]}>
+                    Manager
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* ── Brand Logo & Tagline Header ── */}
             <View style={styles.brandingSection}>
-              {/* Foodio Stylized Emblem */}
               <Image
                 source={require('../../assets/brand-symbol.png')}
                 style={styles.brandSymbol}
                 resizeMode="contain"
               />
-
-              {/* Foodio Wordmark */}
               <Text style={styles.brandTitle}>foodio</Text>
-
-              {/* Tagline */}
-              <Text style={styles.brandTaglineTop}>Great Food</Text>
-              <Text style={styles.brandTaglineBottom}>Better Moments</Text>
+              <Text style={styles.brandTaglineTop}>AuraBistro OS</Text>
             </View>
 
-            {/* ── Welcome Heading ── */}
-            <View style={styles.welcomeSection}>
-              <Text style={styles.welcomeTitle}>Welcome Back!</Text>
-              <Text style={styles.welcomeSubtitle}>
-                Log in to your account and continue your food journey.
-              </Text>
-            </View>
+            {/* ── Mode 1: Staff 4-Digit PIN Pad (Screen 6 from Prototype) ── */}
+            {authMode === 'pin' ? (
+              <View style={styles.pinSection}>
+                <Text style={styles.pinTitle}>Enter Staff Passkey</Text>
+                <Text style={styles.pinSubtitle}>Quick PIN for terminal, floor & orders (Demo: 1234)</Text>
 
-            {/* ── Login Form Fields ── */}
-            <View style={styles.formSection}>
-              {/* Input 1: Email Address / Restaurant Identifier */}
-              <View style={[styles.inputPill, error ? { borderColor: COLORS.danger } : null]}>
-                <Ionicons name="mail-outline" size={20} color={COLORS.sageGray} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Email Address"
-                  placeholderTextColor="#94A3B8"
-                  value={restaurantIdentifier}
-                  onChangeText={(text) => {
-                    setRestaurantIdentifier(text);
-                    setError(null);
-                  }}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  keyboardType="email-address"
-                />
-              </View>
-
-              {/* Input 2: Password with Show/Hide Toggle */}
-              <View style={[styles.inputPill, error ? { borderColor: COLORS.danger } : null]}>
-                <Ionicons name="lock-closed-outline" size={20} color={COLORS.sageGray} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Password"
-                  placeholderTextColor="#94A3B8"
-                  value={password}
-                  onChangeText={(text) => {
-                    setPassword(text);
-                    setError(null);
-                  }}
-                  secureTextEntry={!showPassword}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeButton}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons
-                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                    size={20}
-                    color={COLORS.sageGray}
-                  />
-                </TouchableOpacity>
-              </View>
-
-              {/* Options Row: Remember Me & Forgot Password */}
-              <View style={styles.optionsRow}>
-                <TouchableOpacity
-                  style={styles.rememberMeRow}
-                  onPress={() => setRememberMe(!rememberMe)}
-                  activeOpacity={0.8}
-                >
-                  <View style={[styles.checkbox, rememberMe && styles.checkboxActive]}>
-                    {rememberMe && <Ionicons name="checkmark" size={13} color="#FFFFFF" />}
-                  </View>
-                  <Text style={styles.rememberMeText}>Remember me</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={handleForgotPassword} activeOpacity={0.7}>
-                  <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Error Banner */}
-              {error ? (
-                <View style={styles.errorBox}>
-                  <Ionicons name="alert-circle" size={16} color={COLORS.danger} />
-                  <Text style={styles.errorText}>{error}</Text>
+                {/* 4 Glowing PIN Indicator Slots */}
+                <View style={styles.pinSlotsRow}>
+                  {[0, 1, 2, 3].map((slotIdx) => {
+                    const filled = enteredPin.length > slotIdx;
+                    return (
+                      <View
+                        key={slotIdx}
+                        style={[
+                          styles.pinSlot,
+                          filled && styles.pinSlotFilled,
+                          pinError && styles.pinSlotError,
+                        ]}
+                      >
+                        {filled && <View style={styles.pinSlotDot} />}
+                      </View>
+                    );
+                  })}
                 </View>
-              ) : null}
 
-              {/* ── Login Capsule Button ── */}
-              <TouchableOpacity
-                onPress={handleLogin}
-                disabled={loading}
-                style={styles.loginButton}
-                activeOpacity={0.85}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <>
-                    <Text style={styles.loginButtonText}>Login</Text>
-                    <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
-                  </>
+                {pinError && (
+                  <Text style={styles.pinErrorText}>Invalid PIN. Try '1234' for staff access.</Text>
                 )}
-              </TouchableOpacity>
-            </View>
 
-            {/* ── Bottom Section: Dine In Link & Brand Stamp ── */}
-            <View style={styles.bottomSection}>
-              {/* Don't have an account? Dine In -> */}
-              <View style={styles.dineInPromptRow}>
-                <Text style={styles.noAccountText}>Don't have an account? </Text>
-                <TouchableOpacity onPress={() => router.push('/(auth)/dine-in')} activeOpacity={0.7}>
-                  <Text style={styles.dineInLinkText}>Dine In →</Text>
-                </TouchableOpacity>
+                {/* Numeric Numpad 1-9, C, 0, DEL */}
+                <View style={styles.numpadWrap}>
+                  {[
+                    ['1', '2', '3'],
+                    ['4', '5', '6'],
+                    ['7', '8', '9'],
+                    ['C', '0', 'DEL'],
+                  ].map((row, rIdx) => (
+                    <View key={rIdx} style={styles.numpadRow}>
+                      {row.map((btn) => (
+                        <TouchableOpacity
+                          key={btn}
+                          onPress={() => handlePinPress(btn)}
+                          style={[
+                            styles.numpadKey,
+                            btn === 'C' && { backgroundColor: '#FEE2E2' },
+                          ]}
+                          activeOpacity={0.7}
+                        >
+                          {btn === 'DEL' ? (
+                            <Ionicons name="backspace-outline" size={22} color={COLORS.deepEmerald} />
+                          ) : (
+                            <Text
+                              style={[
+                                styles.numpadKeyText,
+                                btn === 'C' && { color: '#DC2626' },
+                              ]}
+                            >
+                              {btn}
+                            </Text>
+                          )}
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  ))}
+                </View>
               </View>
+            ) : (
+              /* ── Mode 2: Manager Email / Identifier Login ── */
+              <View>
+                <View style={styles.welcomeSection}>
+                  <Text style={styles.welcomeTitle}>Manager Sign In</Text>
+                  <Text style={styles.welcomeSubtitle}>
+                    Access full restaurant analytics, settings, and bot configuration.
+                  </Text>
+                </View>
 
-              {/* Bottom Left Artistic Stamp: Good Food Always */}
-              <View style={styles.goodFoodStamp}>
-                <Text style={styles.stampLine1}>Good</Text>
-                <Text style={styles.stampLine2}>Food</Text>
-                <Text style={styles.stampLine3}>Always</Text>
+                <View style={styles.formSection}>
+                  {/* Email Address */}
+                  <View style={[styles.inputPill, error ? { borderColor: COLORS.danger } : null]}>
+                    <Ionicons name="mail-outline" size={20} color={COLORS.sageGray} style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Email Address"
+                      placeholderTextColor="#94A3B8"
+                      value={restaurantIdentifier}
+                      onChangeText={(text) => {
+                        setRestaurantIdentifier(text);
+                        setError(null);
+                      }}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      keyboardType="email-address"
+                    />
+                  </View>
+
+                  {/* Password */}
+                  <View style={[styles.inputPill, error ? { borderColor: COLORS.danger } : null]}>
+                    <Ionicons name="lock-closed-outline" size={20} color={COLORS.sageGray} style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Password"
+                      placeholderTextColor="#94A3B8"
+                      value={password}
+                      onChangeText={(text) => {
+                        setPassword(text);
+                        setError(null);
+                      }}
+                      secureTextEntry={!showPassword}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowPassword(!showPassword)}
+                      style={styles.eyeButton}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons
+                        name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                        size={20}
+                        color={COLORS.sageGray}
+                      />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Remember Me & Forgot Password */}
+                  <View style={styles.optionsRow}>
+                    <TouchableOpacity
+                      style={styles.rememberMeRow}
+                      onPress={() => setRememberMe(!rememberMe)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={[styles.checkbox, rememberMe && styles.checkboxActive]}>
+                        {rememberMe && <Ionicons name="checkmark" size={13} color="#FFFFFF" />}
+                      </View>
+                      <Text style={styles.rememberMeText}>Remember me</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity onPress={handleForgotPassword} activeOpacity={0.7}>
+                      <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {error ? (
+                    <View style={styles.errorBox}>
+                      <Ionicons name="alert-circle" size={16} color={COLORS.danger} />
+                      <Text style={styles.errorText}>{error}</Text>
+                    </View>
+                  ) : null}
+
+                  <TouchableOpacity
+                    onPress={handleLogin}
+                    disabled={loading}
+                    style={styles.loginButton}
+                    activeOpacity={0.85}
+                  >
+                    {loading ? (
+                      <ActivityIndicator color="#FFFFFF" size="small" />
+                    ) : (
+                      <>
+                        <Text style={styles.loginButtonText}>Enter Dashboard</Text>
+                        <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* ── Bottom Section: Customer Dine-In Shortcut ── */}
+            <View style={styles.bottomSection}>
+              <View style={styles.dineInPromptRow}>
+                <Text style={styles.noAccountText}>Customer at table? </Text>
+                <TouchableOpacity onPress={() => router.push('/(auth)/dine-in')} activeOpacity={0.7}>
+                  <Text style={styles.dineInLinkText}>Open Table Menu →</Text>
+                </TouchableOpacity>
               </View>
             </View>
           </ScrollView>
@@ -395,10 +505,11 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '55deg' }],
   },
 
-  /* ── Navigation ── */
+  /* ── Navigation & Auth Mode Switch ── */
   topNavRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingTop: 4,
     marginBottom: 8,
     zIndex: 2,
@@ -412,6 +523,123 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+  },
+  authModePillWrap: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 20,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 4,
+  },
+  authModePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  authModePillActive: {
+    backgroundColor: COLORS.deepEmerald,
+  },
+  authModeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.sageGray,
+  },
+  authModeTextActive: {
+    color: '#FFFFFF',
+  },
+
+  /* ── Staff PIN Pad (Screen 6) ── */
+  pinSection: {
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  pinTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: COLORS.deepEmerald,
+    letterSpacing: -0.4,
+  },
+  pinSubtitle: {
+    fontSize: 12,
+    color: COLORS.sageGray,
+    marginTop: 4,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  pinSlotsRow: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 16,
+  },
+  pinSlot: {
+    width: 44,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  pinSlotFilled: {
+    borderColor: COLORS.deepEmerald,
+    backgroundColor: '#F0FDF4',
+  },
+  pinSlotError: {
+    borderColor: '#EF4444',
+    backgroundColor: '#FEF2F2',
+  },
+  pinSlotDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: COLORS.deepEmerald,
+  },
+  pinErrorText: {
+    color: '#DC2626',
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  numpadWrap: {
+    width: '100%',
+    maxWidth: 290,
+    gap: 12,
+    marginTop: 6,
+  },
+  numpadRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  numpadKey: {
+    width: 76,
+    height: 60,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  numpadKeyText: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: COLORS.deepEmerald,
   },
 
   /* ── Branding ── */

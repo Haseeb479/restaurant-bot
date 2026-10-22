@@ -42,6 +42,7 @@ export default function CustomerDineInScreen() {
   // Customer Tray (Cart)
   const [tray, setTray] = useState<TrayItem[]>([]);
   const [isTrayModalOpen, setIsTrayModalOpen] = useState(false);
+  const [courseRound, setCourseRound] = useState<'round_1' | 'round_2'>('round_1');
 
   // Variant modal
   const [variantItem, setVariantItem] = useState<any | null>(null);
@@ -181,11 +182,14 @@ export default function CustomerDineInScreen() {
       return;
     }
 
+    const roundTag = courseRound === 'round_1' ? '[Round 1: Starters & Drinks]' : '[Round 2: Mains & Desserts]';
+    const combinedNotes = `${roundTag} ${tableNotes.trim()}`.trim();
+
     placeDineInMutation.mutate({
       table_number: activeTable,
       customer_name: guestName.trim() || `Table ${activeTable} Guest`,
       customer_phone: '',
-      notes: tableNotes.trim(),
+      notes: combinedNotes,
       items: tray.map((t) => ({
         item_id: t.item_id,
         variant_id: t.variant_id || null,
@@ -462,6 +466,36 @@ export default function CustomerDineInScreen() {
               ))}
             </ScrollView>
 
+            {/* Course Rounds Selector (Screen 4 from Prototype) */}
+            <View style={styles.courseRoundsSection}>
+              <Text style={styles.inputLabel}>Course Round:</Text>
+              <View style={styles.courseRoundsRow}>
+                <TouchableOpacity
+                  onPress={() => setCourseRound('round_1')}
+                  style={[
+                    styles.courseRoundPill,
+                    courseRound === 'round_1' && styles.courseRoundPillActive,
+                  ]}
+                >
+                  <Text style={[styles.courseRoundText, courseRound === 'round_1' && styles.courseRoundTextActive]}>
+                    R1: Starters & Drinks
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => setCourseRound('round_2')}
+                  style={[
+                    styles.courseRoundPill,
+                    courseRound === 'round_2' && styles.courseRoundPillActive,
+                  ]}
+                >
+                  <Text style={[styles.courseRoundText, courseRound === 'round_2' && styles.courseRoundTextActive]}>
+                    R2: Mains & Desserts
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             {/* Special Instructions */}
             <View style={{ marginTop: 10 }}>
               <Text style={styles.inputLabel}>Kitchen Notes / Special Requests:</Text>
@@ -531,26 +565,72 @@ export default function CustomerDineInScreen() {
         </Modal>
       )}
 
-      {/* ── Order Confirmed Success Screen ── */}
+      {/* ── 4-Stage Live Dine-In Tracker (Screen 5 from Prototype) ── */}
       {confirmedOrder && (
         <Modal visible={!!confirmedOrder} animationType="fade" transparent onRequestClose={() => setConfirmedOrder(null)}>
           <View style={styles.modalOverlay}>
             <View style={styles.confirmedCard}>
               <View style={styles.successIconCircle}>
-                <Ionicons name="checkmark-done" size={40} color="#16A34A" />
+                <Ionicons name="sparkles" size={34} color="#16A34A" />
               </View>
 
               <Text style={styles.confirmedTitle}>Order Sent to Kitchen! 🍳</Text>
               <Text style={styles.confirmedSub}>
-                Table {confirmedOrder.table_number} • Token #{confirmedOrder.daily_order_number || confirmedOrder.id}
+                Table {confirmedOrder.table_number} • Order Token #{confirmedOrder.daily_order_number || confirmedOrder.id}
               </Text>
 
+              {/* 4-Stage Progress Stepper */}
+              <View style={styles.trackerTimelineBox}>
+                <View style={styles.trackerStepRow}>
+                  <View style={[styles.stepCircle, styles.stepCircleActive]}>
+                    <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                  </View>
+                  <View style={styles.stepInfo}>
+                    <Text style={styles.stepTitleActive}>1. Order Transmitted</Text>
+                    <Text style={styles.stepSub}>Kitchen order ticket printed</Text>
+                  </View>
+                </View>
+
+                <View style={styles.stepLineActive} />
+
+                <View style={styles.trackerStepRow}>
+                  <View style={[styles.stepCircle, styles.stepCircleActive]}>
+                    <Ionicons name="restaurant" size={14} color="#FFFFFF" />
+                  </View>
+                  <View style={styles.stepInfo}>
+                    <Text style={styles.stepTitleActive}>2. Kitchen Preparing</Text>
+                    <Text style={styles.stepSub}>Chef is cooking your dishes</Text>
+                  </View>
+                </View>
+
+                <View style={styles.stepLine} />
+
+                <View style={styles.trackerStepRow}>
+                  <View style={styles.stepCircle}>
+                    <Text style={styles.stepCircleNum}>3</Text>
+                  </View>
+                  <View style={styles.stepInfo}>
+                    <Text style={styles.stepTitle}>3. Served to Table</Text>
+                    <Text style={styles.stepSub}>Fresh & hot at Table {confirmedOrder.table_number}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.stepLine} />
+
+                <View style={styles.trackerStepRow}>
+                  <View style={styles.stepCircle}>
+                    <Text style={styles.stepCircleNum}>4</Text>
+                  </View>
+                  <View style={styles.stepInfo}>
+                    <Text style={styles.stepTitle}>4. Settle & Pay</Text>
+                    <Text style={styles.stepSub}>Cash, card, or Raast QR at checkout</Text>
+                  </View>
+                </View>
+              </View>
+
               <View style={styles.confirmedDetailsBox}>
-                <Text style={styles.confirmedNoticeText}>
-                  Your order has been transmitted directly to the kitchen queue. The chef is preparing your meal now.
-                </Text>
                 <Text style={styles.confirmedTotalText}>
-                  Payable at counter/table: Rs. {Number(confirmedOrder.total).toLocaleString()}
+                  Order Total: Rs. {Number(confirmedOrder.total).toLocaleString()}
                 </Text>
               </View>
 
@@ -632,6 +712,12 @@ const styles = StyleSheet.create({
   trayStepCount: { fontSize: 12, fontWeight: '800', color: '#064E45', paddingHorizontal: 6 },
   trayItemTotal: { fontSize: 13, fontWeight: '800', color: '#0C2621', minWidth: 65, textAlign: 'right' },
   inputLabel: { fontSize: 12, fontWeight: '700', color: '#064E45', marginBottom: 4 },
+  courseRoundsSection: { marginVertical: 8 },
+  courseRoundsRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
+  courseRoundPill: { flex: 1, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, borderColor: '#E8DEC9', backgroundColor: '#FFF8EF', alignItems: 'center' },
+  courseRoundPillActive: { backgroundColor: '#064E45', borderColor: '#064E45' },
+  courseRoundText: { fontSize: 11, fontWeight: '700', color: '#81958C' },
+  courseRoundTextActive: { color: '#FFFFFF' },
   textInputBox: { height: 42, borderWidth: 1, borderColor: '#E8DEC9', borderRadius: 10, paddingHorizontal: 10, fontSize: 13, color: '#0C2621', backgroundColor: '#FFF8EF' },
   grandTotalBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#E8DEC9', paddingTop: 10, marginTop: 10 },
   grandTotalLabel: { fontSize: 16, fontWeight: '800', color: '#064E45' },
@@ -640,11 +726,22 @@ const styles = StyleSheet.create({
   cancelModalText: { fontSize: 13, fontWeight: '600', color: '#81958C' },
   confirmModalBtn: { flex: 1, backgroundColor: '#064E45', paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
   confirmModalText: { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
-  confirmedCard: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 24, alignItems: 'center', margin: 20 },
-  successIconCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: '#E8F5F2', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
-  confirmedTitle: { fontSize: 20, fontWeight: '900', color: '#064E45', textAlign: 'center' },
-  confirmedSub: { fontSize: 14, fontWeight: '700', color: '#064E45', marginTop: 4, marginBottom: 14 },
-  confirmedDetailsBox: { backgroundColor: '#FFF8EF', borderRadius: 14, padding: 14, width: '100%', marginBottom: 16, gap: 8 },
+  confirmedCard: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 20, alignItems: 'center', margin: 16, maxHeight: '92%' },
+  successIconCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#E8F5F2', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+  confirmedTitle: { fontSize: 18, fontWeight: '900', color: '#064E45', textAlign: 'center' },
+  confirmedSub: { fontSize: 13, fontWeight: '700', color: '#064E45', marginTop: 2, marginBottom: 12 },
+  trackerTimelineBox: { width: '100%', paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#F8FAF9', borderRadius: 16, borderWidth: 1, borderColor: '#E8DEC9', marginBottom: 12 },
+  trackerStepRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  stepCircle: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#E2E8F0', alignItems: 'center', justifyContent: 'center' },
+  stepCircleActive: { backgroundColor: '#10B981' },
+  stepCircleNum: { fontSize: 11, fontWeight: '800', color: '#64748B' },
+  stepInfo: { flex: 1 },
+  stepTitle: { fontSize: 12, fontWeight: '700', color: '#64748B' },
+  stepTitleActive: { fontSize: 12, fontWeight: '800', color: '#0F172A' },
+  stepSub: { fontSize: 10, color: '#94A3B8' },
+  stepLine: { width: 2, height: 12, backgroundColor: '#E2E8F0', marginLeft: 12, marginVertical: 2 },
+  stepLineActive: { width: 2, height: 12, backgroundColor: '#10B981', marginLeft: 12, marginVertical: 2 },
+  confirmedDetailsBox: { backgroundColor: '#FFF8EF', borderRadius: 12, padding: 10, width: '100%', marginBottom: 14, alignItems: 'center' },
   confirmedNoticeText: { fontSize: 12, color: '#81958C', textAlign: 'center', lineHeight: 18 },
   confirmedTotalText: { fontSize: 14, fontWeight: '800', color: '#064E45', textAlign: 'center' },
   doneBtn: { backgroundColor: '#064E45', width: '100%', paddingVertical: 14, borderRadius: 14, alignItems: 'center' },

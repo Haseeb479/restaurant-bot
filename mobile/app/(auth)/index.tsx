@@ -133,6 +133,17 @@ export default function WelcomeGatewayScreen() {
               <Text style={styles.dineInBtnText}>Dine In</Text>
               <Ionicons name="arrow-forward" size={22} color={COLORS.deepEmerald} />
             </TouchableOpacity>
+
+            {/* 3. Direction 1 Preview Button (Nordic Ceramic & Milk Glass) */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => router.push('/preview' as any)}
+              style={styles.previewModeBtn}
+            >
+              <Ionicons name="sparkles" size={14} color="#4A6B5D" />
+              <Text style={styles.previewModeText}>Preview Nordic Ceramic & Milk Glass</Text>
+              <Ionicons name="chevron-forward" size={14} color="#4A6B5D" />
+            </TouchableOpacity>
           </View>
 
           {/* ── Operational Capabilities & Powered by Foodio ── */}
@@ -372,6 +383,24 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     letterSpacing: 0.2,
+  },
+  previewModeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    backgroundColor: '#EBF1EE',
+    borderWidth: 1,
+    borderColor: 'rgba(74, 107, 93, 0.25)',
+    marginTop: 4,
+  },
+  previewModeText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#4A6B5D',
   },
 
   /* ── Footer ── */

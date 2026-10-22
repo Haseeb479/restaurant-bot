@@ -258,51 +258,66 @@ export default function LiveMenuScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
-      {/* ── Top Header (Screen 4 Mockup) ── */}
+      {/* ── Top Header (AuraBistro 86'd Stock Manager) ── */}
       <View style={[styles.headerArea, { backgroundColor: theme.background }]}>
         <View style={styles.topTitleBar}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={22} color="#112D27" />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={[styles.backButton, { backgroundColor: theme.glassCard, borderColor: theme.glassBorder }]}
+          >
+            <Ionicons name="arrow-back" size={20} color={theme.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Menu Management</Text>
-          <TouchableOpacity onPress={() => setIsAddItemOpen(true)} style={styles.addCircleBtn}>
-            <Ionicons name="add" size={22} color="#FFFFFF" />
+          <View style={{ alignItems: 'center' }}>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>Menu & 86'd Stock</Text>
+            <Text style={[styles.headerSub, { color: theme.textMuted }]}>
+              {inStockCount} Live • {soldOutCount} 86'd
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => setIsAddItemOpen(true)}
+            style={[styles.addCircleBtn, { backgroundColor: theme.primary }]}
+          >
+            <Ionicons name="add" size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
 
         {/* ── Search Bar Capsule ── */}
-        <View style={styles.searchBar}>
-          <Ionicons name="search-outline" size={18} color="#7E9188" />
+        <View style={[styles.searchBar, { backgroundColor: theme.glassCard, borderColor: theme.glassBorder }]}>
+          <Ionicons name="search-outline" size={16} color={theme.textMuted} />
           <TextInput
-            placeholder="Search menu items..."
-            placeholderTextColor="#7E9188"
+            placeholder="Search dish name to toggle stock..."
+            placeholderTextColor={theme.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: theme.text }]}
           />
           {searchQuery ? (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={16} color="#7E9188" />
+              <Ionicons name="close-circle" size={16} color={theme.textMuted} />
             </TouchableOpacity>
           ) : null}
         </View>
 
-        {/* ── Category Chips Row (Screen 4) ── */}
+        {/* ── Category Chips Row (Dual-Glass) ── */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryChipsRow}>
           <TouchableOpacity
             onPress={() => setSelectedCategory('all')}
             style={[
               styles.catChip,
-              selectedCategory === 'all' ? styles.catChipActive : styles.catChipInactive,
+              selectedCategory === 'all'
+                ? [styles.catChipActive, { backgroundColor: theme.primary }]
+                : [styles.catChipInactive, { backgroundColor: theme.glassCard, borderColor: theme.glassBorder }],
             ]}
           >
             <Text
               style={[
                 styles.catChipText,
-                selectedCategory === 'all' ? styles.catChipTextActive : styles.catChipTextInactive,
+                selectedCategory === 'all'
+                  ? styles.catChipTextActive
+                  : [styles.catChipTextInactive, { color: theme.textMuted }],
               ]}
             >
-              All
+              All ({totalItems})
             </Text>
           </TouchableOpacity>
 
@@ -314,13 +329,17 @@ export default function LiveMenuScreen() {
                 onPress={() => setSelectedCategory(c.id)}
                 style={[
                   styles.catChip,
-                  active ? styles.catChipActive : styles.catChipInactive,
+                  active
+                    ? [styles.catChipActive, { backgroundColor: theme.primary }]
+                    : [styles.catChipInactive, { backgroundColor: theme.glassCard, borderColor: theme.glassBorder }],
                 ]}
               >
                 <Text
                   style={[
                     styles.catChipText,
-                    active ? styles.catChipTextActive : styles.catChipTextInactive,
+                    active
+                      ? styles.catChipTextActive
+                      : [styles.catChipTextInactive, { color: theme.textMuted }],
                   ]}
                 >
                   {c.name}
@@ -663,10 +682,14 @@ const styles = StyleSheet.create({
     borderColor: '#ECE9E0',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
-    color: '#112D27',
-    letterSpacing: -0.4,
+    letterSpacing: -0.3,
+  },
+  headerSub: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 1,
   },
   addCircleBtn: {
     width: 38,

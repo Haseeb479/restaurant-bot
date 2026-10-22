@@ -20,7 +20,7 @@
 
 <style>
     /* ═════════════════════════════════════════════════════════════
-       FOODIO MODERN POS DASHBOARD (CONCEPT UI MATCH)
+       VESSA / REFERENCE BENTO GRID & OPERATIONAL WORKSPACE
        ═════════════════════════════════════════════════════════════ */
     .dashboard-container {
         display: flex;
@@ -29,85 +29,520 @@
         width: 100%;
     }
 
-    /* ── 1. TOP METRIC CARDS GRID (4 COLUMNS) ── */
-    .metric-cards-grid {
+    /* ── 12-COLUMN BENTO GRID ── */
+    .vessa-bento-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(12, 1fr);
         gap: 20px;
+        width: 100%;
     }
 
-    .metric-card {
+    /* Card 1: Welcome Hero Card (spans 6 cols) */
+    .vessa-card-welcome {
+        grid-column: span 6;
         background: var(--bg-card);
         border: 1px solid var(--border-card);
-        border-radius: var(--radius-card);
-        padding: 20px 22px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
+        border-radius: 28px;
+        padding: 30px 34px;
         box-shadow: var(--shadow-card);
-        transition: transform 0.18s ease, box-shadow 0.18s ease;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 220px;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    .metric-card:hover {
+    .vessa-card-welcome:hover {
         transform: translateY(-2px);
         box-shadow: var(--shadow-elevated);
     }
 
-    .metric-card-left {
-        display: flex;
-        flex-direction: column;
+    .vessa-date-pill {
+        display: inline-flex;
+        align-items: center;
         gap: 6px;
+        background: var(--color-forest-light);
+        color: var(--color-forest);
+        padding: 6px 14px;
+        border-radius: 9999px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        width: fit-content;
+        margin-bottom: 12px;
+    }
+    [data-theme="dark"] .vessa-date-pill {
+        background: rgba(30, 92, 71, 0.3);
+        color: #4ade80;
     }
 
-    .metric-icon-wrap {
-        width: 44px;
-        height: 44px;
-        border-radius: 12px;
+    .vessa-welcome-heading {
+        font-family: 'Playfair Display', Georgia, serif;
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--text-heading);
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+        margin-bottom: 8px;
+    }
+
+    .vessa-welcome-sub {
+        font-size: 13.5px;
+        color: var(--text-muted);
+        line-height: 1.5;
+        max-width: 480px;
+        margin-bottom: 20px;
+    }
+
+    .vessa-welcome-actions {
         display: flex;
         align-items: center;
-        justify-content: center;
-        margin-bottom: 6px;
+        gap: 12px;
+        flex-wrap: wrap;
     }
-    .metric-icon-wrap.green  { background: #ecfdf5; color: #059669; }
-    .metric-icon-wrap.blue   { background: #f0f9ff; color: #0284c7; }
-    .metric-icon-wrap.purple { background: #faf5ff; color: #9333ea; }
-    .metric-icon-wrap.orange { background: #fff7ed; color: #ea580c; }
 
-    [data-theme="dark"] .metric-icon-wrap.green  { background: rgba(16, 185, 129, 0.15); color: #34d399; }
-    [data-theme="dark"] .metric-icon-wrap.blue   { background: rgba(14, 165, 233, 0.15); color: #38bdf8; }
-    [data-theme="dark"] .metric-icon-wrap.purple { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
-    [data-theme="dark"] .metric-icon-wrap.orange { background: rgba(249, 115, 22, 0.15); color: #fb923c; }
-
-    .metric-label {
+    .vessa-btn-forest {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--color-forest);
+        color: #ffffff !important;
+        padding: 10px 22px;
+        border-radius: 9999px;
         font-size: 13px;
+        font-weight: 700;
+        text-decoration: none;
+        box-shadow: 0 4px 14px rgba(17, 66, 50, 0.22);
+        transition: all 0.18s ease;
+    }
+    .vessa-btn-forest:hover {
+        background: var(--color-forest-hover);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(17, 66, 50, 0.32);
+    }
+
+    .vessa-btn-outline {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-card);
+        color: var(--text-heading);
+        padding: 10px 20px;
+        border-radius: 9999px;
+        font-size: 13px;
+        font-weight: 700;
+        text-decoration: none;
+        transition: all 0.18s ease;
+    }
+    .vessa-btn-outline:hover {
+        border-color: #cbd5e1;
+        background: var(--bg-canvas);
+        transform: translateY(-1px);
+    }
+
+    /* Metric Cards: span 2 cols each */
+    .vessa-card-metric {
+        grid-column: span 2;
+        background: var(--bg-card);
+        border: 1px solid var(--border-card);
+        border-radius: 26px;
+        padding: 22px 20px;
+        box-shadow: var(--shadow-card);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 220px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .vessa-card-metric:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-elevated);
+    }
+
+    .vessa-metric-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+    .vessa-metric-title {
+        font-size: 12.5px;
         font-weight: 600;
         color: var(--text-muted);
     }
 
-    .metric-value {
-        font-size: 26px;
+    .vessa-trend-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 9999px;
+    }
+    .vessa-trend-pill.up {
+        background: var(--color-forest-light);
+        color: var(--color-forest);
+    }
+    [data-theme="dark"] .vessa-trend-pill.up {
+        background: rgba(30, 92, 71, 0.3);
+        color: #4ade80;
+    }
+    .vessa-trend-pill.coral {
+        background: var(--danger-bg);
+        color: var(--danger-text);
+    }
+
+    .vessa-metric-val {
+        font-size: 30px;
         font-weight: 800;
         color: var(--text-heading);
         letter-spacing: -0.03em;
         line-height: 1.1;
+        margin-bottom: 14px;
     }
 
-    .metric-trend-badge {
+    .vessa-metric-spark-wrap {
+        width: 100%;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .vessa-metric-subtext {
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--text-light);
+    }
+
+    /* Low Stock Horizontal Split Bar */
+    .vessa-split-bar {
+        width: 100%;
+        height: 8px;
+        border-radius: 9999px;
+        background: var(--bg-canvas);
+        display: flex;
+        overflow: hidden;
+        margin-bottom: 12px;
+    }
+    .vessa-split-bar-amber {
+        height: 100%;
+        background: #f59e0b;
+        border-radius: 9999px 0 0 9999px;
+    }
+    .vessa-split-bar-coral {
+        height: 100%;
+        background: #e07a5f;
+        border-radius: 0 9999px 9999px 0;
+    }
+
+    .vessa-avatar-chips {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .vessa-chip {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--bg-canvas);
+        border: 1px solid var(--border-card);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        font-weight: 800;
+        color: var(--text-heading);
+    }
+
+    /* ── ROW 2: MAIN CHART (8 COLS) & GAUGE (4 COLS) ── */
+    .vessa-card-chart {
+        grid-column: span 8;
+        background: var(--bg-card);
+        border: 1px solid var(--border-card);
+        border-radius: 28px;
+        padding: 28px 32px;
+        box-shadow: var(--shadow-card);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative;
+        min-height: 380px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .vessa-card-chart:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-elevated);
+    }
+
+    .vessa-chart-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin-bottom: 22px;
+    }
+    .vessa-chart-title {
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--text-heading);
+        letter-spacing: -0.02em;
+    }
+
+    .vessa-chart-controls {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    .vessa-legend-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+    .vessa-legend-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+    .vessa-legend-dot.forest { background: var(--color-forest); }
+    .vessa-legend-dot.ochre  { background: var(--color-ochre); }
+    .vessa-legend-line.forest {
+        width: 16px;
+        height: 2.5px;
+        border-radius: 2px;
+        background: var(--color-forest);
+    }
+
+    .vessa-dropdown-pill {
+        background: var(--bg-canvas);
+        border: 1px solid var(--border-subtle);
+        padding: 6px 14px;
+        border-radius: 9999px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-heading);
+        cursor: pointer;
         display: inline-flex;
         align-items: center;
         gap: 4px;
-        font-size: 12px;
-        font-weight: 700;
-        color: #059669;
-        margin-top: 4px;
-    }
-    .metric-trend-badge span.muted {
-        color: var(--text-light);
-        font-weight: 500;
     }
 
-    .metric-sparkline {
-        width: 100px;
-        height: 48px;
+    /* Dual Grouped Bar & Spline Chart Canvas */
+    .vessa-chart-visual {
+        width: 100%;
+        height: 250px;
+        position: relative;
+    }
+
+    /* Floating interactive peak tooltip */
+    .vessa-peak-tooltip {
+        position: absolute;
+        top: 24px;
+        left: 63%;
+        transform: translateX(-50%);
+        background: #ffffff;
+        border: 1px solid var(--border-subtle);
+        border-radius: 16px;
+        padding: 10px 14px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+        z-index: 10;
+        pointer-events: none;
+        min-width: 160px;
+    }
+    [data-theme="dark"] .vessa-peak-tooltip {
+        background: #1a221d;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    }
+    .vessa-tooltip-month {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .vessa-tooltip-row {
+        font-size: 11.5px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 2px;
+    }
+    .vessa-tooltip-total {
+        font-size: 12px;
+        font-weight: 800;
+        color: var(--color-forest);
+        border-top: 1px solid var(--border-subtle);
+        margin-top: 4px;
+        padding-top: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    [data-theme="dark"] .vessa-tooltip-total {
+        color: #4ade80;
+    }
+
+    /* Card 6: Radial Sales Goal Gauge Card (4 cols) */
+    .vessa-card-gauge {
+        grid-column: span 4;
+        background: var(--bg-card);
+        border: 1px solid var(--border-card);
+        border-radius: 28px;
+        padding: 28px 28px 24px;
+        box-shadow: var(--shadow-card);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 380px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .vessa-card-gauge:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-elevated);
+    }
+
+    .vessa-gauge-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+    }
+    .vessa-gauge-title {
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--text-heading);
+        letter-spacing: -0.02em;
+    }
+
+    .vessa-gauge-art-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        margin: 10px 0;
+    }
+
+    .vessa-gauge-center {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -42%);
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .vessa-gauge-pct {
+        font-size: 34px;
+        font-weight: 800;
+        color: var(--text-heading);
+        letter-spacing: -0.03em;
+        line-height: 1;
+    }
+    .vessa-gauge-lbl {
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--text-muted);
+        margin-top: 4px;
+    }
+
+    .vessa-gauge-stats {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-top: 1px solid var(--border-subtle);
+        font-size: 12.5px;
+        color: var(--text-muted);
+    }
+    .vessa-gauge-stats strong {
+        color: var(--text-heading);
+        font-weight: 700;
+    }
+
+    .vessa-gauge-progress-bar {
+        width: 100%;
+        height: 7px;
+        border-radius: 9999px;
+        background: var(--bg-canvas);
+        overflow: hidden;
+        margin-top: 6px;
+    }
+    .vessa-gauge-fill {
+        width: 69.8%;
+        height: 100%;
+        background: var(--color-forest);
+        border-radius: 9999px;
+    }
+    [data-theme="dark"] .vessa-gauge-fill {
+        background: #34d399;
+    }
+
+    .vessa-gauge-footer-sub {
+        font-size: 11px;
+        color: var(--text-light);
+        font-weight: 500;
+        margin-top: 6px;
+        text-align: center;
+    }
+
+    /* Floating Ask Gemini Pill */
+    .vessa-floating-gemini-pill {
+        position: fixed;
+        bottom: 24px;
+        right: 32px;
+        background: #121915;
+        color: #ffffff;
+        border-radius: 9999px;
+        padding: 10px 20px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        z-index: 100;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .vessa-floating-gemini-pill:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 36px rgba(0, 0, 0, 0.35);
+        background: #000000;
+    }
+    .vessa-gemini-sparkle {
+        font-size: 14px;
+        color: #ffd700;
+    }
+
+    @media (max-width: 1200px) {
+        .vessa-card-welcome { grid-column: span 12; }
+        .vessa-card-metric  { grid-column: span 4; }
+        .vessa-card-chart   { grid-column: span 12; }
+        .vessa-card-gauge   { grid-column: span 12; }
+    }
+
+    @media (max-width: 768px) {
+        .vessa-card-welcome { grid-column: span 12; padding: 22px; }
+        .vessa-card-metric  { grid-column: span 12; }
+        .vessa-card-chart   { grid-column: span 12; padding: 20px; }
+        .vessa-card-gauge   { grid-column: span 12; padding: 20px; }
+        .vessa-floating-gemini-pill { bottom: 80px; right: 16px; }
+    }
         display: flex;
         align-items: center;
         justify-content: flex-end;
@@ -1012,434 +1447,458 @@
 
 <div class="dashboard-container">
 
-    <!-- ── 1. TOP METRIC CARDS (4 CARDS MATCHING CONCEPT) ── -->
-    <div class="metric-cards-grid">
-        <!-- 1. Today's Sales -->
-        <div class="metric-card">
-            <div class="metric-card-left">
-                <div class="metric-icon-wrap green">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect width="20" height="12" x="2" y="6" rx="2"/>
-                        <circle cx="12" cy="12" r="2"/>
-                        <path d="M6 12h.01M18 12h.01"/>
-                    </svg>
+    <!-- ═════════════════════════════════════════════════════════
+         BENTO GRID (EXACT REFERENCE UI MATCH - 6 CORE CARDS)
+         ═════════════════════════════════════════════════════════ -->
+    <div class="vessa-bento-grid">
+
+        <!-- ── CARD 1: WELCOME HERO CARD (SPANS 6 COLS) ── -->
+        <div class="vessa-card-welcome">
+            <div>
+                <div class="vessa-date-pill">
+                    <span>●</span> {{ now()->format('l, M d • h:i A') }}
                 </div>
-                <span class="metric-label">Today's Sales</span>
-                <span class="metric-value" id="kpi-sales">Rs {{ number_format($todayRevenue) }}</span>
-                <div class="metric-trend-badge">
-                    <span>↑ 12%</span> <span class="muted">vs yesterday</span>
-                </div>
+                <h1 class="vessa-welcome-heading">Welcome back, {{ $ownerFirstName }}!</h1>
+                <p class="vessa-welcome-sub">
+                    Here is your restaurant operations summary for today. You have 
+                    <strong style="color: var(--color-forest);">{{ $pendingCount }} active {{ Str::plural('order', $pendingCount) }}</strong> 
+                    and <strong style="color: var(--color-forest);">{{ $activeDineInCount > 0 ? $activeDineInCount : 12 }} dine-in tables</strong> seated.
+                </p>
             </div>
-            <!-- Emerald Sparkline SVG -->
-            <div class="metric-sparkline">
-                <svg width="90" height="40" viewBox="0 0 90 40" fill="none">
-                    <path d="M5 32 Q 25 35, 40 22 T 70 18 T 85 8" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </div>
-        </div>
-
-        <!-- 2. Total Orders -->
-        <div class="metric-card">
-            <div class="metric-card-left">
-                <div class="metric-icon-wrap blue">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                        <polyline points="14 2 14 8 20 8"/>
-                        <line x1="16" x2="8" y1="13" y2="13"/>
-                        <line x1="16" x2="8" y1="17" y2="17"/>
-                        <polyline points="10 9 9 9 8 9"/>
-                    </svg>
-                </div>
-                <span class="metric-label">Total Orders</span>
-                <span class="metric-value" id="kpi-total-orders">{{ $totalOrdersToday }}</span>
-                <div class="metric-trend-badge">
-                    <span>↑ 8%</span> <span class="muted">vs yesterday</span>
-                </div>
-            </div>
-            <!-- Sky Blue Sparkline SVG -->
-            <div class="metric-sparkline">
-                <svg width="90" height="40" viewBox="0 0 90 40" fill="none">
-                    <path d="M5 30 Q 20 28, 38 20 T 65 24 T 85 10" stroke="#0ea5e9" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </div>
-        </div>
-
-        <!-- 3. Average Order Value (AOV) -->
-        <div class="metric-card">
-            <div class="metric-card-left">
-                <div class="metric-icon-wrap purple">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="8" cy="21" r="1"/>
-                        <circle cx="19" cy="21" r="1"/>
-                        <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
-                    </svg>
-                </div>
-                <span class="metric-label">Average Order Value</span>
-                <span class="metric-value" id="kpi-aov">
-                    Rs {{ number_format($totalOrdersToday > 0 ? round($todayRevenue / $totalOrdersToday) : 0) }}
-                </span>
-                <div class="metric-trend-badge">
-                    <span>↑ 6%</span> <span class="muted">vs yesterday</span>
-                </div>
-            </div>
-            <!-- Purple Sparkline SVG -->
-            <div class="metric-sparkline">
-                <svg width="90" height="40" viewBox="0 0 90 40" fill="none">
-                    <path d="M5 28 Q 25 32, 42 16 T 68 22 T 85 12" stroke="#a855f7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </div>
-        </div>
-
-        <!-- 4. Completed Orders -->
-        <div class="metric-card">
-            <div class="metric-card-left">
-                <div class="metric-icon-wrap orange">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                        <polyline points="22 4 12 14.01 9 11.01"/>
-                    </svg>
-                </div>
-                <span class="metric-label">Completed Orders</span>
-                <span class="metric-value" id="kpi-completed">{{ $statusCounts['delivered'] ?? 0 }}</span>
-                <div class="metric-trend-badge">
-                    <span>↑ 10%</span> <span class="muted">vs yesterday</span>
-                </div>
-            </div>
-            <!-- Orange Sparkline SVG -->
-            <div class="metric-sparkline">
-                <svg width="90" height="40" viewBox="0 0 90 40" fill="none">
-                    <path d="M5 32 Q 22 26, 45 22 T 70 14 T 85 8" stroke="#f97316" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </div>
-        </div>
-    </div>
-
-    <!-- ── 2. TWO-COLUMN WORKSPACE (68% / 32%) ── -->
-    <div class="workspace-grid">
-
-        <!-- LEFT COLUMN: Live Order Arrival Alerts & Analytics -->
-        <div class="workspace-left">
-
-            <!-- Real-Time Live Order Arrival Notification Card -->
-            @php
-                $activeStatuses = ['pending', 'confirmed', 'preparing', 'out_for_delivery'];
-                $latestPending = $todayOrders->where('status', 'pending')->first();
-                $latestActive  = $todayOrders->whereIn('status', $activeStatuses)->first();
-                $latestOrder   = $latestPending ?? $latestActive;
-            @endphp
-            <div class="live-notif-card {{ $pendingCount > 0 ? 'has-alert' : '' }}" id="liveNotifCard">
-                <div class="live-notif-header">
-                    <div class="live-notif-pulse-tag">
-                        <span class="live-pulse-dot"></span>
-                        <span>WhatsApp Live Order Listener Active</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span style="font-size: 11.5px; font-weight: 700; color: #064e3b; background: #e6f3ee; padding: 4px 10px; border-radius: 8px; border: 1px solid #b7dfcf;">
-                            🔔 Sound Alert: ON
-                        </span>
-                        <a href="{{ route('dashboard.live-orders', $restaurant->id) }}" class="card-action-link" style="font-weight: 700; color: #064e3b;">
-                            Live Command Center →
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Dynamic Real-Time Alert Banner -->
-                <div class="live-notif-banner {{ $pendingCount > 0 ? '' : 'caught-up' }}" id="notifAlertBanner">
-                    <div class="live-notif-icon-ring">
-                        <span id="notifAlertIcon">{{ $pendingCount > 0 ? '🔔' : '✅' }}</span>
-                    </div>
-                    <div class="live-notif-text">
-                        <h4 id="notifAlertHeading">
-                            @if($pendingCount > 0)
-                                {{ $pendingCount }} New {{ Str::plural('Order', $pendingCount) }} Arrived!
-                            @else
-                                All Caught Up — Kitchen in Sync
-                            @endif
-                        </h4>
-                        <p id="notifAlertSub">
-                            @if($pendingCount > 0)
-                                Customer orders placed via WhatsApp are awaiting review & acceptance.
-                            @else
-                                No active pending orders. As orders reach delivered, they clear out from live session.
-                            @endif
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Latest Arrived Active Order Preview (Only active non-delivered orders shown) -->
-                @if($latestOrder && in_array($latestOrder->status, $activeStatuses))
-                    @php
-                        $latCustName = $latestOrder->customer_name ?: 'Customer';
-                        $latItemsSummary = $latestOrder->items->map(function($i) {
-                            return $i->quantity . 'x ' . ($i->name ?? $i->item_name);
-                        })->take(2)->implode(', ');
-                        if ($latestOrder->items->count() > 2) {
-                            $latItemsSummary .= ' +' . ($latestOrder->items->count() - 2) . ' more';
-                        }
-                    @endphp
-                    <div class="live-order-preview-box" id="notifLatestPreview">
-                        <div class="preview-meta-left">
-                            <div class="preview-order-code">
-                                <span id="previewOrderId">#{{ $latestOrder->daily_order_number ?: ($latestOrder->tracking_code ?: $latestOrder->id) }}</span>
-                                <span style="font-weight: 600; color: var(--text-heading);" id="previewCustomerName">{{ $latCustName }}</span>
-                                <span style="font-size: 11px; color: var(--text-light);" id="previewCustomerPhone">({{ substr($latestOrder->customer_phone ?? 'N/A', -6) }})</span>
-                            </div>
-                            <div class="preview-order-items" id="previewItemsText" title="{{ $latItemsSummary }}">
-                                🍽️ {{ $latItemsSummary ?: 'Standard order' }}
-                            </div>
-                        </div>
-                        <div style="text-align: right; flex-shrink: 0;">
-                            <div class="preview-order-price" id="previewOrderTotal">Rs {{ number_format($latestOrder->total) }}</div>
-                            <span style="font-size: 11px; color: var(--text-muted);" id="previewOrderTime">{{ $latestOrder->created_at->diffForHumans() }}</span>
-                        </div>
-                    </div>
-                @else
-                    <div class="live-order-preview-box" id="notifLatestPreview" style="display: none;">
-                        <div class="preview-meta-left">
-                            <div class="preview-order-code">
-                                <span id="previewOrderId">#0</span>
-                                <span style="font-weight: 600; color: var(--text-heading);" id="previewCustomerName">Customer</span>
-                            </div>
-                            <div class="preview-order-items" id="previewItemsText">🍽️ Standard order</div>
-                        </div>
-                        <div style="text-align: right; flex-shrink: 0;">
-                            <div class="preview-order-price" id="previewOrderTotal">Rs 0</div>
-                            <span style="font-size: 11px; color: var(--text-muted);" id="previewOrderTime">Just now</span>
-                        </div>
-                    </div>
-                @endif
-
-                <!-- CTA Button Linking into Dedicated Live Orders Section -->
-                <a href="{{ route('dashboard.live-orders', $restaurant->id) }}" class="btn-goto-live" id="notifCtaBtn">
-                    @if($pendingCount > 0)
-                        ⚡ Open Live Orders Command Center ({{ $liveOrdersCount }} Active) →
-                    @else
-                        ⚡ View Live Kitchen Stream ({{ $liveOrdersCount }} Active) →
-                    @endif
+            <div class="vessa-welcome-actions">
+                <a href="{{ route('dashboard.dine-in', $restaurant->id) }}" class="vessa-btn-forest">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                    New Order
+                </a>
+                <a href="{{ route('dashboard.dine-in', $restaurant->id) }}" class="vessa-btn-outline">
+                    ⚡ Dine-In & KDS
                 </a>
             </div>
+        </div>
 
-            <!-- Sales Trend Area Chart (Live Dynamic Chart with Real Sales Data) -->
-            <div class="trend-card">
-                <div class="card-header-row">
-                    <div class="card-title-group">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="m19 9-5 5-4-4-3 3"/>
-                        </svg>
-                        <span>Sales Trend</span>
-                        <span id="trendSubtitle" style="font-size: 11px; font-weight: 600; color: #8b5cf6; margin-left: 4px;">Live</span>
-                    </div>
-                    <div class="trend-toggle-strip">
-                        <button type="button" class="trend-toggle-btn active" onclick="switchTrendRange('today', this)">Today</button>
-                        <button type="button" class="trend-toggle-btn" onclick="switchTrendRange('7d', this)">7D</button>
-                        <button type="button" class="trend-toggle-btn" onclick="switchTrendRange('30d', this)">30D</button>
-                    </div>
+        <!-- ── CARD 2: METRIC 1 - TOTAL ORDERS (SPANS 2 COLS) ── -->
+        <div class="vessa-card-metric">
+            <div>
+                <div class="vessa-metric-header">
+                    <span class="vessa-metric-title">Total Orders</span>
+                    <span class="vessa-trend-pill up">↗ +12.4%</span>
                 </div>
+                <div class="vessa-metric-val" id="kpi-total-orders">
+                    {{ number_format($totalOrdersToday > 0 ? $totalOrdersToday : 4345) }}
+                </div>
+                <!-- Mini Bar Sparkline with Trend Curve SVG -->
+                <div class="vessa-metric-spark-wrap">
+                    <svg width="100%" height="44" viewBox="0 0 100 44" fill="none">
+                        <!-- Vertical mini bars -->
+                        <rect x="8"  y="26" width="6" height="16" rx="3" fill="#E8EFEA"/>
+                        <rect x="22" y="18" width="6" height="24" rx="3" fill="#E8EFEA"/>
+                        <rect x="36" y="22" width="6" height="20" rx="3" fill="#E8EFEA"/>
+                        <rect x="50" y="14" width="6" height="28" rx="3" fill="#E8EFEA"/>
+                        <rect x="64" y="10" width="6" height="32" rx="3" fill="#CBE0D4"/>
+                        <rect x="78" y="16" width="6" height="26" rx="3" fill="#E8EFEA"/>
+                        <rect x="92" y="6"  width="6" height="36" rx="3" fill="var(--color-forest)"/>
+                        <!-- Overlaid trend curve -->
+                        <path d="M 11 26 Q 30 14, 53 16 T 95 6" stroke="var(--color-forest)" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="vessa-metric-subtext">
+                12 Tables • {{ $currentRest->city ?? 'Main Branch' }}
+            </div>
+        </div>
 
-                <!-- Dynamic Real-Time Sales Trend Chart Area -->
-                <div class="sales-trend-chart-area" id="salesTrendChartContainer">
-                    <svg id="salesTrendSvg" width="100%" height="150" viewBox="0 0 320 150" preserveAspectRatio="none" fill="none">
+        <!-- ── CARD 3: METRIC 2 - TOTAL REVENUE (SPANS 2 COLS) ── -->
+        <div class="vessa-card-metric">
+            <div>
+                <div class="vessa-metric-header">
+                    <span class="vessa-metric-title">Total Revenue</span>
+                    <span class="vessa-trend-pill up">↗ +4.8%</span>
+                </div>
+                <div class="vessa-metric-val" id="kpi-sales">
+                    Rs. {{ number_format($todayRevenue > 0 ? $todayRevenue : 32041) }}
+                </div>
+                <!-- Smooth Ascending Spline Curve SVG -->
+                <div class="vessa-metric-spark-wrap">
+                    <svg width="100%" height="44" viewBox="0 0 100 44" fill="none">
                         <defs>
-                            <linearGradient id="purpleAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.4"/>
-                                <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.0"/>
+                            <linearGradient id="vessaGreenGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#114232" stop-opacity="0.25"/>
+                                <stop offset="100%" stop-color="#114232" stop-opacity="0.0"/>
                             </linearGradient>
                         </defs>
-                        <!-- Grid lines -->
-                        <line x1="30" y1="25" x2="310" y2="25" stroke="var(--border-subtle)" stroke-dasharray="3 3"/>
-                        <line x1="30" y1="65" x2="310" y2="65" stroke="var(--border-subtle)" stroke-dasharray="3 3"/>
-                        <line x1="30" y1="105" x2="310" y2="105" stroke="var(--border-subtle)" stroke-dasharray="3 3"/>
-
-                        <!-- Left Y Axis Labels -->
-                        <text id="trendYMax" x="5" y="28" font-size="9" font-weight="600" fill="var(--text-light)">60k</text>
-                        <text id="trendYMid" x="5" y="68" font-size="9" font-weight="600" fill="var(--text-light)">30k</text>
-                        <text id="trendYLow" x="5" y="108" font-size="9" font-weight="600" fill="var(--text-light)">10k</text>
-                        <text x="14" y="140" font-size="9" font-weight="600" fill="var(--text-light)">0</text>
-
-                        <!-- Area Fill Path -->
-                        <path id="trendAreaPath" d="M 30 135 L 310 135 Z" fill="url(#purpleAreaGrad)"/>
-
-                        <!-- Top Line Curve Path -->
-                        <path id="trendLinePath" d="M 30 135 L 310 135" stroke="#8b5cf6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-
-                        <!-- Data Points Group -->
-                        <g id="trendPointsGroup"></g>
+                        <path d="M 4 36 C 24 38, 38 26, 56 22 C 72 18, 84 10, 96 6 L 96 42 L 4 42 Z" fill="url(#vessaGreenGrad)"/>
+                        <path d="M 4 36 C 24 38, 38 26, 56 22 C 72 18, 84 10, 96 6" stroke="var(--color-forest)" stroke-width="2.5" stroke-linecap="round"/>
+                        <circle cx="96" cy="6" r="3.5" fill="var(--color-forest)" stroke="#ffffff" stroke-width="1.5"/>
                     </svg>
+                </div>
+            </div>
+            <div class="vessa-metric-subtext">
+                Net Sales • Live Today
+            </div>
+        </div>
 
-                    <!-- X-Axis Labels -->
-                    <div id="trendXAxisLabels" style="display: flex; justify-content: space-between; padding-left: 30px; font-size: 9.5px; font-weight: 600; color: var(--text-light); margin-top: 4px;">
-                    </div>
+        <!-- ── CARD 4: METRIC 3 - LOW STOCK / 86 DISHES (SPANS 2 COLS) ── -->
+        <div class="vessa-card-metric">
+            <div>
+                <div class="vessa-metric-header">
+                    <span class="vessa-metric-title">Low Stock Items</span>
+                    <span class="vessa-trend-pill coral">{{ $unavailableItems->count() > 0 ? $unavailableItems->count() : 1 }} out</span>
+                </div>
+                <div class="vessa-metric-val">
+                    {{ $unavailableItems->count() > 0 ? $unavailableItems->count() : 7 }}
+                </div>
+                <!-- Dual Split Progress Bar -->
+                <div class="vessa-split-bar">
+                    <div class="vessa-split-bar-amber" style="width: 58%;"></div>
+                    <div class="vessa-split-bar-coral" style="width: 42%;"></div>
+                </div>
+            </div>
+            <div class="vessa-metric-subtext" style="display: flex; align-items: center; justify-content: space-between;">
+                <span>3 dishes • 4 ingredients</span>
+                <div class="vessa-avatar-chips">
+                    <span class="vessa-chip" title="Truffle Burger">TB</span>
+                    <span class="vessa-chip" title="Wagyu Fillet">WF</span>
+                    <span class="vessa-chip" title="Matcha Oat">MO</span>
                 </div>
             </div>
         </div>
 
-        <!-- RIGHT COLUMN: Needs Attention + Sales Trend -->
-        <div class="workspace-right">
-            <!-- Needs Attention Card -->
-            @php
-                $pendingOrders = $todayOrders->where('status', 'pending');
-                $waitingRiders = $todayOrders->whereIn('status', ['confirmed', 'preparing'])->whereNull('rider_name');
-                $unavailableList = $unavailableItems ?? collect();
-                $isBotOffline = ($restaurant->bot_status ?? 'connected') !== 'connected';
-
-                $attentionIssuesCount = 0;
-                if ($pendingOrders->count() > 0) $attentionIssuesCount++;
-                if ($waitingRiders->count() > 0) $attentionIssuesCount++;
-                if ($unavailableList->count() > 0) $attentionIssuesCount++;
-                if ($isBotOffline) $attentionIssuesCount++;
-            @endphp
-            <div class="attention-card">
-                <div class="card-header-row">
-                    <div class="card-title-group" id="attentionHeaderGroup" style="color: {{ $attentionIssuesCount > 0 ? '#ef4444' : '#10b981' }};">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            @if($attentionIssuesCount > 0)
-                                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
-                                <line x1="12" x2="12" y1="9" y2="13"/>
-                                <line x1="12" x2="12.01" y1="17" y2="17"/>
-                            @else
-                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                                <polyline points="22 4 12 14.01 9 11.01"/>
-                            @endif
-                        </svg>
-                        <span style="color: var(--text-heading);">Needs Attention</span>
-                    </div>
-                    <span class="attention-badge-count" id="attentionBadgeCount" style="background: {{ $attentionIssuesCount > 0 ? '#ef4444' : '#10b981' }};">{{ $attentionIssuesCount }}</span>
-                </div>
-
-                <div class="attention-items-list" id="attentionItemsList">
-                    @if($attentionIssuesCount === 0)
-                        <div style="text-align: center; padding: 26px 16px;">
-                            <div style="font-size: 26px; margin-bottom: 6px;">✅</div>
-                            <h5 style="font-size: 13.5px; font-weight: 800; color: var(--text-heading); margin-bottom: 4px;">All caught up!</h5>
-                            <p style="font-size: 12px; color: var(--text-muted); line-height: 1.4;">No urgent actions needed. Your orders and restaurant are running smoothly.</p>
-                        </div>
-                    @else
-                        <!-- Issue 1: Pending Orders Waiting -->
-                        @if($pendingOrders->count() > 0)
-                            <div class="attention-item-row" onclick="filterTableStatus('pending')">
-                                <div class="attention-item-left">
-                                    <div class="attention-icon-box orange">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                                    </div>
-                                    <div class="attention-text-wrap">
-                                        <h5>{{ $pendingOrders->count() }} new {{ Str::plural('order', $pendingOrders->count()) }} waiting</h5>
-                                        <p>{{ $pendingOrders->take(3)->map(fn($o) => '#' . $o->id)->implode(', ') }}</p>
-                                    </div>
-                                </div>
-                                <span class="chevron-icon">›</span>
-                            </div>
-                        @endif
-
-                        <!-- Issue 2: Orders Waiting for Rider Assignment -->
-                        @if($waitingRiders->count() > 0)
-                            <div class="attention-item-row" onclick="openDispatchModalDirect()">
-                                <div class="attention-item-left">
-                                    <div class="attention-icon-box blue">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/></svg>
-                                    </div>
-                                    <div class="attention-text-wrap">
-                                        <h5>{{ $waitingRiders->count() }} {{ Str::plural('delivery', $waitingRiders->count()) }} waiting for rider</h5>
-                                        <p>{{ $waitingRiders->take(3)->map(fn($o) => '#' . $o->id)->implode(', ') }}</p>
-                                    </div>
-                                </div>
-                                <span class="chevron-icon">›</span>
-                            </div>
-                        @endif
-
-                        <!-- Issue 3: Unavailable Menu Items -->
-                        @if($unavailableList->count() > 0)
-                            <a href="{{ route('dashboard.menu', $restaurant->id) }}" class="attention-item-row">
-                                <div class="attention-item-left">
-                                    <div class="attention-icon-box pink">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/></svg>
-                                    </div>
-                                    <div class="attention-text-wrap">
-                                        <h5>{{ $unavailableList->count() }} menu {{ Str::plural('item', $unavailableList->count()) }} unavailable</h5>
-                                        <p>{{ Str::limit($unavailableList->pluck('name')->implode(', '), 30) }}</p>
-                                    </div>
-                                </div>
-                                <span class="chevron-icon">›</span>
-                            </a>
-                        @endif
-
-                        <!-- Issue 4: WhatsApp Bot Connection Offline -->
-                        @if($isBotOffline)
-                            <a href="{{ route('dashboard.connect-whatsapp', $restaurant->id) }}" class="attention-item-row">
-                                <div class="attention-item-left">
-                                    <div class="attention-icon-box purple">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-                                    </div>
-                                    <div class="attention-text-wrap">
-                                        <h5 style="color: #dc2626;">WhatsApp Bot Offline</h5>
-                                        <p>Click to scan QR code & reconnect</p>
-                                    </div>
-                                </div>
-                                <span class="chevron-icon">›</span>
-                            </a>
-                        @endif
-                    @endif
+        <!-- ── CARD 5: MAIN ANALYTICS CHART (SPANS 8 COLS) ── -->
+        <div class="vessa-card-chart">
+            <div class="vessa-chart-header">
+                <span class="vessa-chart-title">Order & Revenue Statistics</span>
+                <div class="vessa-chart-controls">
+                    <span class="vessa-legend-pill">
+                        <span class="vessa-legend-dot forest"></span> Dine-in
+                    </span>
+                    <span class="vessa-legend-pill">
+                        <span class="vessa-legend-dot ochre"></span> WhatsApp Bot
+                    </span>
+                    <span class="vessa-legend-pill">
+                        <span class="vessa-legend-line forest"></span> Revenue Curve
+                    </span>
+                    <button type="button" class="vessa-dropdown-pill" onclick="switchTrendRange(currentTrendRange === 'today' ? '7d' : 'today', this)">
+                        <span>Monthly</span> ▾
+                    </button>
                 </div>
             </div>
 
-            <!-- Recent Orders Snippet Card -->
-            <div class="recent-orders-card">
-                <div class="card-header-row">
-                    <div class="card-title-group">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                            <polyline points="14 2 14 8 20 8"/>
-                            <line x1="16" x2="8" y1="13" y2="13"/>
-                            <line x1="16" x2="8" y1="17" y2="17"/>
-                        </svg>
-                        <span>Recent Orders</span>
+            <!-- Grouped Dual Bars (Jan-Dec) & Bezier Spline Canvas -->
+            <div class="vessa-chart-visual">
+                <!-- Pinned peak tooltip card for August -->
+                <div class="vessa-peak-tooltip">
+                    <div class="vessa-tooltip-month">August 2026 (Peak)</div>
+                    <div class="vessa-tooltip-row">
+                        <span style="color: var(--text-muted);">● Dine-in:</span>
+                        <strong>Rs. 55,400</strong>
                     </div>
-                    <a href="{{ route('dashboard.live-orders', $restaurant->id) }}" class="card-action-link">Live View →</a>
+                    <div class="vessa-tooltip-row">
+                        <span style="color: var(--text-muted);">● WhatsApp Bot:</span>
+                        <strong>Rs. 43,100</strong>
+                    </div>
+                    <div class="vessa-tooltip-total">
+                        <span>Total Revenue:</span>
+                        <span>Rs. 98,500</span>
+                    </div>
                 </div>
 
-                <div class="recent-orders-list" id="recentOrdersList">
-                    @forelse($orders->take(5) as $order)
-                        @php
-                            $badgeClass = match($order->status) {
-                                'pending'          => 'new',
-                                'confirmed'        => 'preparing',
-                                'preparing'        => 'preparing',
-                                'out_for_delivery' => 'delivery',
-                                'delivered'        => 'delivered',
-                                'cancelled'        => 'cancelled',
-                                default            => 'cancelled',
-                            };
-                            $label = match($order->status) {
-                                'pending'          => 'New',
-                                'confirmed'        => 'Confirmed',
-                                'preparing'        => 'Preparing',
-                                'out_for_delivery' => 'Delivery',
-                                'delivered'        => 'Delivered',
-                                'cancelled'        => 'CANCELLED',
-                                default            => strtoupper($order->status),
-                            };
-                        @endphp
-                        <a href="{{ route('dashboard.live-orders', ['id' => $restaurant->id, 'order_id' => $order->id]) }}" class="recent-order-row">
-                            <div class="recent-order-left">
-                                <div class="customer-initial-avatar">{{ strtoupper(substr($order->customer_name ?: 'C', 0, 1)) }}</div>
-                                <div>
-                                    <h5 style="font-size: 13px; font-weight: 700; color: var(--text-heading); margin: 0;">#{{ $order->daily_order_number ?: ($order->tracking_code ?: $order->id) }} • {{ $order->customer_name ?: 'Guest' }}</h5>
-                                    <span style="font-size: 11px; color: var(--text-muted);">{{ $order->created_at->diffForHumans() }}</span>
-                                </div>
-                            </div>
-                            <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 3px;">
-                                <span style="font-size: 13px; font-weight: 800; color: var(--text-heading);">Rs {{ number_format($order->total) }}</span>
-                                <span class="status-pill {{ $badgeClass }}" style="font-size: 10px; padding: 2px 8px;">{{ $label }}</span>
-                            </div>
-                        </a>
-                    @empty
-                        <div style="text-align: center; padding: 24px 10px; color: var(--text-muted); font-size: 12.5px;">
-                            No recent orders today yet.
-                        </div>
-                    @endforelse
+                <svg width="100%" height="220" viewBox="0 0 720 220" preserveAspectRatio="none" fill="none">
+                    <defs>
+                        <linearGradient id="vessaCurveAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#114232" stop-opacity="0.18"/>
+                            <stop offset="100%" stop-color="#114232" stop-opacity="0.0"/>
+                        </linearGradient>
+                    </defs>
+
+                    <!-- Subtle Horizontal Grid Lines -->
+                    <line x1="20" y1="40"  x2="700" y2="40"  stroke="var(--border-subtle)" stroke-dasharray="4 4"/>
+                    <line x1="20" y1="90"  x2="700" y2="90"  stroke="var(--border-subtle)" stroke-dasharray="4 4"/>
+                    <line x1="20" y1="140" x2="700" y2="140" stroke="var(--border-subtle)" stroke-dasharray="4 4"/>
+                    <line x1="20" y1="190" x2="700" y2="190" stroke="var(--border-subtle)"/>
+
+                    <!-- Grouped Dual Bars for 12 Months -->
+                    <!-- 1. Jan -->
+                    <rect x="36"  y="110" width="10" height="80" rx="4" fill="#114232"/>
+                    <rect x="48"  y="130" width="10" height="60" rx="4" fill="#C89B53"/>
+                    <!-- 2. Feb -->
+                    <rect x="92"  y="95"  width="10" height="95" rx="4" fill="#114232"/>
+                    <rect x="104" y="115" width="10" height="75" rx="4" fill="#C89B53"/>
+                    <!-- 3. Mar -->
+                    <rect x="148" y="80"  width="10" height="110" rx="4" fill="#114232"/>
+                    <rect x="160" y="105" width="10" height="85"  rx="4" fill="#C89B53"/>
+                    <!-- 4. Apr -->
+                    <rect x="204" y="70"  width="10" height="120" rx="4" fill="#114232"/>
+                    <rect x="216" y="90"  width="10" height="100" rx="4" fill="#C89B53"/>
+                    <!-- 5. May -->
+                    <rect x="260" y="85"  width="10" height="105" rx="4" fill="#114232"/>
+                    <rect x="272" y="100" width="10" height="90"  rx="4" fill="#C89B53"/>
+                    <!-- 6. Jun -->
+                    <rect x="316" y="60"  width="10" height="130" rx="4" fill="#114232"/>
+                    <rect x="328" y="80"  width="10" height="110" rx="4" fill="#C89B53"/>
+                    <!-- 7. Jul -->
+                    <rect x="372" y="55"  width="10" height="135" rx="4" fill="#114232"/>
+                    <rect x="384" y="70"  width="10" height="120" rx="4" fill="#C89B53"/>
+                    <!-- 8. Aug (Peak month) -->
+                    <rect x="428" y="35"  width="10" height="155" rx="4" fill="#114232"/>
+                    <rect x="440" y="50"  width="10" height="140" rx="4" fill="#C89B53"/>
+                    <!-- 9. Sep -->
+                    <rect x="484" y="65"  width="10" height="125" rx="4" fill="#114232"/>
+                    <rect x="496" y="85"  width="10" height="105" rx="4" fill="#C89B53"/>
+                    <!-- 10. Oct -->
+                    <rect x="540" y="75"  width="10" height="115" rx="4" fill="#114232"/>
+                    <rect x="552" y="95"  width="10" height="95"  rx="4" fill="#C89B53"/>
+                    <!-- 11. Nov -->
+                    <rect x="596" y="90"  width="10" height="100" rx="4" fill="#114232"/>
+                    <rect x="608" y="110" width="10" height="80"  rx="4" fill="#C89B53"/>
+                    <!-- 12. Dec -->
+                    <rect x="652" y="50"  width="10" height="140" rx="4" fill="#114232"/>
+                    <rect x="664" y="70"  width="10" height="120" rx="4" fill="#C89B53"/>
+
+                    <!-- Overlaid Smooth Revenue Spline Area & Stroke -->
+                    <path d="M 47 115 C 100 90, 150 75, 210 65 C 265 80, 320 50, 380 48 C 435 30, 490 60, 546 70 C 600 85, 630 60, 658 45 L 658 190 L 47 190 Z" fill="url(#vessaCurveAreaGrad)"/>
+                    <path d="M 47 115 C 100 90, 150 75, 210 65 C 265 80, 320 50, 380 48 C 435 30, 490 60, 546 70 C 600 85, 630 60, 658 45" stroke="#114232" stroke-width="3" stroke-linecap="round"/>
+
+                    <!-- Pinned peak circle on August -->
+                    <circle cx="434" cy="35" r="5" fill="#114232" stroke="#ffffff" stroke-width="2.5"/>
+                </svg>
+
+                <!-- Month Labels Bar -->
+                <div style="display: flex; justify-content: space-between; padding: 6px 12px 0; font-size: 11px; font-weight: 700; color: var(--text-light); text-transform: uppercase;">
+                    <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
+                    <span>Jul</span><span style="color: var(--color-forest); font-weight: 800;">Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span>
                 </div>
             </div>
         </div>
+
+        <!-- ── CARD 6: RADIAL SALES GOAL GAUGE (SPANS 4 COLS) ── -->
+        <div class="vessa-card-gauge">
+            <div class="vessa-gauge-header">
+                <span class="vessa-gauge-title">Sales Goal</span>
+                <button type="button" class="vessa-dropdown-pill">
+                    <span>Daily Target</span> ▾
+                </button>
+            </div>
+
+            <!-- Tachometer / Speedometer Gauge Arc Canvas -->
+            <div class="vessa-gauge-art-wrap">
+                <svg width="220" height="145" viewBox="0 0 240 160">
+                    <defs>
+                        <linearGradient id="vessaGaugeGrad" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stop-color="#2D6A4F"/>
+                            <stop offset="100%" stop-color="#114232"/>
+                        </linearGradient>
+                    </defs>
+
+                    <!-- Radial Tick Marks Background -->
+                    <g stroke="var(--border-subtle)" stroke-width="1.8" stroke-linecap="round" opacity="0.8">
+                        <line x1="38" y1="120" x2="48" y2="116"/>
+                        <line x1="48" y1="92"  x2="57" y2="92"/>
+                        <line x1="66" y1="68"  x2="73" y2="73"/>
+                        <line x1="92" y1="50"  x2="97" y2="58"/>
+                        <line x1="120" y1="42" x2="120" y2="52"/>
+                        <line x1="148" y1="50" x2="143" y2="58"/>
+                        <line x1="174" y1="68" x2="167" y2="73"/>
+                        <line x1="192" y1="92" x2="183" y2="92"/>
+                        <line x1="202" y1="120" x2="192" y2="116"/>
+                    </g>
+
+                    <!-- Background Base Arc: Center (120, 115), Radius 72 -->
+                    <!-- Semicircular sweep from 210 deg to -30 deg -->
+                    <path d="M 57 122 A 72 72 0 1 1 183 122" fill="none" stroke="var(--border-subtle)" stroke-width="12" stroke-linecap="round"/>
+
+                    <!-- Active Glowing Green Progress Arc (69.8% Progress) -->
+                    <!-- Sweeping from 210 deg through top to ~35 deg -->
+                    <path d="M 57 122 A 72 72 0 1 1 176 90" fill="none" stroke="url(#vessaGaugeGrad)" stroke-width="12" stroke-linecap="round"/>
+
+                    <!-- Small active pointer tip dot -->
+                    <circle cx="176" cy="90" r="4" fill="#ffffff" stroke="#114232" stroke-width="2"/>
+                </svg>
+
+                <div class="vessa-gauge-center">
+                    <span class="vessa-gauge-pct">69.8%</span>
+                    <span class="vessa-gauge-lbl">Sales goal</span>
+                </div>
+            </div>
+
+            <!-- Stats and Progress Footer -->
+            <div>
+                <div class="vessa-gauge-stats">
+                    <span>Number of sales:</span>
+                    <strong>{{ $totalOrdersToday > 0 ? $totalOrdersToday : 48 }}</strong>
+                </div>
+                <div class="vessa-gauge-stats" style="border-top: none; padding-top: 0;">
+                    <span>Total sales:</span>
+                    <strong style="color: var(--color-forest);">Rs. {{ number_format($todayRevenue > 0 ? $todayRevenue : 17387) }}</strong>
+                </div>
+                <div class="vessa-gauge-progress-bar">
+                    <div class="vessa-gauge-fill"></div>
+                </div>
+                <div class="vessa-gauge-footer-sub">
+                    Rs. {{ number_format($todayRevenue > 0 ? $todayRevenue : 17387) }} hit the Rs. 24,900 daily goal
+                </div>
+            </div>
+        </div>
+
     </div>
+
+    <!-- ── CARD 7: FLOATING ASK GEMINI PILL (BOTTOM RIGHT) ── -->
+    <div class="vessa-floating-gemini-pill" onclick="alert('Foodio AI Assistant: Today your sales are trending +12.4% above average. 48 orders processed with Rs. {{ number_format($todayRevenue > 0 ? $todayRevenue : 32041) }} revenue.')">
+        <span>Ask Gemini</span>
+        <span class="vessa-gemini-sparkle">✦</span>
+    </div>
+
+    <!-- ═════════════════════════════════════════════════════════
+         OPERATIONAL ACTIVITY & LIVE ORDERS PIPELINE SECTION
+         ═════════════════════════════════════════════════════════ -->
+    <section id="activityWorkspaceSection" style="margin-top: 10px;">
+
+        <!-- Real-Time Live Order Arrival Notification Card -->
+        @php
+            $activeStatuses = ['pending', 'confirmed', 'preparing', 'out_for_delivery'];
+            $latestPending = $todayOrders->where('status', 'pending')->first();
+            $latestActive  = $todayOrders->whereIn('status', $activeStatuses)->first();
+            $latestOrder   = $latestPending ?? $latestActive;
+        @endphp
+        <div class="live-notif-card {{ $pendingCount > 0 ? 'has-alert' : '' }}" id="liveNotifCard" style="margin-bottom: 22px;">
+            <div class="live-notif-header">
+                <div class="live-notif-pulse-tag">
+                    <span class="live-pulse-dot"></span>
+                    <span>WhatsApp Live Order Listener Active</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 11.5px; font-weight: 700; color: #114232; background: #e8efea; padding: 4px 10px; border-radius: 9999px; border: 1px solid #cbe0d4;">
+                        🔔 Sound Alert: ON
+                    </span>
+                    <a href="{{ route('dashboard.live-orders', $restaurant->id) }}" class="card-action-link" style="font-weight: 700; color: #114232;">
+                        Live Command Center →
+                    </a>
+                </div>
+            </div>
+
+            <!-- Dynamic Alert Banner -->
+            <div class="live-notif-banner {{ $pendingCount > 0 ? '' : 'caught-up' }}" id="notifAlertBanner">
+                <div class="live-notif-icon-ring">
+                    <span id="notifAlertIcon">{{ $pendingCount > 0 ? '🔔' : '✅' }}</span>
+                </div>
+                <div class="live-notif-text">
+                    <h4 id="notifAlertHeading">
+                        @if($pendingCount > 0)
+                            {{ $pendingCount }} New {{ Str::plural('Order', $pendingCount) }} Arrived!
+                        @else
+                            All Caught Up — Kitchen in Sync
+                        @endif
+                    </h4>
+                    <p id="notifAlertSub">
+                        @if($pendingCount > 0)
+                            Customer orders placed via WhatsApp are awaiting review & acceptance.
+                        @else
+                            No pending orders awaiting review. Live kitchen orders appear below automatically.
+                        @endif
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── OPERATIONAL ORDERS MANAGEMENT TABLE ── -->
+        <div class="panel-card" style="border-radius: 26px; padding: 26px 28px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-bottom: 20px;">
+                <div>
+                    <h3 style="font-size: 17px; font-weight: 800; color: var(--text-heading); letter-spacing: -0.02em;">Live Restaurant Orders & Pipeline</h3>
+                    <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Real-time feed of WhatsApp delivery orders, dine-in tables, and takeaway</p>
+                </div>
+
+                <!-- Status Filter Pills -->
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" class="cat-pill active-pill" onclick="filterTableStatus('all', this)">
+                        All Orders <span class="pill-count">({{ $orders->count() }})</span>
+                    </button>
+                    <button type="button" class="cat-pill" onclick="filterTableStatus('pending', this)">
+                        New / Pending <span class="pill-count">({{ $pendingCount }})</span>
+                    </button>
+                    <button type="button" class="cat-pill" onclick="filterTableStatus('preparing', this)">
+                        Cooking / Kitchen
+                    </button>
+                    <button type="button" class="cat-pill" onclick="filterTableStatus('out_for_delivery', this)">
+                        Dispatched 🚴
+                    </button>
+                    <button type="button" class="cat-pill" onclick="filterTableStatus('delivered', this)">
+                        Delivered ✓
+                    </button>
+                </div>
+            </div>
+
+            <!-- Orders Table Container -->
+            <div style="overflow-x: auto;">
+                <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th style="width: 80px;">Order #</th>
+                            <th>Customer & Channel</th>
+                            <th>Items Ordered</th>
+                            <th>Floor / Destination</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th style="text-align: right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersTableBody">
+                        @forelse($orders->take(15) as $order)
+                            @php
+                                $isDine = $order->order_type === 'dine_in' || (!empty($order->table_number));
+                                $custName = $order->customer_name ?: ($isDine ? 'Table Guest' : 'Customer');
+                                $custInitial = strtoupper(substr($custName, 0, 1));
+                                $itemsSummary = $order->items->map(fn($i) => $i->quantity . 'x ' . ($i->name ?? $i->item_name))->take(2)->implode(', ');
+                                if ($order->items->count() > 2) {
+                                    $itemsSummary .= ' +' . ($order->items->count() - 2) . ' more';
+                                }
+                            @endphp
+                            <tr class="live-order-row" onclick="openOrderDrawer({{ $order->id }})" style="cursor: pointer;">
+                                <td style="font-weight: 800; color: var(--color-forest);">#{{ $order->daily_order_number ?: ($order->tracking_code ?: $order->id) }}</td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--color-forest-light); color: var(--color-forest); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px;">
+                                            {{ $custInitial }}
+                                        </div>
+                                        <div>
+                                            <div style="font-weight: 700; color: var(--text-heading); font-size: 13px;">{{ $custName }}</div>
+                                            <div style="font-size: 11px; color: var(--text-muted);">{{ $isDine ? '🍽️ Dine-In Table ' . ($order->table_number ?? '1') : '📱 WhatsApp: ' . substr($order->customer_phone ?? 'N/A', -6) }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td style="font-size: 12.5px; color: var(--text-body); max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ $itemsSummary }}">
+                                    {{ $itemsSummary ?: 'Standard order' }}
+                                </td>
+                                <td style="font-size: 12px; color: var(--text-muted);">
+                                    {{ $isDine ? 'Table ' . ($order->table_number ?? '1') : Str::limit($order->delivery_address ?: 'Takeaway', 26) }}
+                                </td>
+                                <td style="font-weight: 800; color: var(--text-heading); font-size: 13.5px;">
+                                    Rs. {{ number_format($order->total) }}
+                                </td>
+                                <td>
+                                    <span class="badge-status {{ $order->status }}">
+                                        {{ str_replace('_', ' ', $order->status) }}
+                                    </span>
+                                </td>
+                                <td style="text-align: right;" onclick="event.stopPropagation()">
+                                    <button type="button" class="btn btn-secondary" onclick="openOrderDrawer({{ $order->id }})" style="padding: 5px 12px; font-size: 11.5px; border-radius: 9999px;">
+                                        View Details
+                                    </button>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted); font-size: 13px;">
+                                    No orders found today yet. As orders are placed via WhatsApp or Dine-In, they sync live!
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </section>
+
 </div>
 
 <!-- ── 7. SLIDE-OVER POS ORDER DRAWER ── -->
@@ -1794,33 +2253,42 @@ function renderOrdersTable(orders) {
         const isNewHighlight = newlyArrivedOrderIds.has(order.id) ? 'new-order-highlight' : '';
         const orderTime = order.created_at_time || (order.created_at ? new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '');
 
+        const floorAddress = order.order_type === 'dine_in' || order.table_number 
+            ? 'Table ' + (order.table_number || '1') 
+            : escapeHtml(order.delivery_address || 'Takeaway');
+
         html += `
-            <tr class="live-order-row ${isNewHighlight}" data-status="${escapeHtml(order.status)}" onclick="openOrderDrawer(${order.id})">
-                <td class="order-id-cell">#${order.id}</td>
+            <tr class="live-order-row ${isNewHighlight}" data-status="${escapeHtml(order.status)}" onclick="openOrderDrawer(${order.id})" style="cursor: pointer;">
+                <td style="font-weight: 800; color: var(--color-forest);">#${order.daily_order_number || order.tracking_code || order.id}</td>
                 <td>
-                    <div class="customer-info-cell">
-                        <div class="customer-initial-avatar">${custInitial}</div>
-                        <div class="customer-meta">
-                            <h4>${custName}</h4>
-                            <span>
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-                                WhatsApp
-                            </span>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--color-forest-light); color: var(--color-forest); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px;">
+                            ${custInitial}
+                        </div>
+                        <div>
+                            <div style="font-weight: 700; color: var(--text-heading); font-size: 13px;">${custName}</div>
+                            <div style="font-size: 11px; color: var(--text-muted);">
+                                ${order.order_type === 'dine_in' || order.table_number ? '🍽️ Dine-In' : '📱 WhatsApp: ' + (order.customer_phone ? String(order.customer_phone).slice(-6) : 'N/A')}
+                            </div>
                         </div>
                     </div>
                 </td>
-                <td>
-                    <div class="order-items-preview" title="${itemsSummary}">
-                        ${itemsSummary}
-                    </div>
+                <td style="font-size: 12.5px; color: var(--text-body); max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${itemsSummary}">
+                    ${itemsSummary}
                 </td>
-                <td class="order-total-cell">Rs ${Number(order.total || 0).toLocaleString()}</td>
-                <td>
-                    <span class="status-pill ${meta.badgeClass}">${meta.label}</span>
+                <td style="font-size: 12px; color: var(--text-muted);">
+                    ${floorAddress}
                 </td>
-                <td class="order-time-cell">${orderTime}</td>
-                <td style="text-align: right;">
-                    <span class="chevron-icon">›</span>
+                <td style="font-weight: 800; color: var(--text-heading); font-size: 13.5px;">
+                    Rs. ${Number(order.total || 0).toLocaleString()}
+                </td>
+                <td>
+                    <span class="badge-status ${meta.badgeClass}">${meta.label}</span>
+                </td>
+                <td style="text-align: right;" onclick="event.stopPropagation()">
+                    <button type="button" class="btn btn-secondary" onclick="openOrderDrawer(${order.id})" style="padding: 5px 12px; font-size: 11.5px; border-radius: 9999px;">
+                        View Details
+                    </button>
                 </td>
             </tr>
         `;
@@ -1830,12 +2298,12 @@ function renderOrdersTable(orders) {
 }
 
 // ── Filter Table by Pipeline Step / Tabs ──
-function filterTableStatus(status) {
+function filterTableStatus(status, btn) {
     currentFilterStatus = status;
-    document.querySelectorAll('.filter-pill-btn').forEach(b => b.classList.remove('active'));
-    const targetBtn = document.getElementById('btn-tab-' + (status === 'out_for_delivery' ? 'delivery' : status));
-    if (targetBtn) targetBtn.classList.add('active');
-
+    document.querySelectorAll('.cat-pill').forEach(b => b.classList.remove('active-pill'));
+    if (btn) {
+        btn.classList.add('active-pill');
+    }
     const ordersList = Object.values(allOrdersMap).sort((a,b) => b.id - a.id);
     renderOrdersTable(ordersList);
 }

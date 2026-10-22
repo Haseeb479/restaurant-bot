@@ -321,47 +321,82 @@ export default function PosBillingTerminalScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
-      {/* ── Top POS Header (Screen 3 Mockup) ── */}
+      {/* ── Top POS Header (AuraBistro Dual-Glass POS Terminal) ── */}
       <View style={[styles.registerBar, { backgroundColor: theme.background }]}>
         <View style={styles.topTitleBar}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={22} color="#112D27" />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={[styles.backButton, { backgroundColor: theme.glassCard, borderColor: theme.glassBorder }]}
+          >
+            <Ionicons name="arrow-back" size={20} color={theme.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>POS</Text>
-          <TouchableOpacity onPress={() => setIsCustomItemOpen(true)} style={styles.addCustomBtn}>
-            <Ionicons name="add" size={22} color="#064E45" />
+          <View style={{ alignItems: 'center' }}>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>POS Terminal</Text>
+            <Text style={[styles.headerSub, { color: theme.textMuted }]}>
+              {orderType === 'dine_in' ? `Dine-In • Table ${customTable.trim() || tableNumber}` : orderType.toUpperCase()}
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => setIsCustomItemOpen(true)}
+            style={[styles.addCustomBtn, { backgroundColor: theme.glassCard, borderColor: theme.glassBorder }]}
+          >
+            <Ionicons name="add" size={22} color={theme.primary} />
           </TouchableOpacity>
         </View>
 
-        {/* ── 3-Tab Terminal Mode Selector ── */}
-        <View style={[styles.terminalTabsRow, { backgroundColor: '#ECE9E0' }]}>
+        {/* ── 3-Tab Terminal Mode Selector (Frosted Floating Pill Segment) ── */}
+        <View style={[styles.terminalTabsRow, { backgroundColor: theme.glassCard, borderColor: theme.glassBorder, borderWidth: 1 }]}>
           <TouchableOpacity
             onPress={() => setTerminalMode('billing')}
-            style={[styles.terminalTab, terminalMode === 'billing' && [styles.terminalTabActive, { backgroundColor: '#FFFFFF' }]]}
+            style={[
+              styles.terminalTab,
+              terminalMode === 'billing' && [styles.terminalTabActive, { backgroundColor: theme.primary }],
+            ]}
           >
-            <Ionicons name="flash" size={14} color={terminalMode === 'billing' ? '#064E45' : '#7E9188'} />
-            <Text style={[styles.terminalTabText, { color: terminalMode === 'billing' ? '#064E45' : '#7E9188' }]}>
-              Quick Billing
+            <Ionicons name="flash" size={13} color={terminalMode === 'billing' ? '#FFFFFF' : theme.textMuted} />
+            <Text
+              style={[
+                styles.terminalTabText,
+                { color: terminalMode === 'billing' ? '#FFFFFF' : theme.textMuted, fontWeight: '700' },
+              ]}
+            >
+              Billing
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => setTerminalMode('today_bills')}
-            style={[styles.terminalTab, terminalMode === 'today_bills' && [styles.terminalTabActive, { backgroundColor: '#FFFFFF' }]]}
+            style={[
+              styles.terminalTab,
+              terminalMode === 'today_bills' && [styles.terminalTabActive, { backgroundColor: theme.primary }],
+            ]}
           >
-            <Ionicons name="receipt" size={14} color={terminalMode === 'today_bills' ? '#064E45' : '#7E9188'} />
-            <Text style={[styles.terminalTabText, { color: terminalMode === 'today_bills' ? '#064E45' : '#7E9188' }]}>
+            <Ionicons name="receipt" size={13} color={terminalMode === 'today_bills' ? '#FFFFFF' : theme.textMuted} />
+            <Text
+              style={[
+                styles.terminalTabText,
+                { color: terminalMode === 'today_bills' ? '#FFFFFF' : theme.textMuted, fontWeight: '700' },
+              ]}
+            >
               Bills ({summaryData?.today_bills_count || 0})
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => setTerminalMode('keypad')}
-            style={[styles.terminalTab, terminalMode === 'keypad' && [styles.terminalTabActive, { backgroundColor: '#FFFFFF' }]]}
+            style={[
+              styles.terminalTab,
+              terminalMode === 'keypad' && [styles.terminalTabActive, { backgroundColor: theme.primary }],
+            ]}
           >
-            <Ionicons name="keypad" size={14} color={terminalMode === 'keypad' ? '#064E45' : '#7E9188'} />
-            <Text style={[styles.terminalTabText, { color: terminalMode === 'keypad' ? '#064E45' : '#7E9188' }]}>
-              Custom Amount
+            <Ionicons name="keypad" size={13} color={terminalMode === 'keypad' ? '#FFFFFF' : theme.textMuted} />
+            <Text
+              style={[
+                styles.terminalTabText,
+                { color: terminalMode === 'keypad' ? '#FFFFFF' : theme.textMuted, fontWeight: '700' },
+              ]}
+            >
+              Keypad
             </Text>
           </TouchableOpacity>
         </View>
@@ -1084,10 +1119,14 @@ const styles = StyleSheet.create({
     borderColor: '#ECE9E0',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
-    color: '#112D27',
-    letterSpacing: -0.4,
+    letterSpacing: -0.3,
+  },
+  headerSub: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 1,
   },
   addCustomBtn: {
     width: 38,
