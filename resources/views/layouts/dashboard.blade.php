@@ -1692,12 +1692,12 @@
             </a>
 
             <!-- Solid Forest Green + New Pill Button -->
-            <button type="button" class="vessa-new-btn" onclick="triggerQuickPosOrder('{{ route('dashboard.orders', $restId) }}')" title="Fast Walk-in / Counter Order (Ctrl+N)">
+            <a href="{{ route('dashboard.pos', $restId) }}" class="vessa-new-btn" title="Open POS Register (Walk-in / New Order)">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M12 5v14M5 12h14"/>
                 </svg>
                 <span>+ New</span>
-            </button>
+            </a>
 
             <!-- User Profile Capsule: Mint Avatar + Text Column -->
             <a href="{{ route('dashboard.settings', $restId) }}" class="vessa-user-capsule" title="{{ $ownerName }} (Owner)">
@@ -1781,9 +1781,9 @@
                     </a>
 
                     <!-- 4. POS Cart Register -->
-                    <a href="{{ route('dashboard.dine-in', $restId) }}" 
-                       class="sidebar-nav-item {{ request()->routeIs('dashboard.dine-in*') ? 'active' : '' }}"
-                       title="POS Register & Tables">
+                    <a href="{{ route('dashboard.pos', $restId) }}" 
+                       class="sidebar-nav-item {{ request()->routeIs('dashboard.pos*') ? 'active' : '' }}"
+                       title="POS Register & Walk-in Bills">
                         <span class="sidebar-nav-icon">
                             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <circle cx="8" cy="21" r="1"/>
@@ -2012,18 +2012,14 @@ function switchVessaTab(tab, e) {
 
 // ── Trigger Fast Walk-in / Counter POS Order ───────────
 function triggerQuickPosOrder(ordersUrl) {
-    if (typeof openQuickPosModal === 'function') {
-        openQuickPosModal();
-    } else {
-        window.location.href = ordersUrl + '?open_pos=1';
-    }
+    window.location.href = "{{ route('dashboard.pos', $restId) }}";
 }
 
 // Keyboard Shortcut: Ctrl+N or Cmd+N opens Fast Counter POS
 document.addEventListener('keydown', function(e) {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
         e.preventDefault();
-        triggerQuickPosOrder('{{ route('dashboard.orders', $restId) }}');
+        window.location.href = "{{ route('dashboard.pos', $restId) }}";
     }
 });
 

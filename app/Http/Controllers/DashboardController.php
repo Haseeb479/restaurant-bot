@@ -988,6 +988,24 @@ class DashboardController extends Controller
         ]);
     }
 
+    // ── Dedicated Walk-in & Counter POS Register Screen ─────
+    public function posRegister(string $id)
+    {
+        $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
+
+        $menuItems = $r->menuItems()->with('category')->where('is_available', true)->get();
+        $categories = $menuItems->pluck('category')->filter()->unique('id')->values();
+        $todayOrdersCount = $r->todayOrders()->count();
+
+        return view('dashboard.pos', [
+            'restaurant'       => $r,
+            'menuItems'        => $menuItems,
+            'categories'       => $categories,
+            'todayOrdersCount' => $todayOrdersCount,
+        ]);
+    }
+
     // ── Quick Walk-in / Takeaway POS Order Punch & Print ────
     public function storeQuickOrder(Request $request, string $id)
     {
