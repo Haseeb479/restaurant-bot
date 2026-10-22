@@ -16,6 +16,14 @@
     $waitingRidersOrders = $waitingRidersOrders ?? collect();
     $topSellingItems     = $topSellingItems ?? collect();
     $riders              = $riders ?? collect();
+
+    $ownerName           = $restaurant->owner_name ?? ($restaurant->name ?? 'Haseeb');
+    $ownerFirstName      = explode(' ', trim($ownerName))[0] ?: 'Owner';
+    $activeDineInCount   = $activeDineInCount ?? ($restaurant ? $restaurant->orders()
+        ->dineIn()
+        ->whereIn('status', ['pending', 'confirmed', 'preparing', 'served'])
+        ->whereDate('created_at', now()->today())
+        ->count() : 0);
 @endphp
 
 <style>
