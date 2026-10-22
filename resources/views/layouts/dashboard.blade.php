@@ -84,6 +84,16 @@
             --radius-pill: 9999px;
             --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.02), 0 1px 3px rgba(0, 0, 0, 0.02);
             --shadow-elevated: 0 14px 38px rgba(17, 66, 50, 0.06);
+
+            /* Motion Design System Tokens */
+            --ease-out-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+            --ease-in-out-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+            --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+            --duration-instant: 150ms;
+            --duration-fast: 200ms;
+            --duration-normal: 260ms;
+            --duration-deliberate: 380ms;
+            --duration-chart: 650ms;
         }
 
         [data-theme="dark"] {
@@ -1388,6 +1398,161 @@
                 height: 32px !important;
             }
         }
+
+        /* ═════════════════════════════════════════════════════════
+           1. PAGE SWITCHING — PAGE TRANSITION ANIMATION (Fade + Slide)
+           ═════════════════════════════════════════════════════════ */
+        .foodio-page-container {
+            animation: foodioFadeSlideIn var(--duration-normal) var(--ease-out-smooth) both;
+            will-change: opacity, transform;
+        }
+
+        @keyframes foodioFadeSlideIn {
+            0% {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .foodio-page-container.foodio-page-exit {
+            opacity: 0;
+            transform: translateY(-8px);
+            transition: opacity 150ms var(--ease-out-smooth), transform 150ms var(--ease-out-smooth);
+        }
+
+        /* ═════════════════════════════════════════════════════════
+           2. SIDEBAR NAVIGATION — SLIDING ACTIVE INDICATOR
+           ═════════════════════════════════════════════════════════ */
+        .sidebar-nav-stack {
+            position: relative;
+        }
+
+        .sidebar-active-indicator {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            background: var(--color-forest);
+            box-shadow: 0 4px 14px rgba(17, 66, 50, 0.28);
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0;
+            transition: top var(--duration-normal) var(--ease-out-smooth),
+                        transform var(--duration-normal) var(--ease-out-smooth),
+                        opacity var(--duration-fast) var(--ease-out-smooth);
+        }
+        [data-theme="dark"] .sidebar-active-indicator {
+            background: var(--color-forest);
+            box-shadow: 0 4px 14px rgba(30, 92, 71, 0.45);
+        }
+
+        .sidebar-nav-item {
+            z-index: 1;
+            transition: transform var(--duration-fast) var(--ease-out-smooth),
+                        color var(--duration-fast) var(--ease-out-smooth),
+                        background var(--duration-fast) var(--ease-out-smooth) !important;
+        }
+        .sidebar-nav-item:hover {
+            transform: scale(1.06) !important;
+        }
+        .sidebar-nav-item:active {
+            transform: scale(0.92) !important;
+            transition-duration: 80ms !important;
+        }
+        .sidebar-nav-item.active {
+            transition: color var(--duration-fast) var(--ease-out-smooth) !important;
+        }
+
+        /* ═════════════════════════════════════════════════════════
+           7. BUTTONS AND CONTROLS — MICRO-INTERACTIONS
+           ═════════════════════════════════════════════════════════ */
+        .btn, 
+        .vessa-btn-forest, 
+        .vessa-btn-outline, 
+        .vessa-btn-primary, 
+        .cat-pill, 
+        .vessa-capsule-item, 
+        .vessa-dropdown-pill, 
+        .status-pill-toggle,
+        .sidebar-brand-icon,
+        .vessa-action-btn-circle {
+            transition: background-color var(--duration-fast) var(--ease-out-smooth),
+                        border-color var(--duration-fast) var(--ease-out-smooth),
+                        color var(--duration-fast) var(--ease-out-smooth),
+                        box-shadow var(--duration-fast) var(--ease-out-smooth),
+                        transform var(--duration-fast) var(--ease-out-smooth) !important;
+        }
+
+        .btn:hover, 
+        .vessa-btn-forest:hover, 
+        .vessa-btn-outline:hover,
+        .cat-pill:hover,
+        .vessa-dropdown-pill:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn:active, 
+        .vessa-btn-forest:active, 
+        .vessa-btn-outline:active, 
+        .cat-pill:active, 
+        .vessa-capsule-item:active,
+        .vessa-dropdown-pill:active,
+        .status-pill-toggle:active {
+            transform: scale(0.96) translateY(0) !important;
+            transition-duration: 75ms !important;
+        }
+
+        .btn:focus-visible, 
+        button:focus-visible, 
+        a:focus-visible,
+        input:focus-visible,
+        select:focus-visible {
+            outline: 2px solid var(--color-forest) !important;
+            outline-offset: 2px !important;
+        }
+
+        /* ═════════════════════════════════════════════════════════
+           9. LOADING & EMPTY STATES (Skeleton Shimmer & Fade)
+           ═════════════════════════════════════════════════════════ */
+        .foodio-skeleton {
+            background: linear-gradient(90deg, var(--border-subtle) 25%, rgba(255,255,255,0.45) 50%, var(--border-subtle) 75%);
+            background-size: 200% 100%;
+            animation: foodioShimmer 1.5s infinite var(--ease-in-out-smooth);
+            border-radius: 8px;
+        }
+        [data-theme="dark"] .foodio-skeleton {
+            background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.05) 75%);
+            background-size: 200% 100%;
+        }
+        @keyframes foodioShimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .foodio-empty-state {
+            animation: foodioFadeSlideIn var(--duration-deliberate) var(--ease-out-smooth) both;
+        }
+
+        /* ═════════════════════════════════════════════════════════
+           10. ACCESSIBILITY — PREFERS-REDUCED-MOTION
+           ═════════════════════════════════════════════════════════ */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+            .sidebar-active-indicator {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1643,7 +1808,7 @@
         </div>
     </header>
 
-    <main>
+    <main class="foodio-page-container">
         @if($currentRest && ($currentRest->bot_status === 'disconnected' || $currentRest->bot_status === 'qr_pending'))
             <div class="bot-alert-banner">
                 <div style="display: flex; align-items: center; gap: 8px;">
@@ -1888,6 +2053,66 @@ async function quickToggleRestaurantStatus() {
 
 document.addEventListener('DOMContentLoaded', () => {
     initOwnerTheme();
+
+    // ── 1. Page Switching Route Transition Animation (Fade + Slide) ──
+    const pageContainer = document.querySelector('.foodio-page-container');
+    if (pageContainer) {
+        document.querySelectorAll('aside#ownerSidebar a[href], header.topbar a[href], .mobile-bottom-nav a[href]').forEach(link => {
+            const href = link.getAttribute('href');
+            if (!href || href.startsWith('#') || href.startsWith('javascript:') || link.target === '_blank' || link.hasAttribute('download')) return;
+            if (href.startsWith('http') && !href.startsWith(window.location.origin)) return;
+
+            link.addEventListener('click', (e) => {
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                if (link.href === window.location.href) return;
+
+                e.preventDefault();
+                pageContainer.classList.add('foodio-page-exit');
+                setTimeout(() => {
+                    window.location.href = href;
+                }, 130);
+            });
+        });
+    }
+
+    // ── 2. Sidebar Navigation Sliding Active Indicator ──
+    const navStack = document.querySelector('.sidebar-nav-stack');
+    if (navStack) {
+        const activeItem = navStack.querySelector('.sidebar-nav-item.active');
+        const indicator = document.createElement('div');
+        indicator.className = 'sidebar-active-indicator';
+        navStack.insertBefore(indicator, navStack.firstChild);
+
+        function updateIndicatorPos(targetEl, animate = true) {
+            if (!targetEl) {
+                indicator.style.opacity = '0';
+                return;
+            }
+            if (!animate) {
+                indicator.style.transition = 'none';
+            } else {
+                indicator.style.transition = 'top var(--duration-normal) var(--ease-out-smooth), opacity var(--duration-fast) var(--ease-out-smooth)';
+            }
+            indicator.style.top = targetEl.offsetTop + 'px';
+            indicator.style.opacity = '1';
+        }
+
+        if (activeItem) {
+            updateIndicatorPos(activeItem, false);
+            // Once positioned, remove individual active background to avoid double rendering
+            activeItem.style.background = 'transparent';
+        }
+
+        navStack.querySelectorAll('.sidebar-nav-item').forEach(item => {
+            item.addEventListener('mouseenter', () => updateIndicatorPos(item, true));
+            item.addEventListener('focus', () => updateIndicatorPos(item, true));
+        });
+
+        navStack.addEventListener('mouseleave', () => {
+            const current = navStack.querySelector('.sidebar-nav-item.active') || activeItem;
+            updateIndicatorPos(current, true);
+        });
+    }
 
     // Instant Navbar Link Hover Prefetcher (Zero delay / zero glitch)
     const navLinks = document.querySelectorAll('aside#ownerSidebar a[href], .mobile-bottom-nav a[href]');
