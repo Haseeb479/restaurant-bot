@@ -12,22 +12,29 @@
 
     <style>
         :root {
-            --bg-canvas: #F2F4EE;
-            --bg-card: #FFFFFF;
-            --border-subtle: #EAECE4;
-            --border-card: #E4E7DC;
-            --color-forest: #114232;
-            --color-forest-hover: #0b3125;
-            --color-forest-light: #E8EFEA;
-            --color-ochre: #C89B53;
-            --color-coral: #E07A5F;
-            --color-green: #10B981;
-            --color-dark: #121915;
-            --color-gray: #717A74;
-            --text-heading: #121915;
+            --bg-canvas: #ECEFE9;
+            --bg-card: rgba(248, 249, 247, 0.92);
+            --border-subtle: #F2F4F1;
+            --border-card: #F2F4F1;
+            --color-forest: #325744;
+            --color-forest-hover: #264334;
+            --color-forest-light: #E6ECE8;
+            --color-ochre: #C29842;
+            --color-amber: #C29842;
+            --color-coral: #A64444;
+            --color-terracotta: #A64444;
+            --color-sage: #689780;
+            --color-teal: #648C94;
+            --color-blue: #5B7896;
+            --color-green: #325744;
+            --color-dark: #18221D;
+            --color-gray: #68736D;
+            --text-heading: #18221D;
             --text-body: #374151;
-            --text-muted: #717A74;
-            --text-light: #9CA3AF;
+            --text-muted: #68736D;
+            --text-light: #8E9993;
+            --inset-pill-bg: #E6ECE8;
+            --popover-bg: #FFFFFF;
         }
 
         * {

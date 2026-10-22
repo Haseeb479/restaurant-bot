@@ -35,55 +35,66 @@
 
     <style>
         :root {
-            --bg-canvas: #EEF2EC;
-            --bg-card: #FFFFFF;
-            --border-subtle: #E8EBE5;
-            --border-card: #E4E8E1;
+            /* 1. Background & Surface Palette (Organic Sage, Eucalyptus & Warm Alabaster) */
+            --bg-canvas: #ECEFE9;
+            --bg-card: rgba(248, 249, 247, 0.85);
+            --bg-card-solid: #F8F9F7;
+            --border-subtle: #F2F4F1;
+            --border-card: #F2F4F1;
 
-            /* Exact HEX Palette from Attached System (Vessa / AuraBistro Editorial) */
-            --color-forest: #114232;
-            --color-forest-hover: #0b3125;
-            --color-forest-light: #E8EFEA;
-            --color-ochre: #C89B53;
-            --color-coral: #E07A5F;
-            --color-green: #10B981;
-            --color-dark: #121915;
-            --color-gray: #717A74;
+            /* 2. Supporting UI & Accent Palette */
+            --color-forest: #325744;
+            --color-forest-hover: #264334;
+            --color-forest-light: #E6ECE8;
+            --color-charcoal: #18221D;
+            --color-ochre: #C29842;
+            --color-amber: #C29842;
+            --color-coral: #A64444;
+            --color-terracotta: #A64444;
+            --color-sage: #689780;
+            --color-teal: #648C94;
+            --color-blue: #5B7896;
+            --color-green: #325744;
+            --color-dark: #18221D;
+            --color-gray: #68736D;
             --color-light-gray: #A3ACA5;
 
-            --text-heading: #121915;
+            --text-heading: #18221D;
             --text-body: #374151;
-            --text-muted: #717A74;
-            --text-light: #9ca3af;
+            --text-muted: #68736D;
+            --text-light: #8E9993;
 
-            --brand-primary: #114232;
-            --brand-primary-hover: #0b3125;
-            --brand-primary-light: #E8EFEA;
-            --brand-accent: #C89B53;
+            --brand-primary: #325744;
+            --brand-primary-hover: #264334;
+            --brand-primary-light: #E6ECE8;
+            --brand-accent: #C29842;
 
-            --sidebar-bg: #FFFFFF;
-            --sidebar-border: #EAECE4;
-            --sidebar-text: #717A74;
-            --sidebar-text-hover: #121915;
-            --sidebar-active-bg: #114232;
+            --sidebar-bg: #F8F9F7;
+            --sidebar-border: #F2F4F1;
+            --sidebar-text: #68736D;
+            --sidebar-text-hover: #18221D;
+            --sidebar-active-bg: #325744;
             --sidebar-active-text: #FFFFFF;
             --header-bg: transparent;
 
-            --success-bg: #E8EFEA;
-            --success-border: #CBE0D4;
-            --success-text: #114232;
-            --warning-bg: #FFF8E7;
-            --warning-border: #F6E1B6;
-            --warning-text: #C89B53;
-            --danger-bg: #FDF2F0;
-            --danger-border: #F8D3CC;
-            --danger-text: #E07A5F;
+            --inset-pill-bg: #E6ECE8;
+            --popover-bg: #FFFFFF;
+
+            --success-bg: rgba(104, 151, 128, 0.16);
+            --success-border: rgba(104, 151, 128, 0.35);
+            --success-text: #325744;
+            --warning-bg: rgba(194, 152, 66, 0.15);
+            --warning-border: rgba(194, 152, 66, 0.35);
+            --warning-text: #C29842;
+            --danger-bg: rgba(166, 68, 68, 0.12);
+            --danger-border: rgba(166, 68, 68, 0.3);
+            --danger-text: #A64444;
 
             --radius-card: 26px;
             --radius-badge: 9999px;
             --radius-pill: 9999px;
-            --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.02), 0 1px 3px rgba(0, 0, 0, 0.02);
-            --shadow-elevated: 0 14px 38px rgba(17, 66, 50, 0.06);
+            --shadow-card: 0 4px 20px rgba(24, 34, 29, 0.03), 0 1px 3px rgba(24, 34, 29, 0.02);
+            --shadow-elevated: 0 14px 38px rgba(50, 87, 68, 0.08);
 
             /* Motion Design System Tokens */
             --ease-out-smooth: cubic-bezier(0.16, 1, 0.3, 1);
@@ -98,7 +109,8 @@
 
         [data-theme="dark"] {
             --bg-canvas: #0C120F;
-            --bg-card: #141B17;
+            --bg-card: rgba(20, 27, 23, 0.88);
+            --bg-card-solid: #141B17;
             --border-subtle: rgba(255, 255, 255, 0.08);
             --border-card: rgba(255, 255, 255, 0.09);
             --text-heading: #F4F6F5;
@@ -109,26 +121,29 @@
             --sidebar-border: rgba(255, 255, 255, 0.08);
             --sidebar-text: #839189;
             --sidebar-text-hover: #FFFFFF;
-            --sidebar-active-bg: #1E5C47;
+            --sidebar-active-bg: #325744;
             --sidebar-active-text: #FFFFFF;
             --header-bg: transparent;
-            --brand-primary: #1E5C47;
-            --brand-primary-hover: #164837;
-            --brand-primary-light: rgba(30, 92, 71, 0.25);
-            --brand-accent: #D7AB63;
-            --color-forest: #1E5C47;
-            --color-forest-hover: #164837;
-            --color-forest-light: rgba(30, 92, 71, 0.25);
+            --brand-primary: #325744;
+            --brand-primary-hover: #264334;
+            --brand-primary-light: rgba(50, 87, 68, 0.25);
+            --brand-accent: #C29842;
+            --color-forest: #325744;
+            --color-forest-hover: #264334;
+            --color-forest-light: rgba(50, 87, 68, 0.25);
+            --color-charcoal: #F4F6F5;
             --color-dark: #FFFFFF;
-            --success-bg: rgba(30, 92, 71, 0.2);
-            --success-border: rgba(30, 92, 71, 0.4);
-            --success-text: #4ADE80;
-            --warning-bg: rgba(200, 155, 83, 0.18);
-            --warning-border: rgba(200, 155, 83, 0.35);
-            --warning-text: #EAB308;
-            --danger-bg: rgba(224, 122, 95, 0.2);
-            --danger-border: rgba(224, 122, 95, 0.35);
-            --danger-text: #F87171;
+            --success-bg: rgba(104, 151, 128, 0.2);
+            --success-border: rgba(104, 151, 128, 0.4);
+            --success-text: #689780;
+            --warning-bg: rgba(194, 152, 66, 0.18);
+            --warning-border: rgba(194, 152, 66, 0.35);
+            --warning-text: #E5B456;
+            --danger-bg: rgba(166, 68, 68, 0.2);
+            --danger-border: rgba(166, 68, 68, 0.35);
+            --danger-text: #E26868;
+            --inset-pill-bg: #1A2420;
+            --popover-bg: #18221D;
             --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.35);
             --shadow-elevated: 0 14px 38px rgba(0, 0, 0, 0.5);
         }
@@ -173,6 +188,12 @@
 
         body {
             background-color: var(--bg-canvas);
+            background-image: 
+                radial-gradient(circle at 10% 15%, #D6E2DC 0%, transparent 48%),
+                radial-gradient(circle at 88% 22%, #EFECE6 0%, transparent 45%),
+                radial-gradient(circle at 50% 65%, rgba(214, 226, 220, 0.35) 0%, transparent 55%);
+            background-attachment: fixed;
+            background-repeat: no-repeat;
             color: var(--text-body);
             min-height: 100vh;
             display: flex;
@@ -182,6 +203,11 @@
             overflow-x: hidden;
             max-width: 100vw;
             width: 100%;
+        }
+        [data-theme="dark"] body {
+            background-image: 
+                radial-gradient(circle at 10% 15%, rgba(30, 55, 45, 0.35) 0%, transparent 48%),
+                radial-gradient(circle at 88% 22%, rgba(45, 40, 35, 0.35) 0%, transparent 45%);
         }
 
         /* ═══════════════════════════════════════════════════
@@ -208,7 +234,7 @@
             display: flex;
             flex-direction: column;
             gap: 16px;
-            background-color: var(--bg-canvas);
+            background-color: transparent;
             box-sizing: border-box;
             max-width: 100vw;
             width: 100%;
@@ -224,12 +250,12 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+            box-shadow: 0 4px 20px rgba(24, 34, 29, 0.03);
             position: sticky;
             top: 16px;
             z-index: 100;
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             transition: background 0.2s ease, border-color 0.2s ease;
             box-sizing: border-box;
             width: 100%;
@@ -257,7 +283,7 @@
             align-items: center;
             justify-content: center;
             color: #ffffff;
-            box-shadow: 0 4px 14px rgba(17, 66, 50, 0.22);
+            box-shadow: 0 4px 14px rgba(50, 87, 68, 0.22);
             flex-shrink: 0;
             transition: transform 0.2s ease;
         }
@@ -288,7 +314,7 @@
         .vessa-segmented-dock {
             display: inline-flex;
             align-items: center;
-            background: var(--bg-canvas);
+            background: var(--inset-pill-bg);
             border: 1px solid var(--border-subtle);
             border-radius: 9999px;
             padding: 4px;
@@ -312,19 +338,19 @@
         }
         .vessa-dock-pill:hover {
             color: var(--text-heading);
-            background: rgba(17, 66, 50, 0.05);
+            background: rgba(50, 87, 68, 0.06);
         }
         [data-theme="dark"] .vessa-dock-pill:hover {
             background: rgba(255, 255, 255, 0.06);
         }
         .vessa-dock-pill.active {
-            background: var(--color-forest) !important;
+            background: var(--color-charcoal) !important;
             color: #ffffff !important;
             font-weight: 700;
-            box-shadow: 0 2px 8px rgba(17, 66, 50, 0.25);
+            box-shadow: 0 2px 8px rgba(24, 34, 29, 0.25);
         }
         .vessa-alerts-badge {
-            background: var(--color-coral);
+            background: var(--color-terracotta);
             color: #ffffff;
             font-size: 10px;
             font-weight: 800;
@@ -349,7 +375,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            background: var(--bg-canvas);
+            background: var(--inset-pill-bg);
             border: 1px solid var(--border-subtle);
             border-radius: 9999px;
             height: 40px;
@@ -369,7 +395,7 @@
         .vessa-search-kbd {
             font-size: 10.5px;
             font-weight: 700;
-            background: var(--bg-card);
+            background: var(--popover-bg);
             border: 1px solid var(--border-subtle);
             padding: 2px 6px;
             border-radius: 6px;
@@ -380,7 +406,7 @@
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background: var(--bg-card);
+            background: var(--popover-bg);
             border: 1px solid var(--border-subtle);
             display: flex;
             align-items: center;
@@ -400,7 +426,7 @@
             position: absolute;
             top: -2px;
             right: -2px;
-            background: var(--color-coral);
+            background: var(--color-terracotta);
             color: #ffffff;
             font-size: 10px;
             font-weight: 800;
@@ -410,7 +436,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            border: 2px solid var(--bg-card);
+            border: 2px solid var(--popover-bg);
             line-height: 1;
         }
 
@@ -426,7 +452,7 @@
             font-size: 13px;
             font-weight: 700;
             text-decoration: none;
-            box-shadow: 0 4px 12px rgba(17, 66, 50, 0.22);
+            box-shadow: 0 4px 12px rgba(50, 87, 68, 0.22);
             transition: all 0.18s ease;
             border: none;
             cursor: pointer;
@@ -435,7 +461,7 @@
         .vessa-new-btn:hover {
             background: var(--color-forest-hover);
             transform: translateY(-1px);
-            box-shadow: 0 6px 18px rgba(17, 66, 50, 0.3);
+            box-shadow: 0 6px 18px rgba(50, 87, 68, 0.3);
         }
 
         /* Profile Capsule Pill */
@@ -443,7 +469,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            background: var(--bg-card);
+            background: var(--inset-pill-bg);
             border: 1px solid var(--border-subtle);
             border-radius: 9999px;
             padding: 4px 14px 4px 5px;
@@ -459,7 +485,7 @@
             width: 32px;
             height: 32px;
             border-radius: 50%;
-            background: #E2EFE7;
+            background: #D6E2DC;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -469,8 +495,8 @@
             flex-shrink: 0;
         }
         [data-theme="dark"] .vessa-capsule-avatar {
-            background: rgba(30, 92, 71, 0.3);
-            color: #4ade80;
+            background: rgba(50, 87, 68, 0.35);
+            color: #689780;
         }
         .vessa-capsule-meta {
             display: flex;
@@ -516,14 +542,14 @@
         /* Top Island: Dark Theme Switcher Pill */
         .vessa-theme-pill-island {
             width: 54px;
-            background: #121915;
+            background: var(--color-charcoal);
             border-radius: 28px;
             padding: 6px 0;
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 4px;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+            box-shadow: 0 4px 14px rgba(24, 34, 29, 0.15);
         }
         .vessa-theme-mode-btn {
             width: 40px;
@@ -531,7 +557,7 @@
             border-radius: 50%;
             background: transparent;
             border: none;
-            color: #717A74;
+            color: var(--color-gray);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -561,7 +587,9 @@
             flex-direction: column;
             align-items: center;
             gap: 6px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+            box-shadow: 0 4px 20px rgba(24, 34, 29, 0.03);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
             box-sizing: border-box;
         }
 
@@ -590,7 +618,7 @@
         }
         .sidebar-nav-item:hover {
             color: var(--sidebar-text-hover);
-            background: rgba(17, 66, 50, 0.07);
+            background: rgba(50, 87, 68, 0.08);
             transform: translateY(-1px);
         }
         [data-theme="dark"] .sidebar-nav-item:hover {
@@ -600,11 +628,11 @@
             color: #ffffff !important;
             background: var(--color-forest) !important;
             border-radius: 14px;
-            box-shadow: 0 4px 14px rgba(17, 66, 50, 0.28);
+            box-shadow: 0 4px 14px rgba(50, 87, 68, 0.28);
         }
         [data-theme="dark"] .sidebar-nav-item.active {
             background: var(--color-forest) !important;
-            box-shadow: 0 4px 14px rgba(30, 92, 71, 0.4);
+            box-shadow: 0 4px 14px rgba(50, 87, 68, 0.4);
         }
         .sidebar-nav-icon {
             display: flex;
@@ -618,7 +646,7 @@
             position: absolute;
             top: 1px;
             right: 1px;
-            background: var(--color-coral);
+            background: var(--color-terracotta);
             color: #ffffff;
             font-size: 10px;
             font-weight: 800;
@@ -628,7 +656,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            border: 2px solid var(--bg-card);
+            border: 2px solid var(--popover-bg);
             line-height: 1;
         }
         .sidebar-nav-dot {
@@ -638,8 +666,8 @@
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: #10b981;
-            border: 2px solid var(--bg-card);
+            background: var(--color-sage);
+            border: 2px solid var(--popover-bg);
         }
 
         /* ── 3. Main Workspace ── */
@@ -656,7 +684,7 @@
             width: 100%;
             display: flex;
             flex-direction: column;
-            background: var(--bg-canvas);
+            background: transparent;
             box-sizing: border-box;
         }
 

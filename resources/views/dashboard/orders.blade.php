@@ -173,6 +173,8 @@
         border-radius: 28px;
         padding: 30px 34px;
         box-shadow: var(--shadow-card);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
         display: flex;
         flex-direction: column;
         justify-content: space-between;
@@ -192,8 +194,9 @@
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        background: var(--color-forest-light);
+        background: var(--inset-pill-bg);
         color: var(--color-forest);
+        border: 1px solid var(--border-subtle);
         padding: 6px 14px;
         border-radius: 9999px;
         font-size: 12px;
@@ -203,8 +206,8 @@
         margin-bottom: 12px;
     }
     [data-theme="dark"] .vessa-date-pill {
-        background: rgba(30, 92, 71, 0.3);
-        color: #4ade80;
+        background: rgba(50, 87, 68, 0.3);
+        color: #689780;
     }
 
     .vessa-welcome-heading {
@@ -243,20 +246,20 @@
         font-size: 13px;
         font-weight: 700;
         text-decoration: none;
-        box-shadow: 0 4px 14px rgba(17, 66, 50, 0.22);
+        box-shadow: 0 4px 14px rgba(50, 87, 68, 0.22);
         transition: all 0.18s ease;
     }
     .vessa-btn-forest:hover {
         background: var(--color-forest-hover);
         transform: translateY(-1px);
-        box-shadow: 0 6px 20px rgba(17, 66, 50, 0.32);
+        box-shadow: 0 6px 20px rgba(50, 87, 68, 0.32);
     }
 
     .vessa-btn-outline {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        background: var(--bg-card);
+        background: var(--popover-bg);
         border: 1px solid var(--border-card);
         color: var(--text-heading);
         padding: 10px 20px;
@@ -279,6 +282,8 @@
         border-radius: 26px;
         padding: 22px 20px;
         box-shadow: var(--shadow-card);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
         display: flex;
         flex-direction: column;
         justify-content: space-between;
@@ -314,33 +319,32 @@
         justify-content: center;
         flex-shrink: 0;
     }
+    /* Sage Accent: Medium Seafoam #689780 */
     .vessa-metric-icon-chip.green {
-        background: #E8EFEA;
-        color: var(--color-forest);
+        background: rgba(104, 151, 128, 0.16);
+        color: #689780;
     }
     [data-theme="dark"] .vessa-metric-icon-chip.green {
-        background: rgba(30, 92, 71, 0.3);
-        color: #4ade80;
+        background: rgba(104, 151, 128, 0.25);
+        color: #689780;
     }
+    /* Teal Accent: Muted Slate Teal #648C94 */
     .vessa-metric-icon-chip.teal {
-        background: #E0F2FE;
-        color: #0284c7;
+        background: rgba(100, 140, 148, 0.16);
+        color: #648C94;
     }
     [data-theme="dark"] .vessa-metric-icon-chip.teal {
-        background: rgba(2, 132, 199, 0.25);
-        color: #38bdf8;
+        background: rgba(100, 140, 148, 0.25);
+        color: #648C94;
     }
+    /* Amber Accent: Warm Ochre / Gold #C29842 */
     .vessa-metric-icon-chip.amber {
-        background: #FEF3C7;
-        color: #d97706;
+        background: rgba(194, 152, 66, 0.16);
+        color: #C29842;
     }
     [data-theme="dark"] .vessa-metric-icon-chip.amber {
-        background: rgba(217, 119, 6, 0.25);
-        color: #fbbf24;
-    }
-        font-size: 12.5px;
-        font-weight: 600;
-        color: var(--text-muted);
+        background: rgba(194, 152, 66, 0.25);
+        color: #C29842;
     }
 
     .vessa-trend-pill {
@@ -353,16 +357,20 @@
         border-radius: 9999px;
     }
     .vessa-trend-pill.up {
-        background: var(--color-forest-light);
+        background: rgba(104, 151, 128, 0.16);
         color: var(--color-forest);
     }
     [data-theme="dark"] .vessa-trend-pill.up {
-        background: rgba(30, 92, 71, 0.3);
-        color: #4ade80;
+        background: rgba(104, 151, 128, 0.3);
+        color: #689780;
     }
     .vessa-trend-pill.coral {
-        background: var(--danger-bg);
-        color: var(--danger-text);
+        background: rgba(166, 68, 68, 0.12);
+        color: #A64444;
+    }
+    [data-theme="dark"] .vessa-trend-pill.coral {
+        background: rgba(166, 68, 68, 0.25);
+        color: #E26868;
     }
 
     .vessa-metric-val {
@@ -385,7 +393,7 @@
     .vessa-metric-subtext {
         font-size: 11.5px;
         font-weight: 600;
-        color: var(--text-light);
+        color: var(--text-muted);
     }
 
     /* Low Stock Horizontal Split Bar */
@@ -393,21 +401,21 @@
         width: 100%;
         height: 8px;
         border-radius: 9999px;
-        background: var(--bg-canvas);
+        background: var(--inset-pill-bg);
         display: flex;
         overflow: hidden;
         margin-bottom: 12px;
     }
     .vessa-split-bar-amber {
         height: 100%;
-        background: #f59e0b;
+        background: #C29842;
         border-radius: 9999px 0 0 9999px;
         transform-origin: left;
         animation: vessaSplitBarGrow 600ms var(--ease-out-smooth) 250ms both;
     }
     .vessa-split-bar-coral {
         height: 100%;
-        background: #e07a5f;
+        background: #A64444;
         border-radius: 0 9999px 9999px 0;
         transform-origin: right;
         animation: vessaSplitBarGrow 600ms var(--ease-out-smooth) 250ms both;
@@ -426,7 +434,7 @@
         width: 22px;
         height: 22px;
         border-radius: 50%;
-        background: var(--bg-canvas);
+        background: var(--inset-pill-bg);
         border: 1px solid var(--border-card);
         display: flex;
         align-items: center;
@@ -443,6 +451,8 @@
         border-radius: 28px;
         padding: 28px 32px;
         box-shadow: var(--shadow-card);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
         display: flex;
         flex-direction: column;
         justify-content: space-between;
@@ -491,17 +501,17 @@
         height: 8px;
         border-radius: 50%;
     }
-    .vessa-legend-dot.forest { background: var(--color-forest); }
-    .vessa-legend-dot.ochre  { background: var(--color-ochre); }
-    .vessa-legend-line.forest {
+    .vessa-legend-dot.amber  { background: #C29842; }
+    .vessa-legend-dot.sage   { background: #689780; }
+    .vessa-legend-line.blue  {
         width: 16px;
         height: 2.5px;
         border-radius: 2px;
-        background: var(--color-forest);
+        background: #5B7896;
     }
 
     .vessa-dropdown-pill {
-        background: var(--bg-canvas);
+        background: var(--popover-bg);
         border: 1px solid var(--border-subtle);
         padding: 6px 14px;
         border-radius: 9999px;
@@ -521,23 +531,23 @@
         position: relative;
     }
 
-    /* Floating interactive peak tooltip */
+    /* Floating interactive peak tooltip (Pure Crisp White #FFFFFF) */
     .vessa-peak-tooltip {
         position: absolute;
-        top: 24px;
-        left: 63%;
-        transform: translateX(-50%);
+        top: 32px;
+        left: 84.4%;
+        transform: translate(-50%, -100%);
         background: #ffffff;
         border: 1px solid var(--border-subtle);
         border-radius: 16px;
         padding: 10px 14px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 10px 25px rgba(24, 34, 29, 0.08);
         z-index: 10;
         pointer-events: none;
         min-width: 160px;
     }
     [data-theme="dark"] .vessa-peak-tooltip {
-        background: #1a221d;
+        background: #18221D;
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
     }
     .vessa-tooltip-month {
@@ -551,11 +561,15 @@
     .vessa-tooltip-row {
         font-size: 11.5px;
         font-weight: 600;
+        color: var(--text-muted);
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 8px;
         margin-bottom: 2px;
+    }
+    .vessa-tooltip-row strong {
+        color: var(--text-heading);
     }
     .vessa-tooltip-total {
         font-size: 12px;
@@ -569,7 +583,7 @@
         justify-content: space-between;
     }
     [data-theme="dark"] .vessa-tooltip-total {
-        color: #4ade80;
+        color: #689780;
     }
 
     /* Card 6: Rider Fleet & Live Delivery Status Card */
@@ -579,6 +593,8 @@
         border-radius: 28px;
         padding: 24px 26px 20px;
         box-shadow: var(--shadow-card);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
         display: flex;
         flex-direction: column;
         justify-content: space-between;
@@ -613,7 +629,7 @@
         display: inline-flex;
         align-items: center;
         gap: 5px;
-        background: var(--color-forest-light);
+        background: var(--inset-pill-bg);
         color: var(--color-forest);
         padding: 4px 10px;
         border-radius: 9999px;
@@ -621,8 +637,8 @@
         font-weight: 700;
     }
     [data-theme="dark"] .vessa-fleet-badge {
-        background: rgba(30, 92, 71, 0.3);
-        color: #4ade80;
+        background: rgba(50, 87, 68, 0.3);
+        color: #689780;
     }
 
     .vessa-fleet-stats-strip {
@@ -630,7 +646,8 @@
         grid-template-columns: 1fr 1fr 1fr;
         gap: 8px;
         padding: 10px 12px;
-        background: var(--bg-canvas);
+        background: var(--inset-pill-bg);
+        border: 1px solid var(--border-subtle);
         border-radius: 14px;
         margin-bottom: 12px;
     }
@@ -678,16 +695,16 @@
         justify-content: space-between;
         padding: 9px 12px;
         border-radius: 14px;
-        background: var(--bg-card);
+        background: var(--popover-bg);
         border: 1px solid var(--border-subtle);
         transition: all 0.15s ease;
     }
     .vessa-rider-row:hover {
         border-color: var(--color-forest);
-        background: var(--color-forest-light);
+        background: var(--inset-pill-bg);
     }
     [data-theme="dark"] .vessa-rider-row:hover {
-        background: rgba(17, 66, 50, 0.15);
+        background: rgba(50, 87, 68, 0.15);
     }
 
     .vessa-rider-left {
@@ -700,7 +717,7 @@
         width: 32px;
         height: 32px;
         border-radius: 10px;
-        background: var(--bg-canvas);
+        background: var(--inset-pill-bg);
         color: var(--color-forest);
         display: flex;
         align-items: center;
@@ -710,12 +727,12 @@
         flex-shrink: 0;
     }
     .vessa-rider-avatar.on-trip {
-        background: #FFF3E0;
-        color: #E65100;
+        background: rgba(166, 68, 68, 0.12);
+        color: #A64444;
     }
     [data-theme="dark"] .vessa-rider-avatar.on-trip {
-        background: rgba(230, 81, 0, 0.2);
-        color: #FF9800;
+        background: rgba(166, 68, 68, 0.25);
+        color: #E26868;
     }
 
     .vessa-rider-meta {
@@ -752,22 +769,22 @@
         flex-shrink: 0;
     }
     .vessa-rider-pill.available {
-        background: #E8EFEA;
-        color: #114232;
+        background: rgba(104, 151, 128, 0.16);
+        color: var(--color-forest);
     }
     [data-theme="dark"] .vessa-rider-pill.available {
-        background: rgba(16, 185, 129, 0.15);
-        color: #34d399;
+        background: rgba(104, 151, 128, 0.25);
+        color: #689780;
     }
     .vessa-rider-pill.on-trip {
-        background: #FFF3E0;
-        color: #C05621;
-        border: 1px solid #FBD38D;
+        background: rgba(166, 68, 68, 0.12);
+        color: #A64444;
+        border: 1px solid rgba(166, 68, 68, 0.25);
     }
     [data-theme="dark"] .vessa-rider-pill.on-trip {
-        background: rgba(237, 137, 54, 0.2);
-        color: #FBD38D;
-        border-color: rgba(237, 137, 54, 0.35);
+        background: rgba(166, 68, 68, 0.2);
+        color: #E26868;
+        border-color: rgba(166, 68, 68, 0.35);
     }
 
     .vessa-fleet-footer {
@@ -797,7 +814,7 @@
         position: fixed;
         bottom: 24px;
         right: 32px;
-        background: #121915;
+        background: var(--color-charcoal);
         color: #ffffff;
         border-radius: 9999px;
         padding: 10px 20px;
@@ -806,7 +823,7 @@
         gap: 8px;
         font-size: 13px;
         font-weight: 700;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        box-shadow: 0 10px 30px rgba(24, 34, 29, 0.25);
         z-index: 100;
         cursor: pointer;
         transition: all 0.2s ease;
@@ -819,7 +836,7 @@
     }
     .vessa-gemini-sparkle {
         font-size: 14px;
-        color: #ffd700;
+        color: #C29842;
     }
 
     @media (max-width: 1200px) {
@@ -1816,7 +1833,7 @@
                 <!-- Smooth wavy teal spline curve -->
                 <div class="vessa-metric-spark-wrap" style="height: 38px; margin-bottom: 6px;">
                     <svg width="100%" height="38" viewBox="0 0 120 38" fill="none">
-                        <path class="vessa-spark-line" d="M 4 30 C 28 32, 48 18, 72 24 C 92 16, 102 10, 116 5" stroke="#0284c7" stroke-width="2.4" stroke-linecap="round"/>
+                        <path class="vessa-spark-line" d="M 4 30 C 28 32, 48 18, 72 24 C 92 16, 102 10, 116 5" stroke="#648C94" stroke-width="2.4" stroke-linecap="round"/>
                     </svg>
                 </div>
             </div>
@@ -1873,13 +1890,13 @@
                 <span class="vessa-chart-title" style="font-size: 17px; font-weight: 800;">Inventory statistics</span>
                 <div class="vessa-chart-controls">
                     <span class="vessa-legend-pill">
-                        <span class="vessa-legend-dot forest"></span> Stock in
+                        <span class="vessa-legend-dot amber"></span> Stock in
                     </span>
                     <span class="vessa-legend-pill">
-                        <span class="vessa-legend-dot ochre"></span> Stock out
+                        <span class="vessa-legend-dot sage"></span> Stock out
                     </span>
                     <span class="vessa-legend-pill">
-                        <span class="vessa-legend-line forest"></span> Stock value
+                        <span class="vessa-legend-line blue"></span> Stock value
                     </span>
                     <button type="button" class="vessa-dropdown-pill" onclick="switchTrendRange(currentTrendRange === 'today' ? '7d' : 'today', this)">
                         <span>Monthly</span> ▾
@@ -1896,11 +1913,11 @@
                 <div class="vessa-peak-tooltip">
                     <div class="vessa-tooltip-month">October 2026</div>
                     <div class="vessa-tooltip-row">
-                        <span style="color: var(--text-muted);">● Stock In:</span>
+                        <span>● Stock In:</span>
                         <strong>$14,250</strong>
                     </div>
                     <div class="vessa-tooltip-row">
-                        <span style="color: var(--text-muted);">● Stock Out:</span>
+                        <span>● Stock Out:</span>
                         <strong>$8,120</strong>
                     </div>
                     <div class="vessa-tooltip-total">
@@ -1912,8 +1929,8 @@
                 <svg width="100%" height="220" viewBox="0 0 720 220" preserveAspectRatio="none" fill="none">
                     <defs>
                         <linearGradient id="vessaCurveAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="#114232" stop-opacity="0.18"/>
-                            <stop offset="100%" stop-color="#114232" stop-opacity="0.0"/>
+                            <stop offset="0%" stop-color="#5B7896" stop-opacity="0.22"/>
+                            <stop offset="100%" stop-color="#5B7896" stop-opacity="0.0"/>
                         </linearGradient>
                     </defs>
 
@@ -1925,42 +1942,42 @@
 
                     <!-- Grouped Dual Bars for 10 Months with Staggered Entrance Growth -->
                     <!-- 1. Jan -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 0;" x="36"  y="110" width="10" height="80" rx="4" fill="#114232"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 0;" x="48"  y="130" width="10" height="60" rx="4" fill="#C89B53"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 0;" x="36"  y="110" width="10" height="80" rx="4" fill="#C29842"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 0;" x="48"  y="130" width="10" height="60" rx="4" fill="#689780"/>
                     <!-- 2. Feb -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 1;" x="98"  y="95"  width="10" height="95" rx="4" fill="#114232"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 1;" x="110" y="115" width="10" height="75" rx="4" fill="#C89B53"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 1;" x="98"  y="95"  width="10" height="95" rx="4" fill="#C29842"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 1;" x="110" y="115" width="10" height="75" rx="4" fill="#689780"/>
                     <!-- 3. Mar -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 2;" x="160" y="80"  width="10" height="110" rx="4" fill="#114232"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 2;" x="172" y="105" width="10" height="85"  rx="4" fill="#C89B53"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 2;" x="160" y="80"  width="10" height="110" rx="4" fill="#C29842"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 2;" x="172" y="105" width="10" height="85"  rx="4" fill="#689780"/>
                     <!-- 4. Apr -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 3;" x="222" y="70"  width="10" height="120" rx="4" fill="#114232"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 3;" x="234" y="90"  width="10" height="100" rx="4" fill="#C89B53"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 3;" x="222" y="70"  width="10" height="120" rx="4" fill="#C29842"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 3;" x="234" y="90"  width="10" height="100" rx="4" fill="#689780"/>
                     <!-- 5. May -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 4;" x="284" y="85"  width="10" height="105" rx="4" fill="#114232"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 4;" x="296" y="100" width="10" height="90"  rx="4" fill="#C89B53"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 4;" x="284" y="85"  width="10" height="105" rx="4" fill="#C29842"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 4;" x="296" y="100" width="10" height="90"  rx="4" fill="#689780"/>
                     <!-- 6. Jun -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 5;" x="346" y="60"  width="10" height="130" rx="4" fill="#114232"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 5;" x="358" y="80"  width="10" height="110" rx="4" fill="#C89B53"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 5;" x="346" y="60"  width="10" height="130" rx="4" fill="#C29842"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 5;" x="358" y="80"  width="10" height="110" rx="4" fill="#689780"/>
                     <!-- 7. Jul -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 6;" x="408" y="55"  width="10" height="135" rx="4" fill="#114232"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 6;" x="420" y="70"  width="10" height="120" rx="4" fill="#C89B53"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 6;" x="408" y="55"  width="10" height="135" rx="4" fill="#C29842"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 6;" x="420" y="70"  width="10" height="120" rx="4" fill="#689780"/>
                     <!-- 8. Aug -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 7;" x="470" y="45"  width="10" height="145" rx="4" fill="#114232"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 7;" x="482" y="65"  width="10" height="125" rx="4" fill="#C89B53"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 7;" x="470" y="45"  width="10" height="145" rx="4" fill="#C29842"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 7;" x="482" y="65"  width="10" height="125" rx="4" fill="#689780"/>
                     <!-- 9. Sep -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 8;" x="532" y="60"  width="10" height="130" rx="4" fill="#114232"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 8;" x="544" y="80"  width="10" height="110" rx="4" fill="#C89B53"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 8;" x="532" y="60"  width="10" height="130" rx="4" fill="#C29842"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 8;" x="544" y="80"  width="10" height="110" rx="4" fill="#689780"/>
                     <!-- 10. Oct (Highlighted Active Month) -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 9;" x="594" y="35"  width="12" height="155" rx="4" fill="#114232"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 9;" x="608" y="55"  width="12" height="135" rx="4" fill="#C89B53"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 9;" x="594" y="35"  width="12" height="155" rx="4" fill="#C29842"/>
+                    <rect class="vessa-chart-bar" style="--bar-idx: 9;" x="608" y="55"  width="12" height="135" rx="4" fill="#689780"/>
 
                     <!-- Overlaid Smooth Revenue Spline Area & Stroke with Drawing Reveal -->
                     <path class="vessa-chart-curve-area" d="M 47 115 C 100 90, 160 75, 230 65 C 290 80, 350 50, 420 48 C 480 35, 540 60, 608 35 L 608 190 L 47 190 Z" fill="url(#vessaCurveAreaGrad)"/>
-                    <path class="vessa-chart-curve-stroke" d="M 47 115 C 100 90, 160 75, 230 65 C 290 80, 350 50, 420 48 C 480 35, 540 60, 608 35" stroke="#114232" stroke-width="3" stroke-linecap="round"/>
+                    <path class="vessa-chart-curve-stroke" d="M 47 115 C 100 90, 160 75, 230 65 C 290 80, 350 50, 420 48 C 480 35, 540 60, 608 35" stroke="#5B7896" stroke-width="3" stroke-linecap="round"/>
 
                     <!-- Pinned peak circle on Oct with Pop-In -->
-                    <circle class="vessa-peak-circle" cx="608" cy="35" r="5" fill="#114232" stroke="#ffffff" stroke-width="2.5"/>
+                    <circle class="vessa-peak-circle" cx="608" cy="35" r="5" fill="#5B7896" stroke="#ffffff" stroke-width="2.5"/>
                 </svg>
 
                 <!-- Month Labels Bar -->
@@ -2040,11 +2057,11 @@
             <!-- Fleet Micro Stats Strip -->
             <div class="vessa-fleet-stats-strip">
                 <div class="vessa-fleet-stat-box">
-                    <span class="vessa-fleet-stat-val" id="kpiFleetAvailable" style="color: var(--color-green);">{{ $fleetAvailableCount }}</span>
+                    <span class="vessa-fleet-stat-val" id="kpiFleetAvailable" style="color: var(--color-sage);">{{ $fleetAvailableCount }}</span>
                     <span class="vessa-fleet-stat-lbl">Available</span>
                 </div>
                 <div class="vessa-fleet-stat-box" style="border-left: 1px solid var(--border-subtle); border-right: 1px solid var(--border-subtle);">
-                    <span class="vessa-fleet-stat-val" id="kpiFleetOnTrip" style="color: #ea580c;">{{ $fleetDeliveringCount }}</span>
+                    <span class="vessa-fleet-stat-val" id="kpiFleetOnTrip" style="color: var(--color-terracotta);">{{ $fleetDeliveringCount }}</span>
                     <span class="vessa-fleet-stat-lbl">On Delivery</span>
                 </div>
                 <div class="vessa-fleet-stat-box">
