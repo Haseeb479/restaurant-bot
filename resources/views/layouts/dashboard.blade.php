@@ -1692,12 +1692,12 @@
             </a>
 
             <!-- Solid Forest Green + New Pill Button -->
-            <a href="{{ route('dashboard.dine-in', $restId) }}" class="vessa-new-btn" title="Create New Order">
+            <button type="button" class="vessa-new-btn" onclick="triggerQuickPosOrder('{{ route('dashboard.orders', $restId) }}')" title="Fast Walk-in / Counter Order (Ctrl+N)">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M12 5v14M5 12h14"/>
                 </svg>
                 <span>+ New</span>
-            </a>
+            </button>
 
             <!-- User Profile Capsule: Mint Avatar + Text Column -->
             <a href="{{ route('dashboard.settings', $restId) }}" class="vessa-user-capsule" title="{{ $ownerName }} (Owner)">
@@ -2010,6 +2010,23 @@ function switchVessaTab(tab, e) {
         }
     }
 }
+
+// ── Trigger Fast Walk-in / Counter POS Order ───────────
+function triggerQuickPosOrder(ordersUrl) {
+    if (typeof openQuickPosModal === 'function') {
+        openQuickPosModal();
+    } else {
+        window.location.href = ordersUrl + '?open_pos=1';
+    }
+}
+
+// Keyboard Shortcut: Ctrl+N or Cmd+N opens Fast Counter POS
+document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
+        e.preventDefault();
+        triggerQuickPosOrder('{{ route('dashboard.orders', $restId) }}');
+    }
+});
 
 // ── Mobile Sidebar Drawer ──────────────────────────────
 function toggleTastyDropdown(e) {

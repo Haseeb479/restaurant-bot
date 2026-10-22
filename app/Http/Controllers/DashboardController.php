@@ -150,7 +150,7 @@ class DashboardController extends Controller
         $orders      = $r->orders()->with('items')->orderBy('created_at', 'desc')->paginate(20);
         $todayOrders = $r->todayOrders()->with('items')->get();
         $riders      = $r->riders()->get();
-        $menuItems   = $r->menuItems()->get();
+        $menuItems   = $r->menuItems()->with('category')->get();
 
         $selectedOrderId = request('order_id');
         $selectedOrder   = $selectedOrderId 
@@ -985,6 +985,89 @@ class DashboardController extends Controller
             'order'       => $leadOrder,
             'tableOrders' => $orders,
             'tableNumber' => $table,
+        ]);
+    }
+
+    // ── Quick Walk-in / Takeaway POS Order Punch & Print ────
+    public function storeQuickOrder(Request $request, string $id)
+    {
+        $this->authCheck($id);
+        $r = Restaurant::findOrFail($id);
+
+        $validated = $request->validate([
+            'customer_name'  => 'nullable|string|max:100',
+            'customer_phone' => 'nullable|string|max:30',
+            'order_type'     => 'nullable|string|in:takeaway,dine_in,delivery',
+            'table_number'   => 'nullable|string|max:20',
+            'payment_method' => 'nullable|string|max:50',
+            'notes'          => 'nullable|string|max:500',
+            'discount'       => 'nullable|numeric|min:0',
+            'items'          => 'required|array|min:1',
+            'items.*.id'     => 'nullable|integer',
+            'items.*.name'   => 'required|string|max:255',
+            'items.*.price'  => 'required|numeric|min:0',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.size'   => 'nullable|string|max:50',
+        ]);
+
+        $subtotal = 0.0;
+        foreach ($validated['items'] as $item) {
+            $subtotal += ((float)$item['price']) * ((int)$item['quantity']);
+        }
+
+        $discount = (float)($validated['discount'] ?? 0);
+        $total = max(0.0, $subtotal - $discount);
+
+        $orderType = $validated['order_type'] ?? 'takeaway';
+        $deliveryAddress = match($orderType) {
+            'takeaway' => 'Takeaway Counter',
+            'dine_in'  => 'Dine-In' . (!empty($validated['table_number']) ? ' (Table ' . $validated['table_number'] . ')' : ''),
+            default    => 'Walk-in Counter',
+        };
+
+        $payMethod = match(strtolower($validated['payment_method'] ?? 'cash')) {
+            'jazzcash'   => 'jazzcash',
+            'easypaisa'  => 'easypaisa',
+            'card'       => 'credit_card',
+            default      => 'cash_on_delivery',
+        };
+
+        $trackingCode = strtoupper(\Illuminate\Support\Str::random(8));
+
+        $order = Order::create([
+            'restaurant_id'    => $r->id,
+            'order_type'       => $orderType,
+            'table_number'     => !empty($validated['table_number']) ? trim((string)$validated['table_number']) : null,
+            'customer_name'    => !empty($validated['customer_name']) ? trim($validated['customer_name']) : 'Walk-in Guest',
+            'customer_phone'   => !empty($validated['customer_phone']) ? trim($validated['customer_phone']) : 'Walk-in',
+            'delivery_address' => $deliveryAddress,
+            'tracking_code'    => $trackingCode,
+            'status'           => 'confirmed',
+            'payment_method'   => $payMethod,
+            'is_paid'          => true,
+            'subtotal'         => $subtotal,
+            'delivery_charge'  => 0,
+            'total'            => $total,
+            'notes'            => $validated['notes'] ?? ($discount > 0 ? "Discount: Rs. {$discount}" : null),
+        ]);
+
+        foreach ($validated['items'] as $item) {
+            $order->items()->create([
+                'menu_item_id' => $item['id'] ?? null,
+                'name'         => $item['name'],
+                'size'         => $item['size'] ?? null,
+                'unit_price'   => $item['price'],
+                'quantity'     => $item['quantity'],
+                'subtotal'     => ((float)$item['price']) * ((int)$item['quantity']),
+            ]);
+        }
+
+        return response()->json([
+            'success'      => true,
+            'order_id'     => $order->id,
+            'daily_number' => $order->daily_order_number ?: $order->id,
+            'print_url'    => route('dashboard.print-bill', [$r->id, $order->id]),
+            'message'      => "Order #{$order->daily_order_number} created successfully.",
         ]);
     }
 

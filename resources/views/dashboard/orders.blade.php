@@ -1612,6 +1612,494 @@
         color: var(--brand-primary);
     }
 
+    /* ── QUICK WALK-IN / TAKEAWAY POS MODAL ── */
+    .quick-pos-dialog {
+        background: var(--bg-card);
+        border: 1px solid var(--border-card);
+        border-radius: 28px;
+        width: 1040px;
+        max-width: 96vw;
+        height: 720px;
+        max-height: 90vh;
+        box-shadow: 0 30px 70px rgba(0, 0, 0, 0.35);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        animation: quickPosEntrance 0.22s var(--ease-out-smooth) both;
+    }
+    @keyframes quickPosEntrance {
+        from { opacity: 0; transform: scale(0.96) translateY(12px); }
+        to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .quick-pos-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 24px;
+        border-bottom: 1px solid var(--border-subtle);
+        background: var(--bg-card);
+    }
+    .quick-pos-brand-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        background: var(--color-forest);
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        font-weight: 800;
+    }
+    .quick-pos-close-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-canvas);
+        color: var(--text-muted);
+        font-size: 16px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s ease;
+    }
+    .quick-pos-close-btn:hover {
+        background: var(--color-coral);
+        color: #ffffff;
+        border-color: var(--color-coral);
+    }
+
+    .quick-pos-body {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr;
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    /* Left: Catalog */
+    .quick-pos-catalog {
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid var(--border-subtle);
+        background: var(--bg-canvas);
+        min-height: 0;
+    }
+    .quick-pos-controls {
+        padding: 16px 20px 12px;
+        background: var(--bg-card);
+        border-bottom: 1px solid var(--border-subtle);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .quick-pos-search-box {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--bg-canvas);
+        border: 1px solid var(--border-subtle);
+        border-radius: 9999px;
+        padding: 8px 16px;
+    }
+    .quick-pos-search-box input {
+        border: none;
+        background: transparent;
+        outline: none;
+        font-size: 13.5px;
+        color: var(--text-heading);
+        width: 100%;
+        font-family: inherit;
+    }
+    .quick-pos-category-pills {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+    }
+    .quick-pos-category-pills::-webkit-scrollbar { height: 3px; }
+    .pos-cat-pill {
+        padding: 6px 14px;
+        border-radius: 9999px;
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-canvas);
+        color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.15s ease;
+    }
+    .pos-cat-pill:hover,
+    .pos-cat-pill.active {
+        background: var(--color-forest);
+        color: #ffffff;
+        border-color: var(--color-forest);
+    }
+
+    .quick-pos-grid {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px 20px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 12px;
+        align-content: start;
+    }
+    .pos-item-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 18px;
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        cursor: pointer;
+        transition: all 0.18s ease;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+    }
+    .pos-item-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--color-forest);
+        box-shadow: 0 8px 20px rgba(17,66,50,0.08);
+    }
+    .pos-item-card:active {
+        transform: scale(0.98);
+    }
+    .pos-item-name {
+        font-size: 13.5px;
+        font-weight: 700;
+        color: var(--text-heading);
+        line-height: 1.3;
+        margin-bottom: 3px;
+    }
+    .pos-item-cat {
+        font-size: 11px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+    }
+    .pos-item-bottom {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 12px;
+    }
+    .pos-item-price {
+        font-size: 14px;
+        font-weight: 800;
+        color: var(--color-forest);
+    }
+    .pos-item-add-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--color-forest-light);
+        color: var(--color-forest);
+        border: none;
+        font-size: 16px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .pos-item-card:hover .pos-item-add-btn {
+        background: var(--color-forest);
+        color: #ffffff;
+    }
+    .pos-item-sizes {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px dashed var(--border-subtle);
+    }
+    .pos-size-chip {
+        padding: 3px 8px;
+        border-radius: 9999px;
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-canvas);
+        font-size: 10.5px;
+        font-weight: 700;
+        color: var(--text-body);
+        cursor: pointer;
+        transition: all 0.12s ease;
+    }
+    .pos-size-chip:hover {
+        background: var(--color-forest);
+        color: #ffffff;
+        border-color: var(--color-forest);
+    }
+
+    /* Right: Slip Checkout */
+    .quick-pos-slip {
+        display: flex;
+        flex-direction: column;
+        background: var(--bg-card);
+        min-height: 0;
+    }
+    .quick-pos-slip-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-subtle);
+        background: var(--bg-card);
+    }
+    .pos-order-type-switch {
+        display: flex;
+        background: var(--bg-canvas);
+        border-radius: 9999px;
+        padding: 3px;
+        border: 1px solid var(--border-subtle);
+    }
+    .pos-type-btn {
+        flex: 1;
+        padding: 7px 12px;
+        border-radius: 9999px;
+        border: none;
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 12.5px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .pos-type-btn.active {
+        background: var(--color-forest);
+        color: #ffffff;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .pos-input-compact {
+        padding: 8px 12px;
+        border-radius: 10px;
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-canvas);
+        color: var(--text-heading);
+        font-size: 12px;
+        outline: none;
+        font-family: inherit;
+    }
+    .pos-input-compact:focus {
+        border-color: var(--color-forest);
+    }
+
+    .quick-pos-cart-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 14px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .pos-cart-empty {
+        text-align: center;
+        padding: 40px 10px;
+        color: var(--text-muted);
+    }
+    .pos-cart-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 9px 12px;
+        background: var(--bg-canvas);
+        border: 1px solid var(--border-subtle);
+        border-radius: 12px;
+        gap: 10px;
+    }
+    .pos-cart-item-name {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-heading);
+        line-height: 1.2;
+    }
+    .pos-cart-item-meta {
+        font-size: 11px;
+        color: var(--text-muted);
+    }
+    .pos-cart-stepper {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 9999px;
+        padding: 2px 6px;
+    }
+    .pos-step-btn {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: none;
+        background: transparent;
+        color: var(--text-heading);
+        font-weight: 800;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+    }
+    .pos-step-btn:hover {
+        background: var(--color-forest-light);
+        color: var(--color-forest);
+    }
+    .pos-step-qty {
+        font-size: 12.5px;
+        font-weight: 800;
+        min-width: 16px;
+        text-align: center;
+    }
+    .pos-cart-subtotal {
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--color-forest);
+        min-width: 60px;
+        text-align: right;
+    }
+    .pos-cart-remove-btn {
+        background: none;
+        border: none;
+        color: var(--text-light);
+        cursor: pointer;
+        font-size: 14px;
+        padding: 2px 4px;
+        border-radius: 4px;
+    }
+    .pos-cart-remove-btn:hover {
+        color: #ef4444;
+    }
+
+    .quick-pos-slip-footer {
+        padding: 14px 20px 18px;
+        border-top: 1px solid var(--border-subtle);
+        background: var(--bg-card);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .pos-calc-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 12.5px;
+        color: var(--text-muted);
+    }
+    .pos-calc-row.total {
+        font-size: 16px;
+    }
+    .pos-grand-total {
+        font-size: 22px;
+        font-weight: 800;
+        color: var(--color-forest);
+        letter-spacing: -0.02em;
+    }
+    .pos-discount-input {
+        width: 70px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-canvas);
+        font-size: 12px;
+        font-weight: 700;
+        text-align: right;
+        outline: none;
+    }
+
+    .pos-pay-modes {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 6px;
+        margin-top: 4px;
+    }
+    .pos-pay-pill {
+        padding: 7px 4px;
+        border-radius: 10px;
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-canvas);
+        color: var(--text-body);
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+        text-align: center;
+        transition: all 0.15s ease;
+    }
+    .pos-pay-pill.active {
+        border-color: var(--color-forest);
+        background: var(--color-forest-light);
+        color: var(--color-forest);
+    }
+
+    .pos-tender-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px 12px;
+        border-radius: 12px;
+        background: var(--bg-canvas);
+        border: 1px solid var(--border-subtle);
+        margin-top: 2px;
+    }
+    .pos-tender-input {
+        width: 100%;
+        padding: 4px 8px;
+        border-radius: 6px;
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-card);
+        color: var(--text-heading);
+        font-size: 13px;
+        font-weight: 700;
+        outline: none;
+    }
+
+    .pos-punch-btn {
+        margin-top: 6px;
+        width: 100%;
+        padding: 13px;
+        border-radius: 9999px;
+        border: none;
+        background: var(--color-forest);
+        color: #ffffff;
+        font-size: 14px;
+        font-weight: 800;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        box-shadow: 0 4px 16px rgba(17,66,50,0.25);
+        transition: all 0.18s ease;
+    }
+    .pos-punch-btn:hover {
+        background: var(--color-forest-hover);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(17,66,50,0.35);
+    }
+    .pos-punch-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    @media (max-width: 900px) {
+        .quick-pos-body {
+            grid-template-columns: 1fr;
+            overflow-y: auto;
+        }
+        .quick-pos-catalog {
+            max-height: 340px;
+        }
+        .quick-pos-dialog {
+            height: auto;
+            max-height: 94vh;
+        }
+    }
+
     /* Responsive */
     @media (max-width: 1200px) {
         .metric-cards-grid { grid-template-columns: repeat(2, 1fr); }
@@ -1754,12 +2242,12 @@
                 </p>
             </div>
             <div class="vessa-welcome-actions">
-                <a href="{{ route('dashboard.dine-in', $restaurant->id) }}" class="vessa-btn-forest">
+                <button type="button" onclick="openQuickPosModal()" class="vessa-btn-forest" style="cursor: pointer; border: none;">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
                     + New order
-                </a>
+                </button>
                 <a href="{{ route('dashboard.dine-in', $restaurant->id) }}" class="vessa-btn-outline">
-                    ⚡ Make a batch
+                    ⚡ Table register
                 </a>
             </div>
         </div>
@@ -2411,6 +2899,158 @@
     </div>
 </div>
 
+<!-- ── FAST WALK-IN / TAKEAWAY POS ORDER & PRINT MODAL ── -->
+@php
+    $categories = $menuItems->pluck('category')->filter()->unique('id')->values();
+@endphp
+<div id="quickPosModal" class="modal-backdrop" onclick="if(event.target===this) closeQuickPosModal()">
+    <div class="quick-pos-dialog">
+        <!-- Topbar -->
+        <div class="quick-pos-header">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="quick-pos-brand-icon">⚡</div>
+                <div>
+                    <h3 style="margin: 0; font-size: 17px; font-weight: 800; color: var(--text-heading); letter-spacing: -0.02em;">Walk-in POS Register</h3>
+                    <p style="margin: 2px 0 0; font-size: 11.5px; color: var(--text-muted);">Punch walk-in order, collect payment, and immediately print bill</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeQuickPosModal()" class="quick-pos-close-btn" title="Close (Esc)">✕</button>
+        </div>
+
+        <!-- Body: 2 Columns -->
+        <div class="quick-pos-body">
+            <!-- Left Column: Menu Catalog (60%) -->
+            <div class="quick-pos-catalog">
+                <!-- Search & Filter Controls -->
+                <div class="quick-pos-controls">
+                    <div class="quick-pos-search-box">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                        <input type="text" id="posSearchInput" placeholder="Search dishes (e.g. burger, pizza, fries)..." oninput="filterPosItems()">
+                        <button type="button" id="posSearchClear" onclick="clearPosSearch()" style="display:none; background:none; border:none; cursor:pointer; color:var(--text-muted);">✕</button>
+                    </div>
+
+                    <!-- Category Pills -->
+                    <div class="quick-pos-category-pills" id="posCategoryPills">
+                        <button type="button" class="pos-cat-pill active" onclick="selectPosCategory('all', this)">All ({{ $menuItems->count() }})</button>
+                        @foreach($categories as $cat)
+                            <button type="button" class="pos-cat-pill" onclick="selectPosCategory('{{ $cat->id }}', this)">{{ $cat->name }}</button>
+                        @endforeach
+                    </div>
+                </div>
+
+                <!-- Menu Items Grid -->
+                <div class="quick-pos-grid" id="posItemsGrid">
+                    @forelse($menuItems as $mItem)
+                        @php
+                            $catId = $mItem->category_id ?? 'uncat';
+                            $hasSizes = !empty($mItem->sizes) && is_array($mItem->sizes) && count($mItem->sizes) > 0;
+                            $basePrice = (float)($mItem->price ?? ($hasSizes ? ($mItem->sizes[0]['price'] ?? 0) : 0));
+                        @endphp
+                        <div class="pos-item-card" 
+                             data-id="{{ $mItem->id }}" 
+                             data-name="{{ strtolower($mItem->name) }}" 
+                             data-cat="{{ $catId }}"
+                             onclick="handlePosItemClick({{ $mItem->id }})">
+                            <div class="pos-item-info">
+                                <span class="pos-item-name">{{ $mItem->name }}</span>
+                                <span class="pos-item-cat">{{ $mItem->category->name ?? 'Dish' }}</span>
+                            </div>
+                            <div class="pos-item-bottom">
+                                <span class="pos-item-price">Rs. {{ number_format($basePrice) }}</span>
+                                <button type="button" class="pos-item-add-btn" title="Add to slip">+</button>
+                            </div>
+
+                            @if($hasSizes)
+                                <div class="pos-item-sizes" onclick="event.stopPropagation()">
+                                    @foreach($mItem->sizes as $s)
+                                        <button type="button" class="pos-size-chip" onclick="addPosItemDirect({{ $mItem->id }}, '{{ addslashes($mItem->name) }}', {{ (float)($s['price'] ?? 0) }}, '{{ addslashes($s['size'] ?? $s['name'] ?? '') }}')">
+                                            {{ $s['size'] ?? $s['name'] }}: Rs. {{ number_format($s['price']) }}
+                                        </button>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
+                    @empty
+                        <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">
+                            No dishes found in menu catalog. Please add items in Menu management.
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+
+            <!-- Right Column: Counter Slip & Bill Checkout (40%) -->
+            <div class="quick-pos-slip">
+                <!-- Slip Header / Customer Details -->
+                <div class="quick-pos-slip-header">
+                    <div class="pos-order-type-switch">
+                        <button type="button" id="posTypeTakeaway" class="pos-type-btn active" onclick="setPosOrderType('takeaway', this)">🥡 Takeaway (Walk away)</button>
+                        <button type="button" id="posTypeDineIn" class="pos-type-btn" onclick="setPosOrderType('dine_in', this)">🍽️ Dine-In</button>
+                    </div>
+
+                    <div style="display: flex; gap: 8px; margin-top: 10px;">
+                        <input type="text" id="posCustomerName" placeholder="Guest Name" value="Walk-in Guest" class="pos-input-compact" style="flex: 1.4;">
+                        <input type="text" id="posCustomerPhone" placeholder="Phone (optional)" class="pos-input-compact" style="flex: 1;">
+                        <input type="text" id="posTableNumber" placeholder="Table #" class="pos-input-compact" style="width: 70px; display: none;">
+                    </div>
+                </div>
+
+                <!-- Line Items Cart -->
+                <div class="quick-pos-cart-list" id="posCartList">
+                    <div class="pos-cart-empty">
+                        <div style="font-size: 32px; margin-bottom: 6px;">🧾</div>
+                        <div style="font-size: 13px; font-weight: 700; color: var(--text-heading); margin-bottom: 4px;">Slip is currently empty</div>
+                        <p style="font-size: 11.5px; margin: 0; color: var(--text-muted);">Click any dish on the left to add it to this walk-in bill.</p>
+                    </div>
+                </div>
+
+                <!-- Slip Calculations & Payment -->
+                <div class="quick-pos-slip-footer">
+                    <div class="pos-calc-row">
+                        <span>Subtotal</span>
+                        <strong id="posCalcSubtotal">Rs. 0</strong>
+                    </div>
+                    <div class="pos-calc-row" style="margin-top: 4px;">
+                        <span>Discount</span>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <span style="font-size: 11px; color: var(--text-muted);">Rs.</span>
+                            <input type="number" id="posDiscountInput" value="0" min="0" oninput="updatePosMath()" class="pos-discount-input">
+                        </div>
+                    </div>
+                    <div class="pos-calc-row total" style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-subtle);">
+                        <span style="font-size: 15px; font-weight: 800; color: var(--text-heading);">Total Due</span>
+                        <span class="pos-grand-total" id="posCalcTotal">Rs. 0</span>
+                    </div>
+
+                    <!-- Payment Mode Pills -->
+                    <div class="pos-pay-modes">
+                        <button type="button" class="pos-pay-pill active" onclick="setPosPayment('cash', this)">💵 Cash</button>
+                        <button type="button" class="pos-pay-pill" onclick="setPosPayment('jazzcash', this)">📱 Raast / JazzCash</button>
+                        <button type="button" class="pos-pay-pill" onclick="setPosPayment('card', this)">💳 Card</button>
+                    </div>
+
+                    <!-- Cash Tendered & Change -->
+                    <div class="pos-tender-row" id="posTenderRow">
+                        <div style="flex: 1;">
+                            <label style="display: block; font-size: 10px; font-weight: 700; color: var(--text-muted); margin-bottom: 2px;">CASH TENDERED</label>
+                            <input type="number" id="posCashTendered" placeholder="0" oninput="calcPosChange()" class="pos-tender-input">
+                        </div>
+                        <div style="flex: 1; text-align: right;">
+                            <label style="display: block; font-size: 10px; font-weight: 700; color: var(--text-muted); margin-bottom: 2px;">CHANGE TO RETURN</label>
+                            <span id="posChangeDue" style="font-size: 14px; font-weight: 800; color: var(--color-forest);">Rs. 0</span>
+                        </div>
+                    </div>
+
+                    <!-- Primary Action Button -->
+                    <button type="button" id="btnCompletePrintPos" onclick="submitQuickPosOrder()" class="pos-punch-btn">
+                        <span>⚡ Complete & Print Bill</span>
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- ── DISPATCH RIDER MODAL ── -->
 <div id="dispatchRiderModal" class="modal-backdrop">
     <div class="modal-dialog-box" style="padding: 22px;">
@@ -2453,6 +3093,312 @@
 
 <!-- ── CLIENT SCRIPT ENGINE ── -->
 <script>
+// ═════════════════════════════════════════════════════════════
+// ── FAST WALK-IN / TAKEAWAY POS ENGINE ──
+// ═════════════════════════════════════════════════════════════
+const posCatalogData = @json($menuItems);
+let posCart = [];
+let posOrderType = 'takeaway';
+let posPaymentMethod = 'cash';
+let activePosCat = 'all';
+
+function openQuickPosModal() {
+    const modal = document.getElementById('quickPosModal');
+    if (modal) {
+        modal.classList.add('open');
+        const sInput = document.getElementById('posSearchInput');
+        if (sInput) {
+            setTimeout(() => sInput.focus(), 80);
+        }
+    }
+}
+
+function closeQuickPosModal() {
+    const modal = document.getElementById('quickPosModal');
+    if (modal) modal.classList.remove('open');
+}
+
+function selectPosCategory(catId, btn) {
+    activePosCat = String(catId);
+    document.querySelectorAll('.pos-cat-pill').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    filterPosItems();
+}
+
+function filterPosItems() {
+    const term = (document.getElementById('posSearchInput')?.value || '').toLowerCase().trim();
+    const clearBtn = document.getElementById('posSearchClear');
+    if (clearBtn) clearBtn.style.display = term ? 'inline-block' : 'none';
+
+    document.querySelectorAll('.pos-item-card').forEach(card => {
+        const name = (card.getAttribute('data-name') || '').toLowerCase();
+        const cat = String(card.getAttribute('data-cat') || '');
+
+        const matchesSearch = !term || name.includes(term);
+        const matchesCat = (activePosCat === 'all') || (cat === activePosCat);
+
+        card.style.display = (matchesSearch && matchesCat) ? 'flex' : 'none';
+    });
+}
+
+function clearPosSearch() {
+    const inp = document.getElementById('posSearchInput');
+    if (inp) {
+        inp.value = '';
+        inp.focus();
+    }
+    filterPosItems();
+}
+
+function setPosOrderType(type, btn) {
+    posOrderType = type;
+    document.querySelectorAll('.pos-type-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    const tableInput = document.getElementById('posTableNumber');
+    if (tableInput) {
+        tableInput.style.display = (type === 'dine_in') ? 'inline-block' : 'none';
+        if (type === 'dine_in') tableInput.focus();
+    }
+}
+
+function setPosPayment(mode, btn) {
+    posPaymentMethod = mode;
+    document.querySelectorAll('.pos-pay-pill').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    const tenderRow = document.getElementById('posTenderRow');
+    if (tenderRow) {
+        tenderRow.style.opacity = (mode === 'cash') ? '1' : '0.4';
+    }
+}
+
+function handlePosItemClick(itemId) {
+    const item = posCatalogData.find(m => m.id === itemId);
+    if (!item) return;
+
+    if (item.sizes && Array.isArray(item.sizes) && item.sizes.length > 0) {
+        const s = item.sizes[0];
+        addPosItemDirect(item.id, item.name, parseFloat(s.price || item.price || 0), s.size || s.name || '');
+    } else {
+        addPosItemDirect(item.id, item.name, parseFloat(item.price || 0), null);
+    }
+}
+
+function addPosItemDirect(id, name, price, size) {
+    const key = `${id}_${size || 'def'}`;
+    const existing = posCart.find(i => i.key === key);
+
+    if (existing) {
+        existing.qty += 1;
+    } else {
+        posCart.push({
+            key: key,
+            id: id,
+            name: name,
+            price: Number(price) || 0,
+            size: size || null,
+            qty: 1
+        });
+    }
+
+    renderPosCart();
+}
+
+function updatePosItemQty(index, delta) {
+    if (!posCart[index]) return;
+    posCart[index].qty += delta;
+    if (posCart[index].qty <= 0) {
+        posCart.splice(index, 1);
+    }
+    renderPosCart();
+}
+
+function removePosItem(index) {
+    if (posCart[index]) {
+        posCart.splice(index, 1);
+        renderPosCart();
+    }
+}
+
+function renderPosCart() {
+    const container = document.getElementById('posCartList');
+    if (!container) return;
+
+    if (posCart.length === 0) {
+        container.innerHTML = `
+            <div class="pos-cart-empty">
+                <div style="font-size: 32px; margin-bottom: 6px;">🧾</div>
+                <div style="font-size: 13px; font-weight: 700; color: var(--text-heading); margin-bottom: 4px;">Slip is currently empty</div>
+                <p style="font-size: 11.5px; margin: 0; color: var(--text-muted);">Click any dish on the left to add it to this walk-in bill.</p>
+            </div>
+        `;
+    } else {
+        let html = '';
+        posCart.forEach((item, idx) => {
+            const lineSub = item.price * item.qty;
+            const sizeBadge = item.size ? `<span style="font-size: 10px; background: var(--bg-card); padding: 1px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">${escapeHtml(item.size)}</span>` : '';
+
+            html += `
+                <div class="pos-cart-item">
+                    <div style="flex: 1; min-width: 0;">
+                        <div class="pos-cart-item-name">${escapeHtml(item.name)} ${sizeBadge}</div>
+                        <div class="pos-cart-item-meta">Rs. ${item.price.toLocaleString()} each</div>
+                    </div>
+                    <div class="pos-cart-stepper">
+                        <button type="button" class="pos-step-btn" onclick="updatePosItemQty(${idx}, -1)">−</button>
+                        <span class="pos-step-qty">${item.qty}</span>
+                        <button type="button" class="pos-step-btn" onclick="updatePosItemQty(${idx}, 1)">+</button>
+                    </div>
+                    <div class="pos-cart-subtotal">Rs. ${lineSub.toLocaleString()}</div>
+                    <button type="button" class="pos-cart-remove-btn" onclick="removePosItem(${idx})" title="Remove item">✕</button>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+
+    updatePosMath();
+}
+
+function updatePosMath() {
+    const subtotal = posCart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+    const discount = Math.max(0, parseFloat(document.getElementById('posDiscountInput')?.value || 0));
+    const grandTotal = Math.max(0, subtotal - discount);
+
+    const subEl = document.getElementById('posCalcSubtotal');
+    if (subEl) subEl.textContent = 'Rs. ' + subtotal.toLocaleString();
+
+    const totEl = document.getElementById('posCalcTotal');
+    if (totEl) totEl.textContent = 'Rs. ' + grandTotal.toLocaleString();
+
+    calcPosChange();
+}
+
+function calcPosChange() {
+    const subtotal = posCart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+    const discount = Math.max(0, parseFloat(document.getElementById('posDiscountInput')?.value || 0));
+    const grandTotal = Math.max(0, subtotal - discount);
+
+    const tendered = parseFloat(document.getElementById('posCashTendered')?.value || 0);
+    const change = Math.max(0, tendered - grandTotal);
+
+    const chgEl = document.getElementById('posChangeDue');
+    if (chgEl) {
+        chgEl.textContent = 'Rs. ' + change.toLocaleString();
+        chgEl.style.color = (tendered >= grandTotal && grandTotal > 0) ? 'var(--color-green)' : 'var(--text-muted)';
+    }
+}
+
+async function submitQuickPosOrder() {
+    if (posCart.length === 0) {
+        alert('Please select at least 1 menu item to punch.');
+        return;
+    }
+
+    const btn = document.getElementById('btnCompletePrintPos');
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳ Processing & Printing...</span>';
+
+    try {
+        const payload = {
+            order_type: posOrderType,
+            table_number: posOrderType === 'dine_in' ? document.getElementById('posTableNumber')?.value : null,
+            customer_name: document.getElementById('posCustomerName')?.value || 'Walk-in Guest',
+            customer_phone: document.getElementById('posCustomerPhone')?.value || '',
+            payment_method: posPaymentMethod,
+            discount: parseFloat(document.getElementById('posDiscountInput')?.value || 0),
+            items: posCart.map(i => ({
+                id: i.id,
+                name: i.name,
+                price: i.price,
+                size: i.size,
+                quantity: i.qty
+            }))
+        };
+
+        const res = await fetch("{{ route('dashboard.pos.quick-order', $restaurant->id) }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (data && data.success) {
+            // Instantly open bill thermal print window (auto-invokes window.print())
+            if (data.print_url) {
+                const printWin = window.open(data.print_url, '_blank', 'width=460,height=700');
+                if (printWin) printWin.focus();
+            }
+
+            // Close modal & reset
+            closeQuickPosModal();
+            posCart = [];
+            renderPosCart();
+            if (document.getElementById('posCashTendered')) {
+                document.getElementById('posCashTendered').value = '';
+            }
+            calcPosChange();
+
+            // Notify user
+            showQuickPosToast(`✓ Bill #${data.daily_number} punched & printed!`);
+
+            // Instantly sync feed
+            if (typeof fetchLiveOrdersFeed === 'function') {
+                await fetchLiveOrdersFeed();
+            }
+        } else {
+            alert(data.error || data.message || 'Failed to create order.');
+        }
+    } catch (e) {
+        console.error(e);
+        alert('An unexpected error occurred while placing order.');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<span>⚡ Complete & Print Bill</span><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>`;
+    }
+}
+
+function showQuickPosToast(msg) {
+    const toast = document.createElement('div');
+    toast.style.position = 'fixed';
+    toast.style.bottom = '28px';
+    toast.style.left = '50%';
+    toast.style.transform = 'translateX(-50%)';
+    toast.style.background = '#114232';
+    toast.style.color = '#ffffff';
+    toast.style.padding = '12px 24px';
+    toast.style.borderRadius = '9999px';
+    toast.style.boxShadow = '0 10px 30px rgba(0,0,0,0.3)';
+    toast.style.fontWeight = '700';
+    toast.style.fontSize = '14px';
+    toast.style.zIndex = '100000';
+    toast.style.display = 'flex';
+    toast.style.alignItems = 'center';
+    toast.style.gap = '8px';
+    toast.innerHTML = `<span>🧾</span> <span>${escapeHtml(msg)}</span>`;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(-50%) translateY(10px)';
+        setTimeout(() => toast.remove(), 300);
+    }, 3500);
+}
+
+// Auto open if url param ?open_pos=1
+window.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('open_pos') === '1') {
+        openQuickPosModal();
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+});
+
 let currentDrawerOrderId = null;
 let currentDrawerOrderStatus = null;
 let currentFilterStatus = 'all';
