@@ -1983,7 +1983,6 @@ function updateThemeUI(t) {
             sunBtn.classList.add('active');
         }
     }
-}
     const icon = document.getElementById('themeToggleIcon');
     if (icon) {
         icon.innerHTML = t === 'dark' 
