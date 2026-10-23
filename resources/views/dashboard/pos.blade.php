@@ -44,25 +44,58 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        body {
+        /* ── ROOT APPLICATION SHELL & RESPONSIVE SCROLL RULES ── */
+        html, body {
+            margin: 0;
+            padding: 0;
             font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
             background: var(--bg-canvas);
             color: var(--text-body);
-            height: 100vh;
-            width: 100vw;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
+        }
+
+        /* Desktop Viewports (1024px and above) — STRICT NO-SCROLL SHELL */
+        @media (min-width: 1024px) {
+            html, body {
+                height: 100dvh;
+                max-height: 100dvh;
+                width: 100vw;
+                overflow: hidden !important;
+                display: flex;
+                flex-direction: column;
+            }
+        }
+
+        /* Tablet Viewports (768px to 1023px) — Fixed viewport cashier register */
+        @media (min-width: 768px) and (max-width: 1023px) {
+            html, body {
+                height: 100dvh;
+                max-height: 100dvh;
+                width: 100vw;
+                overflow: hidden !important;
+                display: flex;
+                flex-direction: column;
+            }
+        }
+
+        /* Mobile Screens (Under 768px) — Natural vertical scrolling */
+        @media (max-width: 767px) {
+            html, body {
+                height: auto !important;
+                min-height: 100%;
+                overflow-x: hidden !important;
+                overflow-y: auto !important;
+                display: block;
+            }
         }
 
         /* ── TOP FLOATING HEADER ISLAND ── */
         .pos-top-header {
-            height: 68px;
-            padding: 0 24px;
+            height: 56px;
+            padding: 0 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: rgba(255, 255, 255, 0.85);
+            background: rgba(255, 255, 255, 0.90);
             backdrop-filter: blur(14px);
             border-bottom: 1px solid var(--border-subtle);
             flex-shrink: 0;
@@ -72,19 +105,19 @@
         .pos-header-left {
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: 12px;
         }
 
         .pos-back-btn {
             display: inline-flex;
             align-items: center;
-            gap: 7px;
+            gap: 6px;
             background: var(--bg-canvas);
             border: 1px solid var(--border-subtle);
-            padding: 8px 16px;
+            padding: 6px 14px;
             border-radius: 9999px;
             color: var(--text-heading);
-            font-size: 13px;
+            font-size: 12.5px;
             font-weight: 700;
             text-decoration: none;
             transition: all 0.16s ease;
@@ -99,30 +132,32 @@
         .pos-brand-badge {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
         .pos-brand-squircle {
-            width: 38px;
-            height: 38px;
-            border-radius: 12px;
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
             background: var(--color-forest);
             color: #ffffff;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 17px;
+            font-size: 15px;
             font-weight: 800;
-            box-shadow: 0 4px 12px rgba(17,66,50,0.22);
+            box-shadow: 0 3px 10px rgba(17,66,50,0.20);
         }
         .pos-brand-title {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 800;
             color: var(--text-heading);
             letter-spacing: -0.02em;
+            line-height: 1.2;
         }
         .pos-brand-sub {
-            font-size: 11.5px;
+            font-size: 11px;
             color: var(--text-muted);
+            display: block;
         }
 
         /* Mode Switcher Capsule */
@@ -130,23 +165,23 @@
             display: flex;
             background: var(--bg-canvas);
             border-radius: 9999px;
-            padding: 4px;
+            padding: 3px;
             border: 1px solid var(--border-subtle);
-            gap: 4px;
+            gap: 3px;
         }
         .pos-mode-btn {
-            padding: 8px 18px;
+            padding: 6px 14px;
             border-radius: 9999px;
             border: none;
             background: transparent;
             color: var(--text-muted);
-            font-size: 12.5px;
+            font-size: 12px;
             font-weight: 700;
             cursor: pointer;
             transition: all 0.16s ease;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
         }
         .pos-mode-btn.active {
             background: var(--color-forest);
@@ -165,9 +200,9 @@
             gap: 6px;
             background: var(--color-forest-light);
             color: var(--color-forest);
-            padding: 6px 14px;
+            padding: 5px 12px;
             border-radius: 9999px;
-            font-size: 12px;
+            font-size: 11.5px;
             font-weight: 700;
         }
         .pos-live-dot {
@@ -184,13 +219,38 @@
             100% { transform: scale(0.95); opacity: 0.8; }
         }
 
-        /* ── WORKSPACE 2-COLUMN GRID ── */
+        /* ── WORKSPACE 2-COLUMN GRID (Fixed Viewport Shell) ── */
         .pos-workspace {
             display: grid;
-            grid-template-columns: 1fr 420px;
             flex: 1;
             min-height: 0;
             overflow: hidden;
+        }
+
+        @media (min-width: 1024px) {
+            .pos-workspace {
+                grid-template-columns: 1fr 390px;
+                height: calc(100dvh - 56px);
+                max-height: calc(100dvh - 56px);
+            }
+        }
+
+        @media (min-width: 768px) and (max-width: 1023px) {
+            .pos-workspace {
+                grid-template-columns: 1fr 330px;
+                height: calc(100dvh - 56px);
+                max-height: calc(100dvh - 56px);
+            }
+        }
+
+        @media (max-width: 767px) {
+            .pos-workspace {
+                display: flex !important;
+                flex-direction: column !important;
+                height: auto !important;
+                min-height: auto !important;
+                overflow: visible !important;
+            }
         }
 
         /* LEFT: DISH CATALOG & SEARCH */
@@ -198,17 +258,19 @@
             display: flex;
             flex-direction: column;
             min-height: 0;
+            height: 100%;
             background: var(--bg-canvas);
             overflow: hidden;
         }
 
         .pos-catalog-topbar {
-            padding: 16px 24px 12px;
+            padding: 10px 18px 8px;
             background: #ffffff;
             border-bottom: 1px solid var(--border-subtle);
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 8px;
+            flex-shrink: 0;
         }
 
         .pos-search-wrapper {
@@ -217,7 +279,7 @@
         }
         .pos-search-icon {
             position: absolute;
-            left: 16px;
+            left: 14px;
             top: 50%;
             transform: translateY(-50%);
             color: var(--text-muted);
@@ -225,11 +287,11 @@
         }
         .pos-search-input {
             width: 100%;
-            padding: 12px 18px 12px 44px;
-            border-radius: 14px;
+            padding: 9px 16px 9px 40px;
+            border-radius: 12px;
             border: 1px solid var(--border-subtle);
             background: var(--bg-canvas);
-            font-size: 14px;
+            font-size: 13px;
             color: var(--text-heading);
             outline: none;
             transition: all 0.18s ease;
@@ -242,13 +304,13 @@
         }
         .pos-search-clear {
             position: absolute;
-            right: 14px;
+            right: 12px;
             top: 50%;
             transform: translateY(-50%);
             background: none;
             border: none;
             color: var(--text-muted);
-            font-size: 16px;
+            font-size: 15px;
             cursor: pointer;
             display: none;
             padding: 4px;
@@ -258,23 +320,23 @@
         .pos-categories-strip {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             overflow-x: auto;
-            padding-bottom: 4px;
+            padding-bottom: 3px;
             scrollbar-width: thin;
         }
-        .pos-categories-strip::-webkit-scrollbar { height: 4px; }
+        .pos-categories-strip::-webkit-scrollbar { height: 3px; }
         .pos-categories-strip::-webkit-scrollbar-thumb {
             background: var(--border-card);
-            border-radius: 4px;
+            border-radius: 3px;
         }
         .pos-cat-pill {
-            padding: 8px 18px;
+            padding: 6px 14px;
             border-radius: 9999px;
             border: 1px solid var(--border-subtle);
             background: var(--bg-canvas);
             color: var(--text-muted);
-            font-size: 12.5px;
+            font-size: 12px;
             font-weight: 700;
             cursor: pointer;
             white-space: nowrap;
@@ -289,58 +351,60 @@
             background: var(--color-forest);
             color: #ffffff;
             border-color: var(--color-forest);
-            box-shadow: 0 3px 10px rgba(17,66,50,0.22);
+            box-shadow: 0 2px 8px rgba(17,66,50,0.20);
         }
 
-        /* Dishes Grid */
+        /* Dedicated Internal Scroll Area: Dishes Grid */
         .pos-dishes-grid {
-            flex: 1;
+            flex: 1 1 0%;
+            min-height: 0;
             overflow-y: auto;
-            padding: 22px 24px;
+            overflow-x: hidden;
+            padding: 12px 18px;
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+            gap: 12px;
             align-content: start;
         }
-        .pos-dishes-grid::-webkit-scrollbar { width: 6px; }
+        .pos-dishes-grid::-webkit-scrollbar { width: 5px; }
         .pos-dishes-grid::-webkit-scrollbar-thumb {
-            background: var(--border-card);
+            background: #CBD5E1;
             border-radius: 6px;
         }
 
         .pos-dish-card {
             background: #ffffff;
             border: 1px solid var(--border-card);
-            border-radius: 20px;
-            padding: 16px;
+            border-radius: 16px;
+            padding: 12px 14px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            min-height: 140px;
+            min-height: 108px;
             cursor: pointer;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
             transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
             position: relative;
             user-select: none;
         }
         .pos-dish-card:hover {
-            transform: translateY(-3px);
+            transform: translateY(-2px);
             border-color: var(--color-forest);
-            box-shadow: 0 10px 24px rgba(17,66,50,0.09);
+            box-shadow: 0 8px 18px rgba(17,66,50,0.08);
         }
         .pos-dish-card:active {
             transform: scale(0.98);
         }
 
         .pos-dish-title {
-            font-size: 14.5px;
+            font-size: 13.5px;
             font-weight: 700;
             color: var(--text-heading);
             line-height: 1.3;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
         .pos-dish-cat {
-            font-size: 11px;
+            font-size: 10.5px;
             font-weight: 700;
             color: var(--text-muted);
             text-transform: uppercase;
@@ -351,23 +415,23 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-top: 14px;
+            margin-top: 10px;
         }
         .pos-dish-price {
-            font-size: 15px;
+            font-size: 14.5px;
             font-weight: 800;
             color: var(--color-forest);
         }
         .pos-dish-add-circle {
-            width: 32px;
-            height: 32px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             background: var(--color-forest-light);
             color: var(--color-forest);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 800;
             transition: all 0.16s ease;
         }
@@ -380,17 +444,17 @@
         .pos-dish-sizes-row {
             display: flex;
             flex-wrap: wrap;
-            gap: 5px;
-            margin-top: 10px;
-            padding-top: 10px;
+            gap: 4px;
+            margin-top: 8px;
+            padding-top: 8px;
             border-top: 1px dashed var(--border-subtle);
         }
         .pos-dish-size-pill {
-            padding: 4px 10px;
+            padding: 3px 8px;
             border-radius: 9999px;
             border: 1px solid var(--border-subtle);
             background: var(--bg-canvas);
-            font-size: 11px;
+            font-size: 10.5px;
             font-weight: 700;
             color: var(--text-body);
             cursor: pointer;
@@ -402,29 +466,32 @@
             border-color: var(--color-forest);
         }
 
-        /* RIGHT: CASHIER REGISTER SLIP */
+        /* RIGHT: CASHIER REGISTER SLIP (Fixed Viewport Shell with Internal Scroll) */
         .pos-slip-panel {
             background: #ffffff;
             border-left: 1px solid var(--border-subtle);
             display: flex;
             flex-direction: column;
             min-height: 0;
+            height: 100%;
+            overflow: hidden;
             box-shadow: -4px 0 20px rgba(0,0,0,0.02);
         }
 
         .pos-slip-header {
-            padding: 18px 22px;
+            padding: 10px 16px 8px;
             border-bottom: 1px solid var(--border-subtle);
             background: #ffffff;
+            flex-shrink: 0;
         }
         .pos-slip-title-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         }
         .pos-slip-title {
-            font-size: 17px;
+            font-size: 15px;
             font-weight: 800;
             color: var(--text-heading);
             letter-spacing: -0.02em;
@@ -432,24 +499,24 @@
         .pos-slip-seq {
             background: var(--color-forest-light);
             color: var(--color-forest);
-            padding: 3px 10px;
+            padding: 2px 8px;
             border-radius: 9999px;
-            font-size: 11.5px;
+            font-size: 11px;
             font-weight: 800;
         }
 
         .pos-guest-inputs-grid {
             display: grid;
             grid-template-columns: 1.4fr 1fr;
-            gap: 8px;
+            gap: 6px;
         }
         .pos-field-input {
             width: 100%;
-            padding: 9px 12px;
-            border-radius: 12px;
+            padding: 7px 10px;
+            border-radius: 10px;
             border: 1px solid var(--border-subtle);
             background: var(--bg-canvas);
-            font-size: 12.5px;
+            font-size: 12px;
             color: var(--text-heading);
             outline: none;
             font-family: inherit;
@@ -459,40 +526,42 @@
             background: #ffffff;
         }
 
-        /* Cart Items List */
+        /* Dedicated Internal Scroll Area: Cart Items List */
         .pos-slip-items {
-            flex: 1;
+            flex: 1 1 0%;
+            min-height: 0;
             overflow-y: auto;
-            padding: 16px 22px;
+            overflow-x: hidden;
+            padding: 8px 16px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 6px;
         }
         .pos-slip-items::-webkit-scrollbar { width: 5px; }
         .pos-slip-items::-webkit-scrollbar-thumb {
-            background: var(--border-card);
+            background: #CBD5E1;
             border-radius: 5px;
         }
 
         .pos-empty-slip {
             text-align: center;
-            padding: 60px 16px;
+            padding: 40px 16px;
             color: var(--text-muted);
         }
         .pos-empty-icon {
-            font-size: 42px;
-            margin-bottom: 12px;
+            font-size: 34px;
+            margin-bottom: 8px;
         }
         .pos-empty-h {
-            font-size: 14.5px;
+            font-size: 13.5px;
             font-weight: 700;
             color: var(--text-heading);
-            margin-bottom: 4px;
+            margin-bottom: 3px;
         }
         .pos-empty-p {
-            font-size: 12px;
+            font-size: 11.5px;
             color: var(--text-muted);
-            max-width: 240px;
+            max-width: 220px;
             margin: 0 auto;
             line-height: 1.4;
         }
@@ -501,18 +570,18 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 10px 14px;
+            padding: 8px 10px;
             background: var(--bg-canvas);
             border: 1px solid var(--border-subtle);
-            border-radius: 14px;
-            gap: 10px;
+            border-radius: 12px;
+            gap: 8px;
         }
         .pos-cart-info {
             flex: 1;
             min-width: 0;
         }
         .pos-cart-name {
-            font-size: 13.5px;
+            font-size: 12.5px;
             font-weight: 700;
             color: var(--text-heading);
             white-space: nowrap;
@@ -520,23 +589,23 @@
             text-overflow: ellipsis;
         }
         .pos-cart-price-sub {
-            font-size: 11px;
+            font-size: 10.5px;
             color: var(--text-muted);
-            margin-top: 2px;
+            margin-top: 1px;
         }
 
         .pos-cart-stepper {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
             background: #ffffff;
             border: 1px solid var(--border-subtle);
             border-radius: 9999px;
-            padding: 3px 8px;
+            padding: 2px 6px;
         }
         .pos-stepper-btn {
-            width: 22px;
-            height: 22px;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
             border: none;
             background: transparent;
@@ -546,7 +615,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            font-size: 13px;
             transition: all 0.12s ease;
         }
         .pos-stepper-btn:hover {
@@ -554,56 +623,59 @@
             color: var(--color-forest);
         }
         .pos-stepper-qty {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 800;
-            min-width: 18px;
+            min-width: 16px;
             text-align: center;
         }
 
         .pos-cart-total {
-            font-size: 13.5px;
+            font-size: 12.5px;
             font-weight: 800;
             color: var(--color-forest);
-            min-width: 65px;
+            min-width: 60px;
             text-align: right;
         }
         .pos-cart-del {
             background: none;
             border: none;
             color: var(--text-light);
-            font-size: 15px;
+            font-size: 14px;
             cursor: pointer;
-            padding: 4px;
+            padding: 3px;
             transition: color 0.15s ease;
         }
         .pos-cart-del:hover {
             color: #EF4444;
         }
 
-        /* Slip Calculations & Payment Footer */
+        /* Permanently Pinned Slip Calculations & Payment Footer */
         .pos-slip-footer {
-            padding: 18px 22px 24px;
+            padding: 10px 16px 14px;
             border-top: 1px solid var(--border-subtle);
             background: #ffffff;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 6px;
+            flex-shrink: 0 !important;
+            box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.03);
+            z-index: 10;
         }
 
         .pos-math-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            font-size: 13px;
+            font-size: 12px;
             color: var(--text-muted);
         }
         .pos-math-row.grand-total {
-            margin-top: 6px;
-            padding-top: 10px;
+            margin-top: 4px;
+            padding-top: 6px;
             border-top: 1px dashed var(--border-subtle);
         }
         .pos-total-amount {
-            font-size: 24px;
+            font-size: 21px;
             font-weight: 800;
             color: var(--color-forest);
             letter-spacing: -0.02em;
@@ -613,16 +685,16 @@
         .pos-pay-strip {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
-            gap: 6px;
-            margin-top: 4px;
+            gap: 5px;
+            margin-top: 2px;
         }
         .pos-pay-btn {
-            padding: 8px 4px;
-            border-radius: 12px;
+            padding: 6px 4px;
+            border-radius: 10px;
             border: 1px solid var(--border-subtle);
             background: var(--bg-canvas);
             color: var(--text-body);
-            font-size: 12px;
+            font-size: 11.5px;
             font-weight: 700;
             cursor: pointer;
             text-align: center;
@@ -639,25 +711,25 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
-            padding: 10px 14px;
-            border-radius: 14px;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 10px;
             background: var(--bg-canvas);
             border: 1px solid var(--border-subtle);
         }
         .pos-tender-input {
             width: 100%;
-            padding: 6px 10px;
-            border-radius: 8px;
+            padding: 4px 8px;
+            border-radius: 6px;
             border: 1px solid var(--border-subtle);
             background: #ffffff;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
             color: var(--text-heading);
             outline: none;
         }
         .pos-change-val {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 800;
             color: var(--color-forest);
         }
@@ -665,26 +737,26 @@
         /* Primary Punch & Print Button */
         .pos-punch-btn {
             width: 100%;
-            padding: 15px;
+            padding: 11px 16px;
             border-radius: 9999px;
             border: none;
             background: var(--color-forest);
             color: #ffffff;
-            font-size: 15px;
+            font-size: 13.5px;
             font-weight: 800;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 9px;
-            box-shadow: 0 6px 20px rgba(17,66,50,0.26);
+            gap: 8px;
+            box-shadow: 0 4px 14px rgba(17,66,50,0.22);
             transition: all 0.18s ease;
             letter-spacing: -0.01em;
         }
         .pos-punch-btn:hover {
             background: var(--color-forest-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(17,66,50,0.36);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(17,66,50,0.30);
         }
         .pos-punch-btn:disabled {
             opacity: 0.6;
@@ -700,11 +772,11 @@
             transform: translateX(-50%);
             background: #114232;
             color: #ffffff;
-            padding: 12px 24px;
+            padding: 10px 20px;
             border-radius: 9999px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.25);
             font-weight: 700;
-            font-size: 14px;
+            font-size: 13px;
             z-index: 99999;
             display: flex;
             align-items: center;
@@ -714,6 +786,95 @@
         @keyframes toastPop {
             from { transform: translateX(-50%) translateY(12px); opacity: 0; }
             to   { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+
+        /* ── RESPONSIVE MOBILE STYLES (< 768px) ── */
+        @media (max-width: 767px) {
+            .pos-top-header {
+                height: auto;
+                min-height: 52px;
+                padding: 10px 14px;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            .pos-header-left {
+                width: 100%;
+                justify-content: space-between;
+            }
+            .pos-mode-dock {
+                width: 100%;
+                justify-content: center;
+            }
+            .pos-mode-btn {
+                flex: 1;
+                justify-content: center;
+                text-align: center;
+            }
+            .pos-header-right {
+                display: none;
+            }
+
+            .pos-catalog-panel {
+                height: auto !important;
+                overflow: visible !important;
+            }
+            .pos-catalog-topbar {
+                position: sticky;
+                top: 0;
+                z-index: 30;
+                padding: 10px 14px;
+            }
+            .pos-dishes-grid {
+                overflow: visible !important;
+                max-height: none !important;
+                grid-template-columns: repeat(2, 1fr);
+                padding: 10px 14px;
+                gap: 10px;
+            }
+            .pos-dish-card {
+                min-height: 100px;
+                padding: 10px 12px;
+                border-radius: 14px;
+            }
+
+            .pos-slip-panel {
+                border-left: none;
+                border-top: 2px solid var(--border-subtle);
+                height: auto !important;
+                overflow: visible !important;
+            }
+            .pos-slip-items {
+                max-height: 280px;
+                overflow-y: auto;
+            }
+            .pos-slip-footer {
+                position: sticky;
+                bottom: 0;
+                z-index: 40;
+                background: #ffffff;
+                box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
+                padding: 12px 14px 16px;
+            }
+
+            .pos-mobile-slip-jump {
+                display: none;
+                position: fixed;
+                bottom: 18px;
+                right: 18px;
+                z-index: 60;
+                background: var(--color-forest);
+                color: #ffffff;
+                border: none;
+                padding: 10px 16px;
+                border-radius: 9999px;
+                font-size: 13px;
+                font-weight: 800;
+                box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+                cursor: pointer;
+                align-items: center;
+                gap: 8px;
+                text-decoration: none;
+            }
         }
     </style>
 </head>
@@ -900,6 +1061,12 @@
 
     </main>
 
+    <!-- Mobile Floating Quick-Jump to Slip -->
+    <button type="button" id="posMobileSlipJump" class="pos-mobile-slip-jump" onclick="scrollToSlip()">
+        <span id="posMobileSlipCount">🧾 View Slip (0)</span>
+        <span id="posMobileSlipTotal">Rs. 0 →</span>
+    </button>
+
     <!-- ── CLIENT LOGIC ── -->
     <script>
     const posCatalog = @json($menuItems);
@@ -1055,6 +1222,27 @@
         }
 
         recalcPos();
+
+        // Update mobile jump pill
+        const jumpBtn = document.getElementById('posMobileSlipJump');
+        if (jumpBtn) {
+            if (cart.length > 0) {
+                jumpBtn.style.display = 'flex';
+                const totalItems = cart.reduce((a, b) => a + b.qty, 0);
+                const sub = cart.reduce((acc, i) => acc + (i.price * i.qty), 0);
+                const countEl = document.getElementById('posMobileSlipCount');
+                const totalEl = document.getElementById('posMobileSlipTotal');
+                if (countEl) countEl.textContent = `🧾 View Slip (${totalItems})`;
+                if (totalEl) totalEl.textContent = `Rs. ${sub.toLocaleString()} →`;
+            } else {
+                jumpBtn.style.display = 'none';
+            }
+        }
+    }
+
+    function scrollToSlip() {
+        const slip = document.querySelector('.pos-slip-panel');
+        if (slip) slip.scrollIntoView({ behavior: 'smooth' });
     }
 
     function recalcPos() {
