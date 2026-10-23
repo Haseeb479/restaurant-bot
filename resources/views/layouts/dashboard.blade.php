@@ -1685,11 +1685,15 @@
 
         <!-- 2. CENTER: Segmented Floating Capsule Dock -->
         <nav class="vessa-segmented-dock">
-            <a href="{{ route('dashboard.orders', $restId) }}" class="vessa-dock-pill {{ request()->routeIs('dashboard.orders') && !request('tab') ? 'active' : '' }}" onclick="switchVessaTab('overview', event)">
+            <a href="{{ route('dashboard.orders', $restId) }}" class="vessa-dock-pill {{ request()->routeIs('dashboard.orders') && !request('tab') ? 'active' : '' }}">
                 Overview
             </a>
-            <a href="{{ route('dashboard.orders', $restId) }}?tab=activity" class="vessa-dock-pill {{ request('tab') === 'activity' || request()->routeIs('dashboard.live-orders*') ? 'active' : '' }}" onclick="switchVessaTab('activity', event)">
-                Activity
+            <a href="{{ route('dashboard.dine-in', $restId) }}" class="vessa-dock-pill {{ request()->routeIs('dashboard.dine-in*') ? 'active' : '' }}">
+                🍽️ Dine-In
+                <span class="vessa-alerts-badge" id="tastyTablesBadge" style="background: var(--color-ochre, #C29842); {{ (isset($activeDineInCount) && $activeDineInCount > 0) ? '' : 'display: none;' }}">{{ $activeDineInCount ?? 0 }}</span>
+            </a>
+            <a href="{{ route('dashboard.live-orders', $restId) }}" class="vessa-dock-pill {{ request()->routeIs('dashboard.live-orders*') || (request()->routeIs('dashboard.orders') && request('tab') === 'activity') ? 'active' : '' }}">
+                🛵 Delivery Orders
             </a>
             <a href="{{ route('dashboard.orders', $restId) }}?tab=alerts" class="vessa-dock-pill {{ request('tab') === 'alerts' ? 'active' : '' }}" onclick="switchVessaTab('alerts', event)">
                 Alerts
@@ -1785,7 +1789,21 @@
                         </span>
                     </a>
 
-                    <!-- 2. Box / Package (Live Orders) -->
+                    <!-- 2. Dine-In Tables & Floor (Dedicated Dine-In Page) -->
+                    <a href="{{ route('dashboard.dine-in', $restId) }}" 
+                       class="sidebar-nav-item {{ request()->routeIs('dashboard.dine-in*') ? 'active' : '' }}"
+                       title="Dine-In Tables & Orders">
+                        <span class="sidebar-nav-icon">
+                            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/>
+                                <path d="M7 2v20"/>
+                                <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>
+                            </svg>
+                        </span>
+                        <span class="sidebar-nav-badge" id="sidebarDineBadge" style="background: #C29842; {{ (isset($activeDineInCount) && $activeDineInCount > 0) ? '' : 'display: none;' }}">{{ $activeDineInCount ?? 0 }}</span>
+                    </a>
+
+                    <!-- 3. Box / Package (Live Delivery Orders) -->
                     <a href="{{ route('dashboard.live-orders', $restId) }}" 
                        class="sidebar-nav-item {{ request()->routeIs('dashboard.live-orders*') ? 'active' : '' }}"
                        title="Orders & Live Cart">
@@ -2149,8 +2167,10 @@ async function quickToggleRestaurantStatus() {
                     tablesBadge.textContent = dineCount;
                     tablesBadge.style.display = dineCount > 0 ? 'inline-block' : 'none';
                 }
-                if (sideDineDot) {
-                    sideDineDot.style.display = dineCount > 0 ? 'inline-block' : 'none';
+                const sideDineBadge = document.getElementById('sidebarDineBadge');
+                if (sideDineBadge) {
+                    sideDineBadge.textContent = dineCount;
+                    sideDineBadge.style.display = dineCount > 0 ? 'inline-block' : 'none';
                 }
             }
 

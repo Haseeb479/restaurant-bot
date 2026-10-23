@@ -591,11 +591,14 @@ class DashboardController extends Controller
         $this->authCheck($id);
         $r = Restaurant::findOrFail($id);
 
-        // Dine-In orders for today
+        // Dine-In orders for today or any currently active table session
         $dineInOrders = $r->orders()
             ->with('items')
             ->dineIn()
-            ->whereDate('created_at', now()->today())
+            ->where(function ($q) {
+                $q->whereDate('created_at', now()->today())
+                  ->orWhereIn('status', ['pending', 'confirmed', 'preparing', 'served']);
+            })
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -670,7 +673,10 @@ class DashboardController extends Controller
         $dineInOrders = $r->orders()
             ->with(['items'])
             ->dineIn()
-            ->whereDate('created_at', now()->today())
+            ->where(function ($q) {
+                $q->whereDate('created_at', now()->today())
+                  ->orWhereIn('status', ['pending', 'confirmed', 'preparing', 'served']);
+            })
             ->orderBy('created_at', 'desc')
             ->take(60)
             ->get();

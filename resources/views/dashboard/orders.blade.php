@@ -1872,8 +1872,8 @@
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
                     <span>New order</span>
                 </a>
-                <a href="{{ route('dashboard.dine-in', $restaurant->id) }}" class="vessa-btn-outline">
-                    ⚡ Table register
+                <a href="{{ route('dashboard.dine-in', $restaurant->id) }}" class="vessa-btn-outline" style="font-weight: 700;">
+                    🍽️ Dine-In page ({{ $activeDineInCount }} seated)
                 </a>
             </div>
         </div>
@@ -2292,6 +2292,9 @@
                     <button type="button" class="cat-pill active-pill" onclick="filterTableStatus('all', this)">
                         All Orders <span class="pill-count">({{ $orders->count() }})</span>
                     </button>
+                    <a href="{{ route('dashboard.dine-in', $restaurant->id) }}" class="cat-pill" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; background: rgba(194, 152, 66, 0.12); color: #8A6417; border-color: rgba(194, 152, 66, 0.3); font-weight: 700;">
+                        🍽️ Dine-In Orders Page <span class="pill-count" style="background: #C29842; color: #fff;">{{ $activeDineInCount }}</span>
+                    </a>
                     <button type="button" class="cat-pill" onclick="filterTableStatus('pending', this)">
                         New / Pending <span class="pill-count">({{ $pendingCount }})</span>
                     </button>

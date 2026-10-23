@@ -464,8 +464,12 @@ class Order extends Model
         return str_starts_with($addr, 'table') 
             || str_contains($addr, 'table #') 
             || str_contains($addr, 'table-')
+            || str_contains($addr, 'dine-in')
+            || str_contains($addr, 'dine_in')
+            || str_contains($addr, 'dine in')
             || str_contains($phone, 'dine-in')
-            || str_contains($notes, 'dine-in');
+            || str_contains($notes, 'dine-in')
+            || str_contains($notes, 'dine in');
     }
 
     /**
@@ -490,7 +494,7 @@ class Order extends Model
         if (preg_match('/table\s*#?\s*([a-z0-9\-]+)/i', (string) $this->notes, $m)) {
             return $m[1];
         }
-        return null;
+        return '1';
     }
 
     /**
@@ -504,10 +508,15 @@ class Order extends Model
                   $sub->whereNotNull('table_number')
                       ->where('table_number', '!=', '');
               })
-              ->orWhere('delivery_address', 'LIKE', 'Table %')
-              ->orWhere('delivery_address', 'LIKE', 'table %')
+              ->orWhere('delivery_address', 'LIKE', 'Table%')
+              ->orWhere('delivery_address', 'LIKE', 'table%')
+              ->orWhere('delivery_address', 'LIKE', '%dine-in%')
+              ->orWhere('delivery_address', 'LIKE', '%Dine-In%')
+              ->orWhere('delivery_address', 'LIKE', '%dine in%')
+              ->orWhere('delivery_address', 'LIKE', '%Dine In%')
               ->orWhere('notes', 'LIKE', '%DINE-IN%')
-              ->orWhere('notes', 'LIKE', '%dine-in%');
+              ->orWhere('notes', 'LIKE', '%dine-in%')
+              ->orWhere('notes', 'LIKE', '%dine in%');
         });
     }
 
