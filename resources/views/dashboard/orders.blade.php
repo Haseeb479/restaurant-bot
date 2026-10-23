@@ -1557,13 +1557,17 @@
         border-left: 1px solid var(--border-card);
         box-shadow: -10px 0 40px rgba(0, 0, 0, 0.15);
         z-index: 9991;
-        transform: translateX(100%);
-        transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+        transform: translateX(calc(100% + 50px));
+        visibility: hidden;
+        pointer-events: none;
+        transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.28s;
         display: flex;
         flex-direction: column;
     }
     .pos-order-drawer.open {
         transform: translateX(0);
+        visibility: visible;
+        pointer-events: auto;
     }
 
     .drawer-header {
