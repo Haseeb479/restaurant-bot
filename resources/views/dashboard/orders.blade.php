@@ -172,15 +172,19 @@
         animation: vessaAreaFade 500ms ease-out 300ms forwards;
     }
 
-    /* Card 1: Welcome Hero Card */
+    /* Card 1: Welcome Hero Card — Crystal Clear Glassmorphic Finish */
     .vessa-card-welcome {
-        background: var(--bg-card);
-        border: 1px solid var(--border-card);
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.76) 0%, rgba(248, 249, 247, 0.48) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.88);
         border-radius: 28px;
         padding: 30px 34px;
-        box-shadow: var(--shadow-card);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
+        box-shadow: 
+            inset 0 1px 2px 0 rgba(255, 255, 255, 0.95),
+            inset 0 -1px 1px 0 rgba(0, 0, 0, 0.02),
+            0 16px 36px -4px rgba(24, 34, 29, 0.05),
+            0 4px 12px -2px rgba(24, 34, 29, 0.02);
+        backdrop-filter: blur(28px) saturate(190%);
+        -webkit-backdrop-filter: blur(28px) saturate(190%);
         display: flex;
         flex-direction: column;
         justify-content: space-between;
@@ -189,20 +193,42 @@
         box-sizing: border-box;
         position: relative;
         overflow: hidden;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+    }
+    .vessa-card-welcome::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 28px;
+        background: radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0) 60%);
+        pointer-events: none;
     }
     .vessa-card-welcome:hover {
         transform: translateY(-2px);
-        box-shadow: var(--shadow-elevated);
+        box-shadow: 
+            inset 0 1px 2px 0 rgba(255, 255, 255, 1),
+            0 20px 42px -4px rgba(50, 87, 68, 0.09),
+            0 6px 16px -2px rgba(24, 34, 29, 0.03);
+        border-color: rgba(255, 255, 255, 0.98);
+    }
+    [data-theme="dark"] .vessa-card-welcome {
+        background: linear-gradient(135deg, rgba(26, 36, 30, 0.72) 0%, rgba(18, 25, 21, 0.52) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        box-shadow: 
+            inset 0 1px 1px 0 rgba(255, 255, 255, 0.15),
+            0 16px 36px rgba(0, 0, 0, 0.45);
+    }
+    [data-theme="dark"] .vessa-card-welcome::before {
+        background: radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0) 60%);
     }
 
     .vessa-date-pill {
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        background: var(--inset-pill-bg);
+        background: rgba(230, 236, 232, 0.70);
         color: var(--color-forest);
-        border: 1px solid var(--border-subtle);
+        border: 1px solid rgba(255, 255, 255, 0.85);
         padding: 6px 14px;
         border-radius: 9999px;
         font-size: 12px;
@@ -210,10 +236,14 @@
         letter-spacing: -0.01em;
         width: fit-content;
         margin-bottom: 12px;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
     }
     [data-theme="dark"] .vessa-date-pill {
         background: rgba(50, 87, 68, 0.3);
         color: #689780;
+        border-color: rgba(255, 255, 255, 0.10);
     }
 
     .vessa-welcome-heading {
@@ -265,42 +295,65 @@
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        background: var(--popover-bg);
-        border: 1px solid var(--border-card);
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(255, 255, 255, 0.95);
         color: var(--text-heading);
-        padding: 10px 20px;
+        padding: 9px 20px;
         border-radius: 9999px;
         font-size: 13px;
         font-weight: 700;
         text-decoration: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
         transition: all 0.18s ease;
     }
     .vessa-btn-outline:hover {
-        border-color: #cbd5e1;
-        background: var(--bg-canvas);
+        background: #ffffff;
+        border-color: var(--color-forest);
+        color: var(--color-forest);
         transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(50, 87, 68, 0.08);
+    }
+    [data-theme="dark"] .vessa-btn-outline {
+        background: rgba(24, 34, 29, 0.7);
+        border-color: rgba(255, 255, 255, 0.12);
+        color: #F4F6F5;
     }
 
-    /* Metric Cards: Cards 2, 3, 4 */
+    /* Metric Cards: Cards 2, 3, 4 — Refined Crystalline Frosted Glass */
     .vessa-card-metric {
-        background: var(--bg-card);
-        border: 1px solid var(--border-card);
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.80) 0%, rgba(248, 249, 247, 0.60) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.82);
         border-radius: 26px;
         padding: 22px 20px;
-        box-shadow: var(--shadow-card);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
+        box-shadow: 
+            inset 0 1px 1px 0 rgba(255, 255, 255, 0.90),
+            0 12px 30px -4px rgba(24, 34, 29, 0.04),
+            0 2px 6px rgba(24, 34, 29, 0.02);
+        backdrop-filter: blur(24px) saturate(180%);
+        -webkit-backdrop-filter: blur(24px) saturate(180%);
         display: flex;
         flex-direction: column;
         justify-content: space-between;
         min-height: 220px;
         height: 100%;
         box-sizing: border-box;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
     }
     .vessa-card-metric:hover {
         transform: translateY(-2px);
-        box-shadow: var(--shadow-elevated);
+        box-shadow: 
+            inset 0 1px 1.5px 0 rgba(255, 255, 255, 1),
+            0 16px 36px -4px rgba(50, 87, 68, 0.08);
+        border-color: rgba(255, 255, 255, 0.95);
+    }
+    [data-theme="dark"] .vessa-card-metric {
+        background: linear-gradient(135deg, rgba(20, 27, 23, 0.82) 0%, rgba(16, 22, 19, 0.65) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        box-shadow: 
+            inset 0 1px 1px 0 rgba(255, 255, 255, 0.12),
+            0 12px 30px rgba(0, 0, 0, 0.35);
     }
 
     .vessa-metric-header {
@@ -459,13 +512,16 @@
 
     /* ── ROW 2: MAIN CHART & GAUGE ── */
     .vessa-card-chart {
-        background: var(--bg-card);
-        border: 1px solid var(--border-card);
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.78) 0%, rgba(248, 249, 247, 0.55) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.85);
         border-radius: 28px;
         padding: 28px 32px;
-        box-shadow: var(--shadow-card);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
+        box-shadow: 
+            inset 0 1px 1px 0 rgba(255, 255, 255, 0.92),
+            0 12px 32px -4px rgba(24, 34, 29, 0.05),
+            0 2px 6px rgba(24, 34, 29, 0.02);
+        backdrop-filter: blur(24px) saturate(180%);
+        -webkit-backdrop-filter: blur(24px) saturate(180%);
         display: flex;
         flex-direction: column;
         justify-content: space-between;
@@ -473,11 +529,12 @@
         min-height: 380px;
         height: 100%;
         box-sizing: border-box;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
     }
     .vessa-card-chart:hover {
         transform: translateY(-2px);
         box-shadow: var(--shadow-elevated);
+        border-color: rgba(255, 255, 255, 0.95);
     }
 
     .vessa-chart-header {
@@ -620,24 +677,28 @@
 
     /* Card 6: Rider Fleet & Live Delivery Status Card */
     .vessa-card-riders {
-        background: var(--bg-card);
-        border: 1px solid var(--border-card);
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.78) 0%, rgba(248, 249, 247, 0.55) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.85);
         border-radius: 28px;
         padding: 24px 26px 20px;
-        box-shadow: var(--shadow-card);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
+        box-shadow: 
+            inset 0 1px 1px 0 rgba(255, 255, 255, 0.92),
+            0 12px 32px -4px rgba(24, 34, 29, 0.05),
+            0 2px 6px rgba(24, 34, 29, 0.02);
+        backdrop-filter: blur(24px) saturate(180%);
+        -webkit-backdrop-filter: blur(24px) saturate(180%);
         display: flex;
         flex-direction: column;
         justify-content: space-between;
         min-height: 380px;
         height: 100%;
         box-sizing: border-box;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
     }
     .vessa-card-riders:hover {
         transform: translateY(-2px);
         box-shadow: var(--shadow-elevated);
+        border-color: rgba(255, 255, 255, 0.95);
     }
 
     .vessa-fleet-header {
