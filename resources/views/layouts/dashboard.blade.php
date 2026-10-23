@@ -1693,7 +1693,7 @@
             </a>
             <a href="{{ route('dashboard.orders', $restId) }}?tab=alerts" class="vessa-dock-pill {{ request('tab') === 'alerts' ? 'active' : '' }}" onclick="switchVessaTab('alerts', event)">
                 Alerts
-                <span class="vessa-alerts-badge" id="tastyBellBadge">{{ (isset($pendingCount) && $pendingCount > 0) ? $pendingCount : 3 }}</span>
+                <span class="vessa-alerts-badge" id="tastyBellBadge" style="{{ (isset($pendingCount) && $pendingCount > 0) ? '' : 'display: none;' }}">{{ $pendingCount ?? 0 }}</span>
             </a>
         </nav>
 
@@ -1723,7 +1723,7 @@
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
-                <span class="vessa-circle-badge" id="tastyBellDot">3</span>
+                <span class="vessa-circle-badge" id="tastyBellDot" style="{{ (isset($pendingCount) && $pendingCount > 0) ? '' : 'display: none;' }}">{{ $pendingCount ?? 0 }}</span>
             </a>
 
             <!-- Solid Forest Green + New Pill Button -->
@@ -1785,7 +1785,7 @@
                         </span>
                     </a>
 
-                    <!-- 2. Box / Package (with Badge 3) -->
+                    <!-- 2. Box / Package (Live Orders) -->
                     <a href="{{ route('dashboard.live-orders', $restId) }}" 
                        class="sidebar-nav-item {{ request()->routeIs('dashboard.live-orders*') ? 'active' : '' }}"
                        title="Orders & Live Cart">
@@ -1796,10 +1796,10 @@
                                 <path d="M12 22V12"/>
                             </svg>
                         </span>
-                        <span class="sidebar-nav-badge" id="sidebarLiveBadge">3</span>
+                        <span class="sidebar-nav-badge" id="sidebarLiveBadge" style="{{ (isset($pendingCount) && $pendingCount > 0) ? '' : 'display: none;' }}">{{ $pendingCount ?? 0 }}</span>
                     </a>
 
-                    <!-- 3. Document / List (with Badge 7) -->
+                    <!-- 3. Document / List (Invoices & Daily Closing) -->
                     <a href="{{ route('dashboard.daily-closing', $restId) }}" 
                        class="sidebar-nav-item {{ request()->routeIs('dashboard.daily-closing*') ? 'active' : '' }}"
                        title="Invoices & Daily Closing">
@@ -1812,7 +1812,6 @@
                                 <polyline points="10 9 9 9 8 9"/>
                             </svg>
                         </span>
-                        <span class="sidebar-nav-badge" style="background: #114232;">7</span>
                     </a>
 
                     <!-- 4. POS Cart Register -->
@@ -2155,11 +2154,16 @@ async function quickToggleRestaurantStatus() {
                 }
             }
 
-            // 3. Bell Dot (Coral dot alert for incoming delivery orders)
+            // 3. Bell Dot & Alerts Badge (real pending orders count)
+            const pend = parseInt(data.pending_count || 0, 10);
             if (bellDot) {
-                const pend = parseInt(data.pending_count || 0, 10);
-                const deliv = parseInt(data.live_delivery_count || 0, 10);
-                bellDot.style.display = (pend > 0 || deliv > 0) ? 'block' : 'none';
+                bellDot.textContent = pend;
+                bellDot.style.display = pend > 0 ? 'flex' : 'none';
+            }
+            const bellBadge = document.getElementById('tastyBellBadge');
+            if (bellBadge) {
+                bellBadge.textContent = pend;
+                bellBadge.style.display = pend > 0 ? 'inline-block' : 'none';
             }
 
             // 4. Mobile / Drawer notification badge

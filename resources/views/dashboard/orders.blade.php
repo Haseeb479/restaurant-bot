@@ -1784,6 +1784,71 @@
 
 <div class="dashboard-container">
 
+    @php
+        // ── Real Data Geometry & Splines (Zero Dummy Numbers) ──
+        // Card 2: 7-Day Orders Sparkline
+        $sparkXs = [4, 22, 41, 60, 79, 98, 116];
+        $maxOrdersWeek = max(1, ...array_map(fn($w) => $w['count'], $weeklyTrend ?? []));
+        $orderSparkPoints = [];
+        foreach (($weeklyTrend ?? []) as $wIdx => $wItem) {
+            $x = $sparkXs[$wIdx] ?? 116;
+            $ratio = min(1, max(0, ($wItem['count'] ?? 0) / $maxOrdersWeek));
+            $y = round(32 - ($ratio * 24));
+            $orderSparkPoints[] = ['x' => $x, 'y' => $y];
+        }
+        $ordersSparkD = count($orderSparkPoints) > 0 ? "M {$orderSparkPoints[0]['x']} {$orderSparkPoints[0]['y']}" : "M 4 30 L 116 30";
+        for ($i = 0; $i < count($orderSparkPoints) - 1; $i++) {
+            $p0 = $orderSparkPoints[$i];
+            $p1 = $orderSparkPoints[$i + 1];
+            $cpX = round(($p0['x'] + $p1['x']) / 2);
+            $ordersSparkD .= " C {$cpX} {$p0['y']}, {$cpX} {$p1['y']}, {$p1['x']} {$p1['y']}";
+        }
+
+        // Card 3: 7-Day Revenue Sparkline
+        $maxRevWeek = max(1, ...array_map(fn($t) => $t['amount'], $trend7DData ?? []));
+        $revSparkPoints = [];
+        foreach (($trend7DData ?? []) as $tIdx => $tItem) {
+            $x = $sparkXs[$tIdx] ?? 116;
+            $ratio = min(1, max(0, ($tItem['amount'] ?? 0) / $maxRevWeek));
+            $y = round(32 - ($ratio * 24));
+            $revSparkPoints[] = ['x' => $x, 'y' => $y];
+        }
+        $revSparkD = count($revSparkPoints) > 0 ? "M {$revSparkPoints[0]['x']} {$revSparkPoints[0]['y']}" : "M 4 30 L 116 30";
+        for ($i = 0; $i < count($revSparkPoints) - 1; $i++) {
+            $p0 = $revSparkPoints[$i];
+            $p1 = $revSparkPoints[$i + 1];
+            $cpX = round(($p0['x'] + $p1['x']) / 2);
+            $revSparkD .= " C {$cpX} {$p0['y']}, {$cpX} {$p1['y']}, {$p1['x']} {$p1['y']}";
+        }
+
+        // Card 5: 10-Month Chart Data & SVG Coordinate Geometry
+        $monthCenters = [47, 109, 171, 233, 295, 357, 419, 481, 543, 607];
+        $barX1 = [36, 98, 160, 222, 284, 346, 408, 470, 532, 594];
+        $barX2 = [48, 110, 172, 234, 296, 358, 420, 482, 544, 608];
+        $maxMonthRev = max(1, ...array_map(fn($m) => $m['revenue'], $monthlyStats ?? []));
+        $maxMonthOrders = max(1, ...array_map(fn($m) => $m['orders_count'], $monthlyStats ?? []));
+
+        $chartSplinePoints = [];
+        foreach (($monthlyStats ?? []) as $mIdx => $mVal) {
+            $cx = $monthCenters[$mIdx] ?? 607;
+            $revVal = $mVal['revenue'] ?? 0;
+            $hRev = $maxMonthRev > 0 ? max(6, round(($revVal / $maxMonthRev) * 140)) : 6;
+            $cy = 190 - $hRev;
+            $chartSplinePoints[] = ['x' => $cx, 'y' => $cy];
+        }
+        $chartSplineD = count($chartSplinePoints) > 0 ? "M {$chartSplinePoints[0]['x']} {$chartSplinePoints[0]['y']}" : "M 47 190 L 607 190";
+        for ($i = 0; $i < count($chartSplinePoints) - 1; $i++) {
+            $p0 = $chartSplinePoints[$i];
+            $p1 = $chartSplinePoints[$i + 1];
+            $cpX = round(($p0['x'] + $p1['x']) / 2);
+            $chartSplineD .= " C {$cpX} {$p0['y']}, {$cpX} {$p1['y']}, {$p1['x']} {$p1['y']}";
+        }
+        $lastChartP = end($chartSplinePoints) ?: ['x' => 607, 'y' => 190];
+        $chartAreaD = "{$chartSplineD} L {$lastChartP['x']} 190 L 47 190 Z";
+        $peakX = $lastChartP['x'];
+        $peakY = $lastChartP['y'];
+    @endphp
+
     <!-- ═════════════════════════════════════════════════════════
          ROW 1: 4 HORIZONTALLY ALIGNED CARDS (EXACT REFERENCE REPLICA)
          ═════════════════════════════════════════════════════════ -->
@@ -1799,7 +1864,7 @@
                 <p class="vessa-welcome-sub">
                     Here's what's happening with your store today. You have 
                     <strong style="color: var(--color-forest);">{{ $pendingCount }} active {{ Str::plural('order', $pendingCount) }}</strong> 
-                    and <strong style="color: var(--color-forest);">{{ $activeDineInCount > 0 ? $activeDineInCount : 12 }} tables</strong> seated.
+                    and <strong style="color: var(--color-forest);">{{ $activeDineInCount }} {{ Str::plural('table', $activeDineInCount) }}</strong> seated.
                 </p>
             </div>
             <div class="vessa-welcome-actions">
@@ -1813,12 +1878,12 @@
             </div>
         </div>
 
-        <!-- ── CARD 2: UNITS ON HAND ── -->
+        <!-- ── CARD 2: ORDERS TODAY ── -->
         <div class="vessa-card-metric">
             <div>
                 <div class="vessa-metric-header">
-                    <span class="vessa-metric-title">Units on hand</span>
-                    <div class="vessa-metric-icon-chip green" title="Units in inventory">
+                    <span class="vessa-metric-title">Orders today</span>
+                    <div class="vessa-metric-icon-chip green" title="Total Orders Placed Today">
                         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
                             <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
                             <path d="m3.3 7 8.7 5 8.7-5"/>
@@ -1828,28 +1893,32 @@
                 </div>
                 <div class="vessa-metric-val-row">
                     <div class="vessa-metric-val" id="kpi-total-orders">
-                        {{ number_format($totalOrdersToday > 0 ? $totalOrdersToday : 4345) }}
+                        {{ number_format($totalOrdersToday) }}
                     </div>
-                    <span class="vessa-trend-pill coral">↘ 3.2%</span>
+                    @if($ordersTrendPct >= 0)
+                        <span class="vessa-trend-pill up">↗ {{ abs($ordersTrendPct) }}%</span>
+                    @else
+                        <span class="vessa-trend-pill coral">↘ {{ abs($ordersTrendPct) }}%</span>
+                    @endif
                 </div>
-                <!-- Smooth wavy green spline curve -->
-                <div class="vessa-metric-spark-wrap">
+                <!-- Smooth wavy green spline curve (real 7-day order trend) -->
+                <div class="vessa-metric-spark-wrap" title="7-day order trend">
                     <svg width="100%" height="38" viewBox="0 0 120 38" fill="none">
-                        <path class="vessa-spark-line" d="M 4 26 C 24 32, 40 16, 64 22 C 84 26, 98 10, 116 6" stroke="var(--color-sage)" stroke-width="2.4" stroke-linecap="round"/>
+                        <path class="vessa-spark-line" d="{{ $ordersSparkD }}" stroke="var(--color-sage)" stroke-width="2.4" stroke-linecap="round"/>
                     </svg>
                 </div>
             </div>
             <div class="vessa-metric-subtext">
-                <span>12 SKUs • 3 sites</span>
+                <span>{{ $totalMenuItemsCount }} items • {{ $categoriesCount }} categories</span>
             </div>
         </div>
 
-        <!-- ── CARD 3: TOTAL STOCK VALUE ── -->
+        <!-- ── CARD 3: TODAY'S REVENUE ── -->
         <div class="vessa-card-metric">
             <div>
                 <div class="vessa-metric-header">
-                    <span class="vessa-metric-title">Total stock value</span>
-                    <div class="vessa-metric-icon-chip teal" title="Total Valuation">
+                    <span class="vessa-metric-title">Today's revenue</span>
+                    <div class="vessa-metric-icon-chip teal" title="Total Revenue Earned Today">
                         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
                             <line x1="12" y1="1" x2="12" y2="23"/>
                             <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
@@ -1858,28 +1927,32 @@
                 </div>
                 <div class="vessa-metric-val-row">
                     <div class="vessa-metric-val" id="kpi-sales">
-                        ${{ number_format($todayRevenue > 0 ? $todayRevenue : 32039) }}
+                        {{ $restaurant->currency ?? 'Rs.' }} {{ number_format($todayRevenue) }}
                     </div>
-                    <span class="vessa-trend-pill up">↗ 4.9%</span>
+                    @if($revenueTrendPct >= 0)
+                        <span class="vessa-trend-pill up">↗ {{ abs($revenueTrendPct) }}%</span>
+                    @else
+                        <span class="vessa-trend-pill coral">↘ {{ abs($revenueTrendPct) }}%</span>
+                    @endif
                 </div>
-                <!-- Smooth wavy teal spline curve -->
-                <div class="vessa-metric-spark-wrap">
+                <!-- Smooth wavy teal spline curve (real 7-day revenue trend) -->
+                <div class="vessa-metric-spark-wrap" title="7-day revenue trend">
                     <svg width="100%" height="38" viewBox="0 0 120 38" fill="none">
-                        <path class="vessa-spark-line" d="M 4 28 C 28 32, 48 18, 72 24 C 92 16, 102 10, 116 6" stroke="#648C94" stroke-width="2.4" stroke-linecap="round"/>
+                        <path class="vessa-spark-line" d="{{ $revSparkD }}" stroke="#648C94" stroke-width="2.4" stroke-linecap="round"/>
                     </svg>
                 </div>
             </div>
             <div class="vessa-metric-subtext">
-                <span>At cost</span>
+                <span>Avg: {{ $restaurant->currency ?? 'Rs.' }} {{ number_format($totalOrdersToday > 0 ? round($todayRevenue / $totalOrdersToday) : 0) }} / order</span>
             </div>
         </div>
 
-        <!-- ── CARD 4: LOW STOCK ITEMS ── -->
+        <!-- ── CARD 4: UNAVAILABLE ITEMS (86'd) ── -->
         <div class="vessa-card-metric">
             <div>
                 <div class="vessa-metric-header">
-                    <span class="vessa-metric-title">Low stock items</span>
-                    <div class="vessa-metric-icon-chip amber" title="Low Stock Alert">
+                    <span class="vessa-metric-title">Unavailable items</span>
+                    <div class="vessa-metric-icon-chip amber" title="86'd / Out of Stock Menu Items">
                         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
                             <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
                             <line x1="12" y1="9" x2="12" y2="13"/>
@@ -1889,24 +1962,32 @@
                 </div>
                 <div class="vessa-metric-val-row">
                     <div class="vessa-metric-val" id="kpi-low-stock">
-                        {{ $unavailableItems->count() > 0 ? $unavailableItems->count() : 7 }}
+                        {{ $unavailableCount }}
                     </div>
-                    <span class="vessa-trend-pill coral">⚠ 1 out</span>
+                    @if($unavailableCount > 0)
+                        <span class="vessa-trend-pill coral">⚠ {{ $unavailableCount }} offline</span>
+                    @else
+                        <span class="vessa-trend-pill up">✓ All active</span>
+                    @endif
                 </div>
-                <!-- Dual Split Progress Bar -->
+                <!-- Dual Split Progress Bar (Available vs Unavailable) -->
                 <div class="vessa-metric-spark-wrap">
-                    <div class="vessa-split-bar">
-                        <div class="vessa-split-bar-amber" style="width: 58%;"></div>
-                        <div class="vessa-split-bar-coral" style="width: 42%;"></div>
+                    <div class="vessa-split-bar" title="{{ $availableCount }} Available ({{ $availPct }}%), {{ $unavailableCount }} Offline ({{ $unavailPct }}%)">
+                        <div class="vessa-split-bar-amber" style="width: {{ $availPct }}%;"></div>
+                        <div class="vessa-split-bar-coral" style="width: {{ $unavailPct }}%;"></div>
                     </div>
                 </div>
             </div>
             <div class="vessa-metric-subtext">
-                <span>3 products • 4 materials</span>
-                <div class="vessa-avatar-chips" title="Low stock indicators">
-                    <span class="vessa-status-dot" style="background: #C29842;"></span>
-                    <span class="vessa-status-dot" style="background: #E5A856;"></span>
-                    <span class="vessa-status-dot" style="background: #A64444;"></span>
+                <span>{{ $unavailableCount }} of {{ $totalMenuItemsCount }} items offline</span>
+                <div class="vessa-avatar-chips" title="{{ $unavailableCount }} items unavailable">
+                    @if($unavailableCount === 0)
+                        <span class="vessa-status-dot" style="background: #689780;" title="All items online"></span>
+                    @else
+                        @for($dIdx = 0; $dIdx < min(3, $unavailableCount); $dIdx++)
+                            <span class="vessa-status-dot" style="background: #A64444;" title="Offline item"></span>
+                        @endfor
+                    @endif
                 </div>
             </div>
         </div>
@@ -1918,45 +1999,42 @@
          ═════════════════════════════════════════════════════════ -->
     <div class="vessa-row-2">
 
-        <!-- ── CARD 5: INVENTORY STATISTICS ── -->
+        <!-- ── CARD 5: SALES & ORDER TRENDS (REAL DATA) ── -->
         <div class="vessa-card-chart">
             <div class="vessa-chart-header">
-                <span class="vessa-chart-title" style="font-size: 17px; font-weight: 800;">Inventory statistics</span>
+                <span class="vessa-chart-title" style="font-size: 17px; font-weight: 800;">Sales & Order Trends</span>
                 <div class="vessa-chart-controls">
                     <span class="vessa-legend-pill">
-                        <span class="vessa-legend-dot amber"></span> Stock in
+                        <span class="vessa-legend-dot amber"></span> Orders
                     </span>
                     <span class="vessa-legend-pill">
-                        <span class="vessa-legend-dot sage"></span> Stock out
+                        <span class="vessa-legend-dot sage"></span> Revenue
                     </span>
                     <span class="vessa-legend-pill">
-                        <span class="vessa-legend-line blue"></span> Stock value
+                        <span class="vessa-legend-line blue"></span> Trend
                     </span>
-                    <button type="button" class="vessa-dropdown-pill" onclick="switchTrendRange(currentTrendRange === 'today' ? '7d' : 'today', this)">
-                        <span>Monthly</span> ▾
-                    </button>
-                    <button type="button" class="vessa-dropdown-pill" title="View Full Report">
-                        ↗
-                    </button>
+                    <span class="vessa-dropdown-pill" style="pointer-events: none;">
+                        <span>Last 10 Months</span>
+                    </span>
                 </div>
             </div>
 
-            <!-- Grouped Dual Bars (Jan-Oct) & Bezier Spline Canvas -->
+            <!-- Grouped Dual Bars (10 Months) & Real Revenue Spline Canvas -->
             <div class="vessa-chart-visual">
-                <!-- Pinned peak tooltip card for October -->
+                <!-- Pinned peak tooltip card for Current Month -->
                 <div class="vessa-peak-tooltip">
-                    <div class="vessa-tooltip-month">October 2026</div>
+                    <div class="vessa-tooltip-month">{{ $currentMonthStat['month_full'] ?? now()->format('F Y') }}</div>
                     <div class="vessa-tooltip-row">
-                        <span>● Stock In:</span>
-                        <strong>$14,250</strong>
+                        <span>● Orders:</span>
+                        <strong>{{ number_format($currentMonthOrdersCount) }}</strong>
                     </div>
                     <div class="vessa-tooltip-row">
-                        <span>● Stock Out:</span>
-                        <strong>$8,120</strong>
+                        <span>● Revenue:</span>
+                        <strong>{{ $restaurant->currency ?? 'Rs.' }} {{ number_format($currentMonthRevenue) }}</strong>
                     </div>
                     <div class="vessa-tooltip-total">
-                        <span>Total Value:</span>
-                        <span>$22,370</span>
+                        <span>Avg Ticket:</span>
+                        <span>{{ $restaurant->currency ?? 'Rs.' }} {{ number_format($currentMonthAvgTicket) }}</span>
                     </div>
                 </div>
 
@@ -1975,55 +2053,35 @@
                     <line x1="20" y1="190" x2="700" y2="190" stroke="var(--border-subtle)"/>
 
                     <!-- Grouped Dual Bars for 10 Months with Staggered Entrance Growth -->
-                    <!-- 1. Jan -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 0;" x="36"  y="110" width="10" height="80" rx="4" fill="#C29842"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 0;" x="48"  y="130" width="10" height="60" rx="4" fill="#689780"/>
-                    <!-- 2. Feb -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 1;" x="98"  y="95"  width="10" height="95" rx="4" fill="#C29842"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 1;" x="110" y="115" width="10" height="75" rx="4" fill="#689780"/>
-                    <!-- 3. Mar -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 2;" x="160" y="80"  width="10" height="110" rx="4" fill="#C29842"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 2;" x="172" y="105" width="10" height="85"  rx="4" fill="#689780"/>
-                    <!-- 4. Apr -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 3;" x="222" y="70"  width="10" height="120" rx="4" fill="#C29842"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 3;" x="234" y="90"  width="10" height="100" rx="4" fill="#689780"/>
-                    <!-- 5. May -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 4;" x="284" y="85"  width="10" height="105" rx="4" fill="#C29842"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 4;" x="296" y="100" width="10" height="90"  rx="4" fill="#689780"/>
-                    <!-- 6. Jun -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 5;" x="346" y="60"  width="10" height="130" rx="4" fill="#C29842"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 5;" x="358" y="80"  width="10" height="110" rx="4" fill="#689780"/>
-                    <!-- 7. Jul -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 6;" x="408" y="55"  width="10" height="135" rx="4" fill="#C29842"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 6;" x="420" y="70"  width="10" height="120" rx="4" fill="#689780"/>
-                    <!-- 8. Aug -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 7;" x="470" y="45"  width="10" height="145" rx="4" fill="#C29842"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 7;" x="482" y="65"  width="10" height="125" rx="4" fill="#689780"/>
-                    <!-- 9. Sep -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 8;" x="532" y="60"  width="10" height="130" rx="4" fill="#C29842"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 8;" x="544" y="80"  width="10" height="110" rx="4" fill="#689780"/>
-                    <!-- 10. Oct (Highlighted Active Month) -->
-                    <rect class="vessa-chart-bar" style="--bar-idx: 9;" x="594" y="35"  width="12" height="155" rx="4" fill="#C29842"/>
-                    <rect class="vessa-chart-bar" style="--bar-idx: 9;" x="608" y="55"  width="12" height="135" rx="4" fill="#689780"/>
+                    @foreach($monthlyStats as $idx => $m)
+                        @php
+                            $cx1 = $barX1[$idx] ?? 36;
+                            $cx2 = $barX2[$idx] ?? 48;
+                            $hOrd = $maxMonthOrders > 0 ? max(6, round((($m['orders_count'] ?? 0) / $maxMonthOrders) * 140)) : 6;
+                            $yOrd = 190 - $hOrd;
+                            $hRev = $maxMonthRev > 0 ? max(6, round((($m['revenue'] ?? 0) / $maxMonthRev) * 140)) : 6;
+                            $yRev = 190 - $hRev;
+                            $barW = $m['is_current'] ? 12 : 10;
+                        @endphp
+                        <rect class="vessa-chart-bar" style="--bar-idx: {{ $idx }};" x="{{ $cx1 }}" y="{{ $yOrd }}" width="{{ $barW }}" height="{{ $hOrd }}" rx="4" fill="#C29842">
+                            <title>{{ $m['month_full'] }} Orders: {{ $m['orders_count'] }}</title>
+                        </rect>
+                        <rect class="vessa-chart-bar" style="--bar-idx: {{ $idx }};" x="{{ $cx2 }}" y="{{ $yRev }}" width="{{ $barW }}" height="{{ $hRev }}" rx="4" fill="#689780">
+                            <title>{{ $m['month_full'] }} Revenue: {{ $restaurant->currency ?? 'Rs.' }} {{ number_format($m['revenue']) }}</title>
+                        </rect>
+                    @endforeach
 
                     <!-- Overlaid Smooth Revenue Spline Area & Stroke with Drawing Reveal -->
-                    <path class="vessa-chart-curve-area" d="M 47 115 C 100 90, 160 75, 230 65 C 290 80, 350 50, 420 48 C 480 35, 540 60, 608 35 L 608 190 L 47 190 Z" fill="url(#vessaCurveAreaGrad)"/>
-                    <path class="vessa-chart-curve-stroke" d="M 47 115 C 100 90, 160 75, 230 65 C 290 80, 350 50, 420 48 C 480 35, 540 60, 608 35" stroke="#5B7896" stroke-width="3" stroke-linecap="round"/>
+                    <path class="vessa-chart-curve-area" d="{{ $chartAreaD }}" fill="url(#vessaCurveAreaGrad)"/>
+                    <path class="vessa-chart-curve-stroke" d="{{ $chartSplineD }}" stroke="#5B7896" stroke-width="3" stroke-linecap="round"/>
 
-                    <!-- Pinned peak circle on Oct with Pop-In -->
-                    <circle class="vessa-peak-circle" cx="608" cy="35" r="5" fill="#5B7896" stroke="#ffffff" stroke-width="2.5"/>
+                    <!-- Pinned peak circle on current month with Pop-In -->
+                    <circle class="vessa-peak-circle" cx="{{ $peakX }}" cy="{{ $peakY }}" r="5" fill="#5B7896" stroke="#ffffff" stroke-width="2.5"/>
 
                     <!-- Centered X-Axis Month Labels directly under each column pair -->
-                    <text x="47"  y="210" text-anchor="middle" fill="#68736D" font-size="11" font-weight="700">JAN</text>
-                    <text x="109" y="210" text-anchor="middle" fill="#68736D" font-size="11" font-weight="700">FEB</text>
-                    <text x="171" y="210" text-anchor="middle" fill="#68736D" font-size="11" font-weight="700">MAR</text>
-                    <text x="233" y="210" text-anchor="middle" fill="#68736D" font-size="11" font-weight="700">APR</text>
-                    <text x="295" y="210" text-anchor="middle" fill="#68736D" font-size="11" font-weight="700">MAY</text>
-                    <text x="357" y="210" text-anchor="middle" fill="#68736D" font-size="11" font-weight="700">JUN</text>
-                    <text x="419" y="210" text-anchor="middle" fill="#68736D" font-size="11" font-weight="700">JUL</text>
-                    <text x="481" y="210" text-anchor="middle" fill="#68736D" font-size="11" font-weight="700">AUG</text>
-                    <text x="543" y="210" text-anchor="middle" fill="#68736D" font-size="11" font-weight="700">SEP</text>
-                    <text x="607" y="210" text-anchor="middle" fill="#325744" font-size="11.5" font-weight="800">OCT</text>
+                    @foreach($monthlyStats as $idx => $m)
+                        <text x="{{ $monthCenters[$idx] ?? 47 }}" y="210" text-anchor="middle" fill="{{ $m['is_current'] ? '#325744' : '#68736D' }}" font-size="{{ $m['is_current'] ? '11.5' : '11' }}" font-weight="{{ $m['is_current'] ? '800' : '700' }}">{{ $m['month_short'] }}</text>
+                    @endforeach
                 </svg>
             </div>
         </div>
@@ -2164,7 +2222,7 @@
     </div><!-- /.vessa-row-2 -->
 
     <!-- ── CARD 7: FLOATING ASK GEMINI PILL (BOTTOM RIGHT) ── -->
-    <div class="vessa-floating-gemini-pill" onclick="alert('Foodio AI Assistant: Today your sales are trending +12.4% above average. 48 orders processed with Rs. {{ number_format($todayRevenue > 0 ? $todayRevenue : 32041) }} revenue.')">
+    <div class="vessa-floating-gemini-pill" onclick="alert('Foodio AI Assistant: Today sales are trending {{ $revenueTrendPct >= 0 ? '+' : '' }}{{ $revenueTrendPct }}% vs yesterday. {{ $totalOrdersToday }} {{ Str::plural('order', $totalOrdersToday) }} processed with {{ $restaurant->currency ?? 'Rs.' }} {{ number_format($todayRevenue) }} revenue.')">
         <span>Ask Gemini</span>
         <span class="vessa-gemini-sparkle">✦</span>
     </div>
@@ -3566,18 +3624,18 @@ function animateCountUp(el, targetNum, options = {}) {
 document.addEventListener('DOMContentLoaded', function() {
     renderSalesTrendGraph('today');
 
-    // Initial KPI Count-Up Animation
+    // Initial KPI Count-Up Animation (Real Data Only)
     const kpiSales = document.getElementById('kpi-sales');
     if (kpiSales) {
-        animateCountUp(kpiSales, {{ (int) ($todayRevenue > 0 ? $todayRevenue : 32041) }}, { prefix: 'Rs. ', duration: 700 });
+        animateCountUp(kpiSales, {{ (int) $todayRevenue }}, { prefix: '{{ $restaurant->currency ?? 'Rs.' }} ', duration: 700 });
     }
     const kpiTotal = document.getElementById('kpi-total-orders');
     if (kpiTotal) {
-        animateCountUp(kpiTotal, {{ (int) ($totalOrdersToday > 0 ? $totalOrdersToday : 4345) }}, { duration: 650 });
+        animateCountUp(kpiTotal, {{ (int) $totalOrdersToday }}, { duration: 650 });
     }
     const kpiStock = document.getElementById('kpi-low-stock');
     if (kpiStock) {
-        animateCountUp(kpiStock, {{ (int) ($unavailableItems->count() > 0 ? $unavailableItems->count() : 7) }}, { duration: 500 });
+        animateCountUp(kpiStock, {{ (int) $unavailableCount }}, { duration: 500 });
     }
     const kpiFleetAvail = document.getElementById('kpiFleetAvailable');
     if (kpiFleetAvail) {

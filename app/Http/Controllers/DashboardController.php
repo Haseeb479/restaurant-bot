@@ -278,34 +278,116 @@ class DashboardController extends Controller
         $totalFeedbacks  = $feedbacksQuery->count();
         $recentFeedbacks = $feedbacksQuery->take(5)->get();
 
+        // ── Real Data Metrics (Zero Dummy Numbers) ────────────────────────────
+        // 1. Active Dine-in table orders
+        $activeDineInCount = $todayOrders->filter(fn($o) => $o->isDineIn())
+            ->whereIn('status', ['pending', 'confirmed', 'preparing', 'served'])
+            ->count();
+
+        // 2. Yesterday comparison metrics for real trend percentages
+        $yesterdayStart = now()->subDay()->startOfDay();
+        $yesterdayEnd   = now()->subDay()->endOfDay();
+        $yesterdayOrders = $r->orders()->reorder()->whereBetween('created_at', [$yesterdayStart, $yesterdayEnd])->get();
+        $yesterdayRevenue = (float) $yesterdayOrders->where('status', '!=', 'cancelled')->sum('total');
+        $yesterdayOrdersCount = $yesterdayOrders->count();
+
+        $ordersTrendPct = $yesterdayOrdersCount > 0 
+            ? round((($totalOrdersToday - $yesterdayOrdersCount) / $yesterdayOrdersCount) * 100, 1)
+            : ($totalOrdersToday > 0 ? 100.0 : 0.0);
+
+        $revenueTrendPct = $yesterdayRevenue > 0 
+            ? round((($todayRevenue - $yesterdayRevenue) / $yesterdayRevenue) * 100, 1)
+            : ($todayRevenue > 0 ? 100.0 : 0.0);
+
+        // 3. Menu stock & availability metrics
+        $categoriesCount     = $r->categories()->count();
+        $totalMenuItemsCount = $r->menuItems()->count();
+        $unavailableCount    = $r->menuItems()->where('is_available', false)->count();
+        $availableCount      = max(0, $totalMenuItemsCount - $unavailableCount);
+        $availPct            = $totalMenuItemsCount > 0 ? round(($availableCount / $totalMenuItemsCount) * 100) : 100;
+        $unavailPct          = 100 - $availPct;
+
+        // 4. 10-Month real sales & order trends
+        $tenMonthsAgo = now()->subMonths(9)->startOfMonth();
+        $driver = \DB::connection()->getDriverName();
+        if ($driver === 'sqlite') {
+            $monthExpr = "strftime('%Y-%m', created_at)";
+        } elseif ($driver === 'pgsql') {
+            $monthExpr = "TO_CHAR(created_at, 'YYYY-MM')";
+        } else {
+            $monthExpr = "DATE_FORMAT(created_at, '%Y-%m')";
+        }
+
+        $monthlyStatsRaw = $r->orders()
+            ->reorder()
+            ->where('created_at', '>=', $tenMonthsAgo)
+            ->where('status', '!=', 'cancelled')
+            ->selectRaw("{$monthExpr} as m_key, COUNT(*) as orders_count, SUM(total) as revenue")
+            ->groupBy('m_key')
+            ->get()
+            ->keyBy('m_key');
+
+        $monthlyStats = [];
+        for ($i = 9; $i >= 0; $i--) {
+            $dt = now()->subMonths($i);
+            $key = $dt->format('Y-m');
+            $stat = $monthlyStatsRaw->get($key);
+            $monthlyStats[] = [
+                'month_short' => strtoupper($dt->format('M')),
+                'month_full'  => $dt->format('F Y'),
+                'orders_count'=> (int) ($stat->orders_count ?? 0),
+                'revenue'     => (float) ($stat->revenue ?? 0),
+                'is_current'  => $i === 0,
+            ];
+        }
+
+        $currentMonthStat = end($monthlyStats);
+        $currentMonthRevenue = (float) ($currentMonthStat['revenue'] ?? 0);
+        $currentMonthOrdersCount = (int) ($currentMonthStat['orders_count'] ?? 0);
+        $currentMonthAvgTicket = $currentMonthOrdersCount > 0 ? round($currentMonthRevenue / $currentMonthOrdersCount) : 0;
+
         return view('dashboard.orders', [
-            'restaurant'          => $r,
-            'orders'              => $orders,
-            'today'               => $todayOrders,
-            'todayOrders'         => $todayOrders,
-            'liveOrders'          => $liveOrders,
-            'liveOrdersCount'     => $liveOrdersCount,
-            'todayRevenue'        => $todayRevenue,
-            'activeRidersCount'   => $activeRidersCount,
-            'totalOrdersToday'    => $totalOrdersToday,
-            'menuItemsCount'      => $menuItemsCount,
-            'riders'              => $riders,
-            'menuItems'           => $menuItems,
-            'selectedOrder'       => $selectedOrder,
-            'statusCounts'        => $statusCounts,
-            'statusPercentages'   => $statusPercentages,
-            'weeklyTrend'         => $weeklyTrend,
-            'topSellingItems'     => $topSellingItems,
-            'recentActivity'      => $recentActivity,
-            'pendingCount'        => $todayOrders->where('status', 'pending')->count(),
-            'averageRating'       => $averageRating,
-            'totalFeedbacks'      => $totalFeedbacks,
-            'recentFeedbacks'     => $recentFeedbacks,
-            'unavailableItems'    => $unavailableItems,
-            'waitingRidersOrders' => $waitingRidersOrders,
-            'todayTrendData'      => $todayTrendData,
-            'trend7DData'         => $trend7DData,
-            'trend30DData'        => $trend30DData,
+            'restaurant'               => $r,
+            'orders'                   => $orders,
+            'today'                    => $todayOrders,
+            'todayOrders'              => $todayOrders,
+            'liveOrders'               => $liveOrders,
+            'liveOrdersCount'          => $liveOrdersCount,
+            'todayRevenue'             => $todayRevenue,
+            'activeRidersCount'        => $activeRidersCount,
+            'totalOrdersToday'         => $totalOrdersToday,
+            'menuItemsCount'           => $menuItemsCount,
+            'riders'                   => $riders,
+            'menuItems'                => $menuItems,
+            'selectedOrder'            => $selectedOrder,
+            'statusCounts'             => $statusCounts,
+            'statusPercentages'        => $statusPercentages,
+            'weeklyTrend'              => $weeklyTrend,
+            'topSellingItems'          => $topSellingItems,
+            'recentActivity'           => $recentActivity,
+            'pendingCount'             => $todayOrders->where('status', 'pending')->count(),
+            'averageRating'            => $averageRating,
+            'totalFeedbacks'           => $totalFeedbacks,
+            'recentFeedbacks'          => $recentFeedbacks,
+            'unavailableItems'         => $unavailableItems,
+            'waitingRidersOrders'      => $waitingRidersOrders,
+            'todayTrendData'           => $todayTrendData,
+            'trend7DData'              => $trend7DData,
+            'trend30DData'             => $trend30DData,
+            'activeDineInCount'        => $activeDineInCount,
+            'ordersTrendPct'           => $ordersTrendPct,
+            'revenueTrendPct'          => $revenueTrendPct,
+            'categoriesCount'          => $categoriesCount,
+            'totalMenuItemsCount'      => $totalMenuItemsCount,
+            'unavailableCount'         => $unavailableCount,
+            'availableCount'           => $availableCount,
+            'availPct'                 => $availPct,
+            'unavailPct'               => $unavailPct,
+            'monthlyStats'             => $monthlyStats,
+            'currentMonthStat'         => $currentMonthStat,
+            'currentMonthRevenue'      => $currentMonthRevenue,
+            'currentMonthOrdersCount'  => $currentMonthOrdersCount,
+            'currentMonthAvgTicket'    => $currentMonthAvgTicket,
         ]);
     }
 
