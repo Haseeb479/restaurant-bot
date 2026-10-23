@@ -442,28 +442,202 @@
         }
 
         .pos-dish-sizes-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+            gap: 5px;
             margin-top: 8px;
             padding-top: 8px;
             border-top: 1px dashed var(--border-subtle);
         }
         .pos-dish-size-pill {
-            padding: 3px 8px;
-            border-radius: 9999px;
+            padding: 4px 6px;
+            border-radius: 9px;
             border: 1px solid var(--border-subtle);
             background: var(--bg-canvas);
-            font-size: 10.5px;
-            font-weight: 700;
-            color: var(--text-body);
+            color: var(--text-heading);
             cursor: pointer;
             transition: all 0.14s ease;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.15;
+            user-select: none;
         }
         .pos-dish-size-pill:hover {
             background: var(--color-forest);
             color: #ffffff;
             border-color: var(--color-forest);
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(17,66,50,0.18);
+        }
+        .pos-dish-size-pill .pill-size-name {
+            font-size: 10.5px;
+            font-weight: 800;
+            display: block;
+        }
+        .pos-dish-size-pill .pill-size-price {
+            font-size: 9.5px;
+            font-weight: 700;
+            color: var(--color-forest);
+            display: block;
+        }
+        .pos-dish-size-pill:hover .pill-size-price {
+            color: #ffffff;
+            opacity: 0.95;
+        }
+
+        /* ── DEDICATED PIZZA / DISH SIZE SELECTION MODAL ── */
+        .pos-size-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(24, 34, 29, 0.50);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            animation: posModalFade 0.18s ease both;
+        }
+        @keyframes posModalFade {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+        .pos-size-modal-card {
+            background: #ffffff;
+            border-radius: 26px;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+            width: 100%;
+            max-width: 480px;
+            padding: 26px 28px;
+            border: 1px solid var(--border-subtle);
+            animation: posModalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+            box-sizing: border-box;
+        }
+        @keyframes posModalPop {
+            from { transform: scale(0.92) translateY(12px); opacity: 0; }
+            to   { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        .pos-size-modal-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .pos-size-modal-cat {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--color-forest);
+            background: var(--color-forest-light);
+            padding: 3px 10px;
+            border-radius: 9999px;
+            display: inline-block;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .pos-size-modal-title {
+            font-size: 21px;
+            font-weight: 800;
+            color: var(--text-heading);
+            letter-spacing: -0.02em;
+            line-height: 1.25;
+        }
+        .pos-size-modal-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1px solid var(--border-subtle);
+            background: var(--bg-canvas);
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+        .pos-size-modal-close:hover {
+            background: var(--color-forest);
+            color: #ffffff;
+        }
+        .pos-size-modal-sub {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+        .pos-size-modal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .pos-size-option-card {
+            background: var(--bg-canvas);
+            border: 2px solid transparent;
+            border-radius: 18px;
+            padding: 18px 14px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.16s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            user-select: none;
+        }
+        .pos-size-option-card:hover {
+            border-color: var(--color-forest);
+            background: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(17, 66, 50, 0.12);
+        }
+        .pos-size-option-shortcut {
+            font-size: 10px;
+            font-weight: 800;
+            background: rgba(0, 0, 0, 0.06);
+            color: var(--text-muted);
+            padding: 2px 7px;
+            border-radius: 5px;
+            margin-bottom: 2px;
+        }
+        .pos-size-option-name {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--text-heading);
+            letter-spacing: -0.01em;
+        }
+        .pos-size-option-price {
+            font-size: 17px;
+            font-weight: 800;
+            color: var(--color-forest);
+        }
+        .pos-size-modal-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-top: 14px;
+            border-top: 1px solid var(--border-subtle);
+        }
+        .pos-size-modal-cancel {
+            padding: 8px 20px;
+            border-radius: 9999px;
+            border: 1px solid var(--border-subtle);
+            background: var(--bg-canvas);
+            font-size: 12.5px;
+            font-weight: 700;
+            color: var(--text-body);
+            cursor: pointer;
+            transition: all 0.14s ease;
+        }
+        .pos-size-modal-cancel:hover {
+            background: #ffffff;
+            color: var(--text-heading);
         }
 
         /* RIGHT: CASHIER REGISTER SLIP (Fixed Viewport Shell with Internal Scroll) */
@@ -964,15 +1138,25 @@
 
                         <div>
                             <div class="pos-dish-bottom">
-                                <span class="pos-dish-price">Rs. {{ number_format($basePrice) }}</span>
-                                <div class="pos-dish-add-circle">+</div>
+                                <span class="pos-dish-price">
+                                    @if($hasSizes)
+                                        <span style="font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">From</span>
+                                    @endif
+                                    Rs. {{ number_format($basePrice) }}
+                                </span>
+                                <div class="pos-dish-add-circle" title="{{ $hasSizes ? 'Click to Choose Size' : 'Add to Slip' }}">
+                                    {{ $hasSizes ? '⚡' : '+' }}
+                                </div>
                             </div>
 
                             @if($hasSizes)
                                 <div class="pos-dish-sizes-row" onclick="event.stopPropagation()">
                                     @foreach($dish->sizes as $s)
-                                        <button type="button" class="pos-dish-size-pill" onclick="addDishDirect({{ $dish->id }}, '{{ addslashes($dish->name) }}', {{ (float)($s['price'] ?? 0) }}, '{{ addslashes($s['size'] ?? $s['name'] ?? '') }}')">
-                                            {{ $s['size'] ?? $s['name'] }}: Rs. {{ number_format($s['price']) }}
+                                        <button type="button" class="pos-dish-size-pill" 
+                                                title="Add {{ $s['size'] ?? $s['name'] }} (Rs. {{ number_format($s['price']) }})"
+                                                onclick="addDishDirect({{ $dish->id }}, '{{ addslashes($dish->name) }}', {{ (float)($s['price'] ?? 0) }}, '{{ addslashes($s['size'] ?? $s['name'] ?? '') }}')">
+                                            <span class="pill-size-name">{{ $s['size'] ?? $s['name'] }}</span>
+                                            <span class="pill-size-price">Rs. {{ number_format($s['price']) }}</span>
                                         </button>
                                     @endforeach
                                 </div>
@@ -1067,6 +1251,27 @@
         <span id="posMobileSlipTotal">Rs. 0 →</span>
     </button>
 
+    <!-- ── DEDICATED SIZE SELECTION MODAL ("SIZE SESSION") ── -->
+    <div id="posSizeModal" class="pos-size-modal-backdrop" style="display: none;" onclick="if(event.target===this) closeSizeModal()">
+        <div class="pos-size-modal-card">
+            <div class="pos-size-modal-header">
+                <div>
+                    <span class="pos-size-modal-cat" id="sizeModalCat">Pizza</span>
+                    <h3 class="pos-size-modal-title" id="sizeModalTitle">Dish Name</h3>
+                </div>
+                <button type="button" class="pos-size-modal-close" onclick="closeSizeModal()" title="Close">✕</button>
+            </div>
+            <p class="pos-size-modal-sub">Select size for this order item:</p>
+            <div class="pos-size-modal-grid" id="sizeModalOptions">
+                <!-- Dynamically populated options -->
+            </div>
+            <div class="pos-size-modal-footer">
+                <span style="font-size: 11.5px; color: var(--text-muted);">Tip: Press keys 1, 2, 3 or Esc to cancel</span>
+                <button type="button" class="pos-size-modal-cancel" onclick="closeSizeModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ── CLIENT LOGIC ── -->
     <script>
     const posCatalog = @json($menuItems);
@@ -1136,16 +1341,66 @@
     }
 
     // Add dish
+    let currentSizeDish = null;
+
     function onDishCardClick(dishId) {
         const dish = posCatalog.find(d => d.id === dishId);
         if (!dish) return;
 
         if (dish.sizes && Array.isArray(dish.sizes) && dish.sizes.length > 0) {
-            const first = dish.sizes[0];
-            addDishDirect(dish.id, dish.name, parseFloat(first.price || dish.price || 0), first.size || first.name || '');
+            openSizePickerModal(dish);
         } else {
             addDishDirect(dish.id, dish.name, parseFloat(dish.price || 0), null);
         }
+    }
+
+    function openSizePickerModal(dish) {
+        currentSizeDish = dish;
+        const modal = document.getElementById('posSizeModal');
+        const catEl = document.getElementById('sizeModalCat');
+        const titleEl = document.getElementById('sizeModalTitle');
+        const gridEl = document.getElementById('sizeModalOptions');
+
+        if (!modal || !dish) return;
+
+        if (catEl) catEl.textContent = dish.category?.name || 'Dish';
+        if (titleEl) titleEl.textContent = dish.name;
+
+        let optionsHtml = '';
+        (dish.sizes || []).forEach((s, idx) => {
+            const sizeName = s.size || s.name || `Size ${idx + 1}`;
+            const sizePrice = Number(s.price) || 0;
+            const shortcutNum = idx + 1 <= 9 ? idx + 1 : '';
+
+            optionsHtml += `
+                <div class="pos-size-option-card" onclick="selectSizeAndAdd(${idx})" title="Add ${escapeHtml(sizeName)} (Rs. ${sizePrice.toLocaleString()})">
+                    ${shortcutNum ? `<span class="pos-size-option-shortcut">Press ${shortcutNum}</span>` : ''}
+                    <span class="pos-size-option-name">${escapeHtml(sizeName)}</span>
+                    <span class="pos-size-option-price">Rs. ${sizePrice.toLocaleString()}</span>
+                </div>
+            `;
+        });
+
+        gridEl.innerHTML = optionsHtml;
+        modal.style.display = 'flex';
+    }
+
+    function selectSizeAndAdd(idx) {
+        if (!currentSizeDish || !currentSizeDish.sizes || !currentSizeDish.sizes[idx]) return;
+        const s = currentSizeDish.sizes[idx];
+        addDishDirect(
+            currentSizeDish.id,
+            currentSizeDish.name,
+            Number(s.price) || 0,
+            s.size || s.name || ''
+        );
+        closeSizeModal();
+    }
+
+    function closeSizeModal() {
+        const modal = document.getElementById('posSizeModal');
+        if (modal) modal.style.display = 'none';
+        currentSizeDish = null;
     }
 
     function addDishDirect(id, name, price, size) {
@@ -1376,6 +1631,22 @@
 
     // Keyboard Shortcuts
     document.addEventListener('keydown', function(e) {
+        // Size Modal keyboard shortcuts
+        const sizeModal = document.getElementById('posSizeModal');
+        if (sizeModal && sizeModal.style.display === 'flex' && currentSizeDish) {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                closeSizeModal();
+                return;
+            }
+            const num = parseInt(e.key);
+            if (!isNaN(num) && num >= 1 && num <= (currentSizeDish.sizes || []).length) {
+                e.preventDefault();
+                selectSizeAndAdd(num - 1);
+                return;
+            }
+        }
+
         if (e.key === 'Enter' && (e.ctrlKey || e.metaKey || document.activeElement.tagName !== 'INPUT')) {
             e.preventDefault();
             submitPosBill();
