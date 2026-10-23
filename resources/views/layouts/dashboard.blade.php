@@ -672,10 +672,17 @@
 
         /* ── 3. Main Workspace ── */
         .vessa-workspace {
-            flex: 1;
+            flex: 1 1 0%;
             min-width: 0;
-            width: calc(100% - 74px);
+            max-width: calc(100% - 74px);
             box-sizing: border-box;
+            padding: 0 !important;
+        }
+
+        main.foodio-page-container {
+            padding: 0 !important;
+            max-width: 100% !important;
+            width: 100% !important;
         }
 
         .main-wrapper {
@@ -1724,7 +1731,7 @@
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M12 5v14M5 12h14"/>
                 </svg>
-                <span>+ New</span>
+                <span>New</span>
             </a>
 
             <!-- User Profile Capsule: Mint Avatar + Text Column -->

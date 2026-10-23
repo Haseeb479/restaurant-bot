@@ -35,6 +35,8 @@
         flex-direction: column;
         gap: 24px;
         width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
     }
 
     /* ── BENTO GRID ALIGNMENT (EXACT REFERENCE REPLICA) ── */
@@ -43,7 +45,9 @@
         grid-template-columns: 1.55fr 1fr 1fr 1fr;
         gap: 18px;
         width: 100%;
+        max-width: 100%;
         align-items: stretch;
+        box-sizing: border-box;
     }
 
     .vessa-row-2 {
@@ -51,8 +55,10 @@
         grid-template-columns: 1.85fr 1fr;
         gap: 18px;
         width: 100%;
+        max-width: 100%;
         margin-top: 18px;
         align-items: stretch;
+        box-sizing: border-box;
     }
 
     /* ── 3. DASHBOARD CARDS — STAGGERED ENTRANCE ANIMATION ── */
@@ -121,11 +127,11 @@
     @keyframes vessaTooltipPop {
         0% {
             opacity: 0;
-            transform: translate(-50%, -90%) scale(0.92);
+            transform: translate(-50%, 8px) scale(0.94);
         }
         100% {
             opacity: 1;
-            transform: translate(-50%, -100%) scale(1);
+            transform: translate(-50%, 0) scale(1);
         }
     }
     .vessa-peak-circle {
@@ -302,6 +308,7 @@
         align-items: center;
         justify-content: space-between;
         gap: 8px;
+        height: 34px;
         margin-bottom: 12px;
     }
     .vessa-metric-title {
@@ -347,6 +354,14 @@
         color: #C29842;
     }
 
+    .vessa-metric-val-row {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        height: 36px;
+        margin-bottom: 12px;
+    }
+
     .vessa-trend-pill {
         display: inline-flex;
         align-items: center;
@@ -378,13 +393,13 @@
         font-weight: 800;
         color: var(--text-heading);
         letter-spacing: -0.03em;
-        line-height: 1.1;
-        margin-bottom: 14px;
+        line-height: 1;
+        margin-bottom: 0;
     }
 
     .vessa-metric-spark-wrap {
         width: 100%;
-        height: 48px;
+        height: 42px;
         display: flex;
         align-items: center;
         margin-bottom: 10px;
@@ -394,6 +409,11 @@
         font-size: 11.5px;
         font-weight: 600;
         color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 20px;
+        line-height: 1;
     }
 
     /* Low Stock Horizontal Split Bar */
@@ -404,7 +424,6 @@
         background: var(--inset-pill-bg);
         display: flex;
         overflow: hidden;
-        margin-bottom: 12px;
     }
     .vessa-split-bar-amber {
         height: 100%;
@@ -426,22 +445,16 @@
     }
 
     .vessa-avatar-chips {
-        display: flex;
+        display: inline-flex;
         align-items: center;
-        gap: 4px;
+        gap: 5px;
     }
-    .vessa-chip {
-        width: 22px;
-        height: 22px;
+    .vessa-status-dot {
+        width: 8px;
+        height: 8px;
         border-radius: 50%;
-        background: var(--inset-pill-bg);
-        border: 1px solid var(--border-card);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 9px;
-        font-weight: 800;
-        color: var(--text-heading);
+        display: inline-block;
+        flex-shrink: 0;
     }
 
     /* ── ROW 2: MAIN CHART & GAUGE ── */
@@ -473,7 +486,9 @@
         justify-content: space-between;
         flex-wrap: wrap;
         gap: 14px;
-        margin-bottom: 22px;
+        margin-bottom: 24px;
+        position: relative;
+        z-index: 5;
     }
     .vessa-chart-title {
         font-size: 16px;
@@ -534,21 +549,38 @@
     /* Floating interactive peak tooltip (Pure Crisp White #FFFFFF) */
     .vessa-peak-tooltip {
         position: absolute;
-        top: 32px;
+        top: 52px;
         left: 84.4%;
-        transform: translate(-50%, -100%);
+        transform: translateX(-50%);
         background: #ffffff;
         border: 1px solid var(--border-subtle);
-        border-radius: 16px;
-        padding: 10px 14px;
+        border-radius: 14px;
+        padding: 9px 13px;
         box-shadow: 0 10px 25px rgba(24, 34, 29, 0.08);
-        z-index: 10;
+        z-index: 5;
         pointer-events: none;
-        min-width: 160px;
+        min-width: 155px;
+    }
+    .vessa-peak-tooltip::after {
+        content: '';
+        position: absolute;
+        top: -5px;
+        left: 50%;
+        transform: translateX(-50%) rotate(45deg);
+        width: 8px;
+        height: 8px;
+        background: #ffffff;
+        border-left: 1px solid var(--border-subtle);
+        border-top: 1px solid var(--border-subtle);
     }
     [data-theme="dark"] .vessa-peak-tooltip {
         background: #18221D;
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    }
+    [data-theme="dark"] .vessa-peak-tooltip::after {
+        background: #18221D;
+        border-left: 1px solid var(--border-subtle);
+        border-top: 1px solid var(--border-subtle);
     }
     .vessa-tooltip-month {
         font-size: 11px;
@@ -1773,7 +1805,7 @@
             <div class="vessa-welcome-actions">
                 <a href="{{ route('dashboard.pos', $restaurant->id) }}" class="vessa-btn-forest">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-                    + New order
+                    <span>New order</span>
                 </a>
                 <a href="{{ route('dashboard.dine-in', $restaurant->id) }}" class="vessa-btn-outline">
                     ⚡ Table register
@@ -1794,21 +1826,21 @@
                         </svg>
                     </div>
                 </div>
-                <div style="display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px;">
-                    <div class="vessa-metric-val" id="kpi-total-orders" style="margin-bottom: 0;">
+                <div class="vessa-metric-val-row">
+                    <div class="vessa-metric-val" id="kpi-total-orders">
                         {{ number_format($totalOrdersToday > 0 ? $totalOrdersToday : 4345) }}
                     </div>
-                    <span class="vessa-trend-pill coral" style="font-size: 11.5px;">↘ 3.2%</span>
+                    <span class="vessa-trend-pill coral">↘ 3.2%</span>
                 </div>
                 <!-- Smooth wavy green spline curve -->
-                <div class="vessa-metric-spark-wrap" style="height: 38px; margin-bottom: 6px;">
+                <div class="vessa-metric-spark-wrap">
                     <svg width="100%" height="38" viewBox="0 0 120 38" fill="none">
-                        <path class="vessa-spark-line" d="M 4 26 C 24 32, 40 16, 64 22 C 84 26, 98 10, 116 6" stroke="var(--color-forest)" stroke-width="2.4" stroke-linecap="round"/>
+                        <path class="vessa-spark-line" d="M 4 26 C 24 32, 40 16, 64 22 C 84 26, 98 10, 116 6" stroke="var(--color-sage)" stroke-width="2.4" stroke-linecap="round"/>
                     </svg>
                 </div>
             </div>
             <div class="vessa-metric-subtext">
-                12 SKUs • 3 sites
+                <span>12 SKUs • 3 sites</span>
             </div>
         </div>
 
@@ -1824,21 +1856,21 @@
                         </svg>
                     </div>
                 </div>
-                <div style="display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px;">
-                    <div class="vessa-metric-val" id="kpi-sales" style="margin-bottom: 0;">
+                <div class="vessa-metric-val-row">
+                    <div class="vessa-metric-val" id="kpi-sales">
                         ${{ number_format($todayRevenue > 0 ? $todayRevenue : 32039) }}
                     </div>
-                    <span class="vessa-trend-pill up" style="font-size: 11.5px;">↗ 4.9%</span>
+                    <span class="vessa-trend-pill up">↗ 4.9%</span>
                 </div>
                 <!-- Smooth wavy teal spline curve -->
-                <div class="vessa-metric-spark-wrap" style="height: 38px; margin-bottom: 6px;">
+                <div class="vessa-metric-spark-wrap">
                     <svg width="100%" height="38" viewBox="0 0 120 38" fill="none">
-                        <path class="vessa-spark-line" d="M 4 30 C 28 32, 48 18, 72 24 C 92 16, 102 10, 116 5" stroke="#648C94" stroke-width="2.4" stroke-linecap="round"/>
+                        <path class="vessa-spark-line" d="M 4 28 C 28 32, 48 18, 72 24 C 92 16, 102 10, 116 6" stroke="#648C94" stroke-width="2.4" stroke-linecap="round"/>
                     </svg>
                 </div>
             </div>
             <div class="vessa-metric-subtext">
-                At cost
+                <span>At cost</span>
             </div>
         </div>
 
@@ -1855,24 +1887,26 @@
                         </svg>
                     </div>
                 </div>
-                <div style="display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px;">
-                    <div class="vessa-metric-val" id="kpi-low-stock" style="margin-bottom: 0;">
+                <div class="vessa-metric-val-row">
+                    <div class="vessa-metric-val" id="kpi-low-stock">
                         {{ $unavailableItems->count() > 0 ? $unavailableItems->count() : 7 }}
                     </div>
-                    <span class="vessa-trend-pill coral" style="font-size: 11.5px;">⚠ 1 out</span>
+                    <span class="vessa-trend-pill coral">⚠ 1 out</span>
                 </div>
                 <!-- Dual Split Progress Bar -->
-                <div class="vessa-split-bar" style="margin-top: 10px; margin-bottom: 16px;">
-                    <div class="vessa-split-bar-amber" style="width: 58%;"></div>
-                    <div class="vessa-split-bar-coral" style="width: 42%;"></div>
+                <div class="vessa-metric-spark-wrap">
+                    <div class="vessa-split-bar">
+                        <div class="vessa-split-bar-amber" style="width: 58%;"></div>
+                        <div class="vessa-split-bar-coral" style="width: 42%;"></div>
+                    </div>
                 </div>
             </div>
-            <div class="vessa-metric-subtext" style="display: flex; align-items: center; justify-content: space-between;">
+            <div class="vessa-metric-subtext">
                 <span>3 products • 4 materials</span>
-                <div class="vessa-avatar-chips">
-                    <span class="vessa-chip" style="background:#fde68a; color:#92400e;">●</span>
-                    <span class="vessa-chip" style="background:#fed7aa; color:#9a3412;">●</span>
-                    <span class="vessa-chip" style="background:#fecdd3; color:#9f1239;">●</span>
+                <div class="vessa-avatar-chips" title="Low stock indicators">
+                    <span class="vessa-status-dot" style="background: #C29842;"></span>
+                    <span class="vessa-status-dot" style="background: #E5A856;"></span>
+                    <span class="vessa-status-dot" style="background: #A64444;"></span>
                 </div>
             </div>
         </div>
@@ -1978,13 +2012,19 @@
 
                     <!-- Pinned peak circle on Oct with Pop-In -->
                     <circle class="vessa-peak-circle" cx="608" cy="35" r="5" fill="#5B7896" stroke="#ffffff" stroke-width="2.5"/>
-                </svg>
 
-                <!-- Month Labels Bar -->
-                <div style="display: flex; justify-content: space-between; padding: 6px 12px 0; font-size: 11px; font-weight: 700; color: var(--text-light); text-transform: uppercase;">
-                    <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
-                    <span>Jul</span><span>Aug</span><span>Sep</span><span style="color: var(--color-forest); font-weight: 800;">Oct</span>
-                </div>
+                    <!-- Centered X-Axis Month Labels directly under each column pair -->
+                    <text x="47"  y="210" text-anchor="middle" fill="#68736D" font-size="11" font-weight="700">JAN</text>
+                    <text x="109" y="210" text-anchor="middle" fill="#68736D" font-size="11" font-weight="700">FEB</text>
+                    <text x="171" y="210" text-anchor="middle" fill="#68736D" font-size="11" font-weight="700">MAR</text>
+                    <text x="233" y="210" text-anchor="middle" fill="#68736D" font-size="11" font-weight="700">APR</text>
+                    <text x="295" y="210" text-anchor="middle" fill="#68736D" font-size="11" font-weight="700">MAY</text>
+                    <text x="357" y="210" text-anchor="middle" fill="#68736D" font-size="11" font-weight="700">JUN</text>
+                    <text x="419" y="210" text-anchor="middle" fill="#68736D" font-size="11" font-weight="700">JUL</text>
+                    <text x="481" y="210" text-anchor="middle" fill="#68736D" font-size="11" font-weight="700">AUG</text>
+                    <text x="543" y="210" text-anchor="middle" fill="#68736D" font-size="11" font-weight="700">SEP</text>
+                    <text x="607" y="210" text-anchor="middle" fill="#325744" font-size="11.5" font-weight="800">OCT</text>
+                </svg>
             </div>
         </div>
 
